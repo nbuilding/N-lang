@@ -16,5 +16,7 @@ if 6 / 2 = 3 sendt goto
 ; this can also be used to make functions like in Assembly, so a stack may need to be implemented
 ; global constants can be included by the command packs
 
+  (cool 6) 2 + 2 ; uwu higher order functions
+
 ; nifek is like exit but made by the fek.py script
 nifek
