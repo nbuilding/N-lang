@@ -19,11 +19,11 @@ line -> lineComment {% () => null %}
 	| command _ lineComment:? {% id %}
 
 # [label:]functionCall
-command -> label [\s]:* functionCall {% ([label, , fnCall]) => ({ label, ...fnCall }) %}
+command -> label _ newline _ functionCall {% ([label, , , , fnCall]) => ({ label, ...fnCall }) %}
 	| functionCall {% id %}
 
 # label:
-label -> identifier _ ":" {% id %}
+label -> ">" _ identifier {% ([, , label]) => label %}
 
 # identifier [...parameters]
 functionCall -> expression {% id %}

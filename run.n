@@ -4,11 +4,11 @@
 import fek
 
 ; some commands in fek here (the fek.py script will handle these)
-fek:
+> fek
 paer "fek\"ok"
 
 ; sendt sends the processing to the corresponding line, like GOTO in basic
-goto:
+> goto
 sendt fek
 
 ; here this creates an infinite loop, but an if instruction can be used like so:
