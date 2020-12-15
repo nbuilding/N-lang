@@ -1,12 +1,8 @@
 import re
 import functools
 import importlib
+from impdata import *
 
-class Error:
-	def __init__(self, message, linenumber, char):
-		self.message = message
-		self.linenumber = linenumber
-		self.char = char
 
 # get lines, strip, and remove any emtpy lines
 lines = []
@@ -36,9 +32,6 @@ def findQuotes(s):
 
 	return out
 
-def throwError(e):
-	print("Error at: " + str(e.linenumber) + ", " + str(e.char) + ": " + e.message)
-	exit()
 
 def inQuotes(l, q):
 	for i in q:
@@ -52,9 +45,10 @@ def sReplace(s, f, r):
 
 def runCommand(c, l):
 	for imp in imports:
-		l = imp.runCommand(c, l)
-		if l != -1:
-			return l
+		li = imp.runCommand(c, l, SysInfo(labels))
+
+		if li != -1:
+			return li
 
 	return runBaseCommand(c, l)
 
@@ -81,12 +75,9 @@ def runBaseCommand(c, l):
 		if not works:
 			throwError(Error("Modlue not found", l + 1, 8))
 
-		imports[-1].init()
 		return l
 	else:
 		return l
-
-l = []
 
 for linenumb,line in enumerate(lines):
 	if line != "":
@@ -106,25 +97,20 @@ for linenumb,line in enumerate(lines):
 		# check if line declares a label
 		if line.startswith(">"):
 			labels[line[1:].strip()] = linenumb
-		else:
-			l.append(line)
 
-lines = l
 
 # linenumber, useful because it will be changed by sendt
 linenumb = 0
 
 while True:
-	try:
-		line = lines[linenumb]
-	except:
-		end = True
-
-	if end:
+	if linenumb >= len(lines):
 		exit()
+	line = lines[linenumb]
 
-	if line != "":
+
+	if line != "" and not line.startswith(">"):
 		linenumb = runCommand(line, linenumb)
+
 				
 
 
