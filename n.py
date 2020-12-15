@@ -51,6 +51,11 @@ def sReplace(s, f, r):
 	return re.sub(r'(' + f + r')(?=(?:[^"]|"[^"]*")*$)', r, s)
 
 def runCommand(c, l):
+	for imp in imports:
+		l = imp.runCommand(c, l)
+		if l != -1:
+			return l
+
 	return runBaseCommand(c, l)
 
 def runBaseCommand(c, l):
@@ -65,16 +70,18 @@ def runBaseCommand(c, l):
 		if re.search(r'\((.+)\)', c) == None:
 			throwError(Error("Boolean not found", l, 4))
 		if eval(re.search(r'\((.+)\)', c).group(0).replace('&&', 'and').replace('||', 'or').replace('!', 'not ')):
-			return runCommand(c[re.search(r'\((.+)\)', c).span()[1] + 1 : len(c)].strip(), l)
+			return runCommand(c[re.search(r'\((.+)\)', c).span()[1] + 1 :].strip(), l)
 	elif c.split(" ")[0].strip() == "import":
 		works = True
 		try:
-			imports.append(import_module(c.split(" ")[1].strip()))
+			imports.append(importlib.import_module(c.split(" ")[1].strip()))
 		except:
 			works = False
 
 		if not works:
-			throwError(Error("Modlue not found", l, 8))
+			throwError(Error("Modlue not found", l + 1, 8))
+
+		imports[-1].init()
 		return l
 	else:
 		return l
@@ -98,7 +105,7 @@ for linenumb,line in enumerate(lines):
 
 		# check if line declares a label
 		if line.startswith(">"):
-			labels[line[1:len(line)].strip()] = linenumb
+			labels[line[1:].strip()] = linenumb
 		else:
 			l.append(line)
 
@@ -117,9 +124,7 @@ while True:
 		exit()
 
 	if line != "":
-		
-		if functools.reduce(lambda x, y: x or y, [line.startswith(l) for l in specialcom]):
-			linenumb = runCommand(line, linenumb)
+		linenumb = runCommand(line, linenumb)
 				
 
 
