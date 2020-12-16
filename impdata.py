@@ -1,5 +1,5 @@
 class SysInfo:
-	def __init__(self, labels):
+	def __init__(self, labels, variables):
 		self.labels = labels
 
 class Error:
@@ -7,6 +7,7 @@ class Error:
 		self.message = message
 		self.linenumber = linenumber
 		self.char = char
+
 
 def throwError(e):
 	print("Error at: " + str(e.linenumber) + ", " + str(e.char) + ": " + e.message)

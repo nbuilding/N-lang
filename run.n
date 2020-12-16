@@ -1,12 +1,13 @@
-import loop
 import fek
-sendt main
 
-> func
-paer "nifek"
-return 
+> main ()
+print "test"
+< true
 
-> main
-paer "fek"
-runf func 
-runf func
+print "EEEE"
+{main()}
+if (1==1) exit
+fek.paer reeeeee
+int i 10
+str s "test"
+bool b true
