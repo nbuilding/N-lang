@@ -60,7 +60,7 @@ class ImportedCommand:
 		self.command = command
 		self.args = args
 
-class VariableDecloration:
+class VariableDeclaration:
 	def __init__(self, line, t, name, value):
 		self.line = line
 		self.type = t
@@ -166,7 +166,7 @@ def parseLine(s, n):
 		if len(line.split(" ")) != 3:
 			throwError(Error("Value not found.", n + 1, 5))
 		try:
-			return VariableDecloration(n, int, line.split(" ")[1].strip(), int(line.split(" ")[2].strip()))
+			return VariableDeclaration(n, int, line.split(" ")[1].strip(), int(line.split(" ")[2].strip()))
 		except:
 			pass
 		throwError(Error("Value not int.", n + 1, 5))
@@ -176,21 +176,20 @@ def parseLine(s, n):
 		if line.split(" ")[2].strip() != "true" and line.split(" ")[2].strip() != "false":
 			throwError(Error("Value not bool.", n + 1, 6))
 		
-		return VariableDecloration(n, bool, line.split(" ")[1].strip(), line.split(" ")[2].strip() == "true")
+		return VariableDeclaration(n, bool, line.split(" ")[1].strip(), line.split(" ")[2].strip() == "true")
 	if line.startswith("str "):
 		if len(line.split(" ")) < 3:
 			throwError(Error("Value not found.", n + 1, 5))
 		if not '"' in line or re.search(r'"([A-Za-z0-9_\./\\-]*)"', ''.join(line.split(" ")[2:])) == None:
 			throwError(Error("Value not String.", n + 1, 5))
-		
-		return VariableDecloration(n, str, line.split(" ")[1].strip(), re.search(r'"([A-Za-z0-9_\./\\-]*)"', ''.join(line.split(" ")[2:]).replace("\\\"", u"\ufffc")).group(0).replace(u"\ufffc", "\\\""))
+		return VariableDeclaration(n, str, line.split(" ")[1].strip(), re.search(r'"([A-Za-z0-9_\./\\-]*)"', ''.join(line.split(" ")[2:]).replace("\\\"", u"\ufffc")).group(0).replace(u"\ufffc", "\\\""))
 
 	for imp in imports:
 		if line.startswith(imp + "."):
 			if len(line.split(" ")) == 1:
 				return ImportedCommand(n, line.strip().split(".")[0], line.strip().split(".")[1], [])
 			else:
-				return ImportedCommand(n, line.strip().split(".")[0], line.strip().split(".")[1], line.split(" ")[1:])
+				return ImportedCommand(n, line.strip().split(".")[0], line.strip().split(".")[1].split(" ")[0], line.split(" ")[1:])
 
 
 

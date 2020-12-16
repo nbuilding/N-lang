@@ -13,7 +13,7 @@ with open("run.n", "r") as f:
 
 functions = {}
 
-imports = []
+imports = {}
 
 variables = {}
 
@@ -23,8 +23,8 @@ def runCommand(c):
 	if type(c) == ImportDeclaration:
 		works = True
 		try:
-			importlib.import_module(c.importname)
-			imports.append(c.importname)
+			
+			imports[c.importname] = importlib.import_module(c.importname)
 		except:
 			works = False
 
@@ -71,6 +71,23 @@ def runCommand(c):
 
 		for command in functions[c.name].body:
 			runCommand(command)
+	if type(c) == ImportedCommand:
+		if c.library not in imports:
+			throwError(Error("Library not found.", c.line + 1, 1))
+		works = True
+		try:
+			method = getattr(imports[c.library], c.command)
+			if c.args == []:
+				method()
+			else:
+				method(c.args)
+		except:
+			works = False
+
+		if not works:
+			throwError(Error("Library does not have this function.", c.line + 1, len(c.library) + 1))
+	if type(c) == VariableDeclaration:
+		variables[c.name] = c.value
 
 
 
