@@ -1,2 +1,2 @@
-# N-lang
-a language for the n-building with modular imports and whatnot
+# N
+A programming language by N Building with stuff like modular imports.
