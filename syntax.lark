@@ -1,0 +1,45 @@
+start: instruction+
+
+instruction: str
+           | int
+           | bool
+           | function_def
+           | print
+           | function_callback
+           | loop
+           | import
+           | return
+           | imported_command
+
+value: BOOLEAN
+     | STRING
+     | NUMBER
+     | NAME
+
+
+// functions
+str: "str " NAME "<" STRING
+int: "int " NAME "<" NUMBER
+bool: "bool " NAME "<" BOOLEAN
+function_def: ">" function_call code_block (value | "null")
+print: "print" (STRING | NAME)
+function_callback: "{" function_call "}"
+loop: ">" "loop" NUMBER NAME code_block
+import: "import" NAME
+return: "return" (value | "null")
+imported_command: NAME "." NAME [" " value (" " value)*]
+
+COMMENT: ";" /[^\n]/*
+
+function_call : NAME "(" [NAME ("," NAME)*] ")"
+
+code_block: "|" instruction+ "<" 
+
+
+BOOLEAN: ("true" | "false")
+%import common.ESCAPED_STRING -> STRING
+%import common.SIGNED_NUMBER  -> NUMBER
+%import common.CNAME  -> NAME
+%import common.WS
+%ignore WS
+%ignore COMMENT

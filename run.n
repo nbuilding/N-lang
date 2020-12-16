@@ -1,13 +1,18 @@
 import fek
 
-> main ()
-print "test"
-< true
 
-print "EEEE"
+> main(test,test1) | 
+print test
+print test1
+< null
+
+> loop 10 i | 
+print "test"
+<
+
+int test < 1
+str eee < "hi"
+
 {main()}
-if (1==1) exit
-fek.paer reeeeee
-int i 10
-str s "test"
-bool b true
+{main(test, eee)}
+fek.paer test

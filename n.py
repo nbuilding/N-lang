@@ -19,6 +19,9 @@ variables = {}
 
 stack = []
 
+def evalBool(b):
+	
+
 def runCommand(c):
 	if type(c) == ImportDeclaration:
 		works = True
@@ -88,6 +91,8 @@ def runCommand(c):
 			throwError(Error("Library does not have this function.", c.line + 1, len(c.library) + 1))
 	if type(c) == VariableDeclaration:
 		variables[c.name] = c.value
+	if type(c) == IfStatement:
+
 
 
 
