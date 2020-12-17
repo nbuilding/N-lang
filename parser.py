@@ -11,3 +11,4 @@ n_parser = Lark(parse, start='start')
 
 print(n_parser.parse(text).pretty())
 print(n_parser.parse(text))
+print(type(n_parser.parse(text)))

@@ -1,19 +1,20 @@
 import fek
 
-
-> main(test,test1) | 
+> main test:str test1:str -> bool | 
 print test
 print test1
-< null
+return true
+< false
 
-> loop 10 i | 
-print "test"
+> loop 10 i:int | 
+print if 1 = 1 = 1 then "test" else "e"
 <
 
-int test < 1
-str eee < "hi"
+var test:int < if 1 = 1 then 1 else 2
+var test1:int < 1 + 1
+var eee:str < "hi"
 
-{main()}
-{main(test, eee)}
-fek.paer test
-if ({main(test, eee)} == null) print "test"
+{main}
+{main test eee}
+{fek.paer test}
+if !{main test eee} -> print "test"

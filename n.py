@@ -2,101 +2,115 @@ import re
 import functools
 import importlib
 from impdata import *
-from ast import *
+from lark import Lark
+from lark import Transformer
+from lark import tree
+import lark
 
+class Variable:
+	def __init__(self, t, value):
+		self.type = t
+		self.value = value
 
-# get lines, strip, and remove any emtpy lines
-tree = {}
+class Function:
+	def __init__(self, deccall, returntype, codeblock, deafultreturn):
+		self.deccall = deccall
+		self.returntype = returntype
+		self.codeblock = codeblock
+		self.deafultreturn = deafultreturn
+
+parse = ""
+text = ""
+with open("syntax.lark", "r") as f:
+	parse = f.read()
 with open("run.n", "r") as f:
-	tree = createAST(f.read())
+	text = f.read()
 
+n_parser = Lark(parse, start='start')
 
+print(n_parser.parse(text).pretty())
+
+imports = []
+variables = {}
 functions = {}
 
-imports = {}
+def invBool(b, t):
+	end = b
+	for i in range(t):
+		end = not end
+	return end
 
-variables = {}
+def parseInfixOperator(i):
+	#TODO: Fix parsing
+	out = False
+	children = i.children
+	inversions = 0
+	while children[inversions].data == "!":
+		inversions += 1
 
-stack = []
+	end = None
+	if children[-1].data == "infix_operator":
+		if len(children) == inversions + 2:
+			return invBool(parseInfixOperator(children[-1]), inversions)
+		end = parseInfixOperator(children[-1])
 
-def evalBool(b):
-	
+def runFunction(f, d):
+	pass
 
-def runCommand(c):
-	if type(c) == ImportDeclaration:
-		works = True
-		try:
-			
-			imports[c.importname] = importlib.import_module(c.importname)
-		except:
-			works = False
+def parseExpression(e):
+	if type(e) == lark.Token:
+		return e.value
 
-		if not works:
-			throwError(Error("Library not found", c.line + 1, 7))
-	if type(c) == FunctionDeclaration:
-		functions[c.name] = c
-	if type(c) == ReturnStatement:
-		if c.value == "null":
-			return
-		if c.value == "false":
-			return False
-		if c.value == "true":
-			return True
-		if type(c.value) == VariableValue:
-			if not c.value.varname in variables:
-				throwError(Error("Variable not found", c.line + 1, 1))
-
-			return variables[c.value[1:]]
-		if line.replace("\\\"", u"\ufffc").count("\"") == 2:
-			if re.search(r'"([A-Za-z0-9_\./\\-]*)"', c.value) == None:
-				return ""
-			else:
-				return re.search(r'"([A-Za-z0-9_\./\\-]*)"', c.value).group(0)
+	if e.data == "ifelse":
+		infix, valif, other = e.children
+		if (parseInfixOperator(infix)):
+			return parseExpression(valif.children[0])
 		else:
-			works = True
-			try:
-				return int(c.value)
-			except:
-				works = False
-
-			if not works:
-				throwError("Unable to parse return value.", c.line, 1)
-	if type(c) == PrintStatement:
-		print(c.value.replace("\\\"", u"\ufffc").replace("\"", "").replace(u"\ufffc", "\\\""))
-	if type(c) == CallToFunction:
-		if not c.name in functions:
-			throwError(Error("Function not found.", c.line + 1, 1))
-		if len(c.args) != len(functions[c.name].args):
-			throwError(Error("Function args not correct.", c.line + 1, 1))
-
-		for i,arg in enumerate(functions[c.name].args):
-			variables[arg] = c.args[i]
-
-		for command in functions[c.name].body:
-			runCommand(command)
-	if type(c) == ImportedCommand:
-		if c.library not in imports:
-			throwError(Error("Library not found.", c.line + 1, 1))
-		works = True
-		try:
-			method = getattr(imports[c.library], c.command)
-			if c.args == []:
-				method()
-			else:
-				method(c.args)
-		except:
-			works = False
-
-		if not works:
-			throwError(Error("Library does not have this function.", c.line + 1, len(c.library) + 1))
-	if type(c) == VariableDeclaration:
-		variables[c.name] = c.value
-	if type(c) == IfStatement:
+			return parseExpression(other.children[0].children[0])
+	elif e.data == "function_callback":
+		data = e.children[0]
+		return runFunction(functions[data.children[0]], data)
+	else:
+		return e
 
 
+def parseTree(t):
+	if t.data == "start":
+		for child in t.children:
+			parseBranch(child)
+	else:
+		print("Unable to run parseTree on non-starting branch")
+		exit()
+
+def parseBranch(t):
+	if t.data != "instruction":
+		print("Command %s not implemented" (t.data))
+		exit()
+
+	command = t.children[0]
+
+	if command.data == "imp":
+		imports.append(importlib.import_module(command.children[0]))
+	elif command.data == "function_def":
+		deccall, returntype, codeblock, defaultreturn = command.children
+		functions[deccall.children[0]] = Function(deccall, returntype, codeblock, defaultreturn)
+	elif command.data == "loop":
+		times, var, code = command.children
+		if var.children[1] != "int":
+			print("Unable to iterate over type %s" (var.children))
+		for i in range(int(str(times))):
+			variables[var.children[1]] = Variable("int", i)
+			for child in code.children:
+				parseBranch(child)
+	elif command.data == "print":
+		value = command.children[0].children[0]
+		if value.data.startswith('"'):
+			print(value[1:-1])
+		else:
+			print(parseExpression(value.children[0]))
+	elif command.data == "return":
+		return command.children[0]
 
 
 
-
-for i,line in enumerate(tree["body"]):
-	runCommand(line)
+parseTree(n_parser.parse(text))
