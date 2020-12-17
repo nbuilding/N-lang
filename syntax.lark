@@ -10,13 +10,25 @@ instruction: str
            | import
            | return
            | imported_command
+           | if
 
 value: BOOLEAN
      | STRING
      | NUMBER
      | NAME
 
+boolval: infix_operator
+        | value
+        | function_callback
 
+comparison_operator: OR
+                   | AND
+                   | EQUALS
+                   | GORE
+                   | LORE
+                   | LESS
+                   | GREATER
+                   | NEQUALS
 // functions
 str: "str " NAME "<" STRING
 int: "int " NAME "<" NUMBER
@@ -28,15 +40,25 @@ loop: ">" "loop" NUMBER NAME code_block
 import: "import" NAME
 return: "return" (value | "null")
 imported_command: NAME "." NAME [" " value (" " value)*]
+if: "if " infix_operator instruction
 
-COMMENT: ";" /[^\n]/*
-
+//helpers
 function_call : NAME "(" [NAME ("," NAME)*] ")"
-
 code_block: "|" instruction+ "<" 
+infix_operator: (NOT)* "(" (NOT)* boolval comparison_operator (NOT)* boolval ")"
 
-
+//constants
 BOOLEAN: ("true" | "false")
+COMMENT: ";" /[^\n]/*
+OR: "||"
+AND: "&&"
+EQUALS: "=="
+GORE: ">="
+LORE: "<="
+LESS: "<"
+GREATER: ">"
+NEQUALS: "!="
+NOT: "!"
 %import common.ESCAPED_STRING -> STRING
 %import common.SIGNED_NUMBER  -> NUMBER
 %import common.CNAME  -> NAME

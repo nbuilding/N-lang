@@ -16,3 +16,4 @@ str eee < "hi"
 {main()}
 {main(test, eee)}
 fek.paer test
+if ({main(test, eee)} == null) print "test"
