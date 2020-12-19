@@ -7,11 +7,8 @@ A programming language by N Building with stuff like modular imports.
 # Install dependencies
 npm install
 
-# Create directory for build output
-mkdir dist
-
 # Compile Nearley grammar
-npx nearleyc n-lang.ne -o dist/n-lang.js
+npx nearleyc n-lang.ne -o n-lang-grammar.js
 
 # Run
 node n-lang.js

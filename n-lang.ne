@@ -1,47 +1,47 @@
-# npm install
-# mkdir dist
-# npx nearleyc n-lang.ne -o dist/n-lang.js
-# node n-lang.js
-
 @{%
-const operator = operatorName => ([expr, , , , val]) => ({ type: operatorName, a: expr, b: val })
+const ast = require('./ast.js')
+
+const operator = operatorName => ([expr, , , , val]) => new ast.Operator(operatorName, expr, val)
 %}
 
 main -> _ block _ {% ([, block]) => block %}
 
 # statement
 # ...
-block -> statement {% ([statement]) => statement ? [statement] : [] %}
-	| block newlines commentedStatement {% ([block, , , , statement]) => statement ? [...block, statement] : block %}
+block -> statement {% ([statement]) => new ast.Block(statement ? [statement] : []) %}
+	| block newlines commentedStatement {% ([block, , statement]) => statement ? block.withStatement(statement) : block %}
 
 commentedStatement -> lineComment {% () => null %}
-	| statement _ lineComment:? {% id %}
+	| statement _space lineComment:? {% id %}
 
 # command [; comment] | ; comment
 statement -> expression {% id %}
-	| "import" __ identifier {% ([, , id]) => ({ type: 'import', name: id }) %}
-	| "print" __ expression
-	| "return" __ expression
-	| "var" __ declaration _ "<" _ expression
-	| functionDefinition {% id %}
+	| "import" __ identifier {% ([, , id]) => new ast.ImportStmt(id) %}
+	| "print" __ expression {% ([, , expr]) => new ast.PrintStmt(expr) %}
+	| "return" __ expression {% ([, , expr]) => new ast.ReturnStmt(expr) %}
+	| "var" __ declaration _ "<" _ expression {% ([, , decl, , , , expr]) => new ast.VarStmt(decl, expr) %}
+	| funcDef {% id %}
 	| loop {% id %}
 	| ifStatement {% id %}
 
-functionDefinition -> ">" _ functionDefinitionHeader _ "|" _ block newlines "<" (_ expression):?
+funcDef -> ">" _ funcDefHeader funcDefReturnType:? _ "|" _ block newlines funcDefEnd {% ([, , header, returnType, , , , block, , end]) => new ast.FuncDeclaration(header, returnType, block, end) %}
 
-functionDefinitionHeader -> identifier (_ functionDefinitionReturn:?) {% id %}
-	| identifier __ functionDefinitionParams (_ functionDefinitionReturn:?)
+funcDefHeader -> identifier {% ([id]) => ({ name: id, params: [] }) %}
+	| identifier __ funcDefParams {% ([id, , params]) => ({ name: id, params }) %}
 
-functionDefinitionParams -> declaration
-	| functionDefinitionParams __ declaration
+funcDefParams -> declaration {% ([decl]) => [decl] %}
+	| funcDefParams __ declaration {% ([params, , decl]) => [...params, decl] %}
 
-functionDefinitionReturn -> "->" _ type
+funcDefReturnType -> _ "->" _ type {% ([, , , type]) => type %}
 
-loop -> ">" _ "loop" _ value _ declaration _ "|" _ block newlines "<"
+funcDefEnd -> "<" {% () => null %}
+	| "<" _ expression {% ([, , expr]) => expr %}
 
-declaration -> identifier _ ":" _ type
+loop -> ">" _ "loop" _ value _ declaration _ "|" _ block newlines "<" {% ([, , , , value, , decl, , , , block]) => new ast.LoopStmt(value, decl, block) %}
 
-type -> identifier
+declaration -> identifier _ ":" _ type {% ([id, , , , type]) => new ast.Declaration(id, type) %}
+
+type -> identifier {% id %}
 
 expression -> booleanExpression {% id %}
 
@@ -49,10 +49,11 @@ booleanExpression -> compareExpression {% id %}
 	| booleanExpression _ "&" _ compareExpression {% operator('and') %}
 	| booleanExpression _ "|" _ compareExpression {% operator('or') %}
 
-compareExpression -> equalExpression {% operator('equal') %}
+compareExpression -> equalExpression {% id %}
 	| sumExpression _ ">" _ sumExpression {% operator('greater-than') %}
 	| sumExpression _ "<" _ sumExpression {% operator('less-than') %}
 
+# TODO
 equalExpression -> sumExpression {% id %}
 	| equalExpression _ "=" _ sumExpression
 
@@ -77,21 +78,21 @@ value -> modIdentifier {% id %}
 	| ifExpression
 
 # identifier [...parameters]
-functionCall -> "{" _ value _ "}" {% ([, id]) => ({ type: 'call', func: id }) %}
-	| "{" _ value __ parameters _ "}" {% ([, id, , params]) => ({ type: 'call', func: id, params }) %}
+functionCall -> "{" _ value _ "}" {% ([, , id]) => new ast.CallFunc(id) %}
+	| "{" _ value __ parameters _ "}" {% ([, , id, , params]) => new ast.CallFunc(id, params) %}
 
 # expression ...
 parameters -> value {% ([expr]) => [expr] %}
 	| parameters __ value {% ([params, , expr]) => [...params, expr] %}
 
-ifStatement -> "if" __ expression _ "->" _ statement (__ "else" __ statement):?
+ifStatement -> "if" __ expression _ "->" _ statement (__ "else" __ statement):? {% ([, , expr, , , , stmt, maybeElse]) => new ast.IfStmt(expr, stmt, maybeElse) %}
 
 ifExpression -> "if" __ expression __ "then" __ value (__ "else" __ value):?
 
 modIdentifier -> identifier {% id %}
 	| modIdentifier "." identifier
 
-identifier -> [_a-zA-Z] [\w]:* {% ([head, tail]) => ({ type: 'ident', name: head + tail.join('') }) %}
+identifier -> [_a-zA-Z] [\w]:* {% ([head, tail]) => head + tail.join('') %}
 
 number -> [\d]:+ {% ([num]) => ({ type: 'num', value: num.join('') }) %}
 

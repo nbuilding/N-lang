@@ -1,8 +1,8 @@
-// See n-lang.ne on how to run this
+// See README.md on how to run this
 
 const fs = require('fs/promises')
 const { Parser, Grammar } = require('nearley')
-const grammar = require('./dist/n-lang.js')
+const grammar = require('./n-lang-grammar.js')
 
 async function main () {
   const parser = new Parser(Grammar.fromCompiled(grammar))
