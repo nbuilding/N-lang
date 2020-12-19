@@ -1,22 +1,20 @@
-; ";" denotes a comment (this can be changed to // if wanted but that might be used as round division)
-
-; the import command imports either a interpreter or a command pack, -i denotes an interpreter and -c denotes a command pack
 import fek
 
-; some commands in fek here (the fek.py script will handle these)
-> fek
-paer "fek\"ok"
+> main test:str test1:str -> bool |
+print test
+print test1
+return true
+< false
 
-; sendt sends the processing to the corresponding line, like GOTO in basic
-> goto
-sendt fek
+> loop 10 i:int |
+print if 1 = 1 = 1 then "test" else "e"
+<
 
-; here this creates an infinite loop, but an if instruction can be used like so:
-if 6 / 2 = 3 sendt goto
-; this can also be used to make functions like in Assembly, so a stack may need to be implemented
-; global constants can be included by the command packs
+var test:int < if 1 = 1 then 1 else 2
+var test1:int < 1 + 1
+var eee:str < "hi"
 
-  (cool 6) 2 + 2 ; uwu higher order functions
-
-; nifek is like exit but made by the fek.py script
-nifek
+{main}
+{main test eee}
+{fek.paer test}
+if !{main test eee} -> print "test"

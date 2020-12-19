@@ -1,31 +1,116 @@
 import re
-import rstr
+import functools
+import importlib
+from impdata import *
+from lark import Lark
+from lark import Transformer
+from lark import tree
+import lark
 
-# get lines, strip, and remove any emtpy lines
-lines = []
+class Variable:
+	def __init__(self, t, value):
+		self.type = t
+		self.value = value
+
+class Function:
+	def __init__(self, deccall, returntype, codeblock, deafultreturn):
+		self.deccall = deccall
+		self.returntype = returntype
+		self.codeblock = codeblock
+		self.deafultreturn = deafultreturn
+
+parse = ""
+text = ""
+with open("syntax.lark", "r") as f:
+	parse = f.read()
 with open("run.n", "r") as f:
-	lines = [line.strip() for line in f.readlines()]
-	lines = list(filter(None, lines))
+	text = f.read()
 
-print(lines)
+n_parser = Lark(parse, start='start')
 
-# linenumber, useful because it will be changed by sendt
-linenumb = 0
+print(n_parser.parse(text).pretty())
 
-end = False
+imports = []
+variables = {}
+functions = {}
 
-while True:
-	try:
-		line = lines[linenumb]
-	except:
-		end = True
+def invBool(b, t):
+	end = b
+	for i in range(t):
+		end = not end
+	return end
 
-	if end:
+def parseInfixOperator(i):
+	#TODO: Fix parsing
+	out = False
+	children = i.children
+	inversions = 0
+	while children[inversions].data == "!":
+		inversions += 1
+
+	end = None
+	if children[-1].data == "infix_operator":
+		if len(children) == inversions + 2:
+			return invBool(parseInfixOperator(children[-1]), inversions)
+		end = parseInfixOperator(children[-1])
+
+def runFunction(f, d):
+	pass
+
+def parseExpression(e):
+	if type(e) == lark.Token:
+		return e.value
+
+	if e.data == "ifelse":
+		infix, valif, other = e.children
+		if (parseInfixOperator(infix)):
+			return parseExpression(valif.children[0])
+		else:
+			return parseExpression(other.children[0].children[0])
+	elif e.data == "function_callback":
+		data = e.children[0]
+		return runFunction(functions[data.children[0]], data)
+	else:
+		return e
+
+
+def parseTree(t):
+	if t.data == "start":
+		for child in t.children:
+			parseBranch(child)
+	else:
+		print("Unable to run parseTree on non-starting branch")
 		exit()
-	# check for comments and remove them
-	if ";" in line.replace("\\;", ""):
-		line = line.replace("\\;", u"\ufffc").split(";")[0].replace(u"\ufffc", "\\;")
 
-	print(line)
+def parseBranch(t):
+	if t.data != "instruction":
+		print("Command %s not implemented" (t.data))
+		exit()
 
-	linenumb += 1
+	command = t.children[0]
+
+	if command.data == "imp":
+		imports.append(importlib.import_module(command.children[0]))
+	elif command.data == "function_def":
+		deccall, returntype, codeblock, defaultreturn = command.children
+		functions[deccall.children[0]] = Function(deccall, returntype, codeblock, defaultreturn)
+	elif command.data == "loop":
+		times, var, code = command.children
+		if var.children[1] != "int":
+			print("Unable to iterate over type %s" (var.children))
+		for i in range(int(str(times))):
+			variables[var.children[1]] = Variable("int", i)
+			for child in code.children:
+				parseBranch(child)
+	elif command.data == "print":
+		value = command.children[0].children[0]
+		if value.data.startswith('"'):
+			print(value[1:-1])
+		else:
+			print(parseExpression(value.children[0]))
+	elif command.data == "return":
+		return command.children[0]
+
+
+
+parseTree(n_parser.parse(text))

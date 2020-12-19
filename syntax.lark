@@ -1,0 +1,96 @@
+start: instruction+
+
+instruction: declare
+           | function_def
+           | print
+           | function_callback
+           | loop
+           | imp
+           | return
+           | imported_command
+           | if
+           | else
+           | ifelse
+
+expression: ifelse
+          | function_callback
+          | number_expression
+
+value: BOOLEAN
+     | STRING
+     | NUMBER
+     | NAME
+     | expression
+
+boolval: infix_operator
+       | value
+       | function_callback
+
+numbers: num_exp
+       | NUMBER
+
+number_expression: num_exp
+                 | NUMBER
+
+number_operators: ADD
+                | SUBTACT
+                | MULTIPLY
+                | DIVIDE
+                | ROUNDDIV
+                | EXPONENT
+
+comparison_operator: OR
+                   | AND
+                   | EQUALS
+                   | GORE
+                   | LORE
+                   | LESS
+                   | GREATER
+                   | NEQUALS
+
+
+// functions
+declare: "var " name_type "<" value
+function_def: ">" function_dec_call "->" NAME code_block (value | "null")
+print: "print" value
+function_callback: "{" function_call "}"
+loop: ">" "loop" NUMBER name_type code_block
+imp: "import" NAME
+return: "return" (value | "null")
+imported_command: "{" NAME "." NAME (" " [value (" " value)*])? "}"
+if: "if " infix_operator ("then" | "->") (value | instruction) 
+ifelse: "if " infix_operator ("then" | "->") (value | instruction) else
+else: "else " (value | instruction)
+
+//helpers
+name_type: NAME ":" NAME
+function_dec_call: NAME (" " [name_type (" " name_type)*])?
+function_call : NAME (" " [NAME (" " NAME)*])?
+code_block: "|" instruction+ "<" 
+infix_operator: (NOT)* boolval (comparison_operator (NOT)* boolval)*
+num_exp: number_expression (number_operators number_expression)*
+
+//constants
+BOOLEAN: ("true" | "false")
+COMMENT: ";" /[^\n]/*
+OR: "||"
+AND: "&&"
+EQUALS: "="
+GORE: ">="
+LORE: "<="
+LESS: "<"
+GREATER: ">"
+NEQUALS: "!="
+NOT: "!"
+ADD: "+"
+SUBTACT: "-"
+MULTIPLY: "*"
+DIVIDE: "/"
+ROUNDDIV: "//"
+EXPONENT: "^"
+%import common.ESCAPED_STRING -> STRING
+%import common.SIGNED_NUMBER  -> NUMBER
+%import common.CNAME  -> NAME
+%import common.WS
+%ignore WS
+%ignore COMMENT
