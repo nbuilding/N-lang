@@ -1,8 +1,15 @@
+@preprocessor typescript
+
 @{%
-const ast = require('./ast.js')
+import moo from 'moo'
+import ast from './ast'
 
 const operator = operatorName => ([expr, , , , val]) => new ast.Operator(operatorName, expr, val)
+
+const lexer = moo.compile({})
 %}
+
+@lexer lexer
 
 main -> _ block _ {% ([, block]) => block %}
 
