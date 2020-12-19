@@ -7,55 +7,89 @@
 const operator = operatorName => ([expr, , , , val]) => ({ type: operatorName, a: expr, b: val })
 %}
 
-main -> script [\s]:* {% ([script]) => script %}
+main -> _ block _ {% ([, block]) => block %}
 
-# line
+# statement
 # ...
-script -> line {% ([line]) => line ? [line] : [] %}
-	| script _ newline:+ _ line {% ([script, , , , line]) => line ? [...script, line] : script %}
+block -> statement {% ([statement]) => statement ? [statement] : [] %}
+	| block newlines commentedStatement {% ([block, , , , statement]) => statement ? [...block, statement] : block %}
+
+commentedStatement -> lineComment {% () => null %}
+	| statement _ lineComment:? {% id %}
 
 # command [; comment] | ; comment
-line -> lineComment {% () => null %}
-	| command _ lineComment:? {% id %}
+statement -> expression {% id %}
+	| "import" __ identifier {% ([, , id]) => ({ type: 'import', name: id }) %}
+	| "print" __ expression
+	| "return" __ expression
+	| "var" __ declaration _ "<" _ expression
+	| functionDefinition {% id %}
+	| loop {% id %}
+	| ifStatement {% id %}
 
-# [label:]functionCall
-command -> label _ newline _ functionCall {% ([label, , , , fnCall]) => ({ label, ...fnCall }) %}
-	| functionCall {% id %}
+functionDefinition -> ">" _ functionDefinitionHeader _ "|" _ block newlines "<" (_ expression):?
 
-# label:
-label -> ">" _ identifier {% ([, , label]) => label %}
+functionDefinitionHeader -> identifier (_ functionDefinitionReturn:?) {% id %}
+	| identifier __ functionDefinitionParams (_ functionDefinitionReturn:?)
 
-# identifier [...parameters]
-functionCall -> expression {% id %}
-	| expression __ parameters {% ([id, , params]) => ({ type: 'call', func: id, params }) %}
+functionDefinitionParams -> declaration
+	| functionDefinitionParams __ declaration
 
-# expression ...
-parameters -> expression {% ([expr]) => [expr] %}
-	| parameters __ expression {% ([params, , expr]) => [...params, expr] %}
+functionDefinitionReturn -> "->" _ type
+
+loop -> ">" _ "loop" _ value _ declaration _ "|" _ block newlines "<"
+
+declaration -> identifier _ ":" _ type
+
+type -> identifier
 
 expression -> booleanExpression {% id %}
 
-booleanExpression -> equalityExpression {% id %}
-	| booleanExpression _ "&" _ equalityExpression {% operator('&') %}
-	| booleanExpression _ "|" _ equalityExpression {% operator('|') %}
+booleanExpression -> compareExpression {% id %}
+	| booleanExpression _ "&" _ compareExpression {% operator('and') %}
+	| booleanExpression _ "|" _ compareExpression {% operator('or') %}
 
-equalityExpression -> sumExpression {% id %}
-	| sumExpression _ "=" _ sumExpression {% operator('=') %}
-	| sumExpression _ ">" _ sumExpression {% operator('>') %}
-	| sumExpression _ "<" _ sumExpression {% operator('<') %}
+compareExpression -> equalExpression {% operator('equal') %}
+	| sumExpression _ ">" _ sumExpression {% operator('greater-than') %}
+	| sumExpression _ "<" _ sumExpression {% operator('less-than') %}
+
+equalExpression -> sumExpression {% id %}
+	| equalExpression _ "=" _ sumExpression
 
 sumExpression -> productExpression {% id %}
-	| sumExpression _ "+" _ productExpression {% operator('+') %}
-	| sumExpression _ "-" _ productExpression {% operator('-') %}
+	| sumExpression _ "+" _ productExpression {% operator('add') %}
+	| sumExpression _ "-" _ productExpression {% operator('minus') %}
 
-productExpression -> value {% id %}
-	| productExpression _ "*" _ value {% operator('*') %}
-	| productExpression _ "/" _ value {% operator('/') %}
+productExpression -> unaryExpression {% id %}
+	| productExpression _ "*" _ unaryExpression {% operator('multiply') %}
+	| productExpression _ "/" _ unaryExpression {% operator('divide') %}
 
-value -> identifier {% id %}
+unaryExpression -> value {% id %}
+	| "-" _ unaryExpression {% ([, , value]) => ({ type: 'negate', a: value }) %}
+	| "~" _ unaryExpression {% ([, , value]) => ({ type: 'not', a: value }) %}
+	| "!" _ unaryExpression {% ([, , value]) => ({ type: 'not', a: value }) %}
+
+value -> modIdentifier {% id %}
 	| number {% id %}
 	| string {% id %}
-	| "(" _ functionCall _ ")" {% ([, , expr]) => expr %}
+	| "(" _ expression _ ")" {% ([, , expr]) => expr %}
+	| functionCall {% id %}
+	| ifExpression
+
+# identifier [...parameters]
+functionCall -> "{" _ value _ "}" {% ([, id]) => ({ type: 'call', func: id }) %}
+	| "{" _ value __ parameters _ "}" {% ([, id, , params]) => ({ type: 'call', func: id, params }) %}
+
+# expression ...
+parameters -> value {% ([expr]) => [expr] %}
+	| parameters __ value {% ([params, , expr]) => [...params, expr] %}
+
+ifStatement -> "if" __ expression _ "->" _ statement (__ "else" __ statement):?
+
+ifExpression -> "if" __ expression __ "then" __ value (__ "else" __ value):?
+
+modIdentifier -> identifier {% id %}
+	| modIdentifier "." identifier
 
 identifier -> [_a-zA-Z] [\w]:* {% ([head, tail]) => ({ type: 'ident', name: head + tail.join('') }) %}
 
@@ -69,10 +103,14 @@ char -> [^"\\] {% id %}
 # ; comment
 lineComment -> ";" [^\r\n]:+ {% () => null %}
 
+newlines -> _space newline:+ _space
+
 newline -> "\r":? "\n" {% () => null %}
 
+_space -> [ \t]:* {% () => null %}
+
 # Obligatory whitespace
-__ -> [ \t]:+ {% () => null %}
+__ -> [\s]:+ {% () => null %}
 
 # Optional whitespace
-_ -> [ \t]:* {% () => null %}
+_ -> [\s]:* {% () => null %}
