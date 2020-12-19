@@ -1,46 +1,63 @@
-class Block {
-  constructor (init = []) {
+export class Block {
+  statements: Statement[]
+
+  constructor (init: Statement[] = []) {
     this.statements = init
   }
 
-  withStatement (statement) {
+  withStatement (statement: Statement) {
     return new Block([...this.statements, statement])
   }
 }
 
-class Statement {}
+abstract class Statement {}
 
-class ImportStmt extends Statement {
-  constructor (id) {
+export class ImportStmt extends Statement {
+  name: string
+
+  constructor (id: string) {
     super()
     this.name = id
   }
 }
 
-class PrintStmt extends Statement {
-  constructor (expr) {
+export class PrintStmt extends Statement {
+  value: Expression
+
+  constructor (expr: Expression) {
     super()
     this.value = expr
   }
 }
 
-class ReturnStmt extends Statement {
-  constructor (expr) {
+export class ReturnStmt extends Statement {
+  value: Expression
+
+  constructor (expr: Expression) {
     super()
     this.value = expr
   }
 }
 
-class VarStmt extends Statement {
-  constructor (decl, expr) {
+export class VarStmt extends Statement {
+  declare: Declaration
+  value: Expression
+
+  constructor (decl: Declaration, expr: Expression) {
     super()
     this.declare = decl
     this.value = expr
   }
 }
 
-class FuncDeclaration extends Statement {
-  constructor ({ name, params }, returnType, body, returnExpr) {
+export class FuncDeclaration extends Statement {
+  name: string
+  params: Declaration[]
+  returnType: Type
+  body: Block
+  returnExpr: Expression
+
+  constructor ({ name, params } : { name: string, params: Declaration[] }, returnType: Type, body: Block, returnExpr: Expression) {
     super()
     this.name = name
     this.params = params
@@ -50,8 +67,12 @@ class FuncDeclaration extends Statement {
   }
 }
 
-class LoopStmt extends Statement {
-  constructor (value, decl, body) {
+export class LoopStmt extends Statement {
+  value: Value
+  binding: Declaration
+  body: Block
+
+  constructor (value: Value, decl: Declaration, body: Block) {
     super()
     this.value = value
     this.binding = decl
@@ -59,50 +80,101 @@ class LoopStmt extends Statement {
   }
 }
 
-class IfStmt extends Statement {
-  constructor (condition, statement, maybeElse) {
+export class IfStmt extends Statement {
+  condition: Expression
+  then: Statement
+  else?: Statement
+
+  constructor (condition: Expression, statement: Statement, maybeElse?: Statement) {
     super()
     this.condition = condition
     this.then = statement
-    this.else = maybeElse ? maybeElse[3] : null
+    this.else = maybeElse
   }
 }
 
-class Declaration {
-  constructor (name, type) {
+export class Declaration {
+  name: string
+  type: Type
+
+  constructor (name: string, type: Type) {
     this.name = name
     this.type = type
   }
 }
 
-class Operator {
-  constructor (operatorName, expr, val) {
+type Type = string
+
+export abstract class Expression {}
+
+export type Value = Literal | Expression | CallFunc
+
+abstract class Literal {
+  abstract value: string
+}
+
+export class String extends Literal {
+  value: string
+
+  constructor (string: string) {
+    super()
+    this.value = string
+  }
+}
+
+export class Number extends Literal {
+  value: string
+
+  constructor (number: string) {
+    super()
+    this.value = number
+  }
+}
+
+export enum OperatorType {
+  AND = 'and',
+  OR = 'or',
+  GREATER_THAN = 'greater-than',
+  LESS_THAN = 'less-than',
+  ADD = 'add',
+  MINUS = 'minus',
+  MULTIPLY = 'multiply',
+  DIVIDE = 'divide',
+}
+
+export class Operator {
+  type: OperatorType
+  a: Expression
+  b: Value
+
+  constructor (operatorName: OperatorType, expr: Expression, val: Value) {
     this.type = operatorName
     this.a = expr
     this.b = val
   }
 }
 
-class CallFunc {
-  constructor (id, params = []) {
-    this.funcName = id
-    this.params = params
+export enum UnaryOperatorType {
+  NEGATE = 'negate',
+  NOT = 'not',
+}
+
+export class UnaryOperator {
+  type: UnaryOperatorType
+  a: Value
+
+  constructor (operatorName: UnaryOperatorType, value: Value) {
+    this.type = operatorName
+    this.a = value
   }
 }
 
-module.exports = {
-  Block,
+export class CallFunc {
+  func: Value
+  params: Value[]
 
-  ImportStmt,
-  PrintStmt,
-  ReturnStmt,
-  VarStmt,
-  FuncDeclaration,
-  LoopStmt,
-  IfStmt,
-
-  Declaration,
-
-  Operator,
-  CallFunc
+  constructor (value: Value, params: Value[] = []) {
+    this.func = value
+    this.params = params
+  }
 }

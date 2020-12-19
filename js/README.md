@@ -1,6 +1,11 @@
 # Node
 
 ```sh
+# Required global dependencies:
+npm install --global nearley
+npm install --global typescript
+npm install --global ts-node
+
 # Install dependencies
 npm install
 
@@ -8,5 +13,5 @@ npm install
 npm run build:ne
 
 # Run
-node src/n-lang.js
+ts-node src/n-lang.ts ../run.n
 ```

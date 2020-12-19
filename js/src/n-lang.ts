@@ -1,12 +1,19 @@
 // See README.md on how to run this
 
-const fs = require('fs/promises')
-const { Parser, Grammar } = require('nearley')
-const grammar = require('./n-lang-grammar.js')
+import fs from 'fs/promises'
+import util from 'util'
+import { Parser, Grammar } from 'nearley'
+import grammar from './grammar/n-lang.grammar'
 
 async function main () {
+  const [, , fileName] = process.argv
+
+  if (!fileName) {
+    throw new Error('You need to give a file to parse.')
+  }
+
   const parser = new Parser(Grammar.fromCompiled(grammar))
-  parser.feed(await fs.readFile('./run.n', 'utf8'))
+  parser.feed(await fs.readFile(fileName, 'utf8'))
 
   if (parser.results.length > 1) {
     console.log(parser.results)
@@ -18,7 +25,7 @@ async function main () {
     throw new Error('Unexpected end of input.')
   }
 
-  console.log(result)
+  console.log(util.inspect(result, false, null, true))
 }
 
 main()

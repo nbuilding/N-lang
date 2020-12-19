@@ -2,11 +2,32 @@
 
 @{%
 import moo from 'moo'
-import ast from './ast'
+import * as ast from './ast'
 
-const operator = operatorName => ([expr, , , , val]) => new ast.Operator(operatorName, expr, val)
+const operator = (operatorName: ast.OperatorType) =>
+	([expr, , , , val]: any[]) =>
+		new ast.Operator(operatorName, expr as ast.Expression, val as ast.Value)
 
-const lexer = moo.compile({})
+const unaryOperator = (operatorName: ast.UnaryOperatorType) =>
+	([, , value]: any[]) =>
+		new ast.UnaryOperator(operatorName, value as ast.Value)
+
+// Order of rules matter! So most specific -> most general
+const lexer = moo.compile({
+	keyword: ['import', 'print', 'return', 'var'],
+	symbol: [
+		'->', '|', ':', '<', '=', '>', '+', '-', '*', '/', '^', '~', '!', '&', '|',
+		'.'
+	],
+	lbracket: ['{', '[', '('],
+	rbracket: ['}', ']', ')'],
+	number: /\d+/,
+	identifier: /[_a-zA-Z]\w*/,
+	string: /"(?:[^\r\n\\"]|\\.)*"/,
+	comment: /\s*;.*?$/,
+	newlines: { match: /\s*(?:\r?\n)\s*/, lineBreaks: true },
+	whitespace: { match: /\s+/, lineBreaks: true },
+})
 %}
 
 @lexer lexer
@@ -19,7 +40,7 @@ block -> statement {% ([statement]) => new ast.Block(statement ? [statement] : [
 	| block newlines commentedStatement {% ([block, , statement]) => statement ? block.withStatement(statement) : block %}
 
 commentedStatement -> lineComment {% () => null %}
-	| statement _space lineComment:? {% id %}
+	| statement lineComment:? {% id %}
 
 # command [; comment] | ; comment
 statement -> expression {% id %}
@@ -53,40 +74,40 @@ type -> identifier {% id %}
 expression -> booleanExpression {% id %}
 
 booleanExpression -> compareExpression {% id %}
-	| booleanExpression _ "&" _ compareExpression {% operator('and') %}
-	| booleanExpression _ "|" _ compareExpression {% operator('or') %}
+	| booleanExpression _ "&" _ compareExpression {% operator(ast.OperatorType.AND) %}
+	| booleanExpression _ "|" _ compareExpression {% operator(ast.OperatorType.OR) %}
 
 compareExpression -> equalExpression {% id %}
-	| sumExpression _ ">" _ sumExpression {% operator('greater-than') %}
-	| sumExpression _ "<" _ sumExpression {% operator('less-than') %}
+	| sumExpression _ ">" _ sumExpression {% operator(ast.OperatorType.GREATER_THAN) %}
+	| sumExpression _ "<" _ sumExpression {% operator(ast.OperatorType.LESS_THAN) %}
 
 # TODO
 equalExpression -> sumExpression {% id %}
 	| equalExpression _ "=" _ sumExpression
 
 sumExpression -> productExpression {% id %}
-	| sumExpression _ "+" _ productExpression {% operator('add') %}
-	| sumExpression _ "-" _ productExpression {% operator('minus') %}
+	| sumExpression _ "+" _ productExpression {% operator(ast.OperatorType.ADD) %}
+	| sumExpression _ "-" _ productExpression {% operator(ast.OperatorType.MINUS) %}
 
 productExpression -> unaryExpression {% id %}
-	| productExpression _ "*" _ unaryExpression {% operator('multiply') %}
-	| productExpression _ "/" _ unaryExpression {% operator('divide') %}
+	| productExpression _ "*" _ unaryExpression {% operator(ast.OperatorType.MULTIPLY) %}
+	| productExpression _ "/" _ unaryExpression {% operator(ast.OperatorType.DIVIDE) %}
 
 unaryExpression -> value {% id %}
-	| "-" _ unaryExpression {% ([, , value]) => ({ type: 'negate', a: value }) %}
-	| "~" _ unaryExpression {% ([, , value]) => ({ type: 'not', a: value }) %}
-	| "!" _ unaryExpression {% ([, , value]) => ({ type: 'not', a: value }) %}
+	| "-" _ unaryExpression {% unaryOperator(ast.UnaryOperatorType.NEGATE) %}
+	| "~" _ unaryExpression {% unaryOperator(ast.UnaryOperatorType.NOT) %}
+	| "!" _ unaryExpression {% unaryOperator(ast.UnaryOperatorType.NOT) %}
 
 value -> modIdentifier {% id %}
 	| number {% id %}
-	| string {% id %}
+	| string {% ([str]) => new ast.String(str) %}
 	| "(" _ expression _ ")" {% ([, , expr]) => expr %}
 	| functionCall {% id %}
 	| ifExpression
 
 # identifier [...parameters]
-functionCall -> "{" _ value _ "}" {% ([, , id]) => new ast.CallFunc(id) %}
-	| "{" _ value __ parameters _ "}" {% ([, , id, , params]) => new ast.CallFunc(id, params) %}
+functionCall -> "{" _ value _ "}" {% ([, , value]) => new ast.CallFunc(value) %}
+	| "{" _ value __ parameters _ "}" {% ([, , value, , params]) => new ast.CallFunc(value, params) %}
 
 # expression ...
 parameters -> value {% ([expr]) => [expr] %}
@@ -99,26 +120,22 @@ ifExpression -> "if" __ expression __ "then" __ value (__ "else" __ value):?
 modIdentifier -> identifier {% id %}
 	| modIdentifier "." identifier
 
-identifier -> [_a-zA-Z] [\w]:* {% ([head, tail]) => head + tail.join('') %}
+identifier -> %identifier {% ([token]) => token.value %}
 
-number -> [\d]:+ {% ([num]) => ({ type: 'num', value: num.join('') }) %}
+number -> %number {% ([token]) => token.value %}
 
-string -> "\"" char:+ "\"" {% ([, str]) => ({ type: 'str', value: str.join('') }) %}
+string -> %string {% ([token]) => token.value %}
 
-char -> [^"\\] {% id %}
+char -> %safeChar {% id %}
 	| "\\" . {% ([, char]) => char %}
 
 # ; comment
-lineComment -> ";" [^\r\n]:+ {% () => null %}
+lineComment -> %comment {% () => null %}
 
-newlines -> _space newline:+ _space
-
-newline -> "\r":? "\n" {% () => null %}
-
-_space -> [ \t]:* {% () => null %}
+newlines -> %newlines {% () => null %}
 
 # Obligatory whitespace
-__ -> [\s]:+ {% () => null %}
+__ -> (%newlines | %whitespace) {% () => null %}
 
 # Optional whitespace
-_ -> [\s]:* {% () => null %}
+_ -> __:? {% () => null %}
