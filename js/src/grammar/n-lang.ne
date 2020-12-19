@@ -4,13 +4,24 @@
 import moo from 'moo'
 import * as ast from './ast'
 
-const operator = (operatorName: ast.OperatorType) =>
+const operation = (operator: ast.Operator) =>
 	([expr, , , , val]: any[]) =>
-		new ast.Operator(operatorName, expr as ast.Expression, val as ast.Value)
+		new ast.Operation(operator, expr as ast.Expression, val as ast.Expression)
 
-const unaryOperator = (operatorName: ast.UnaryOperatorType) =>
+const unaryOperation = (operator: ast.UnaryOperator) =>
 	([, , value]: any[]) =>
-		new ast.UnaryOperator(operatorName, value as ast.Value)
+		new ast.UnaryOperation(operator, value as ast.Expression)
+
+const compare = (comparison: ast.Compare) =>
+	([expr, , , , val]: any[]) =>
+		new ast.Comparison(comparison, expr, val)
+
+const escapes: { [key: string]: string } = {
+	n: '\n', r: '\r', t: '\t', v: '\v', 0: '\0', f: '\f', b: '\b'
+}
+function unescape (char: string): string {
+	return escapes[char] || char
+}
 
 // Order of rules matter! So most specific -> most general
 const lexer = moo.compile({
@@ -23,7 +34,15 @@ const lexer = moo.compile({
 	rbracket: ['}', ']', ')'],
 	number: /\d+/,
 	identifier: /[_a-zA-Z]\w*/,
-	string: /"(?:[^\r\n\\"]|\\.)*"/,
+	string: {
+		match: /"(?:[^\r\n\\"]|\\[^uU]|\\[uU])*"/,
+		value: string => string
+			.slice(1, -1)
+			.replace(
+				/\\(?:([^u])|u\{([0-9a-f])\})/gi,
+				([, char, unicode]) => char ? unescape(char) : String.fromCodePoint(parseInt(unicode, 16))
+			)
+	},
 	comment: /\s*;.*?$/,
 	newlines: { match: /\s*(?:\r?\n)\s*/, lineBreaks: true },
 	whitespace: { match: /\s+/, lineBreaks: true },
@@ -45,12 +64,9 @@ commentedStatement -> lineComment {% () => null %}
 # command [; comment] | ; comment
 statement -> expression {% id %}
 	| "import" __ identifier {% ([, , id]) => new ast.ImportStmt(id) %}
-	| "print" __ expression {% ([, , expr]) => new ast.PrintStmt(expr) %}
-	| "return" __ expression {% ([, , expr]) => new ast.ReturnStmt(expr) %}
 	| "var" __ declaration _ "<" _ expression {% ([, , decl, , , , expr]) => new ast.VarStmt(decl, expr) %}
 	| funcDef {% id %}
 	| loop {% id %}
-	| ifStatement {% id %}
 
 funcDef -> ">" _ funcDefHeader funcDefReturnType:? _ "|" _ block newlines funcDefEnd {% ([, , header, returnType, , , , block, , end]) => new ast.FuncDeclaration(header, returnType, block, end) %}
 
@@ -74,36 +90,35 @@ type -> identifier {% id %}
 expression -> booleanExpression {% id %}
 
 booleanExpression -> compareExpression {% id %}
-	| booleanExpression _ "&" _ compareExpression {% operator(ast.OperatorType.AND) %}
-	| booleanExpression _ "|" _ compareExpression {% operator(ast.OperatorType.OR) %}
+	| booleanExpression _ "&" _ compareExpression {% operation(ast.Operator.AND) %}
+	| booleanExpression _ "|" _ compareExpression {% operation(ast.Operator.OR) %}
 
-compareExpression -> equalExpression {% id %}
-	| sumExpression _ ">" _ sumExpression {% operator(ast.OperatorType.GREATER_THAN) %}
-	| sumExpression _ "<" _ sumExpression {% operator(ast.OperatorType.LESS_THAN) %}
-
-# TODO
-equalExpression -> sumExpression {% id %}
-	| equalExpression _ "=" _ sumExpression
+compareExpression -> sumExpression {% id %}
+	| compareExpression _ "=" _ sumExpression {% compare(ast.Compare.EQUAL) %}
+	| compareExpression _ ">" _ sumExpression {% compare(ast.Compare.GREATER) %}
+	| compareExpression _ "<" _ sumExpression {% compare(ast.Compare.LESS) %}
 
 sumExpression -> productExpression {% id %}
-	| sumExpression _ "+" _ productExpression {% operator(ast.OperatorType.ADD) %}
-	| sumExpression _ "-" _ productExpression {% operator(ast.OperatorType.MINUS) %}
+	| sumExpression _ "+" _ productExpression {% operation(ast.Operator.ADD) %}
+	| sumExpression _ "-" _ productExpression {% operation(ast.Operator.MINUS) %}
 
 productExpression -> unaryExpression {% id %}
-	| productExpression _ "*" _ unaryExpression {% operator(ast.OperatorType.MULTIPLY) %}
-	| productExpression _ "/" _ unaryExpression {% operator(ast.OperatorType.DIVIDE) %}
+	| productExpression _ "*" _ unaryExpression {% operation(ast.Operator.MULTIPLY) %}
+	| productExpression _ "/" _ unaryExpression {% operation(ast.Operator.DIVIDE) %}
 
 unaryExpression -> value {% id %}
-	| "-" _ unaryExpression {% unaryOperator(ast.UnaryOperatorType.NEGATE) %}
-	| "~" _ unaryExpression {% unaryOperator(ast.UnaryOperatorType.NOT) %}
-	| "!" _ unaryExpression {% unaryOperator(ast.UnaryOperatorType.NOT) %}
+	| "-" _ unaryExpression {% unaryOperation(ast.UnaryOperator.NEGATE) %}
+	| "~" _ unaryExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
+	| "!" _ unaryExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
 
 value -> modIdentifier {% id %}
-	| number {% id %}
+	| number {% ([num]) => new ast.Number(num) %}
 	| string {% ([str]) => new ast.String(str) %}
 	| "(" _ expression _ ")" {% ([, , expr]) => expr %}
 	| functionCall {% id %}
-	| ifExpression
+	| ifExpression {% id %}
+	| "print" __ expression {% ([, , expr]) => new ast.Print(expr) %}
+	| "return" __ expression {% ([, , expr]) => new ast.Return(expr) %}
 
 # identifier [...parameters]
 functionCall -> "{" _ value _ "}" {% ([, , value]) => new ast.CallFunc(value) %}
@@ -113,12 +128,13 @@ functionCall -> "{" _ value _ "}" {% ([, , value]) => new ast.CallFunc(value) %}
 parameters -> value {% ([expr]) => [expr] %}
 	| parameters __ value {% ([params, , expr]) => [...params, expr] %}
 
-ifStatement -> "if" __ expression _ "->" _ statement (__ "else" __ statement):? {% ([, , expr, , , , stmt, maybeElse]) => new ast.IfStmt(expr, stmt, maybeElse) %}
+ifExpression -> "if" __ expression (_ "->" _ | __ "then" __)
+	value
+	(__ "else" __ value):?
+	{% ([, , cond, , a, b]) => new ast.If(cond, a, b && b[3]) %}
 
-ifExpression -> "if" __ expression __ "then" __ value (__ "else" __ value):?
-
-modIdentifier -> identifier {% id %}
-	| modIdentifier "." identifier
+modIdentifier -> identifier {% ([id]) => new ast.Identifier(id) %}
+	| modIdentifier "." identifier {% ([modIdent, , id]) => modIdent.identifier(id) %}
 
 identifier -> %identifier {% ([token]) => token.value %}
 

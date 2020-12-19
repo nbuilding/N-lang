@@ -21,24 +21,6 @@ export class ImportStmt extends Statement {
   }
 }
 
-export class PrintStmt extends Statement {
-  value: Expression
-
-  constructor (expr: Expression) {
-    super()
-    this.value = expr
-  }
-}
-
-export class ReturnStmt extends Statement {
-  value: Expression
-
-  constructor (expr: Expression) {
-    super()
-    this.value = expr
-  }
-}
-
 export class VarStmt extends Statement {
   declare: Declaration
   value: Expression
@@ -68,28 +50,15 @@ export class FuncDeclaration extends Statement {
 }
 
 export class LoopStmt extends Statement {
-  value: Value
+  value: Expression
   binding: Declaration
   body: Block
 
-  constructor (value: Value, decl: Declaration, body: Block) {
+  constructor (value: Expression, decl: Declaration, body: Block) {
     super()
     this.value = value
     this.binding = decl
     this.body = body
-  }
-}
-
-export class IfStmt extends Statement {
-  condition: Expression
-  then: Statement
-  else?: Statement
-
-  constructor (condition: Expression, statement: Statement, maybeElse?: Statement) {
-    super()
-    this.condition = condition
-    this.then = statement
-    this.else = maybeElse
   }
 }
 
@@ -105,9 +74,7 @@ export class Declaration {
 
 type Type = string
 
-export abstract class Expression {}
-
-export type Value = Literal | Expression | CallFunc
+export type Expression = Literal | Operator | CallFunc | Print | Return | If
 
 abstract class Literal {
   abstract value: string
@@ -131,50 +98,108 @@ export class Number extends Literal {
   }
 }
 
-export enum OperatorType {
+export enum Compare {
+  LESS = 'less',
+  EQUAL = 'equal',
+  GREATER = 'greater',
+}
+
+export class Comparison {
+  type: Compare
+  value: Expression
+  with: Expression | Comparison
+
+  constructor (type: Compare, value: Expression, expr: Expression | Comparison) {
+    this.type = type
+    this.value = value
+    this.with = expr
+  }
+}
+
+export enum Operator {
   AND = 'and',
   OR = 'or',
-  GREATER_THAN = 'greater-than',
-  LESS_THAN = 'less-than',
   ADD = 'add',
   MINUS = 'minus',
   MULTIPLY = 'multiply',
   DIVIDE = 'divide',
 }
 
-export class Operator {
-  type: OperatorType
+export class Operation {
+  type: Operator
   a: Expression
-  b: Value
+  b: Expression
 
-  constructor (operatorName: OperatorType, expr: Expression, val: Value) {
-    this.type = operatorName
+  constructor (operator: Operator, expr: Expression, val: Expression) {
+    this.type = operator
     this.a = expr
     this.b = val
   }
 }
 
-export enum UnaryOperatorType {
+export enum UnaryOperator {
   NEGATE = 'negate',
   NOT = 'not',
 }
 
-export class UnaryOperator {
-  type: UnaryOperatorType
-  a: Value
+export class UnaryOperation {
+  type: UnaryOperator
+  a: Expression
 
-  constructor (operatorName: UnaryOperatorType, value: Value) {
-    this.type = operatorName
+  constructor (operator: UnaryOperator, value: Expression) {
+    this.type = operator
     this.a = value
   }
 }
 
 export class CallFunc {
-  func: Value
-  params: Value[]
+  func: Expression
+  params: Expression[]
 
-  constructor (value: Value, params: Value[] = []) {
+  constructor (value: Expression, params: Expression[] = []) {
     this.func = value
     this.params = params
+  }
+}
+
+export class Print {
+  value: Expression
+
+  constructor (expr: Expression) {
+    this.value = expr
+  }
+}
+
+export class Return {
+  value: Expression
+
+  constructor (expr: Expression) {
+    this.value = expr
+  }
+}
+
+export class If {
+  condition: Expression
+  then: Statement
+  else?: Statement
+
+  constructor (condition: Expression, statement: Statement, maybeElse?: Statement) {
+    this.condition = condition
+    this.then = statement
+    this.else = maybeElse
+  }
+}
+
+export class Identifier {
+  modules: string[]
+  name: string
+
+  constructor (name: string, modules: string[] = []) {
+    this.name = name
+    this.modules = modules
+  }
+
+  identifier (name: string) {
+    return new Identifier(name, [...this.modules, this.name])
   }
 }
