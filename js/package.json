@@ -4,6 +4,7 @@
   "description": "A language for N Building.",
   "main": "index.js",
   "scripts": {
+    "build:ne": "npx nearleyc src/grammar/n-lang.ne -o src/grammar/n-lang.grammar.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
