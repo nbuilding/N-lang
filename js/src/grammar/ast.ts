@@ -8,57 +8,84 @@ export class Block {
   withStatement (statement: Statement) {
     return new Block([...this.statements, statement])
   }
+
+  toString (indent: number = 0) {
+    const indentation = '\t'.repeat(indent)
+    // Add additional indentation after every newline
+    return indentation +
+      this.statements.join('\n').replace(/\n/g, '\n' + indentation)
+  }
 }
 
-abstract class Statement {}
+export type Statement = ImportStmt | VarStmt | FuncDeclaration | LoopStmt
+  | Expression
 
-export class ImportStmt extends Statement {
+export class ImportStmt {
   name: string
 
   constructor (id: string) {
-    super()
     this.name = id
+  }
+
+  toString () {
+    return `import ${this.name}`
   }
 }
 
-export class VarStmt extends Statement {
-  declare: Declaration
+export class VarStmt {
+  declaration: Declaration
   value: Expression
 
   constructor (decl: Declaration, expr: Expression) {
-    super()
-    this.declare = decl
+    this.declaration = decl
     this.value = expr
+  }
+
+  toString () {
+    return `var ${this.declaration} < ${this.value}`
   }
 }
 
-export class FuncDeclaration extends Statement {
+export class FuncDeclaration {
   name: string
   params: Declaration[]
-  returnType: Type
+  returnType?: Type
   body: Block
-  returnExpr: Expression
+  returnExpr?: Expression
 
-  constructor ({ name, params } : { name: string, params: Declaration[] }, returnType: Type, body: Block, returnExpr: Expression) {
-    super()
+  constructor (
+    { name, params } : { name: string, params: Declaration[] },
+    returnType: Type | undefined,
+    body: Block,
+    returnExpr?: Expression
+  ) {
     this.name = name
     this.params = params
     this.returnType = returnType
     this.body = body
     this.returnExpr = returnExpr
   }
+
+  toString () {
+    return `> ${this.name}` + this.params.map(param => ' ' + param).join('')
+      + (this.returnType ? ` -> ${this.returnType}` : '')
+      + ` |\n${this.body.toString(1)}\n<`
+  }
 }
 
-export class LoopStmt extends Statement {
+export class LoopStmt {
   value: Expression
-  binding: Declaration
+  var: Declaration
   body: Block
 
   constructor (value: Expression, decl: Declaration, body: Block) {
-    super()
     this.value = value
-    this.binding = decl
+    this.var = decl
     this.body = body
+  }
+
+  toString () {
+    return `> loop ${this.value} ${this.var} |\n${this.body.toString(1)}\n<`
   }
 }
 
@@ -70,13 +97,18 @@ export class Declaration {
     this.name = name
     this.type = type
   }
+
+  toString () {
+    return `${this.name}: ${this.type}`
+  }
 }
 
 type Type = string
 
-export type Expression = Literal | Operator | CallFunc | Print | Return | If
+export type Expression = Literal | Operation | UnaryOperation | Comparison
+  | CallFunc | Print | Return | If | Identifier
 
-abstract class Literal {
+export abstract class Literal {
   abstract value: string
 }
 
@@ -87,6 +119,10 @@ export class String extends Literal {
     super()
     this.value = string
   }
+
+  toString () {
+    return JSON.stringify(this.value)
+  }
 }
 
 export class Number extends Literal {
@@ -96,12 +132,30 @@ export class Number extends Literal {
     super()
     this.value = number
   }
+
+  toString () {
+    return this.value
+  }
 }
 
 export enum Compare {
   LESS = 'less',
   EQUAL = 'equal',
   GREATER = 'greater',
+}
+
+function compareToString (self: Compare): string {
+  switch (self) {
+    case Compare.LESS: return '<'
+    case Compare.EQUAL: return '='
+    case Compare.GREATER: return '>'
+  }
+}
+
+interface SingleComparison {
+  type: Compare
+  a: Expression
+  b: Expression
 }
 
 export class Comparison {
@@ -114,6 +168,26 @@ export class Comparison {
     this.value = value
     this.with = expr
   }
+
+  comparisons (): SingleComparison[] {
+    const comparisons: SingleComparison[] = []
+    let comparison: Expression | Comparison = this
+    while (comparison instanceof Comparison) {
+      comparisons.push({
+        type: comparison.type,
+        a: comparison.value,
+        b: comparison.with instanceof Comparison
+          ? comparison.with.value
+          : comparison.with
+      })
+      comparison = comparison.with
+    }
+    return comparisons
+  }
+
+  toString () {
+    return `${this.value} ${compareToString(this.type)} ${this.with}`
+  }
 }
 
 export enum Operator {
@@ -123,6 +197,17 @@ export enum Operator {
   MINUS = 'minus',
   MULTIPLY = 'multiply',
   DIVIDE = 'divide',
+}
+
+function operatorToString (self: Operator): string {
+  switch (self) {
+    case Operator.AND: return '&'
+    case Operator.OR: return '|'
+    case Operator.ADD: return '+'
+    case Operator.MINUS: return '-'
+    case Operator.MULTIPLY: return '*'
+    case Operator.DIVIDE: return '/'
+  }
 }
 
 export class Operation {
@@ -135,6 +220,10 @@ export class Operation {
     this.a = expr
     this.b = val
   }
+
+  toString () {
+    return `${this.a} ${operatorToString(this.type)} ${this.b}`
+  }
 }
 
 export enum UnaryOperator {
@@ -142,13 +231,24 @@ export enum UnaryOperator {
   NOT = 'not',
 }
 
+function unaryOperatorToString (self: UnaryOperator): string {
+  switch (self) {
+    case UnaryOperator.NEGATE: return '-'
+    case UnaryOperator.NOT: return '~'
+  }
+}
+
 export class UnaryOperation {
   type: UnaryOperator
-  a: Expression
+  value: Expression
 
   constructor (operator: UnaryOperator, value: Expression) {
     this.type = operator
-    this.a = value
+    this.value = value
+  }
+
+  toString () {
+    return `${unaryOperatorToString(this.type)}${this.value}`
   }
 }
 
@@ -160,6 +260,10 @@ export class CallFunc {
     this.func = value
     this.params = params
   }
+
+  toString () {
+    return `{${this.func}${this.params.map(param => ' ' + param).join('')}}`
+  }
 }
 
 export class Print {
@@ -167,6 +271,10 @@ export class Print {
 
   constructor (expr: Expression) {
     this.value = expr
+  }
+
+  toString () {
+    return `print ${this.value}`
   }
 }
 
@@ -176,17 +284,26 @@ export class Return {
   constructor (expr: Expression) {
     this.value = expr
   }
+
+  toString () {
+    return `return ${this.value}`
+  }
 }
 
 export class If {
   condition: Expression
-  then: Statement
-  else?: Statement
+  then: Expression
+  else?: Expression
 
-  constructor (condition: Expression, statement: Statement, maybeElse?: Statement) {
+  constructor (condition: Expression, statement: Expression, maybeElse?: Expression) {
     this.condition = condition
     this.then = statement
     this.else = maybeElse
+  }
+
+  toString () {
+    return `if ${this.condition} then ${this.then}`
+      + (this.else ? ` else ${this.else}` : '')
   }
 }
 
@@ -201,5 +318,9 @@ export class Identifier {
 
   identifier (name: string) {
     return new Identifier(name, [...this.modules, this.name])
+  }
+
+  toString () {
+    return this.modules.map(mod => mod + '.').join('') + this.name
   }
 }
