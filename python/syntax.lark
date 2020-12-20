@@ -30,7 +30,7 @@ ifelse_expr: "if" expression ("then" | "->") expression "else" expression
 //helpers
 name_type: NAME ":" NAME
 function_dec_call: NAME (" " [name_type (" " name_type)*])?
-function_call : NAME (" " [NAME (" " NAME)*])?
+function_call : value (" " value)*
 code_block: "|" instruction+ "<"
 
 // Boolean and number expressions, with order of operations.

@@ -11,8 +11,10 @@ class Variable:
 		self.type = t
 		self.value = value
 
-class Function:
+class Function(Variable):
 	def __init__(self, scope, arguments, returntype, codeblock, defaultreturn):
+		super(Function, self).__init__("function", self)
+
 		self.scope = scope
 		# Discarding types for now
 		self.arguments = [(argument.children[1].value, argument.children[0].value) for argument in arguments]
@@ -30,41 +32,26 @@ class Function:
 			exit, value = scope.eval_command(instruction)
 			if exit:
 				return value
-		return defaultreturn
+		return scope.eval_expr(self.defaultreturn)
 
 class Scope:
 	def __init__(self, parent=None):
 		self.parent = parent
 		self.imports = []
 		self.variables = {}
-		self.functions = {}
 
 	def new_scope(self):
 		return Scope(self)
 
-	def get_variable(self, name_token):
-		variable = self.variables.get(name_token)
+	def get_variable(self, name):
+		variable = self.variables.get(name)
 		if variable is None:
 			if self.parent:
-				return self.parent.get_variable(name_token)
+				return self.parent.get_variable(name)
 			else:
-				raise NameError(
-					"You tried to get a variable `%s` at %d:%d, but it isn't defined." % (name_token, name_token.line, name_token.column)
-				)
+				raise NameError("You tried to get a variable/function `%s`, but it isn't defined." % name)
 		else:
 			return variable
-
-	def get_function(self, name_token):
-		function = self.functions.get(name_token)
-		if function is None:
-			if self.parent:
-				return self.parent.get_function(name_token)
-			else:
-				raise NameError(
-					"You tried to run a function `%s` at %d:%d, but it isn't defined." % (name_token, name_token.line, name_token.column)
-				)
-		else:
-			return function
 
 	def eval_value(self, value):
 		if value.type == "NUMBER":
@@ -99,8 +86,8 @@ class Scope:
 			else:
 				return self.eval_expr(ifFalse)
 		elif expr.data == "function_callback":
-			function_name, *arguments = expr.children[0].children
-			return self.get_function(function_name).run(arguments)
+			function, *arguments = expr.children[0].children
+			return self.eval_expr(function).run([self.eval_expr(arg) for arg in arguments])
 		elif expr.data == "or_expression":
 			left, _, right = expr.children
 			return self.eval_expr(left) or self.eval_expr(right)
@@ -192,7 +179,7 @@ class Scope:
 		elif command.data == "function_def":
 			deccall, returntype, codeblock, defaultreturn = command.children
 			name, *arguments = deccall.children
-			self.functions[name] = Function(self, arguments, returntype, codeblock, defaultreturn)
+			self.variables[name] = Function(self, arguments, returntype, codeblock, defaultreturn)
 		elif command.data == "loop":
 			times, var, code = command.children
 			name, type = var.children
@@ -219,6 +206,12 @@ class Scope:
 			condition, body = command.children
 			if self.eval_expr(condition):
 				self.new_scope().eval_command(body)
+		elif command.data == "ifelse":
+			condition, if_true, if_false = command.children
+			if self.eval_expr(condition):
+				self.new_scope().eval_command(if_true)
+			else:
+				self.new_scope().eval_command(if_false)
 		else:
 			self.eval_expr(command)
 
