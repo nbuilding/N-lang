@@ -25,7 +25,7 @@ function unescape (char: string): string {
 
 // Order of rules matter! So most specific -> most general
 const lexer = moo.compile({
-	keyword: ['import', 'print', 'return', 'var'],
+	keyword: ['import', 'print', 'return', 'var', 'else'],
 	symbol: [
 		'->', '|', ':', '<', '=', '>', '+', '-', '*', '/', '^', '&', '|',
 		'.', '//', '%'

@@ -7,10 +7,12 @@ import { parse } from './grammar/parse'
 import parseArgs from 'minimist'
 
 async function main () {
-  const { _: [fileName], help, ast, repr, js, run } = parseArgs(process.argv.slice(2), {
+  const { _: [fileName], help, ast, repr, js, run, 'ambiguity-output': ambiguityOutput } = parseArgs(process.argv.slice(2), {
     boolean: ['help', 'ast', 'repr', 'js', 'run'],
+    string: ['ambiguity-output'],
     alias: {
-      h: 'help'
+      h: 'help',
+      ao: 'ambiguity-output'
     }
   })
 
@@ -22,6 +24,7 @@ async function main () {
     console.log('\t--help (-h)\tShows this help text and exits.')
     console.log('\t--ast\tOutputs the AST.')
     console.log('\t--repr\tOutputs the textual, N-like representation of the AST.')
+    console.log('\t--ambiguity-output=[omit|object|string] (--ao=)\tWhether to omit, show the AST objects, or the string representations of ambiguious parsings. Omits by default.')
     console.log('\t--js\tOutputs the compiled JS.')
     console.log('\t--run\tExecutes the compiled JS. This is enabled by default if none of the other flags are given.')
     return
@@ -34,7 +37,9 @@ async function main () {
   const running = run || !(ast || repr || js)
 
   const file = await fs.readFile(fileName, 'utf8')
-  const script = parse(file)
+  const script = parse(file, {
+    ambiguityOutput
+  })
   if (ast) console.log(util.inspect(script, false, null, true))
   if (repr) console.log(script.toString())
   if (js || running) {
