@@ -63,7 +63,7 @@ code_block: "|" instruction+ "<"
                  | NEQUALS_QUIRKY
 ?number_expression: sum_expression
 ?sum_expression: [sum_expression (ADD | SUBTRACT)] product_expression
-?product_expression: [product_expression (MULTIPLY | DIVIDE | ROUNDDIV)] exponent_expression
+?product_expression: [product_expression (MULTIPLY | DIVIDE | ROUNDDIV | MODULO)] exponent_expression
 // Exponentiation right to left associative
 ?exponent_expression: unary_expression [EXPONENT exponent_expression]
 ?unary_expression: value
@@ -95,6 +95,7 @@ SUBTRACT: "-"
 MULTIPLY: "*"
 DIVIDE: "/"
 ROUNDDIV: "//"
+MODULO: "%"
 EXPONENT: "^"
 %import common.ESCAPED_STRING -> STRING
 %import common.SIGNED_NUMBER  -> NUMBER
