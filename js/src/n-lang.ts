@@ -33,9 +33,9 @@ async function main () {
 
   const file = await fs.readFile(fileName, 'utf8')
   const script = parse(file)
-  const compiled = compileToJS(script)
   if (ast) console.log(util.inspect(script, false, null, true))
   if (repr) console.log(script.toString())
+  const compiled = compileToJS(script)
   if (js) console.log(compiled)
   // Indirect call of eval to run in global scope
   if (run || !(ast || repr || js)) (null, eval)(compiled)

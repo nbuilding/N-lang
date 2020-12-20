@@ -13,8 +13,8 @@ const unaryOperation = (operator: ast.UnaryOperator) =>
 		new ast.UnaryOperation(operator, value as ast.Expression)
 
 const compare = (comparison: ast.Compare) =>
-	([expr, , , , val]: any[]) =>
-		new ast.Comparison(comparison, expr, val)
+	([compareExpr, , , , expr]: any[]) =>
+		[...compareExpr, { expr, comparison }]
 
 const escapes: { [key: string]: string } = {
 	n: '\n', r: '\r', t: '\t', v: '\v', 0: '\0', f: '\f', b: '\b'
@@ -97,10 +97,13 @@ booleanExpression -> compareExpression {% id %}
 	| booleanExpression _ "&" _ compareExpression {% operation(ast.Operator.AND) %}
 	| booleanExpression _ "|" _ compareExpression {% operation(ast.Operator.OR) %}
 
-compareExpression -> sumExpression {% id %}
-	| compareExpression _ "=" _ sumExpression {% compare(ast.Compare.EQUAL) %}
-	| compareExpression _ ">" _ sumExpression {% compare(ast.Compare.GREATER) %}
-	| compareExpression _ "<" _ sumExpression {% compare(ast.Compare.LESS) %}
+compareExpression -> compareExpression_ {% ([comparisons]) => comparisons.length === 1 ? comparisons[0].expr : new ast.Comparisons(comparisons) %}
+
+# The first comparison gets ignored anyways
+compareExpression_ -> sumExpression {% ([expr]) => [{ expr, comparison: ast.Compare.EQUAL }] %}
+	| compareExpression_ _ "=" _ sumExpression {% compare(ast.Compare.EQUAL) %}
+	| compareExpression_ _ ">" _ sumExpression {% compare(ast.Compare.GREATER) %}
+	| compareExpression_ _ "<" _ sumExpression {% compare(ast.Compare.LESS) %}
 
 sumExpression -> productExpression {% id %}
 	| sumExpression _ "+" _ productExpression {% operation(ast.Operator.ADD) %}

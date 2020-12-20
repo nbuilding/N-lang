@@ -105,7 +105,7 @@ export class Declaration {
 
 type Type = Identifier
 
-export type Expression = Literal | Operation | UnaryOperation | Comparison
+export type Expression = Literal | Operation | UnaryOperation | Comparisons
   | CallFunc | Print | Return | If | Identifier
 
 export abstract class Literal {
@@ -152,41 +152,39 @@ function compareToString (self: Compare): string {
   }
 }
 
-interface SingleComparison {
+interface Comparison {
   type: Compare
   a: Expression
   b: Expression
 }
 
-export class Comparison {
-  type: Compare
-  value: Expression
-  with: Expression | Comparison
+interface RawComparison {
+  expr: Expression
+  comparison: Compare
+}
 
-  constructor (type: Compare, value: Expression, expr: Expression | Comparison) {
-    this.type = type
-    this.value = value
-    this.with = expr
-  }
+export class Comparisons {
+  comparisons: Comparison[]
 
-  comparisons (): SingleComparison[] {
-    const comparisons: SingleComparison[] = []
-    let comparison: Expression | Comparison = this
-    while (comparison instanceof Comparison) {
-      comparisons.push({
-        type: comparison.type,
-        a: comparison.value,
-        b: comparison.with instanceof Comparison
-          ? comparison.with.value
-          : comparison.with
+  constructor ([value, ...comparisons]: RawComparison[]) {
+    this.comparisons = []
+    let lastValue = value.expr
+    for (const { expr, comparison } of comparisons) {
+      this.comparisons.push({
+        type: comparison,
+        a: lastValue,
+        b: expr
       })
-      comparison = comparison.with
+      lastValue = expr
     }
-    return comparisons
   }
 
   toString () {
-    return `${this.value} ${compareToString(this.type)} ${this.with}`
+    let str = `${this.comparisons[0].a}`
+    for (const { type, b } of this.comparisons) {
+      str += ` ${compareToString(type)} ${b}`
+    }
+    return `(${str})`
   }
 }
 
@@ -222,7 +220,7 @@ export class Operation {
   }
 
   toString () {
-    return `${this.a} ${operatorToString(this.type)} ${this.b}`
+    return `(${this.a} ${operatorToString(this.type)} ${this.b})`
   }
 }
 

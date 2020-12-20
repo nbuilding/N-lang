@@ -77,9 +77,9 @@ class JSCompiler {
       return `(${this.expressionToJS(expression.a)} ${jsOperations[expression.type]} ${this.expressionToJS(expression.b)})`
     } else if (expression instanceof ast.UnaryOperation) {
       return `${jsUnaryOperators[expression.type]}${this.expressionToJS(expression.value)}`
-    } else if (expression instanceof ast.Comparison) {
+    } else if (expression instanceof ast.Comparisons) {
       return `(${
-        expression.comparisons()
+        expression.comparisons
           .map(({ type, a, b }) => `${this.expressionToJS(a)} ${jsComparators[type]} ${this.expressionToJS(b)}`)
           .join(' && ')
       })`
