@@ -79,13 +79,11 @@ def parseTree(t):
 		for child in t.children:
 			parseBranch(child)
 	else:
-		print("Unable to run parseTree on non-starting branch")
-		exit()
+		raise SyntaxError("Unable to run parseTree on non-starting branch")
 
 def parseBranch(t):
 	if t.data != "instruction":
-		print("Command %s not implemented" (t.data))
-		exit()
+		raise SyntaxError("Command %s not implemented" %(t.data))
 
 	command = t.children[0]
 
@@ -110,6 +108,8 @@ def parseBranch(t):
 			print(parseExpression(value.children[0]))
 	elif command.data == "return":
 		return command.children[0]
+	else:
+		raise SyntaxError("Command %s not implemented" %(command.data))
 
 
 

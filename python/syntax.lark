@@ -26,6 +26,9 @@ boolval: infix_operator
        | value
        | function_callback
 
+non_infix_boolval: value
+                 | function_callback
+
 numbers: num_exp
        | NUMBER
 
@@ -41,13 +44,13 @@ number_operators: ADD
 
 comparison_operator: OR
                    | AND
-                   | EQUALS
-                   | GORE
-                   | LORE
-                   | LESS
-                   | GREATER
-                   | NEQUALS
 
+numeric_comparison_operator: EQUALS
+                           | GORE
+                           | LORE
+                           | LESS
+                           | GREATER
+                           | NEQUALS
 
 // functions
 declare: "var " name_type "<" value
@@ -67,7 +70,7 @@ name_type: NAME ":" NAME
 function_dec_call: NAME (" " [name_type (" " name_type)*])?
 function_call : NAME (" " [NAME (" " NAME)*])?
 code_block: "|" instruction+ "<" 
-infix_operator: (NOT)* boolval (comparison_operator (NOT)* boolval)*
+infix_operator: (NOT)? non_infix_boolval (numeric_comparison_operator (NOT)? non_infix_boolval)? (comparison_operator boolval)*
 num_exp: number_expression (number_operators number_expression)*
 
 //constants
