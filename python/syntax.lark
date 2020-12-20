@@ -16,15 +16,41 @@ expression: ifelse
           | function_callback
           | boolean_expression
 
+value: BOOLEAN
+     | STRING
+     | NUMBER
+     | NAME
+     | expression
+
+boolval: infix_operator
+       | value
+       | function_callback
+
+non_infix_boolval: value
+                 | function_callback
+
+numbers: num_exp
+       | NUMBER
+
+number_expression: num_exp
+                 | NUMBER
+
+number_operators: ADD
+                | SUBTACT
+                | MULTIPLY
+                | DIVIDE
+                | ROUNDDIV
+                | EXPONENT
+
 comparison_operator: OR
                    | AND
-                   | EQUALS
-                   | GORE
-                   | LORE
-                   | LESS
-                   | GREATER
-                   | NEQUALS
 
+numeric_comparison_operator: EQUALS
+                           | GORE
+                           | LORE
+                           | LESS
+                           | GREATER
+                           | NEQUALS
 
 // functions
 declare: "var " name_type "<" expression

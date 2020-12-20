@@ -1,7 +1,6 @@
 import re
 import functools
 import importlib
-from impdata import *
 from lark import Lark
 from lark import Transformer
 from lark import tree
@@ -118,17 +117,15 @@ class Scope:
 				print("Unexpected value type", token)
 				return 0
 		else:
-			print('Unexpected expression type %s' % expr.data)
 			print(expr)
-			return 0
+			raise SyntaxError('Unexpected command/expression type %s' % expr.data)
 
 	"""
 	Evaluates a command given parsed Trees and Tokens from Lark.
 	"""
 	def eval_command(self, tree):
 		if tree.data != "instruction":
-			print("Command %s not implemented" % (tree.data))
-			exit()
+			raise SyntaxError("Command %s not implemented" %(t.data))
 
 		command = tree.children[0]
 
@@ -187,8 +184,7 @@ def parseTree(t):
 		for child in t.children:
 			scope.eval_command(child)
 	else:
-		print("Unable to run parseTree on non-starting branch")
-		exit()
+		raise SyntaxError("Unable to run parseTree on non-starting branch")
 
 
 

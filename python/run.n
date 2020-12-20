@@ -7,10 +7,10 @@ return true
 < false
 
 > loop 10 i:int |
-print if i % 2 = 0 then "test" else "e"
+print if 1 = 1 || 2 = 1 then "test" else "e"
 <
 
-var test:int < if 1 = 1 then 1 else 2
+var test:int < if !1 = 1 || 2 > 3 then 1 else 2
 var test1:int < 1 + 1
 var eee:str < "hi"
 
