@@ -9,48 +9,10 @@ instruction: declare
            | return
            | imported_command
            | if
-           | else
            | ifelse
-
-expression: ifelse
-          | function_callback
-          | boolean_expression
-
-value: BOOLEAN
-     | STRING
-     | NUMBER
-     | NAME
-     | expression
-
-boolval: infix_operator
-       | value
-       | function_callback
 
 non_infix_boolval: value
                  | function_callback
-
-numbers: num_exp
-       | NUMBER
-
-number_expression: num_exp
-                 | NUMBER
-
-number_operators: ADD
-                | SUBTACT
-                | MULTIPLY
-                | DIVIDE
-                | ROUNDDIV
-                | EXPONENT
-
-comparison_operator: OR
-                   | AND
-
-numeric_comparison_operator: EQUALS
-                           | GORE
-                           | LORE
-                           | LESS
-                           | GREATER
-                           | NEQUALS
 
 // functions
 declare: "var " name_type "<" expression
@@ -61,9 +23,9 @@ loop: ">" "loop" NUMBER name_type code_block
 imp: "import" NAME
 return: "return" (value | "null")
 imported_command: "{" NAME "." NAME (" " [value (" " value)*])? "}"
-if: "if " boolean_expression ("then" | "->") (value | instruction)
-ifelse: "if " boolean_expression ("then" | "->") (value | instruction) else
-else: "else " (value | instruction)
+if: "if" expression ("then" | "->") (value | instruction)
+ifelse: "if" expression ("then" | "->") (value | instruction) "else" instruction
+ifelse_expr: "if" expression ("then" | "->") expression "else" expression
 
 //helpers
 name_type: NAME ":" NAME
@@ -76,6 +38,9 @@ code_block: "|" instruction+ "<"
 // boolean_expression(or_expression(and_expression etc)).
 // Square brackets mean that the stuff inside it can appear 0 or 1 time. Same as
 // (whatever)?.
+?expression: ifelse_expr
+           | boolean_expression
+
 ?boolean_expression: or_expression
 ?or_expression: [or_expression OR] and_expression
 ?and_expression: [and_expression AND] compare_expression
@@ -87,6 +52,7 @@ code_block: "|" instruction+ "<"
                  | GREATER
                  | NEQUALS
                  | NEQUALS_QUIRKY
+
 ?number_expression: sum_expression
 ?sum_expression: [sum_expression (ADD | SUBTRACT)] product_expression
 ?product_expression: [product_expression (MULTIPLY | DIVIDE | ROUNDDIV | MODULO)] exponent_expression
@@ -99,14 +65,14 @@ value: NUMBER
      | BOOLEAN
      | STRING
      | NAME
-     | "(" boolean_expression ")"
+     | "(" expression ")"
      | function_callback
 
 //constants
 BOOLEAN: ("true" | "false")
 COMMENT: ";" /[^\n]/*
-OR: "||"
-AND: "&&"
+OR: "|"
+AND: "&"
 EQUALS: "="
 GORE: ">="
 LORE: "<="
