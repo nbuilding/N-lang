@@ -18,6 +18,28 @@ __nativeModules.fek = __module(function (exports) {
     console.log(message);
   };
 });
+  `,
+  future: `
+__nativeModules.future = __module(function (exports) {
+  exports.split = function (separator, string) {
+    return string.split(separator);
+  };
+  exports.map = function (mapFn, array) {
+    return array.map(mapFn)
+  };
+  exports.length = function (array) {
+    return array.length
+  };
+  exports.get = function (array, index) {
+    return array[index]
+  };
+  exports.strToInt = function (string) {
+    return parseInt(string) || 0;
+  };
+  exports.intToStr = function (int) {
+    return int.toString();
+  };
+});
   `
 }
 
@@ -97,9 +119,10 @@ class JSCompiler {
         this.blockToJS(statement.body, true)
       }`
     } else if (statement instanceof ast.LoopStmt) {
-      return `for (var i = 0, end = ${
+      const varName = statement.var.name
+      return `for (var ${varName} = 0, end = ${
         this.expressionToJS(statement.value)
-      }; i < end; i++) ${
+      }; ${varName} < end; ${varName}++) ${
         this.blockToJS(statement.body, true)
       }`
     } else {

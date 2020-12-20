@@ -103,7 +103,7 @@ export class Declaration {
   }
 }
 
-type Type = string
+type Type = Identifier
 
 export type Expression = Literal | Operation | UnaryOperation | Comparison
   | CallFunc | Print | Return | If | Identifier

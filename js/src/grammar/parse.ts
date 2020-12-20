@@ -13,7 +13,8 @@ export function parse (script: string): Block {
   if (ambiguities.length) {
     throw new SyntaxError(`You've discovered an ambiguity in the grammar! ${
       util.inspect(parser.results, false, null, true)
-    }`)
+      // parser.results.map(a => a.toString()).join('\n\n')
+    } (${parser.results.length} items)`)
   }
   return result
 }

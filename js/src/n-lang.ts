@@ -1,7 +1,7 @@
 // See README.md on how to run this
 
 import fs from 'fs/promises'
-import util from 'util'
+// import util from 'util'
 import { compileToJS } from './compiler/to-js'
 import { parse } from './grammar/parse'
 
@@ -14,9 +14,10 @@ async function main () {
 
   const file = await fs.readFile(fileName, 'utf8')
   const script = parse(file)
-  console.log(util.inspect(script, false, null, true))
-  console.log(script.toString())
-  console.log(compileToJS(script))
+  // console.log(util.inspect(script, false, null, true))
+  // console.log(script.toString())
+  // console.log(compileToJS(script))
+  eval(compileToJS(script))
 }
 
 main()

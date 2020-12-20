@@ -85,9 +85,12 @@ loop -> ">" _ "loop" _ value _ declaration _ "|" _ block newlines "<" {% ([, , ,
 
 declaration -> identifier _ ":" _ type {% ([id, , , , type]) => new ast.Declaration(id, type) %}
 
-type -> identifier {% id %}
+type -> modIdentifier {% id %}
 
 expression -> booleanExpression {% id %}
+	| "print" __ booleanExpression {% ([, , expr]) => new ast.Print(expr) %}
+	| "return" __ booleanExpression {% ([, , expr]) => new ast.Return(expr) %}
+	| ifExpression {% id %}
 
 booleanExpression -> compareExpression {% id %}
 	| booleanExpression _ "&" _ compareExpression {% operation(ast.Operator.AND) %}
@@ -116,9 +119,6 @@ value -> modIdentifier {% id %}
 	| string {% ([str]) => new ast.String(str) %}
 	| "(" _ expression _ ")" {% ([, , expr]) => expr %}
 	| functionCall {% id %}
-	| ifExpression {% id %}
-	| "print" __ expression {% ([, , expr]) => new ast.Print(expr) %}
-	| "return" __ expression {% ([, , expr]) => new ast.Return(expr) %}
 
 # identifier [...parameters]
 functionCall -> "{" _ value _ "}" {% ([, , value]) => new ast.CallFunc(value) %}
@@ -129,8 +129,8 @@ parameters -> value {% ([expr]) => [expr] %}
 	| parameters __ value {% ([params, , expr]) => [...params, expr] %}
 
 ifExpression -> "if" __ expression (_ "->" _ | __ "then" __)
-	value
-	(__ "else" __ value):?
+	expression
+	(__ "else" __ expression):?
 	{% ([, , cond, , a, b]) => new ast.If(cond, a, b && b[3]) %}
 
 modIdentifier -> identifier {% ([id]) => new ast.Identifier(id) %}
