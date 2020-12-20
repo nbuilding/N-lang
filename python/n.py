@@ -1,7 +1,6 @@
 import re
 import functools
 import importlib
-from impdata import *
 from lark import Lark
 from lark import Transformer
 from lark import tree
