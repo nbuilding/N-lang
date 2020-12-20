@@ -31,14 +31,18 @@ async function main () {
     throw new Error('You need to give a file to parse.')
   }
 
+  const running = run || !(ast || repr || js)
+
   const file = await fs.readFile(fileName, 'utf8')
   const script = parse(file)
   if (ast) console.log(util.inspect(script, false, null, true))
   if (repr) console.log(script.toString())
-  const compiled = compileToJS(script)
-  if (js) console.log(compiled)
-  // Indirect call of eval to run in global scope
-  if (run || !(ast || repr || js)) (null, eval)(compiled)
+  if (js || running) {
+    const compiled = compileToJS(script)
+    if (js) console.log(compiled)
+    // Indirect call of eval to run in global scope
+    if (running) (null, eval)(compiled)
+  }
 }
 
 main()

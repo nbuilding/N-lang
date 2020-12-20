@@ -14,3 +14,11 @@ python n.py
 - The python branch still needs lots of work
 - Add compile time to python
 - Get booleans likle `1 = 1 = 1` working in python parser
+
+## JavaScript
+
+The JavaScript version uses [Node](https://nodejs.org/),
+[TypeScript](https://www.typescriptlang.org/), and
+[Nearley](https://nearley.js.org/).
+
+See how to run it in the [js/ folder](./js/README.md).

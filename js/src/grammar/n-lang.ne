@@ -27,8 +27,8 @@ function unescape (char: string): string {
 const lexer = moo.compile({
 	keyword: ['import', 'print', 'return', 'var'],
 	symbol: [
-		'->', '|', ':', '<', '=', '>', '+', '-', '*', '/', '^', '~', '!', '&', '|',
-		'.'
+		'->', '|', ':', '<', '=', '>', '+', '-', '*', '/', '^', '&', '|',
+		'.', '//', '%'
 	],
 	lbracket: ['{', '[', '('],
 	rbracket: ['}', ']', ')'],
@@ -93,9 +93,12 @@ expression -> booleanExpression {% id %}
 	| "return" __ expression {% ([, , expr]) => new ast.Return(expr) %}
 	| ifExpression {% id %}
 
-booleanExpression -> compareExpression {% id %}
-	| booleanExpression _ "&" _ compareExpression {% operation(ast.Operator.AND) %}
-	| booleanExpression _ "|" _ compareExpression {% operation(ast.Operator.OR) %}
+booleanExpression -> notExpression {% id %}
+	| booleanExpression _ "&" _ notExpression {% operation(ast.Operator.AND) %}
+	| booleanExpression _ "|" _ notExpression {% operation(ast.Operator.OR) %}
+
+notExpression -> compareExpression {% id %}
+	| "not" _ notExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
 
 compareExpression -> compareExpression_ {% ([comparisons]) => comparisons.length === 1 ? comparisons[0].expr : new ast.Comparisons(comparisons) %}
 
@@ -109,14 +112,17 @@ sumExpression -> productExpression {% id %}
 	| sumExpression _ "+" _ productExpression {% operation(ast.Operator.ADD) %}
 	| sumExpression _ "-" _ productExpression {% operation(ast.Operator.MINUS) %}
 
-productExpression -> unaryExpression {% id %}
-	| productExpression _ "*" _ unaryExpression {% operation(ast.Operator.MULTIPLY) %}
-	| productExpression _ "/" _ unaryExpression {% operation(ast.Operator.DIVIDE) %}
+productExpression -> exponentExpression {% id %}
+	| productExpression _ "*" _ exponentExpression {% operation(ast.Operator.MULTIPLY) %}
+	| productExpression _ "/" _ exponentExpression {% operation(ast.Operator.DIVIDE) %}
+	| productExpression _ "//" _ exponentExpression {% operation(ast.Operator.INT_DIVIDE) %}
+	| productExpression _ "%" _ exponentExpression {% operation(ast.Operator.MODULO) %}
+
+exponentExpression -> unaryExpression {% id %}
+	| exponentExpression _ "^" _ unaryExpression {% operation(ast.Operator.EXPONENT) %}
 
 unaryExpression -> value {% id %}
 	| "-" _ unaryExpression {% unaryOperation(ast.UnaryOperator.NEGATE) %}
-	| "~" _ unaryExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
-	| "!" _ unaryExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
 
 value -> modIdentifier {% id %}
 	| number {% ([num]) => new ast.Number(num) %}
