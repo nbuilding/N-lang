@@ -1,12 +1,12 @@
 import fek
 
-> main test:str test1:str -> bool | 
+> main test:str test1:str -> bool |
 print test
 print test1
 return true
 < false
 
-> loop 10 i:int | 
+> loop 10 i:int |
 print if 1 = 1 = 1 then "test" else "e"
 <
 
@@ -18,3 +18,5 @@ var eee:str < "hi"
 {main test eee}
 {fek.paer test}
 if !{main test eee} -> print "test"
+
+print 2 + 3 * 4 + 1

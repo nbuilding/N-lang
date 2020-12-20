@@ -14,30 +14,7 @@ instruction: declare
 
 expression: ifelse
           | function_callback
-          | number_expression
-
-value: BOOLEAN
-     | STRING
-     | NUMBER
-     | NAME
-     | expression
-
-boolval: infix_operator
-       | value
-       | function_callback
-
-numbers: num_exp
-       | NUMBER
-
-number_expression: num_exp
-                 | NUMBER
-
-number_operators: ADD
-                | SUBTACT
-                | MULTIPLY
-                | DIVIDE
-                | ROUNDDIV
-                | EXPONENT
+          | boolean_expression
 
 comparison_operator: OR
                    | AND
@@ -50,25 +27,54 @@ comparison_operator: OR
 
 
 // functions
-declare: "var " name_type "<" value
+declare: "var " name_type "<" expression
 function_def: ">" function_dec_call "->" NAME code_block (value | "null")
-print: "print" value
+print: "print" expression
 function_callback: "{" function_call "}"
 loop: ">" "loop" NUMBER name_type code_block
 imp: "import" NAME
 return: "return" (value | "null")
 imported_command: "{" NAME "." NAME (" " [value (" " value)*])? "}"
-if: "if " infix_operator ("then" | "->") (value | instruction) 
-ifelse: "if " infix_operator ("then" | "->") (value | instruction) else
+if: "if " boolean_expression ("then" | "->") (value | instruction)
+ifelse: "if " boolean_expression ("then" | "->") (value | instruction) else
 else: "else " (value | instruction)
 
 //helpers
 name_type: NAME ":" NAME
 function_dec_call: NAME (" " [name_type (" " name_type)*])?
 function_call : NAME (" " [NAME (" " NAME)*])?
-code_block: "|" instruction+ "<" 
-infix_operator: (NOT)* boolval (comparison_operator (NOT)* boolval)*
-num_exp: number_expression (number_operators number_expression)*
+code_block: "|" instruction+ "<"
+
+// Boolean and number expressions, with order of operations.
+// Question mark "inlines" the branch, so we don't get nested
+// boolean_expression(or_expression(and_expression etc)).
+// Square brackets mean that the stuff inside it can appear 0 or 1 time. Same as
+// (whatever)?.
+?boolean_expression: or_expression
+?or_expression: [or_expression OR] and_expression
+?and_expression: [and_expression AND] compare_expression
+?compare_expression: [compare_expression compare_operator] number_expression
+?compare_operator: EQUALS
+                 | GORE
+                 | LORE
+                 | LESS
+                 | GREATER
+                 | NEQUALS
+                 | NEQUALS_QUIRKY
+?number_expression: sum_expression
+?sum_expression: [sum_expression (ADD | SUBTRACT)] product_expression
+?product_expression: [product_expression (MULTIPLY | DIVIDE | ROUNDDIV)] exponent_expression
+// Exponentiation right to left associative
+?exponent_expression: unary_expression [EXPONENT exponent_expression]
+?unary_expression: value
+                 | SUBTRACT unary_expression
+                 | (NOT | NOT_QUIRKY) unary_expression
+value: NUMBER
+     | BOOLEAN
+     | STRING
+     | NAME
+     | "(" boolean_expression ")"
+     | function_callback
 
 //constants
 BOOLEAN: ("true" | "false")
@@ -80,10 +86,12 @@ GORE: ">="
 LORE: "<="
 LESS: "<"
 GREATER: ">"
-NEQUALS: "!="
-NOT: "!"
+NEQUALS: "=/"
+NEQUALS_QUIRKY: "!="
+NOT: "~"
+NOT_QUIRKY: "!"
 ADD: "+"
-SUBTACT: "-"
+SUBTRACT: "-"
 MULTIPLY: "*"
 DIVIDE: "/"
 ROUNDDIV: "//"
