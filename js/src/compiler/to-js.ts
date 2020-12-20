@@ -63,11 +63,17 @@ const jsComparators: { [operation in ast.Compare]: string } = {
 
 class JSCompiler {
   modules: Set<string>
+  id: number
 
   constructor () {
     this.modules = new Set(['_prelude'])
     this.expressionToJS = this.expressionToJS.bind(this)
     this.statementToJS = this.statementToJS.bind(this)
+    this.id = 0
+  }
+
+  private uid (name = '') {
+    return `_${name}_${this.id++}`
   }
 
   expressionToJS (expression: ast.Expression): string {
@@ -120,9 +126,10 @@ class JSCompiler {
       }`
     } else if (statement instanceof ast.LoopStmt) {
       const varName = statement.var.name
-      return `for (var ${varName} = 0, end = ${
+      const endName = this.uid('end_' + varName)
+      return `for (var ${varName} = 0, ${endName} = ${
         this.expressionToJS(statement.value)
-      }; ${varName} < end; ${varName}++) ${
+      }; ${varName} < ${endName}; ${varName}++) ${
         this.blockToJS(statement.body, true)
       }`
     } else {

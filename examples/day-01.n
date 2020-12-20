@@ -22,10 +22,10 @@ var entries: future.array < {future.map future.strToInt {future.split "\n" input
 > part2 |
   > loop {future.length entries} i:int |
     > loop ({future.length entries} - i - 1) j:int |
-      > loop ({future.length entries} - i - j - 1) k:int |
+      > loop ({future.length entries} - i - j - 2) k:int |
         var entry1: int < {future.get entries i}
-        var entry2: int < {future.get entries (i + 1 + j)}
-        var entry3: int < {future.get entries (i + j + 1 + k)}
+        var entry2: int < {future.get entries (i + j + 1)}
+        var entry3: int < {future.get entries (i + j + k + 2)}
         if entry1 + entry2 + entry3 = 2020 then
           print (entry1 * entry2 * entry3)
       <
