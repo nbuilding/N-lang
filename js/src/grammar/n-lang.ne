@@ -43,8 +43,9 @@ const lexer = moo.compile({
 				([, char, unicode]) => char ? unescape(char) : String.fromCodePoint(parseInt(unicode, 16))
 			)
 	},
-	comment: /\s*;.*?$/,
+	comment: /[ \t]*;.*?$/,
 	newlines: { match: /\s*(?:\r?\n)\s*/, lineBreaks: true },
+	spaces: /[ \t]+/,
 	whitespace: { match: /\s+/, lineBreaks: true },
 })
 %}
@@ -55,7 +56,7 @@ main -> _ block _ {% ([, block]) => block %}
 
 # statement
 # ...
-block -> statement {% ([statement]) => new ast.Block(statement ? [statement] : []) %}
+block -> commentedStatement {% ([statement]) => new ast.Block(statement ? [statement] : []) %}
 	| block newlines commentedStatement {% ([block, , statement]) => statement ? block.withStatement(statement) : block %}
 
 commentedStatement -> lineComment {% () => null %}
@@ -79,7 +80,7 @@ funcDefParams -> declaration {% ([decl]) => [decl] %}
 funcDefReturnType -> _ "->" _ type {% ([, , , type]) => type %}
 
 funcDefEnd -> "<" {% () => null %}
-	| "<" _ expression {% ([, , expr]) => expr %}
+	| "<" _spaces expression {% ([, , expr]) => expr %}
 
 loop -> ">" _ "loop" _ value _ declaration _ "|" _ block newlines "<" {% ([, , , , value, , decl, , , , block]) => new ast.LoopStmt(value, decl, block) %}
 
@@ -88,8 +89,8 @@ declaration -> identifier _ ":" _ type {% ([id, , , , type]) => new ast.Declarat
 type -> modIdentifier {% id %}
 
 expression -> booleanExpression {% id %}
-	| "print" __ booleanExpression {% ([, , expr]) => new ast.Print(expr) %}
-	| "return" __ booleanExpression {% ([, , expr]) => new ast.Return(expr) %}
+	| "print" __ expression {% ([, , expr]) => new ast.Print(expr) %}
+	| "return" __ expression {% ([, , expr]) => new ast.Return(expr) %}
 	| ifExpression {% id %}
 
 booleanExpression -> compareExpression {% id %}
@@ -150,8 +151,10 @@ lineComment -> %comment {% () => null %}
 
 newlines -> %newlines {% () => null %}
 
+_spaces -> %spaces:? {% () => null %}
+
 # Obligatory whitespace
-__ -> (%newlines | %whitespace) {% () => null %}
+__ -> (%newlines | %whitespace | %spaces) {% () => null %}
 
 # Optional whitespace
 _ -> __:? {% () => null %}
