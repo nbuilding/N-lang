@@ -32,8 +32,8 @@ button:not(:disabled) {
 #run {
   background-color: #9c27b0;
   color: white;
-  font-size: 2rem;
-  padding: 20px;
+  font-size: 1.5rem;
+  padding: 10px;
 }
 #log {
   flex: auto;

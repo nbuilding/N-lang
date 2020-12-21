@@ -19,3 +19,11 @@ Alternatively, you can combine the last two steps if you're working on the gramm
 ```sh
 npm run build:ne && ts-node src/n-lang.ts ../examples/test.n
 ```
+
+When using the `web` folder, you'll also need to compile the TypeScript files
+because for some reason, Rollup doesn't build TypeScript files in its
+dependencies:
+
+```sh
+npm run build:ts
+```

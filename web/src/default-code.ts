@@ -1,23 +1,23 @@
 export default `import fek
 
 > main test: int test1: str -> bool |
-  print "# Main"
-  print test
-  print test1
-  ; if test1 = "hi" then return true
+\tprint "# Main"
+\tprint test
+\tprint test1
+\t; if test1 = "hi" then return true
 < false
 
 > loop 10 i: int |
-  var n: int < i + 1
-  print
-    if n % 3 = 0 & n % 5 = 0 then
-      "Fizzbuzz"
-    else if n % 3 = 0 then
-      "Fizz"
-    else if n % 5 = 0 then
-      "Buzz"
-    else
-      n
+\tvar n: int < i + 1
+\tprint
+\t\tif n % 3 = 0 & n % 5 = 0 then
+\t\t\t"Fizzbuzz"
+\t\telse if n % 3 = 0 then
+\t\t\t"Fizz"
+\t\telse if n % 5 = 0 then
+\t\t\t"Buzz"
+\t\telse
+\t\t\tn
 <
 
 var test: int < if not 1 = 1 | 2 > 3 then 1 else 3
@@ -32,10 +32,10 @@ print a < c < b
 {main test1 eee}
 {fek.paer test}
 if not {main test "hello"} ->
-  print "{main test \"hello\"} returned false"
+\tprint "{main test \\"hello\\"} returned false"
 if {main test eee} ->
-  print "{main test eee} returned true"
+\tprint "{main test eee} returned true"
 else
-  print "{main test eee} returned false"
+\tprint "{main test eee} returned false"
 
 print 2 + 3 * (4 + 1) * 4 + 5`

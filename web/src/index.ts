@@ -1,6 +1,6 @@
 import * as monaco from 'monaco-editor'
 
-import { parse, compileToJS } from 'n-lang'
+// import { parse, compileToJS } from 'n-lang'
 
 import './n-lang/index'
 import materialTheme from './monaco-material-theme'
@@ -28,7 +28,7 @@ function getElement (id: string): HTMLElement {
 
 monaco.editor.defineTheme('material', materialTheme)
 
-monaco.editor.create(getElement('container'), {
+const editor = monaco.editor.create(getElement('container'), {
   value: defaultCode,
   theme: 'material',
   language: 'n',
@@ -46,26 +46,35 @@ const log = monaco.editor.create(getElement('log'), {
   lineNumbers: 'off',
   minimap: {
     enabled: false
-  }
+  },
+  glyphMargin: false,
+  lineDecorationsWidth: 0,
+  wordWrap: 'on',
+  insertSpaces: false,
 })
 
 function addToLog (value: any) {
   const existingOutput = log.getValue()
   log.setValue(existingOutput ? existingOutput + '\n' + value : value + '')
 }
-(window as any).addToLog = addToLog
+(window as any).__addToLog = addToLog
 
 getElement('run').addEventListener('click', () => {
   try {
     log.setValue('')
-    const ast = parse(log.getValue(), {
-      ambiguityOutput: 'string'
-    })
-    const compiled = compileToJS(ast, {
-      print: 'addToLog'
-    })
-    ;(null, eval)(compiled)
+    // const ast = parse(log.getValue(), {
+    //   ambiguityOutput: 'string'
+    // })
+    // const compiled = compileToJS(ast, {
+    //   print: '__addToLog'
+    // })
+    // ;(null, eval)(compiled)
   } catch (err) {
     log.setValue(err)
   }
+})
+
+window.addEventListener('resize', () => {
+  editor.layout()
+  log.layout()
 })
