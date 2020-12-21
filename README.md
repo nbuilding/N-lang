@@ -15,3 +15,11 @@ python n.py
 
 ### Bugs:
 - None currently
+
+## JavaScript
+
+The JavaScript version uses [Node](https://nodejs.org/),
+[TypeScript](https://www.typescriptlang.org/), and
+[Nearley](https://nearley.js.org/).
+
+See how to run it in the [js/ folder](./js/README.md).

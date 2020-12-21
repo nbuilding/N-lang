@@ -1,10 +1,11 @@
 {
   "name": "n-lang",
   "version": "1.0.0",
-  "description": "A language for N Building.",
-  "main": "index.js",
+  "description": "A programming language for N Building.",
+  "main": "src/index.js",
   "scripts": {
     "build:ne": "npx nearleyc src/grammar/n-lang.ne -o src/grammar/n-lang.grammar.ts",
+    "build:ts": "tsc --build --pretty",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

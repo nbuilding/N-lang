@@ -11,6 +11,12 @@ function __module(module) {
   module(exports);
   return exports;
 }
+function __intDivide(a, b) {
+  return Math.floor(a / b);
+}
+function __modulo(a, b) {
+  return (a % b + b) % b;
+}
   `,
   fek: `
 __nativeModules.fek = __module(function (exports) {
@@ -50,6 +56,9 @@ const jsOperations: { [operation in ast.Operator]: string } = {
   [ast.Operator.MINUS]: '-',
   [ast.Operator.MULTIPLY]: '*',
   [ast.Operator.DIVIDE]: '/',
+  [ast.Operator.INT_DIVIDE]: '@__intDivide',
+  [ast.Operator.MODULO]: '@__modulo',
+  [ast.Operator.EXPONENT]: '@Math.pow',
 }
 const jsUnaryOperators: { [operation in ast.UnaryOperator]: string } = {
   [ast.UnaryOperator.NEGATE]: '-',
@@ -61,15 +70,22 @@ const jsComparators: { [operation in ast.Compare]: string } = {
   [ast.Compare.GREATER]: '>',
 }
 
+interface CompilerOptions {
+  print?: string
+}
+
 class JSCompiler {
   modules: Set<string>
   id: number
+  options: CompilerOptions
 
-  constructor () {
+  constructor (options: CompilerOptions) {
     this.modules = new Set(['_prelude'])
+    this.id = 0
+    this.options = options
+
     this.expressionToJS = this.expressionToJS.bind(this)
     this.statementToJS = this.statementToJS.bind(this)
-    this.id = 0
   }
 
   private uid (name = '') {
@@ -80,7 +96,14 @@ class JSCompiler {
     if (expression instanceof ast.Literal) {
       return expression.toString()
     } else if (expression instanceof ast.Operation) {
-      return `(${this.expressionToJS(expression.a)} ${jsOperations[expression.type]} ${this.expressionToJS(expression.b)})`
+      const a = this.expressionToJS(expression.a)
+      const b = this.expressionToJS(expression.b)
+      const operator = jsOperations[expression.type]
+      if (operator.startsWith('@')) {
+        return `${operator.slice(1)}(${a}, ${b})`
+      } else {
+        return `(${a} ${operator} ${b})`
+      }
     } else if (expression instanceof ast.UnaryOperation) {
       return `${jsUnaryOperators[expression.type]}${this.expressionToJS(expression.value)}`
     } else if (expression instanceof ast.Comparisons) {
@@ -94,21 +117,33 @@ class JSCompiler {
         expression.params.map(this.expressionToJS).join(', ')
       })`
     } else if (expression instanceof ast.Print) {
-      return `console.log(${this.expressionToJS(expression.value)})`
+      return `${this.options.print || 'console.log'}(${this.expressionToJS(expression.value)})`
     } else if (expression instanceof ast.Return) {
       return `return ${this.expressionToJS(expression.value)}`
     } else if (expression instanceof ast.If) {
-      return `${
-        this.expressionToJS(expression.condition)
-      } ? ${
-        this.expressionToJS(expression.then)
-      } : ${
-        expression.else ? this.expressionToJS(expression.else) : 'null'
-      }`
+      if (expression.else) {
+        return `${
+          this.expressionToJS(expression.condition)
+        } ? ${
+          this.expressionToJS(expression.then)
+        } : ${
+          this.expressionToJS(expression.else)
+        }`
+      } else {
+        return `${
+          this.expressionToJS(expression.condition)
+        } && ${
+          this.expressionToJS(expression.then)
+        }`
+      }
     } else if (expression instanceof ast.Identifier) {
       return expression.toString()
     } else {
-      throw new TypeError(`Expression is... not an expression?? ${expression}`)
+      let type = typeof expression
+      if (expression && (expression as any).constructor) {
+        type = (expression as any).constructor.name
+      }
+      throw new TypeError(`Expression is... not an expression?? (type ${type}) ${expression}`)
     }
   }
 
@@ -121,17 +156,21 @@ class JSCompiler {
     } else if (statement instanceof ast.FuncDeclaration) {
       return `function ${statement.name}(${
         statement.params.map(param => param.name).join(', ')
-      }) ${
+      }) {${
         this.blockToJS(statement.body, true)
-      }`
+      }${
+        statement.returnExpr
+          ? `  return ${this.expressionToJS(statement.returnExpr)};\n`
+          : ''
+      }}`
     } else if (statement instanceof ast.LoopStmt) {
       const varName = statement.var.name
       const endName = this.uid('end_' + varName)
       return `for (var ${varName} = 0, ${endName} = ${
         this.expressionToJS(statement.value)
-      }; ${varName} < ${endName}; ${varName}++) ${
+      }; ${varName} < ${endName}; ${varName}++) {${
         this.blockToJS(statement.body, true)
-      }`
+      }}`
     } else {
       return this.expressionToJS(statement) + ';'
     }
@@ -140,7 +179,7 @@ class JSCompiler {
   blockToJS (block: ast.Block, inBlock: boolean): string {
     const output = block.statements.map(this.statementToJS).join('\n')
     if (inBlock) {
-      return `{\n  ${output.replace(/\n/g, '\n  ')}\n}`
+      return `\n  ${output.replace(/\n/g, '\n  ')}\n`
     } else {
       return output
     }
@@ -156,6 +195,6 @@ class JSCompiler {
   }
 }
 
-export function compileToJS (script: ast.Block): string {
-  return new JSCompiler().compile(script)
+export function compileToJS (script: ast.Block, options: CompilerOptions = {}): string {
+  return new JSCompiler(options).compile(script)
 }

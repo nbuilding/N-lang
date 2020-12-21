@@ -1,0 +1,40 @@
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  display: flex;
+  font-family: 'Fira Code', monospace;
+}
+button,
+input,
+select,
+textarea {
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+#container {
+  flex: auto;
+  overflow: hidden;
+}
+.execution {
+  display: flex;
+  flex-direction: column;
+  width: 350px;
+}
+#run {
+  background-color: #9c27b0;
+  color: white;
+  font-size: 1.2rem;
+  padding: 10px;
+}
+#log {
+  flex: auto;
+}
