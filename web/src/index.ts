@@ -41,6 +41,7 @@ const editor = monaco.editor.create(getElement('container'), {
   glyphMargin: true,
   fontFamily: '"Fira Code", Consolas, "Courier New", monospace',
   fontLigatures: '"ss06"',
+  tabCompletion: 'on',
 })
 
 const log = monaco.editor.create(getElement('log'), {
