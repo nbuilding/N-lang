@@ -1,5 +1,5 @@
 import * as monaco from 'monaco-editor'
-
+import { saveAs } from 'file-saver'
 import { parse, compileToJS } from 'n-lang'
 
 import './n-lang/index'
@@ -64,7 +64,7 @@ function addToLog (value: any) {
 }
 (window as any).__addToLog = addToLog
 
-getElement('run').addEventListener('click', () => {
+function run () {
   const logModel = log.getModel()
   try {
     if (logModel) {
@@ -85,9 +85,42 @@ getElement('run').addEventListener('click', () => {
       monaco.editor.setModelLanguage(logModel, 'error')
     }
   }
-})
+}
+
+getElement('run').addEventListener('click', run)
 
 window.addEventListener('resize', () => {
   editor.layout()
   log.layout()
+})
+
+editor.addAction({
+  id: 'save',
+  label: 'Download as file',
+  keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S],
+	contextMenuGroupId: 'n-lang',
+	contextMenuOrder: 2,
+  run: () => {
+    const blob = new Blob([editor.getValue()], { type: 'text/x-n-lang;charset=utf-8' })
+    saveAs(blob, 'main.n', { autoBom: true })
+  }
+})
+editor.addAction({
+  id: 'run',
+  label: 'Execute code',
+  keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
+	contextMenuGroupId: 'n-lang',
+	contextMenuOrder: 1,
+  run
+})
+
+log.addAction({
+  id: 'save',
+  label: 'Download log',
+  keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S],
+	contextMenuGroupId: 'n-lang',
+  run: () => {
+    const blob = new Blob([editor.getValue()], { type: 'text/plain;charset=utf-8' })
+    saveAs(blob, 'log.txt', { autoBom: true })
+  }
 })
