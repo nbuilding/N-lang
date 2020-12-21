@@ -9,7 +9,7 @@ for more info.
 
 ```sh
 # Install global dependencies
-npm install --global rollup
+npm install --global rollup ts-node
 
 # Install more dependencies
 npm install
@@ -21,5 +21,5 @@ npm run serve
 npm run build
 
 # Deploy to GitHub Pages
-./bin/deploy.sh
+npm run deploy
 ```
