@@ -71,7 +71,7 @@ const jsComparators: { [operation in ast.Compare]: string } = {
 }
 
 interface CompilerOptions {
-  print?: 'string'
+  print?: string
 }
 
 class JSCompiler {

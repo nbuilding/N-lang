@@ -5,9 +5,36 @@ body {
 body {
   margin: 0;
   display: flex;
-  flex-direction: column;
+  font-family: monospace;
 }
+button,
+input,
+select,
+textarea {
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+button:not(:disabled) {
+  cursor: pointer;
+}
+
 #container {
   flex: auto;
   overflow: hidden;
+}
+.execution {
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+}
+#run {
+  background-color: #9c27b0;
+  color: white;
+  font-size: 2rem;
+  padding: 20px;
+}
+#log {
+  flex: auto;
 }
