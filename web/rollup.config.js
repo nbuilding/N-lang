@@ -17,7 +17,7 @@ export default (async () => {
         file: 'dist/bundle.js',
         format: 'iife',
         inlineDynamicImports: true,
-        sourcemap: true,
+        sourcemap: isProduction,
       },
       preserveEntrySignatures: false,
       plugins: [
@@ -27,13 +27,13 @@ export default (async () => {
         scss({
           output: 'dist/bundle.css',
           outputStyle: isProduction && 'compressed',
-          sourceMap: true,
+          sourceMap: isProduction,
         }),
         isProduction && terser(),
         copy({
           targets: [
             {
-              src: 'node_modules/monaco-editor/esm/vs/base/browser/ui/codicons/codicon.ttf',
+              src: 'node_modules/monaco-editor/esm/vs/base/browser/ui/codicons/codicon/codicon.ttf',
               dest: 'dist',
             },
             {
@@ -42,7 +42,7 @@ export default (async () => {
             },
           ],
         }),
-        serve({
+        process.env.ROLLUP_WATCH && serve({
           contentBase: 'dist',
           open: true
         })
@@ -55,7 +55,7 @@ export default (async () => {
         file: 'dist/editor.worker.js',
         format: 'iife',
         name: 'whatever',
-        sourcemap: true,
+        sourcemap: isProduction,
       },
       plugins: [
         isProduction && terser(),

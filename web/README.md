@@ -12,4 +12,10 @@ npm install --global rollup
 
 # Install more dependencies
 npm install
+
+# Serve local development server that watches for changes in the files
+npm run serve
+
+# Build for production
+npm run build
 ```

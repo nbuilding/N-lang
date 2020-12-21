@@ -4,7 +4,8 @@
   "description": "An online editor for interacting with N.",
   "main": "src/index.js",
   "scripts": {
-    "build": "NODE_ENV=production rollup -c rollup.config.js",
+    "build": "NODE_ENV=production rollup --config",
+    "serve": "rollup --config --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
