@@ -18,4 +18,7 @@ npm run serve
 
 # Build for production
 npm run build
+
+# Deploy to GitHub Pages
+./bin/deploy.sh
 ```
