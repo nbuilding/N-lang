@@ -3,6 +3,7 @@ import { nodeResolve } from '@rollup/plugin-node-resolve'
 import commonjs from '@rollup/plugin-commonjs'
 import copy from 'rollup-plugin-copy'
 import scss from 'rollup-plugin-scss'
+import serve from 'rollup-plugin-serve'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
@@ -32,15 +33,19 @@ export default (async () => {
         copy({
           targets: [
             {
-              src: 'static/*',
+              src: 'node_modules/monaco-editor/esm/vs/base/browser/ui/codicons/codicon.ttf',
               dest: 'dist',
             },
             {
-              src: 'node_modules/monaco-editor/esm/vs/base/browser/ui/codicons/codicon.ttf',
+              src: 'static/*',
               dest: 'dist',
             },
           ],
         }),
+        serve({
+          contentBase: 'dist',
+          open: true
+        })
       ],
     },
     {

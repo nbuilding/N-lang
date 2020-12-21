@@ -1,4 +1,5 @@
 import * as monaco from 'monaco-editor'
+import materialTheme from './monaco-material-theme'
 
 import './style.css'
 
@@ -14,6 +15,8 @@ import './style.css'
 const container = document.getElementById('container')
 
 if (!container) throw new Error('Couldn\'t find container.')
+
+monaco.editor.defineTheme('material', materialTheme)
 
 monaco.editor.create(container, {
   value: [
