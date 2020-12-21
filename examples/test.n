@@ -1,5 +1,0 @@
-var a: str < "a"
-var b: str < "b"
-var c: str < "c"
-
-print a = b = c
