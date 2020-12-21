@@ -23,7 +23,7 @@ export const configuration: monaco.languages.LanguageConfiguration = {
   indentationRules: {
     increaseIndentPattern: /^\s*>/,
     decreaseIndentPattern: /^\s*</,
-    indentNextLinePattern: /(?:\b(?:then|else|print)|->)\s*$/,
+    indentNextLinePattern: /(?:\b(?:then|else|print)|->|\w\s*<)\s*$/,
   },
 }
 
@@ -35,16 +35,21 @@ export const language = <monaco.languages.IMonarchLanguage>{
   // defaultToken: 'invalid',
 
   keywords: [
-    'import', 'loop', 'var', 'return', 'true', 'false', 'if',
+    'import', 'loop', 'var', 'return', 'if',
     'then', 'else', 'print',
   ],
 
   typeKeywords: [
-    'int', 'str', 'bool'
+    'int', 'str', 'bool',
   ],
 
   operators: [
-    '=', '>', '<', '!', '~', '&', '|', '+', '-', '*', '/', '->',
+    '->', '>=', '<=', '%', '//', '=', '>', '<', '&', '|', '+', '-',
+    '*', '/', 'not',
+  ],
+
+  constants: [
+    'true', 'false',
   ],
 
   // we include these common regular expressions
@@ -58,13 +63,18 @@ export const language = <monaco.languages.IMonarchLanguage>{
       // identifiers and keywords
       [
         /[a-z][\w$]*/,
-        { cases: {
-          '@typeKeywords': 'keyword',
-          '@keywords': 'keyword',
-          '@default': 'identifier'
+        {
+          cases: {
+            '@typeKeywords': 'support.type',
+            '@keywords': 'keyword',
+            '@constants': 'constant.language',
+            '@operators': 'keyword.operator',
+            '@default': 'support.other.variable'
+          }
         }
-      }],
-      [/[A-Z][\w\$]*/, 'type.identifier'],  // to show class names nicely
+      ],
+      [/[A-Z_]+/, 'support.constant'],
+      [/[A-Z][\w]*/, 'type.identifier'],  // to show class names nicely
 
       // whitespace
       { include: '@whitespace' },
@@ -73,22 +83,22 @@ export const language = <monaco.languages.IMonarchLanguage>{
       [/[{}()\[\]\>\<]/, '@brackets'],
 
       // numbers
-      [/\d*\.\d+([eE][\-+]?\d+)?/, 'number.float'],
-      [/0[xX][0-9a-fA-F]+/, 'number.hex'],
-      [/\d+/, 'number'],
+      [/\d*\.\d+([eE][\-+]?\d+)?/, 'constant.numeric.float'],
+      [/0[xX][0-9a-fA-F]+/, 'constant.numeric.hex'],
+      [/\d+/, 'constant.numeric'],
 
       // delimiter: after number because of .\d floats
       [/[.]/, 'delimiter'],
 
       // strings
-      [/"([^"\\]|\\.)*$/, 'string.invalid' ],  // non-teminated string
+      [/"([^"\\]|\\.)*$/, 'invalid' ],  // non-teminated string
       [/"/,  { token: 'string.quote', bracket: '@open', next: '@string' } ],
     ],
 
     string: [
       [/[^\\"]+/,  'string'],
-      [/@escapes/, 'string.escape'],
-      [/\\./,      'string.escape.invalid'],
+      [/@escapes/, 'constant.character.escape'],
+      [/\\./,      'invalid'],
       [/"/,        { token: 'string.quote', bracket: '@close', next: '@pop' } ]
     ],
 
