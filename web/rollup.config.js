@@ -1,9 +1,10 @@
-import typescript from '@rollup/plugin-typescript'
+import typescript from 'rollup-plugin-typescript2'
 import { nodeResolve } from '@rollup/plugin-node-resolve'
 import commonjs from '@rollup/plugin-commonjs'
 import copy from 'rollup-plugin-copy'
 import scss from 'rollup-plugin-scss'
 import serve from 'rollup-plugin-serve'
+import ignore from 'rollup-plugin-ignore'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
@@ -21,8 +22,18 @@ export default (async () => {
       },
       preserveEntrySignatures: false,
       plugins: [
-        typescript(),
-        nodeResolve(),
+        ignore(['util', 'assert']),
+        nodeResolve({
+          browser: true,
+          preferBuiltins: true,
+        }),
+        typescript({
+          tsconfigOverride: {
+            compilerOptions: {
+              module: 'es2015',
+            },
+          },
+        }),
         commonjs(),
         scss({
           output: 'dist/bundle.css',

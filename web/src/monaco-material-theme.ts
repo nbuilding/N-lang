@@ -725,6 +725,7 @@ const themeData: monaco.editor.IStandaloneThemeData = {
     'editor.findMatchBackground': '#000000',
     'editor.findMatchHighlightBackground': '#00000050',
     'editor.findMatchHighlightBorder': '#ffffff30',
+    'editor.lineHighlightBorder': '#ffffff08',
     // 'editor.foreground': '#EEFFFF',
     // 'editor.background': '#263238',
     // 'editor.selectionBackground': '#80CBC4',
