@@ -70,15 +70,22 @@ const jsComparators: { [operation in ast.Compare]: string } = {
   [ast.Compare.GREATER]: '>',
 }
 
+interface CompilerOptions {
+  print?: 'string'
+}
+
 class JSCompiler {
   modules: Set<string>
   id: number
+  options: CompilerOptions
 
-  constructor () {
+  constructor (options: CompilerOptions) {
     this.modules = new Set(['_prelude'])
+    this.id = 0
+    this.options = options
+
     this.expressionToJS = this.expressionToJS.bind(this)
     this.statementToJS = this.statementToJS.bind(this)
-    this.id = 0
   }
 
   private uid (name = '') {
@@ -110,7 +117,7 @@ class JSCompiler {
         expression.params.map(this.expressionToJS).join(', ')
       })`
     } else if (expression instanceof ast.Print) {
-      return `console.log(${this.expressionToJS(expression.value)})`
+      return `${this.options.print || 'console.log'}(${this.expressionToJS(expression.value)})`
     } else if (expression instanceof ast.Return) {
       return `return ${this.expressionToJS(expression.value)}`
     } else if (expression instanceof ast.If) {
@@ -188,6 +195,6 @@ class JSCompiler {
   }
 }
 
-export function compileToJS (script: ast.Block): string {
-  return new JSCompiler().compile(script)
+export function compileToJS (script: ast.Block, options: CompilerOptions = {}): string {
+  return new JSCompiler(options).compile(script)
 }
