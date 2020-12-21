@@ -1,4 +1,5 @@
 import fek
+import FileIO
 
 > main test:int test1:str -> bool |
 	print "# Main"
