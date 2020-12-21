@@ -93,6 +93,15 @@ class Scope:
 		elif expr.data == "function_callback":
 			function, *arguments = expr.children[0].children
 			return self.eval_expr(function).run([self.eval_expr(arg) for arg in arguments])
+		elif expr.data == "imported_command":
+			l, c, *args = command.children
+			library = self.find_import(l)
+			if library == None:
+				raise SyntaxError("Library %s not found" %(l))
+			com = getattr(library, c)
+			if com == None:
+				raise SyntaxError("Command %s not found" %(c))
+			return com([a.children[0] for a in args])
 		elif expr.data == "or_expression":
 			left, _, right = expr.children
 			return self.eval_expr(left) or self.eval_expr(right)

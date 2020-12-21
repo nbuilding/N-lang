@@ -21,6 +21,7 @@ var b: int < 3
 var c: int < 2
 print a < c < b
 
+
 ; {main}
 {main test1 eee}
 {fek.paer test}
