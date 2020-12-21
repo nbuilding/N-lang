@@ -10,7 +10,8 @@ pip install lark
 python n.py
 ```
 
+### Features to add:
+- idk
+
 ### Bugs:
-- The python branch still needs lots of work
-- Add compile time to python
-- Get booleans likle `1 = 1 = 1` working in python parser
+- None currently
