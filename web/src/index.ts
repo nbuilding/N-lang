@@ -3,6 +3,7 @@ import * as monaco from 'monaco-editor'
 import { parse, compileToJS } from 'n-lang'
 
 import './n-lang/index'
+import './error'
 import materialTheme from './monaco-material-theme'
 import defaultCode from './default-code'
 
@@ -51,8 +52,7 @@ const log = monaco.editor.create(getElement('log'), {
   },
   glyphMargin: false,
   lineDecorationsWidth: 0,
-  wordWrap: 'on',
-  insertSpaces: false,
+  folding: false,
   fontFamily: '"Fira Code", Consolas, "Courier New", monospace',
   fontLigatures: '"ss06"',
 })
@@ -64,9 +64,13 @@ function addToLog (value: any) {
 (window as any).__addToLog = addToLog
 
 getElement('run').addEventListener('click', () => {
+  const logModel = log.getModel()
   try {
+    if (logModel) {
+      monaco.editor.setModelLanguage(logModel, '')
+    }
     log.setValue('')
-    const ast = parse(log.getValue(), {
+    const ast = parse(editor.getValue(), {
       ambiguityOutput: 'string'
     })
     const compiled = compileToJS(ast, {
@@ -76,6 +80,9 @@ getElement('run').addEventListener('click', () => {
   } catch (err) {
     console.error(err)
     log.setValue(err.stack)
+    if (logModel) {
+      monaco.editor.setModelLanguage(logModel, 'error')
+    }
   }
 })
 
