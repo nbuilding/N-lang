@@ -40,6 +40,11 @@ class Scope:
 		self.imports = []
 		self.variables = {}
 
+	def find_import(self, name):
+		for imp in self.imports:
+			if imp.__name__ == name:
+				return imp
+
 	def new_scope(self):
 		return Scope(self)
 
@@ -88,6 +93,15 @@ class Scope:
 		elif expr.data == "function_callback":
 			function, *arguments = expr.children[0].children
 			return self.eval_expr(function).run([self.eval_expr(arg) for arg in arguments])
+		elif expr.data == "imported_command":
+			l, c, *args = command.children
+			library = self.find_import(l)
+			if library == None:
+				raise SyntaxError("Library %s not found" %(l))
+			com = getattr(library, c)
+			if com == None:
+				raise SyntaxError("Command %s not found" %(c))
+			return com([a.children[0] for a in args])
 		elif expr.data == "or_expression":
 			left, _, right = expr.children
 			return self.eval_expr(left) or self.eval_expr(right)
@@ -201,7 +215,14 @@ class Scope:
 			name, type = name_type.children
 			self.variables[name] = Variable(type, self.eval_expr(value))
 		elif command.data == "imported_command":
-			pass # TODO
+			l, c, *args = command.children
+			library = self.find_import(l)
+			if library == None:
+				raise SyntaxError("Library %s not found" %(l))
+			com = getattr(library, c)
+			if com == None:
+				raise SyntaxError("Command %s not found" %(c))
+			com([a.children[0] for a in args])
 		elif command.data == "if":
 			condition, body = command.children
 			if self.eval_expr(condition):
@@ -226,8 +247,6 @@ with open("run.n", "r") as f:
 	text = f.read()
 
 n_parser = Lark(parse, start='start')
-
-print(n_parser.parse(text).pretty())
 
 def runFunction(f, d):
 	pass
