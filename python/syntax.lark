@@ -16,12 +16,12 @@ non_infix_boolval: value
 
 // functions
 declare: "var " name_type "<" expression
-function_def: ">" function_dec_call "->" NAME code_block (value | "null")
+function_def: ">" function_dec_call "->" NAME code_block [expression]
 print: "print" expression
 function_callback: "{" function_call "}"
 loop: ">" "loop" NUMBER name_type code_block
 imp: "import" NAME
-return: "return" (value | "null")
+return: "return" expression
 imported_command: "{" NAME "." NAME (" " [value (" " value)*])? "}"
 if: "if" expression ("then" | "->") (value | instruction)
 ifelse: "if" expression ("then" | "->") (value | instruction) "else" instruction
