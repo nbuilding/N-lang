@@ -5,8 +5,9 @@ import fek
 	print test
 	print test1
 	if test1 = "hi" -> return true
-  return "wow"
-< false
+< true
+
+;return ok
 
 > loop 15 i:int |
 	var n: int < i + 1

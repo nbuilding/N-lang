@@ -16,7 +16,7 @@ class Variable:
 class Function(Variable):
 	def __init__(self, scope, arguments, returntype, codeblock, defaultreturn):
 		# Tuples represent function types. (a, b, c) represents a -> b -> c.
-		types = tuple([arg.children[1] for arg in arguments] + [returntype])
+		types = tuple([arg.children[1].value for arg in arguments] + [returntype])
 		super(Function, self).__init__(types, self)
 
 		self.scope = scope
@@ -38,20 +38,80 @@ class Function(Variable):
 				return value
 		return scope.eval_expr(self.defaultreturn)
 
+class File:
+	def __init__(self, file):
+		self.lines = [line.rstrip() for line in file]
+		self.line_num_width = len(str(len(self.lines)))
+
+	def parse(self, parser):
+		return parser.parse('\n'.join(self.lines))
+
+	def get_line(self, line):
+		return self.lines[line - 1]
+
+	def get_lines(self, start, end):
+		return self.lines[start - 1:end]
+
+	def display(self, start_line, start_col, end_line, end_col):
+		output = []
+		if start_line == end_line:
+			line = self.get_line(start_line)
+			output.append(f"{Fore.CYAN}{start_line:>{self.line_num_width}} | {Style.RESET_ALL}{line}")
+			output.append(
+				' ' * (self.line_num_width + 2 + start_col) +
+				Fore.RED +
+				'^' * (end_col - start_col) +
+				Style.RESET_ALL
+			)
+		else:
+			for line_num, line in enumerate(self.get_lines(start_line, end_line), start=start_line):
+				if line_num == start_line:
+					line = line[:start_col - 1] + Fore.RED + line[start_col - 1:] + Style.RESET_ALL
+				elif line_num == end_line:
+					line = Fore.RED + line[:end_col - 1] + Style.RESET_ALL + line[end_col - 1:]
+				else:
+					line = Fore.RED + line + Style.RESET_ALL
+				output.append(f"{Fore.CYAN}{line_num:>{self.line_num_width}} | {Style.RESET_ALL}{line}")
+		return '\n'.join(output)
+
 class TypeCheckError:
 	def __init__(self, token_or_tree, message):
+		if type(token_or_tree) is not lark.Token and type(token_or_tree) is not lark.Tree:
+			raise TypeError("token_or_tree should be a Lark Token or Tree.")
 		self.datum = token_or_tree
 		self.message = message
 
-	def display(self, type):
+	def display(self, display_type, file):
 		output = ""
-		if type == "error":
+		if display_type == "error":
 			output += f"{Fore.RED}{Style.BRIGHT}Error{Style.RESET_ALL}"
-		elif type == "warning":
+		elif display_type == "warning":
 			output += f"{Fore.YELLOW}{Style.BRIGHT}Warning{Style.RESET_ALL}"
 		else:
-			raise ValueError("%s is not a valid display type for TypeCheckError." % type)
-		output += ': %s' % self.message
+			raise ValueError("%s is not a valid display type for TypeCheckError." % display_type)
+		output += ": %s\n" % self.message
+		if type(self.datum) is lark.Token:
+			output += f"{Fore.CYAN} --> {Fore.BLUE}run.n:{self.datum.line}:{self.datum.column}{Style.RESET_ALL}\n"
+			output += file.display(
+				self.datum.line,
+				self.datum.column,
+				self.datum.end_line,
+				self.datum.end_column,
+			)
+		else:
+			first_token = self.datum
+			while type(first_token) is lark.Tree:
+				first_token = first_token.children[0]
+			last_token = self.datum
+			while type(last_token) is lark.Tree:
+				last_token = last_token.children[-1]
+			output += f"{Fore.CYAN} --> {Fore.BLUE}run.n:{first_token.line}:{first_token.column}{Style.RESET_ALL}\n"
+			output += file.display(
+				first_token.line,
+				first_token.column,
+				last_token.end_line,
+				last_token.end_column,
+			)
 		return output
 
 # TODO: Move these into Scope because one day these might be scoped due to
@@ -75,6 +135,15 @@ unary_operation_types = {
 comparable_types = ["int", "float"]
 iterable_types = { "int": "int" }
 
+def display_type(n_type):
+	if isinstance(n_type, str):
+		return Fore.YELLOW + n_type + Style.RESET_ALL
+	elif isinstance(n_type, tuple):
+		return Fore.YELLOW + ' -> '.join(n_type) + Style.RESET_ALL
+	else:
+		print('display_type was given a value that is neither a string nor a tuple.', n_type)
+		return Fore.RED + '???' + Style.RESET_ALL
+
 class Scope:
 	def __init__(self, parent=None, parent_function=None, errors=[], warnings=[]):
 		self.parent = parent
@@ -92,16 +161,16 @@ class Scope:
 	def new_scope(self, parent_function=None):
 		return Scope(
 			self,
-			parent_function=parent_function,
+			parent_function=parent_function or self.parent_function,
 			errors=self.errors,
-			warnings=self.warnings
+			warnings=self.warnings,
 		)
 
 	def get_variable(self, name, err=True):
 		variable = self.variables.get(name)
 		if variable is None:
 			if self.parent:
-				return self.parent.get_variable(name)
+				return self.parent.get_variable(name, err=err)
 			elif err:
 				raise NameError("You tried to get a variable/function `%s`, but it isn't defined." % name)
 		else:
@@ -139,7 +208,7 @@ class Scope:
 	Evaluate a parsed expression with Trees and Tokens from Lark.
 	"""
 	def eval_expr(self, expr):
-		if type(expr) == lark.Token:
+		if type(expr) is lark.Token:
 			return self.eval_value(expr)
 
 		if expr.data == "ifelse_expr":
@@ -230,12 +299,12 @@ class Scope:
 				raise SyntaxError("Unexpected operation for unary_expression: %s" % operation)
 		elif expr.data == "value":
 			token_or_tree = expr.children[0]
-			if type(token_or_tree) == lark.Tree:
+			if type(token_or_tree) is lark.Tree:
 				return self.eval_expr(token_or_tree)
 			else:
 				return self.eval_value(token_or_tree)
 		else:
-			print(expr)
+			print('(see below)', expr)
 			raise SyntaxError("Unexpected command/expression type %s" % expr.data)
 
 	"""
@@ -316,7 +385,7 @@ class Scope:
 	Type checks an expression and returns its type.
 	"""
 	def type_check_expr(self, expr):
-		if type(expr) == lark.Token:
+		if type(expr) is lark.Token:
 			return self.get_value_type(expr)
 
 		if expr.data == "ifelse_expr":
@@ -325,11 +394,11 @@ class Scope:
 			if_true_type = self.type_check_expr(if_true)
 			if_false_type = self.type_check_expr(if_false)
 			if cond_type is not None and cond_type != "bool":
-				self.errors.append(TypeCheckError(value, "The condition here should be a boolean, not a %s." % cond_type))
+				self.errors.append(TypeCheckError(value, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
 			if if_true_type is None or if_false_type is None:
 				return None
 			if if_true_type != if_false_type:
-				self.errors.append(TypeCheckError(value, "The branches of the if-else expression should have the same type, but the true branch has type %s while the false branch has type %s." % (if_true_type, if_false_type)))
+				self.errors.append(TypeCheckError(value, "The branches of the if-else expression should have the same type, but the true branch has type %s while the false branch has type %s." % (display_type(if_true_type), display_type(if_false_type))))
 				return None
 			return if_true_type
 		elif expr.data == "function_callback":
@@ -340,22 +409,22 @@ class Scope:
 			*arg_types, return_type = func_type
 			for n, (argument, arg_type) in enumerate(zip(arguments, arg_types), start=1):
 				check_type = self.type_check_expr(argument)
-				if check_type != arg_type:
-					self.errors.append(TypeCheckError(expr, "For a %s's argument #%d, you gave a %s, but you should've given a %s." % (func_type, n, check_type, arg_type)))
+				if check_type is not None and check_type != arg_type:
+					self.errors.append(TypeCheckError(expr, "For a %s's argument #%d, you gave a %s, but you should've given a %s." % (display_type(func_type), n, display_type(check_type), display_type(arg_type))))
 			if len(arguments) != len(arg_types):
-				self.errors.append(TypeCheckError(expr, "A %s has %d argument(s), but you gave %d." % (func_type, len(arguments), len(arg_types))))
+				self.errors.append(TypeCheckError(expr, "A %s has %d argument(s), but you gave %d." % (display_type(func_type), len(arg_types), len(arguments))))
 			return return_type
 		elif expr.data == "imported_command":
-			self.errors.append(TypeCheckError(expr, "I currently don't know how to type check imported commands."))
+			self.warnings.append(TypeCheckError(expr, "I currently don't know how to type check imported commands."))
 			return None
 		elif expr.data == "value":
 			token_or_tree = expr.children[0]
-			if type(token_or_tree) == lark.Tree:
+			if type(token_or_tree) is lark.Tree:
 				return self.type_check_expr(token_or_tree)
 			else:
 				return self.get_value_type(token_or_tree)
 
-		if len(expr.children) == 2 and type(expr.children[0]) == lark.Token:
+		if len(expr.children) == 2 and type(expr.children[0]) is lark.Token:
 			operation, value = expr.children
 			types = unary_operation_types.get(operation.type)
 			if types:
@@ -364,14 +433,14 @@ class Scope:
 					return None
 				return_type = types.get(value_type)
 				if return_type is None:
-					self.errors.append(TypeCheckError(expr, "I don't know how to use %s on %s." % (operation.type, left_type)))
+					self.errors.append(TypeCheckError(expr, "I don't know how to use %s on a %s." % (operation.type, display_type(left_type))))
 				else:
 					return return_type
 
 		# For now, we assert that both operands are of the same time. In the
 		# future, when we add traits for operations, this assumption may no
 		# longer hold.
-		if len(expr.children) == 3 and type(expr.children[1]) == lark.Token:
+		if len(expr.children) == 3 and type(expr.children[1]) is lark.Token:
 			left, operation, right = expr.children
 			types = binary_operation_types.get(operation.type)
 			if types:
@@ -385,7 +454,7 @@ class Scope:
 					return None
 				return_type = types.get((left_type, right_type))
 				if return_type is None:
-					self.errors.append(TypeCheckError(expr, "I don't know how to use %s on %s and %s." % (operation.type, left_type, right_type)))
+					self.errors.append(TypeCheckError(expr, "I don't know how to use %s on a %s and %s." % (operation.type, display_type(left_type), display_type(right_type))))
 				else:
 					return return_type
 			elif expr.data == "compare_expression":
@@ -404,10 +473,10 @@ class Scope:
 				# We don't return None even if there are errors because we know
 				# for sure that comparison operators return a boolean.
 				if left_type != right_type:
-					self.errors.append(TypeCheckError(expr, "I can't compare %s and %s because they aren't the same type." % (left_type, right_type)))
+					self.errors.append(TypeCheckError(expr, "I can't compare %s and %s because they aren't the same type. You know they won't ever be equal." % (display_type(left_type), display_type(right_type))))
 				if comparison.type != "EQUALS" and comparison.type != "NEQUALS" and comparison.type != "NEQUALS_QUIRKY":
 					if left_type not in comparable_types:
-						self.errors.append(TypeCheckError(expr, "I don't know how to compare %s." % left_type))
+						self.errors.append(TypeCheckError(expr, "I don't know how to compare %s." % display_type(left_type)))
 				return 'bool'
 
 		self.errors.append(TypeCheckError(expr, "Internal problem: I don't know the command/expression type %s." % expr.data))
@@ -433,22 +502,22 @@ class Scope:
 			if defaultreturn:
 				default_return_type = self.type_check_expr(defaultreturn)
 				if default_return_type is not None and default_return_type != returntype:
-					self.errors.append(TypeCheckError(defaultreturn, "%s's return type is %s, but your default return value is a %s." % (name, returntype, default_return_type)))
+					self.errors.append(TypeCheckError(defaultreturn, "%s's return type is %s, but your default return value is a %s." % (name, display_type(returntype), display_type(default_return_type))))
 			# Check if duplicate name
-			if name in self.variables:
-				self.errors.append(TypeCheckError(name, "You've already defined %s." % name))
+			if name.value in self.variables:
+				self.errors.append(TypeCheckError(name, "You've already defined `%s`." % name))
 			# Check function body
 			function = Function(self, arguments, returntype, codeblock, defaultreturn)
-			self.variables[name] = function
+			self.variables[name.value] = function
 			scope = self.new_scope(parent_function=function)
 			for arg_type, arg_name in function.arguments:
-				scope.variables[arg_name] = Variable(arg_type, "anything")
+				scope.variables[arg_name.value] = Variable(arg_type, "anything")
 			exit_point = None
 			warned = False
 			for instruction in codeblock.children:
 				exit = scope.type_check_command(instruction)
-				if exit and not exit_point:
-					exit = exit_point
+				if exit and exit_point is None:
+					exit_point = exit
 				elif exit_point and not warned:
 					warned = True
 					self.warnings.append(TypeCheckError(exit_point, "There are commands after this return statement, but I will never run them."))
@@ -461,11 +530,11 @@ class Scope:
 			iterated_type = iterable_types.get(iterable_type)
 			if iterable_type is not None:
 				if iterated_type is None:
-					self.errors.append(TypeCheckError(iterable, "I can't loop over a %s." % iterable_type))
+					self.errors.append(TypeCheckError(iterable, "I can't loop over a %s." % display_type(iterable_type)))
 				elif type != iterated_type:
-					self.errors.append(TypeCheckError(type, "Looping over a %s produces %s values, not %s." % (iterable_type, iterated_type, type)))
+					self.errors.append(TypeCheckError(type, "Looping over a %s produces %s values, not %s." % (display_type(iterable_type), display_type(iterated_type), display_type(type))))
 			scope = self.new_scope()
-			scope.variables[name] = Variable(type, "whatever")
+			scope.variables[name.value] = Variable(type, "whatever")
 			exit_point = False
 			for child in code.children:
 				exit = scope.type_check_command(child)
@@ -481,30 +550,31 @@ class Scope:
 			return_type = self.type_check_expr(command.children[0])
 			parent_function = self.get_parent_function()
 			if parent_function is None:
-				self.errors.append(TypeCheckError(command, "You can't return outside a function." % name))
-			elif parent_function.returntype != return_type:
-				self.errors.append(TypeCheckError(command.children[0], "You returned a %s, but the function is supposed to return a %s." % (return_type, parent_function.returntype)))
+				self.errors.append(TypeCheckError(command, "You can't return outside a function."))
+			elif return_type is not None and parent_function.returntype != return_type:
+				self.errors.append(TypeCheckError(command.children[0], "You returned a %s, but the function is supposed to return a %s." % (display_type(return_type), display_type(parent_function.returntype))))
 			return command
 		elif command.data == "declare":
 			name_type, value = command.children
 			name, type = name_type.children
-			if name in self.variables:
-				self.errors.append(TypeCheckError(name, "You've already defined %s." % name))
+			# print(name, self.variables)
+			if name.value in self.variables:
+				self.errors.append(TypeCheckError(name, "You've already defined `%s`." % name))
 			value_type = self.type_check_expr(value)
 			if value_type is not None and value_type != type:
-				self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, type, value_type)))
-			self.variables[name] = Variable(type, "whatever")
+				self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(type), display_type(value_type))))
+			self.variables[name.value] = Variable(type, "whatever")
 		elif command.data == "if":
 			condition, body = command.children
 			cond_type = self.type_check_expr(condition)
 			if cond_type is not None and cond_type != "bool":
-				self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % cond_type))
+				self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
 			self.type_check_command(body)
 		elif command.data == "ifelse":
 			condition, if_true, if_false = command.children
 			cond_type = self.type_check_expr(condition)
 			if cond_type is not None and cond_type != "bool":
-				self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % cond_type))
+				self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
 			exit_if_true = self.type_check_command(if_true)
 			exit_if_false = self.type_check_command(if_true)
 			if exit_if_true and exit_if_false:
@@ -515,16 +585,14 @@ class Scope:
 		# No return
 		return False
 
-parse = ""
-text = ""
 with open("syntax.lark", "r") as f:
 	parse = f.read()
-with open("run.n", "r") as f:
-	text = f.read()
-
 n_parser = Lark(parse, start="start")
 
-def type_check(tree):
+with open("run.n", "r") as f:
+	file = File(f)
+
+def type_check(file, tree):
 	scope = Scope()
 	if tree.data == "start":
 		for child in tree.children:
@@ -532,8 +600,8 @@ def type_check(tree):
 	else:
 		scope.errors.append(TypeCheckError(tree, "Internal issue: I cannot type check from a non-starting branch."))
 	print('\n'.join(
-		[warning.display('warning') for warning in scope.warnings] +
-		[error.display('error') for error in scope.errors]
+		[warning.display('warning', file) for warning in scope.warnings] +
+		[error.display('error', file) for error in scope.errors]
 	))
 
 def parse_tree(tree):
@@ -544,6 +612,6 @@ def parse_tree(tree):
 	else:
 		raise SyntaxError("Unable to run parse_tree on non-starting branch")
 
-tree = n_parser.parse(text)
-type_check(tree)
+tree = file.parse(n_parser)
+type_check(file, tree)
 # parse_tree(tree)
