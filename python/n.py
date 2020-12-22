@@ -5,6 +5,7 @@ from lark import Lark
 from lark import Transformer
 from lark import tree
 import lark
+import sys
 from colorama import init, Fore, Style
 init()
 
@@ -14,29 +15,27 @@ class Variable:
 		self.value = value
 
 class Function(Variable):
-	def __init__(self, scope, arguments, returntype, codeblock, defaultreturn):
+	def __init__(self, scope, arguments, returntype, codeblock):
 		# Tuples represent function types. (a, b, c) represents a -> b -> c.
 		types = tuple([type for _, type in arguments] + [returntype])
 		super(Function, self).__init__(types, self)
 
 		self.scope = scope
-		# Discarding types for now
-		self.arguments = [(type, name) for name, type in arguments]
+		self.arguments = arguments
 		self.returntype = returntype
 		self.codeblock = codeblock
-		self.defaultreturn = defaultreturn
 
 	def run(self, arguments):
 		scope = self.scope.new_scope(parent_function=self)
-		if len(arguments) < len(self.arguments):
-			raise TypeError("Missing arguments %s" % ", ".join(name for _, name in self.arguments[len(arguments):]))
-		for value, (arg_type, arg_name) in zip(arguments, self.arguments):
+		for value, (arg_name, arg_type) in zip(arguments, self.arguments):
 			scope.variables[arg_name] = Variable(arg_type, value)
+		if len(arguments) < len(self.arguments):
+			# Curry :o
+			return Function(scope, self.arguments[len(arguments):], self.returntype, self.codeblock)
 		for instruction in self.codeblock.children:
 			exit, value = scope.eval_command(instruction)
 			if exit:
 				return value
-		return scope.eval_expr(self.defaultreturn)
 
 class NativeFunction(Function):
 	def __init__(self, scope, arguments, return_type, function):
@@ -225,6 +224,14 @@ class Scope:
 				return self.eval_expr(if_true)
 			else:
 				return self.eval_expr(if_false)
+		elif expr.data == "function_def":
+			arguments, returntype, codeblock = expr.children
+			return Function(
+				self,
+				[(arg.children[0].value, arg.children[1].value) for arg in arguments.children],
+				returntype,
+				codeblock
+			)
 		elif expr.data == "function_callback":
 			function, *arguments = expr.children[0].children
 			return self.eval_expr(function).run([self.eval_expr(arg) for arg in arguments])
@@ -272,7 +279,7 @@ class Scope:
 				return self.eval_expr(left) < self.eval_expr(right)
 			elif comparison == "GREATER":
 				return self.eval_expr(left) > self.eval_expr(right)
-			elif comparison == "NEQUALS" or comparison == "NEQUALS_QUIRKY":
+			elif comparison == "NEQUALS":
 				return self.eval_expr(left) != self.eval_expr(right)
 			else:
 				raise SyntaxError("Unexpected operation for compare_expression: %s" % comparison)
@@ -326,17 +333,8 @@ class Scope:
 
 		if command.data == "imp":
 			self.imports.append(importlib.import_module(command.children[0]))
-		elif command.data == "function_def":
-			if len(command.children) == 3:
-				deccall, returntype, codeblock = command.children
-				defaultreturn = None
-			else:
-				deccall, returntype, codeblock, defaultreturn = command.children
-			name, *arguments = deccall.children
-			arguments = [(arg.children[0].value, arg.children[1].value) for arg in arguments]
-			self.variables[name] = Function(self, arguments, returntype.value, codeblock, defaultreturn)
-		elif command.data == "loop":
-			times, var, code = command.children
+		elif command.data == "for":
+			var, times , code = command.children
 			name, type = var.children
 			if type != "int":
 				print("I cannot loop over a value of type %s." % type)
@@ -353,7 +351,11 @@ class Scope:
 			return (True, self.eval_expr(command.children[0]))
 		elif command.data == "declare":
 			name_type, value = command.children
-			name, type = name_type.children
+			if len(name_type.children) == 2:
+				name, type = name_type.children
+			else:
+				name = name_type.children[0]
+				type = None # Implicit type
 			self.variables[name] = Variable(type, self.eval_expr(value))
 		elif command.data == "if":
 			condition, body = command.children
@@ -616,7 +618,11 @@ with open("syntax.lark", "r") as f:
 	parse = f.read()
 n_parser = Lark(parse, start="start")
 
-with open("run.n", "r") as f:
+file = "run.n"
+if len(sys.argv) > 1:
+	file = ''.join(sys.argv[1:])
+
+with open(file, "r") as f:
 	file = File(f)
 
 # Define global functions/variables
