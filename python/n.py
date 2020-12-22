@@ -38,11 +38,15 @@ class Function(Variable):
 				return value
 
 class NativeFunction(Function):
-	def __init__(self, scope, arguments, return_type, function):
-		super(NativeFunction, self).__init__(scope, arguments, return_type, None, None)
+	def __init__(self, scope, arguments, return_type, function, argument_cache=[]):
+		super(NativeFunction, self).__init__(scope, arguments, return_type, None)
 		self.function = function
+		self.argument_cache = argument_cache
 
 	def run(self, arguments):
+		arguments = self.argument_cache + arguments
+		if len(arguments) < len(self.arguments):
+			return NativeFunction(self.scope, self.arguments, self.return_type, self.function, argument_cache=self.argument_cache + arguments)
 		return self.function(*arguments)
 
 class File:
@@ -106,18 +110,12 @@ class TypeCheckError:
 				self.datum.end_column,
 			)
 		else:
-			first_token = self.datum
-			while type(first_token) is lark.Tree:
-				first_token = first_token.children[0]
-			last_token = self.datum
-			while type(last_token) is lark.Tree:
-				last_token = last_token.children[-1]
-			output += f"{Fore.CYAN}  --> {Fore.BLUE}run.n:{first_token.line}:{first_token.column}{Style.RESET_ALL}\n"
+			output += f"{Fore.CYAN}  --> {Fore.BLUE}run.n:{self.datum.line}:{self.datum.column}{Style.RESET_ALL}\n"
 			output += file.display(
-				first_token.line,
-				first_token.column,
-				last_token.end_line,
-				last_token.end_column,
+				self.datum.line,
+				self.datum.column,
+				self.datum.end_line,
+				self.datum.end_column,
 			)
 		return output
 
@@ -150,6 +148,13 @@ def display_type(n_type):
 	else:
 		print('display_type was given a value that is neither a string nor a tuple.', n_type)
 		return Fore.RED + '???' + Style.RESET_ALL
+
+def get_name_type(name_type):
+	if len(name_type.children) == 1:
+		return name_type.children[0].value, 'infer'
+	else:
+		name, type = name_type.children
+		return name.value, type.value
 
 class Scope:
 	def __init__(self, parent=None, parent_function=None, errors=[], warnings=[]):
@@ -229,7 +234,7 @@ class Scope:
 			return Function(
 				self,
 				[(arg.children[0].value, arg.children[1].value) for arg in arguments.children],
-				returntype,
+				returntype.value,
 				codeblock
 			)
 		elif expr.data == "function_callback":
@@ -334,11 +339,11 @@ class Scope:
 		if command.data == "imp":
 			self.imports.append(importlib.import_module(command.children[0]))
 		elif command.data == "for":
-			var, times , code = command.children
-			name, type = var.children
+			var, iterable, code = command.children
+			name, type = get_name_type(var)
 			if type != "int":
 				print("I cannot loop over a value of type %s." % type)
-			for i in range(int(times)):
+			for i in range(int(iterable)):
 				scope = self.new_scope()
 				scope.variables[name] = Variable(type, i)
 				for child in code.children:
@@ -351,11 +356,7 @@ class Scope:
 			return (True, self.eval_expr(command.children[0]))
 		elif command.data == "declare":
 			name_type, value = command.children
-			if len(name_type.children) == 2:
-				name, type = name_type.children
-			else:
-				name = name_type.children[0]
-				type = None # Implicit type
+			name, type = get_name_type(name_type)
 			self.variables[name] = Variable(type, self.eval_expr(value))
 		elif command.data == "if":
 			condition, body = command.children
@@ -416,19 +417,43 @@ class Scope:
 				self.errors.append(TypeCheckError(expr, "The branches of the if-else expression should have the same type, but the true branch has type %s while the false branch has type %s." % (display_type(if_true_type), display_type(if_false_type))))
 				return None
 			return if_true_type
+		elif expr.data == "function_def":
+			arguments, returntype, codeblock = expr.children
+			arguments = [(arg.children[0].value, arg.children[1].value) for arg in arguments.children]
+			dummy_function = Function(self, arguments, returntype.value, codeblock)
+			scope = self.new_scope(parent_function=dummy_function)
+			for arg_name, arg_type in arguments:
+				scope.variables[arg_name] = Variable(arg_type, "anything")
+			exit_point = None
+			warned = False
+			for instruction in codeblock.children:
+				exit = scope.type_check_command(instruction)
+				if exit and exit_point is None:
+					exit_point = exit
+				elif exit_point and not warned:
+					warned = True
+					self.warnings.append(TypeCheckError(exit_point, "There are commands after this return statement, but I will never run them."))
+			return dummy_function.type
 		elif expr.data == "function_callback":
 			function, *arguments = expr.children[0].children
 			func_type = self.type_check_expr(function)
 			if func_type is None:
+				return None
+			if not isinstance(func_type, tuple):
+				self.errors.append(TypeCheckError(expr, "You tried to call a %s, which isn't a function." % display_type(func_type)))
 				return None
 			*arg_types, return_type = func_type
 			for n, (argument, arg_type) in enumerate(zip(arguments, arg_types), start=1):
 				check_type = self.type_check_expr(argument)
 				if check_type is not None and check_type != arg_type:
 					self.errors.append(TypeCheckError(expr, "For a %s's argument #%d, you gave a %s, but you should've given a %s." % (display_type(func_type), n, display_type(check_type), display_type(arg_type))))
-			if len(arguments) != len(arg_types):
+			if len(arguments) > len(arg_types):
 				self.errors.append(TypeCheckError(expr, "A %s has %d argument(s), but you gave %d." % (display_type(func_type), len(arg_types), len(arguments))))
-			return return_type
+				return None
+			elif len(arguments) < len(arg_types):
+				return func_type[len(arguments):]
+			else:
+				return return_type
 		elif expr.data == "imported_command":
 			self.warnings.append(TypeCheckError(expr, "I currently don't know how to type check imported commands."))
 			return None
@@ -516,51 +541,20 @@ class Scope:
 
 		if command.data == "imp":
 			self.imports.append(importlib.import_module(command.children[0]))
-		elif command.data == "function_def":
-			if len(command.children) == 3:
-				deccall, returntype, codeblock = command.children
-				defaultreturn = None
-			else:
-				deccall, returntype, codeblock, defaultreturn = command.children
-			name, *arguments = deccall.children
-			arguments = [(arg.children[0].value, arg.children[1].value) for arg in arguments]
-			# Check default return
-			if defaultreturn:
-				default_return_type = self.type_check_expr(defaultreturn)
-				if default_return_type is not None and default_return_type != returntype:
-					self.errors.append(TypeCheckError(defaultreturn, "%s's return type is %s, but your default return value is a %s." % (name, display_type(returntype), display_type(default_return_type))))
-			# Check if duplicate name
-			if name.value in self.variables:
-				self.errors.append(TypeCheckError(name, "You've already defined `%s`." % name))
-			# Check function body
-			function = Function(self, arguments, returntype.value, codeblock, defaultreturn)
-			self.variables[name.value] = function
-			scope = self.new_scope(parent_function=function)
-			for arg_type, arg_name in function.arguments:
-				scope.variables[arg_name] = Variable(arg_type, "anything")
-			exit_point = None
-			warned = False
-			for instruction in codeblock.children:
-				exit = scope.type_check_command(instruction)
-				if exit and exit_point is None:
-					exit_point = exit
-				elif exit_point and not warned:
-					warned = True
-					self.warnings.append(TypeCheckError(exit_point, "There are commands after this return statement, but I will never run them."))
-			if exit_point and defaultreturn:
-				self.warnings.append(TypeCheckError(exit_point, "There is no need to have an explicit return statement because you have a default return expression that will never run."))
-		elif command.data == "loop":
-			iterable, var, code = command.children
-			name, type = var.children
+		elif command.data == "for":
+			var, iterable, code = command.children
+			name, type = get_name_type(var)
 			iterable_type = self.type_check_expr(iterable)
 			iterated_type = iterable_types.get(iterable_type)
 			if iterable_type is not None:
 				if iterated_type is None:
 					self.errors.append(TypeCheckError(iterable, "I can't loop over a %s." % display_type(iterable_type)))
+				elif type == 'infer':
+					type = iterated_type
 				elif type != iterated_type:
 					self.errors.append(TypeCheckError(type, "Looping over a %s produces %s values, not %s." % (display_type(iterable_type), display_type(iterated_type), display_type(type))))
 			scope = self.new_scope()
-			scope.variables[name.value] = Variable(type, "whatever")
+			scope.variables[name] = Variable(type, "whatever")
 			exit_point = False
 			for child in code.children:
 				exit = scope.type_check_command(child)
@@ -582,14 +576,16 @@ class Scope:
 			return command
 		elif command.data == "declare":
 			name_type, value = command.children
-			name, type = name_type.children
-			# print(name, self.variables)
-			if name.value in self.variables:
+			name, type = get_name_type(name_type)
+			if name in self.variables:
 				self.errors.append(TypeCheckError(name, "You've already defined `%s`." % name))
 			value_type = self.type_check_expr(value)
 			if value_type is not None and value_type != type:
-				self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(type), display_type(value_type))))
-			self.variables[name.value] = Variable(type, "whatever")
+				if type == 'infer':
+					type = value_type
+				else:
+					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(type), display_type(value_type))))
+			self.variables[name] = Variable(type, "whatever")
 		elif command.data == "if":
 			condition, body = command.children
 			cond_type = self.type_check_expr(condition)
@@ -616,7 +612,7 @@ class Scope:
 
 with open("syntax.lark", "r") as f:
 	parse = f.read()
-n_parser = Lark(parse, start="start")
+n_parser = Lark(parse, start="start", propagate_positions=True)
 
 file = "run.n"
 if len(sys.argv) > 1:
@@ -629,7 +625,7 @@ with open(file, "r") as f:
 global_scope = Scope()
 global_scope.add_native_function(
 	"intInBase10",
-	[("number", "int")],
+	[("int", "number")],
 	"str",
 	lambda number: str(number),
 )
