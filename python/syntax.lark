@@ -14,9 +14,9 @@ non_infix_boolval: value
                  | function_callback
 
 // functions
-declare: "var " name_type "=" (expression | function_def)
+declare: "var " name_type "=" (expression | function_def | anonomous_func)
 print: "print" value
-function_callback: "<" function_call ">"
+function_callback: "<" (function_call | anonomous_func) ">"
 for: "for" name_type NUMBER code_block
 imp: "import" NAME
 return: "return" (value | "null")
@@ -32,7 +32,7 @@ function_call : value (" " value)*
 code_block: "{" instruction* "}"
 function_def: arguements "->" NAME code_block
 arguements: "[" (name_type (" " name_type)*)? "]"
-anonomous_func: "(" arguements (instruction ("|" instruction)*) ")"
+anonomous_func: "(" arguements "->" NAME "|" (instruction (";" instruction)*) ")"
 
 // Boolean and number expressions, with order of operations.
 // Question mark "inlines" the branch, so we don't get nested

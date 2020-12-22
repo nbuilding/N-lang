@@ -195,7 +195,7 @@ class Scope:
 			name, *arguments = deccall.children
 			self.variables[name] = Function(self, arguments, returntype, codeblock, defaultreturn)
 		elif command.data == "for":
-			times, var, code = command.children
+			var, times , code = command.children
 			name, type = var.children
 			if type != "int":
 				print("I cannot loop over a value of type %s." % type)
