@@ -3,10 +3,16 @@ A programming language by N Building with stuff like modular imports.
 
 ## Python instructions
 
-Put all of the code into `run.n` then run `n.py`
+In `python/`, put all of the code into `run.n` then run `n.py`
 
 ```sh
+# Parsing package
 pip install lark
+
+# Coloured console text
+pip install colorama
+
+# Parses and interprets code in run.n
 python n.py
 ```
 
