@@ -194,7 +194,7 @@ class Scope:
 			deccall, returntype, codeblock, defaultreturn = command.children
 			name, *arguments = deccall.children
 			self.variables[name] = Function(self, arguments, returntype, codeblock, defaultreturn)
-		elif command.data == "loop":
+		elif command.data == "for":
 			times, var, code = command.children
 			name, type = var.children
 			if type != "int":

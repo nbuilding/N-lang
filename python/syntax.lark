@@ -1,43 +1,45 @@
-start: instruction+
+start: (instruction ((";" | "\n") instruction)*)
 
-instruction: declare
-           | function_def
-           | print
-           | function_callback
-           | loop
-           | imp
-           | return
-           | imported_command
-           | if
-           | ifelse
+instruction: declare (";")?
+           | print (";")?
+           | function_callback (";")?
+           | for (";")?
+           | imp (";")?
+           | return (";")?
+           | imported_command (";")?
+           | if (";")?
+           | ifelse (";")?
 
 non_infix_boolval: value
                  | function_callback
 
 // functions
-declare: "var " name_type "<" expression
-function_def: ">" function_dec_call "->" NAME code_block (value | "null")
-print: "print" expression
-function_callback: "{" function_call "}"
-loop: ">" "loop" NUMBER name_type code_block
+declare: "var " name_type "=" (expression | function_def)
+print: "print" value
+function_callback: "<" function_call ">"
+for: "for" name_type NUMBER code_block
 imp: "import" NAME
 return: "return" (value | "null")
-imported_command: "{" NAME "." NAME (" " [value (" " value)*])? "}"
-if: "if" expression ("then" | "->") (value | instruction)
-ifelse: "if" expression ("then" | "->") (value | instruction) "else" instruction
-ifelse_expr: "if" expression ("then" | "->") expression "else" expression
+imported_command: "<" NAME "." NAME (" " [value (" " value)*])? ">"
+if: "if" expression ("{" value "}" | "{" instruction "}" | code_block)
+ifelse: "if" expression ("{" value "}" | "{" instruction "}" | code_block) "else" ("{" instruction "}" | code_block)
+ifelse_expr: "if" expression "{" expression "}" "else" "{" expression "}"
 
 //helpers
 name_type: NAME ":" NAME
 function_dec_call: NAME (" " [name_type (" " name_type)*])?
 function_call : value (" " value)*
-code_block: "|" instruction+ "<"
+code_block: "{" instruction* "}"
+function_def: arguements "->" NAME code_block
+arguements: "[" (name_type (" " name_type)*)? "]"
+anonomous_func: "(" arguements (instruction ("|" instruction)*) ")"
 
 // Boolean and number expressions, with order of operations.
 // Question mark "inlines" the branch, so we don't get nested
 // boolean_expression(or_expression(and_expression etc)).
 // Square brackets mean that the stuff inside it can appear 0 or 1 time. Same as
-// (whatever)?.
+// (whatever)?
+
 ?expression: ifelse_expr
            | boolean_expression
 
@@ -70,10 +72,10 @@ value: NUMBER
 
 //constants
 BOOLEAN: ("true" | "false")
-COMMENT: ";" /[^\n]/*
-OR: "|"
-AND: "&"
-EQUALS: "="
+COMMENT: "//" /[^\n]/*
+OR: "||"
+AND: "&&"
+EQUALS: "=="
 GORE: ">="
 LORE: "<="
 LESS: "<"
