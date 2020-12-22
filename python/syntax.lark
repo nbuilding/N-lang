@@ -30,7 +30,7 @@ name_type: NAME ":" NAME
 function_dec_call: NAME (" " [name_type (" " name_type)*])?
 function_call : value (" " value)*
 code_block: "{" instruction* "}"
-function_def: arguements "->" NAME code_block
+function_def: arguements code_block
 arguements: "[" (name_type (" " name_type)*)? "]"
 anonomous_func: "(" arguements "->" NAME "|" (instruction (";" instruction)*) ")"
 

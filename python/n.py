@@ -5,6 +5,7 @@ from lark import Lark
 from lark import Transformer
 from lark import tree
 import lark
+import sys
 
 class Variable:
 	def __init__(self, t, value):
@@ -239,11 +240,16 @@ class Scope:
 		# No return
 		return (False, None)
 
+
+file = "run.n"
+if len(sys.argv) > 1:
+	file = ''.join(sys.argv[1:]) 
+	
 parse = ""
 text = ""
 with open("syntax.lark", "r") as f:
 	parse = f.read()
-with open("run.n", "r") as f:
+with open(file, "r") as f:
 	text = f.read()
 
 n_parser = Lark(parse, start='start')
