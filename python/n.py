@@ -13,27 +13,24 @@ class Variable:
 		self.value = value
 
 class Function(Variable):
-	def __init__(self, scope, arguments, returntype, codeblock, defaultreturn):
+	def __init__(self, scope, arguments, returntype, codeblock):
 		super(Function, self).__init__("function", self)
 
 		self.scope = scope
-		# Discarding types for now
-		self.arguments = [(argument.children[1].value, argument.children[0].value) for argument in arguments]
+		self.argument_names = [argument.children[0].value for argument in arguments]
 		self.returntype = returntype
 		self.codeblock = codeblock
-		self.defaultreturn = defaultreturn
 
 	def run(self, arguments):
 		scope = self.scope.new_scope()
-		if len(arguments) < len(self.arguments):
-			raise TypeError("Missing arguments %s" % ', '.join(name for _, name in self.arguments[len(arguments):]))
-		for value, (arg_type, arg_name) in zip(arguments, self.arguments):
-			scope.variables[arg_name] = Variable(arg_type, value)
+		if len(arguments) < len(self.argument_names):
+			raise TypeError("Missing arguments %s" % ', '.join(self.argument_names[len(arguments):]))
+		for value, arg_name in zip(arguments, self.argument_names):
+			scope.variables[arg_name] = Variable(None, value)
 		for instruction in self.codeblock.children:
 			exit, value = scope.eval_command(instruction)
 			if exit:
 				return value
-		return scope.eval_expr(self.defaultreturn)
 
 class Scope:
 	def __init__(self, parent=None):
@@ -91,6 +88,9 @@ class Scope:
 				return self.eval_expr(ifTrue)
 			else:
 				return self.eval_expr(ifFalse)
+		elif expr.data == "function_def":
+			arguments, returntype, codeblock = expr.children
+			return Function(self, arguments.children, returntype, codeblock)
 		elif expr.data == "function_callback":
 			function, *arguments = expr.children[0].children
 			return self.eval_expr(function).run([self.eval_expr(arg) for arg in arguments])
@@ -191,10 +191,6 @@ class Scope:
 
 		if command.data == "imp":
 			self.imports.append(importlib.import_module(command.children[0]))
-		elif command.data == "function_def":
-			deccall, returntype, codeblock, defaultreturn = command.children
-			name, *arguments = deccall.children
-			self.variables[name] = Function(self, arguments, returntype, codeblock, defaultreturn)
 		elif command.data == "for":
 			var, times , code = command.children
 			name, type = var.children
@@ -213,7 +209,11 @@ class Scope:
 			return (True, self.eval_expr(command.children[0]))
 		elif command.data == "declare":
 			name_type, value = command.children
-			name, type = name_type.children
+			if len(name_type.children) == 2:
+				name, type = name_type.children
+			else:
+				name = name_type.children[0]
+				type = None # Implicit type
 			self.variables[name] = Variable(type, self.eval_expr(value))
 		elif command.data == "imported_command":
 			l, c, *args = command.children
@@ -243,8 +243,8 @@ class Scope:
 
 file = "run.n"
 if len(sys.argv) > 1:
-	file = ''.join(sys.argv[1:]) 
-	
+	file = ''.join(sys.argv[1:])
+
 parse = ""
 text = ""
 with open("syntax.lark", "r") as f:

@@ -1,5 +1,5 @@
-var sum:int = [a:int b:int] { 
-	return (a + b) 
+var sum = [a:int b:int] -> int { 
+	return (a + b)
 }
 
 for i:int 10 {
