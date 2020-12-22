@@ -53,7 +53,6 @@ anonomous_func: "(" arguments "->" NAME "|" (instruction (";" instruction)*) ")"
                  | LESS
                  | GREATER
                  | NEQUALS
-                 | NEQUALS_QUIRKY
 
 ?number_expression: sum_expression
 ?sum_expression: [sum_expression (ADD | SUBTRACT)] product_expression
@@ -62,7 +61,7 @@ anonomous_func: "(" arguments "->" NAME "|" (instruction (";" instruction)*) ")"
 ?exponent_expression: unary_expression [EXPONENT exponent_expression]
 ?unary_expression: value
                  | SUBTRACT unary_expression
-                 | (NOT | NOT_QUIRKY) unary_expression
+                 | NOT unary_expression
 value: NUMBER
      | BOOLEAN
      | STRING
@@ -75,15 +74,13 @@ BOOLEAN: ("true" | "false")
 COMMENT: "//" /[^\n]/*
 OR: "||"
 AND: "&&"
-EQUALS: "=="
+EQUALS: ("==" | "=")
 GORE: ">="
 LORE: "<="
 LESS: "<"
 GREATER: ">"
-NEQUALS: "=/"
-NEQUALS_QUIRKY: "!="
-NOT: "~"
-NOT_QUIRKY: "!"
+NEQUALS: ("/=" | "!=")
+NOT: ("~" | "!")
 ADD: "+"
 SUBTRACT: "-"
 MULTIPLY: "*"

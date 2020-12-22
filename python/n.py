@@ -17,16 +17,17 @@ class Function(Variable):
 		super(Function, self).__init__("function", self)
 
 		self.scope = scope
-		self.argument_names = [argument.children[0].value for argument in arguments]
+		self.arguments = arguments
 		self.returntype = returntype
 		self.codeblock = codeblock
 
 	def run(self, arguments):
 		scope = self.scope.new_scope()
-		if len(arguments) < len(self.argument_names):
-			raise TypeError("Missing arguments %s" % ', '.join(self.argument_names[len(arguments):]))
-		for value, arg_name in zip(arguments, self.argument_names):
-			scope.variables[arg_name] = Variable(None, value)
+		for value, (arg_name, arg_type) in zip(arguments, self.arguments):
+			scope.variables[arg_name] = Variable(arg_type, value)
+		if len(arguments) < len(self.arguments):
+			# Curry :o
+			return Function(scope, self.arguments[len(arguments):], self.returntype, self.codeblock)
 		for instruction in self.codeblock.children:
 			exit, value = scope.eval_command(instruction)
 			if exit:
@@ -90,7 +91,12 @@ class Scope:
 				return self.eval_expr(ifFalse)
 		elif expr.data == "function_def":
 			arguments, returntype, codeblock = expr.children
-			return Function(self, arguments.children, returntype, codeblock)
+			return Function(
+				self,
+				[(arg.children[0].value, arg.children[1].value) for arg in arguments.children],
+				returntype,
+				codeblock
+			)
 		elif expr.data == "function_callback":
 			function, *arguments = expr.children[0].children
 			return self.eval_expr(function).run([self.eval_expr(arg) for arg in arguments])
@@ -135,7 +141,7 @@ class Scope:
 				return self.eval_expr(left) < self.eval_expr(right)
 			elif comparison == "GREATER":
 				return self.eval_expr(left) > self.eval_expr(right)
-			elif comparison == "NEQUALS" or comparison == "NEQUALS_QUIRKY":
+			elif comparison == "NEQUALS":
 				return self.eval_expr(left) != self.eval_expr(right)
 			else:
 				raise SyntaxError("Unexpected operation for compare_expression: %s" % comparison)
@@ -166,7 +172,7 @@ class Scope:
 			operation, value = expr.children
 			if operation.type == "NEGATE":
 				return -self.eval_expr(value)
-			elif operation.type == "NOT" or operation.type == "NOT_QUIRKY":
+			elif operation.type == "NOT":
 				return not self.eval_expr(value)
 			else:
 				raise SyntaxError("Unexpected operation for unary_expression: %s" % operation)
