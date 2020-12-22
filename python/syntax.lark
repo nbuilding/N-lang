@@ -19,7 +19,7 @@ print: "print" value
 function_callback: "<" (function_call | anonomous_func) ">"
 for: "for" name_type NUMBER code_block
 imp: "import" NAME
-return: "return" (value | "null")
+return: "return" expression
 imported_command: "<" NAME "." NAME (" " [value (" " value)*])? ">"
 if: "if" expression ("{" value "}" | "{" instruction "}" | code_block)
 ifelse: "if" expression ("{" value "}" | "{" instruction "}" | code_block) "else" ("{" instruction "}" | code_block)
@@ -45,7 +45,9 @@ anonomous_func: "(" arguments "->" NAME "|" (instruction (";" instruction)*) ")"
 
 ?boolean_expression: or_expression
 ?or_expression: [or_expression OR] and_expression
-?and_expression: [and_expression AND] compare_expression
+?and_expression: [and_expression AND] not_expression
+?not_expression: compare_expression
+               | NOT not_expression
 ?compare_expression: [compare_expression compare_operator] number_expression
 ?compare_operator: EQUALS
                  | GORE
@@ -61,7 +63,6 @@ anonomous_func: "(" arguments "->" NAME "|" (instruction (";" instruction)*) ")"
 ?exponent_expression: unary_expression [EXPONENT exponent_expression]
 ?unary_expression: value
                  | SUBTRACT unary_expression
-                 | NOT unary_expression
 value: NUMBER
      | BOOLEAN
      | STRING
