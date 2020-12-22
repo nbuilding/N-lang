@@ -5,6 +5,7 @@ import fek
 	print test
 	print test1
 	if test1 = "hi" -> return true
+  return "wow"
 < false
 
 > loop 15 i:int |
@@ -12,7 +13,7 @@ import fek
 	print if n % 3 = 0 & n % 5 = 0 -> "Fizzbuzz" else if n % 3 = 0 -> "Fizz" else if n % 5 = 0 -> "Buzz" else n
 <
 
-var test:int < if ~(1 = 1) | 2 > 3 -> 1 else 3
+var test:int < if not 1 = 1 | 2 > 3 -> 1 else 3
 var test1:int < 1 + 1
 var eee:str < "hi"
 
@@ -24,8 +25,8 @@ print a < c < b
 
 ; {main}
 {main test1 eee}
-{fek.paer test}
-if ~{main test "hello"} -> print "{main test 'hello'} returned false"
+{fek.paer (test + 400)}
+if not {main test "hello"} -> print "{main test 'hello'} returned false"
 if {main test eee} -> print "{main test eee} returned true"
 else print "{main test eee} returned false"
 

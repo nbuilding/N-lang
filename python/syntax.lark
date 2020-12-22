@@ -43,7 +43,9 @@ code_block: "|" instruction+ "<"
 
 ?boolean_expression: or_expression
 ?or_expression: [or_expression OR] and_expression
-?and_expression: [and_expression AND] compare_expression
+?and_expression: [and_expression AND] not_expression
+?not_expression: compare_expression
+               | NOT not_expression
 ?compare_expression: [compare_expression compare_operator] number_expression
 ?compare_operator: EQUALS
                  | GORE
@@ -60,7 +62,6 @@ code_block: "|" instruction+ "<"
 ?exponent_expression: unary_expression [EXPONENT exponent_expression]
 ?unary_expression: value
                  | SUBTRACT unary_expression
-                 | (NOT | NOT_QUIRKY) unary_expression
 value: NUMBER
      | BOOLEAN
      | STRING
@@ -80,8 +81,7 @@ LESS: "<"
 GREATER: ">"
 NEQUALS: "=/"
 NEQUALS_QUIRKY: "!="
-NOT: "~"
-NOT_QUIRKY: "!"
+NOT: "not"
 ADD: "+"
 SUBTRACT: "-"
 MULTIPLY: "*"
