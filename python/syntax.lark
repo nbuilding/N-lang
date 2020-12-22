@@ -26,13 +26,13 @@ ifelse: "if" expression ("{" value "}" | "{" instruction "}" | code_block) "else
 ifelse_expr: "if" expression "{" expression "}" "else" "{" expression "}"
 
 //helpers
-name_type: NAME ":" NAME
+name_type: NAME [":" NAME]
 function_dec_call: NAME (" " [name_type (" " name_type)*])?
 function_call : value (" " value)*
 code_block: "{" instruction* "}"
-function_def: arguements code_block
-arguements: "[" (name_type (" " name_type)*)? "]"
-anonomous_func: "(" arguements "->" NAME "|" (instruction (";" instruction)*) ")"
+function_def: arguments ["->" NAME] code_block
+arguments: "[" (name_type (" " name_type)*)? "]"
+anonomous_func: "(" arguments "->" NAME "|" (instruction (";" instruction)*) ")"
 
 // Boolean and number expressions, with order of operations.
 // Question mark "inlines" the branch, so we don't get nested
@@ -53,7 +53,6 @@ anonomous_func: "(" arguements "->" NAME "|" (instruction (";" instruction)*) ")
                  | LESS
                  | GREATER
                  | NEQUALS
-                 | NEQUALS_QUIRKY
 
 ?number_expression: sum_expression
 ?sum_expression: [sum_expression (ADD | SUBTRACT)] product_expression
@@ -62,7 +61,7 @@ anonomous_func: "(" arguements "->" NAME "|" (instruction (";" instruction)*) ")
 ?exponent_expression: unary_expression [EXPONENT exponent_expression]
 ?unary_expression: value
                  | SUBTRACT unary_expression
-                 | (NOT | NOT_QUIRKY) unary_expression
+                 | NOT unary_expression
 value: NUMBER
      | BOOLEAN
      | STRING
@@ -75,15 +74,13 @@ BOOLEAN: ("true" | "false")
 COMMENT: "//" /[^\n]/*
 OR: "||"
 AND: "&&"
-EQUALS: "=="
+EQUALS: ("==" | "=")
 GORE: ">="
 LORE: "<="
 LESS: "<"
 GREATER: ">"
-NEQUALS: "=/"
-NEQUALS_QUIRKY: "!="
-NOT: "~"
-NOT_QUIRKY: "!"
+NEQUALS: ("/=" | "!=")
+NOT: ("~" | "!")
 ADD: "+"
 SUBTRACT: "-"
 MULTIPLY: "*"
