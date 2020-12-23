@@ -5,8 +5,8 @@ from lark import Lark
 from lark import Transformer
 from lark import tree
 import lark
-import sys
 from colorama import init, Fore, Style
+import argparse
 init()
 
 class Variable:
@@ -622,9 +622,13 @@ with open("syntax.lark", "r") as f:
 	parse = f.read()
 n_parser = Lark(parse, start="start", propagate_positions=True)
 
-filename = "run.n"
-if len(sys.argv) > 1:
-	filename = ''.join(sys.argv[1:])
+parser = argparse.ArgumentParser(description='Allows to only show warnings and choose the file location')
+parser.add_argument('--file', type=str, default="run.n", help="The file to read. (optional. if not included, it'll just run run.n)")
+parser.add_argument('--check', type=bool, default=False, help="Set to true if you want to only compile and check for errors and warnings.")
+
+args = parser.parse_args()
+
+filename = args.file
 
 with open(filename, "r") as f:
 	file = File(f)
@@ -645,7 +649,7 @@ def type_check(file, tree):
 			scope.type_check_command(child)
 	else:
 		scope.errors.append(TypeCheckError(tree, "Internal issue: I cannot type check from a non-starting branch."))
-	if len(scope.errors) > 0:
+	if len(scope.errors) > 0 or args.check:
 		print('\n'.join(
 			[warning.display('warning', file) for warning in scope.warnings] +
 			[error.display('error', file) for error in scope.errors]
@@ -660,9 +664,10 @@ def parse_tree(tree):
 	else:
 		raise SyntaxError("Unable to run parse_tree on non-starting branch")
 
+
 tree = file.parse(n_parser)
 error_count, warning_count = type_check(file, tree)
-if error_count > 0:
+if error_count > 0 or args.check:
 	error_s = ""
 	warning_s = ""
 	if error_count > 1:
