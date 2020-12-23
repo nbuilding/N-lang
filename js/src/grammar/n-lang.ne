@@ -4,13 +4,11 @@
 import moo from 'moo'
 import * as ast from './ast'
 
-const operation = (operator: ast.Operator) =>
-	([expr, , , , val]: any[]) =>
-		new ast.Operation(operator, expr as ast.Expression, val as ast.Expression)
-
-const unaryOperation = (operator: ast.UnaryOperator) =>
-	([, , value]: any[]) =>
-		new ast.UnaryOperation(operator, value as ast.Expression)
+const {
+	from,
+	Operation: { operation },
+	UnaryOperation: { operation: unaryOperation },
+} = ast
 
 const compare = (comparison: ast.Compare) =>
 	([compareExpr, , , , expr]: any[]) =>
@@ -57,31 +55,27 @@ main -> _ block _ {% ([, block]) => block %}
 
 # statement
 # ...
-block -> commentedStatement {% ([statement]) => new ast.Block(statement ? [statement] : []) %}
-	| block blockSeparator commentedStatement {% ([block, , statement]) => statement ? block.withStatement(statement) : block %}
-
-commentedStatement -> lineComment {% () => null %}
-	| statement lineComment:? {% id %}
+block -> (block blockSeparator):* statement {% from(ast.Block) %}
 
 statement -> expression {% id %}
-	| "import" __ identifier {% ([, , id]) => new ast.ImportStmt(id) %}
-	| "var" __ declaration _ "=" _ expression {% ([, , decl, , , , expr]) => new ast.VarStmt(decl, expr) %}
+	| "import" __ %identifier {% from(ast.ImportStmt) %}
+	| "var" __ declaration _ "=" _ expression {% from(ast.VarStmt) %}
 
 expression -> booleanExpression {% id %}
-	| "print" __ expression {% ([, , expr]) => new ast.Print(expr) %}
-	| "return" __ expression {% ([, , expr]) => new ast.Return(expr) %}
+	| "print" __ expression {% from(ast.Print) %}
+	| "return" __ expression {% from(ast.Return) %}
 	| ifExpression {% id %}
 	| funcExpr {% id %}
 	| forLoop {% id %}
 
-funcExpr -> "[" _ funcDefParams _ "]" _ "->" _ type __ value {% ([, , params, , , , , , returnType, , expr]) => new ast.Function(params, returnType, expr) %}
+funcExpr -> "[" _ declaration (__ declaration):* _ "]" _ "->" _ type __ value {% from(ast.Function) %}
 
 funcDefParams -> declaration {% ([decl]) => [decl] %}
 	| funcDefParams __ declaration {% ([params, , decl]) => [...params, decl] %}
 
-forLoop -> "for" _ declaration _ value _ value {% ([, , decl, , value, , expr]) => new ast.For(decl, value, expr) %}
+forLoop -> "for" _ declaration _ value _ value {% from(ast.For) %}
 
-declaration -> identifier (_ ":" _ type):? {% ([id, maybeType]) => new ast.Declaration(id, maybeType ? maybeType[3] : null) %}
+declaration -> %identifier (_ ":" _ type):? {% from(ast.Declaration) %}
 
 type -> modIdentifier {% id %}
 
@@ -92,16 +86,15 @@ booleanExpression -> notExpression {% id %}
 notExpression -> compareExpression {% id %}
 	| "not" _ notExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
 
-compareExpression -> compareExpression_ {% ([comparisons]) => comparisons.length === 1 ? comparisons[0].expr : new ast.Comparisons(comparisons) %}
+compareExpression -> sumExpression {% id %}
+	| (sumExpression compareOperator):+ sumExpression {% from(ast.Comparisons) %}
 
-# The first comparison gets ignored anyways
-compareExpression_ -> sumExpression {% ([expr]) => [{ expr, comparison: ast.Compare.EQUAL }] %}
-	| compareExpression_ _ ("==" | "=") _ sumExpression {% compare(ast.Compare.EQUAL) %}
-	| compareExpression_ _ ">" _ sumExpression {% compare(ast.Compare.GREATER) %}
-	| compareExpression_ _ "<" _ sumExpression {% compare(ast.Compare.LESS) %}
-	| compareExpression_ _ ">=" _ sumExpression {% compare(ast.Compare.GEQ) %}
-	| compareExpression_ _ "<=" _ sumExpression {% compare(ast.Compare.LEQ) %}
-	| compareExpression_ _ ("!=" | "/=") _ sumExpression {% compare(ast.Compare.NEQ) %}
+compareOperator -> ("==" | "=") {% ([token]) => ({ ...token, value: ast.Compare.EQUAL }) %}
+	| ">" {% ([token]) => ({ ...token, value: ast.Compare.GREATER }) %}
+	| "<" {% ([token]) => ({ ...token, value: ast.Compare.LESS }) %}
+	| ">=" {% ([token]) => ({ ...token, value: ast.Compare.GEQ }) %}
+	| "<=" {% ([token]) => ({ ...token, value: ast.Compare.LEQ }) %}
+	| ("!=" | "/=") {% ([token]) => ({ ...token, value: ast.Compare.NEQ }) %}
 
 sumExpression -> productExpression {% id %}
 	| sumExpression _ "+" _ productExpression {% operation(ast.Operator.ADD) %}
@@ -123,34 +116,18 @@ unaryExpression -> value {% id %}
 # enclosing brackets for more complex expressions, which can help avoid syntax
 # ambiguities.
 value -> modIdentifier {% id %}
-	| number {% ([num]) => new ast.Number(num) %}
-	| string {% ([str]) => new ast.String(str) %}
+	| %number {% from(ast.Number) %}
+	| %string {% from(ast.String) %}
 	| "(" _ expression _ ")" {% ([, , expr]) => expr %}
 	| functionCall {% id %}
 	| "{" _ block _ "}" {% ([, , block]) => block %}
 
 # identifier [...parameters]
-functionCall -> "<" _ value _ ">" {% ([, , value]) => new ast.CallFunc(value) %}
-	| "<" _ value __ parameters _ ">" {% ([, , value, , params]) => new ast.CallFunc(value, params) %}
+functionCall -> "<" _ value (__ value):* _ ">" {% from(ast.CallFunc) %}
 
-# expression ...
-parameters -> value {% ([expr]) => [expr] %}
-	| parameters __ value {% ([params, , expr]) => [...params, expr] %}
+ifExpression -> "if" __ expression __ value (__ "else" __ value):? {% from(ast.If) %}
 
-ifExpression -> "if" __ expression __ value (__ "else" __ value):?
-	{% ([, , cond, , a, b]) => new ast.If(cond, a, b && b[3]) %}
-
-modIdentifier -> identifier {% ([id]) => new ast.Identifier(id) %}
-	| modIdentifier "." identifier {% ([modIdent, , id]) => modIdent.identifier(id) %}
-
-identifier -> %identifier {% ([token]) => token.value %}
-
-number -> %number {% ([token]) => token.value %}
-
-string -> %string {% ([token]) => token.value %}
-
-char -> %safeChar {% id %}
-	| "\\" . {% ([, char]) => char %}
+modIdentifier -> (%identifier "."):* %identifier {% from(ast.Identifier) %}
 
 # // comment
 lineComment -> %comment {% () => null %}
