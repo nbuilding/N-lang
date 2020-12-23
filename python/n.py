@@ -418,9 +418,9 @@ class Scope:
 				self.errors.append(TypeCheckError(expr, "The branches of the if-else expression should have the same type, but the true branch has type %s while the false branch has type %s." % (display_type(if_true_type), display_type(if_false_type))))
 				return None
 			if condition.children[0].value == "true":
-				self.warnings.append(TypeCheckError(expr, "The else statement of the expression will never run."))
+				self.warnings.append(TypeCheckError(condition, "The else statement of the expression will never run."))
 			if condition.children[0].value == "false":
-				self.warnings.append(TypeCheckError(expr, "The if statement of the expression will never run."))
+				self.warnings.append(TypeCheckError(condition, "The if statement of the expression will never run."))
 			return if_true_type
 		elif expr.data == "function_def":
 			arguments, returntype, codeblock = expr.children
