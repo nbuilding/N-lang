@@ -8,5 +8,5 @@ for i 10 {
 
 var addOne = <sum 1>
 
-var test:int = if 1 == 1 { <addOne 3> } else { <addOne 5> }
+var test:int = if true { <addOne 3> } else { <addOne 5> }
 print test
