@@ -88,7 +88,8 @@ class File:
 class TypeCheckError:
 	def __init__(self, token_or_tree, message):
 		if type(token_or_tree) is not lark.Token and type(token_or_tree) is not lark.Tree:
-			raise TypeError("token_or_tree should be a Lark Token or Tree.")
+			exit()
+			#raise TypeError("token_or_tree should be a Lark Token or Tree.")
 		self.datum = token_or_tree
 		self.message = message
 
@@ -99,7 +100,8 @@ class TypeCheckError:
 		elif display_type == "warning":
 			output += f"{Fore.YELLOW}{Style.BRIGHT}Warning{Style.RESET_ALL}"
 		else:
-			raise ValueError("%s is not a valid display type for TypeCheckError." % display_type)
+			exit()
+			#raise ValueError("%s is not a valid display type for TypeCheckError." % display_type)
 		output += ": %s\n" % self.message
 		if type(self.datum) is lark.Token:
 			output += f"{Fore.CYAN}  --> {Fore.BLUE}run.n:{self.datum.line}:{self.datum.column}{Style.RESET_ALL}\n"
@@ -184,7 +186,8 @@ class Scope:
 			if self.parent:
 				return self.parent.get_variable(name, err=err)
 			elif err:
-				raise NameError("You tried to get a variable/function `%s`, but it isn't defined." % name)
+				exit()
+				#raise NameError("You tried to get a variable/function `%s`, but it isn't defined." % name)
 		else:
 			return variable
 
@@ -210,11 +213,13 @@ class Scope:
 			elif value.value == "true":
 				return True
 			else:
-				raise SyntaxError("Unexpected boolean value %s" % value.value)
+				exit()
+				#raise SyntaxError("Unexpected boolean value %s" % value.value)
 		elif value.type == "NAME":
 			return self.get_variable(value.value).value
 		else:
-			raise SyntaxError("Unexpected value type %s value %s" % (value.type, value.value))
+			exit()
+			#raise SyntaxError("Unexpected value type %s value %s" % (value.type, value.value))
 
 	"""
 	Evaluate a parsed expression with Trees and Tokens from Lark.
@@ -244,10 +249,12 @@ class Scope:
 			l, c, *args = expr.children
 			library = self.find_import(l)
 			if library == None:
-				raise SyntaxError("Library %s not found" %(l))
+				exit()
+				#raise SyntaxError("Library %s not found" %(l))
 			com = getattr(library, c)
 			if com == None:
-				raise SyntaxError("Command %s not found" %(c))
+				exit()
+				#raise SyntaxError("Command %s not found" %(c))
 			return com([self.eval_expr(a.children[0]) for a in args])
 		elif expr.data == "or_expression":
 			left, _, right = expr.children
@@ -287,7 +294,8 @@ class Scope:
 			elif comparison == "NEQUALS":
 				return self.eval_expr(left) != self.eval_expr(right)
 			else:
-				raise SyntaxError("Unexpected operation for compare_expression: %s" % comparison)
+				exit()
+				#raise SyntaxError("Unexpected operation for compare_expression: %s" % comparison)
 		elif expr.data == "sum_expression":
 			left, operation, right = expr.children
 			if operation.type == "ADD":
@@ -295,7 +303,8 @@ class Scope:
 			elif operation.type == "SUBTRACT":
 				return self.eval_expr(left) - self.eval_expr(right)
 			else:
-				raise SyntaxError("Unexpected operation for sum_expression: %s" % operation)
+				exit()
+				#raise SyntaxError("Unexpected operation for sum_expression: %s" % operation)
 		elif expr.data == "product_expression":
 			left, operation, right = expr.children
 			if operation.type == "MULTIPLY":
@@ -307,7 +316,8 @@ class Scope:
 			elif operation.type == "MODULO":
 				return self.eval_expr(left) % self.eval_expr(right)
 			else:
-				raise SyntaxError("Unexpected operation for product_expression: %s" % operation)
+				exit()
+				#raise SyntaxError("Unexpected operation for product_expression: %s" % operation)
 		elif expr.data == "exponent_expression":
 			left, _, right = expr.children
 			return self.eval_expr(left) ** self.eval_expr(right)
@@ -316,7 +326,8 @@ class Scope:
 			if operation.type == "NEGATE":
 				return -self.eval_expr(value)
 			else:
-				raise SyntaxError("Unexpected operation for unary_expression: %s" % operation)
+				exit()
+				#raise SyntaxError("Unexpected operation for unary_expression: %s" % operation)
 		elif expr.data == "value":
 			token_or_tree = expr.children[0]
 			if type(token_or_tree) is lark.Tree:
@@ -324,15 +335,17 @@ class Scope:
 			else:
 				return self.eval_value(token_or_tree)
 		else:
-			print('(see below)', expr)
-			raise SyntaxError("Unexpected command/expression type %s" % expr.data)
+			print('(parse tree):', expr)
+			exit()
+			#raise SyntaxError("Unexpected command/expression type %s" % expr.data)
 
 	"""
 	Evaluates a command given parsed Trees and Tokens from Lark.
 	"""
 	def eval_command(self, tree):
 		if tree.data != "instruction":
-			raise SyntaxError("Command %s not implemented" %(t.data))
+			exit()
+			#raise SyntaxError("Command %s not implemented" %(t.data))
 
 		command = tree.children[0]
 
@@ -647,7 +660,8 @@ def parse_tree(tree):
 		for child in tree.children:
 			scope.eval_command(child)
 	else:
-		raise SyntaxError("Unable to run parse_tree on non-starting branch")
+		exit()
+		#raise SyntaxError("Unable to run parse_tree on non-starting branch")
 
 tree = file.parse(n_parser)
 error_count, warning_count = type_check(file, tree)
