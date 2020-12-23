@@ -340,10 +340,22 @@ function compareToString (self: Compare): string {
   }
 }
 
-interface Comparison {
+export class Comparison extends Base {
   type: Compare
   a: Expression
   b: Expression
+
+  constructor (type: Compare, a: Expression, b: Expression) {
+    super({
+      line: a.line,
+      col: a.col,
+      endLine: b.endLine,
+      endCol: b.endCol,
+    })
+    this.type = type
+    this.a = a
+    this.b = b
+  }
 }
 
 export class Comparisons extends Base {
@@ -372,11 +384,7 @@ export class Comparisons extends Base {
       shouldSatisfy(isExpression, left)
       if (lastExpr) {
         shouldSatisfy(isEnum(Compare), lastExpr.operator)
-        comparisons.push({
-          type: lastExpr.operator,
-          a: lastExpr.left,
-          b: left,
-        })
+        comparisons.push(new Comparison(lastExpr.operator, lastExpr.left, left))
       }
       shouldSatisfy(isToken, operator)
       lastExpr = {
@@ -387,11 +395,7 @@ export class Comparisons extends Base {
     shouldSatisfy(isExpression, value)
     if (lastExpr) {
       shouldSatisfy(isEnum(Compare), lastExpr.operator)
-      comparisons.push({
-        type: lastExpr.operator,
-        a: lastExpr.left,
-        b: value,
-      })
+      comparisons.push(new Comparison(lastExpr.operator, lastExpr.left, value))
     }
     if (comparisons.length === 0) {
       console.log(maybeComparisons)

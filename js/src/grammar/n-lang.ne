@@ -56,7 +56,7 @@ main -> _ block _ {% ([, block]) => block %}
 
 # statement
 # ...
-block -> (block blockSeparator):* statement {% from(ast.Block) %}
+block -> (statement blockSeparator):* statement {% from(ast.Block) %}
 
 statement -> expression {% id %}
 	| "import" __ %identifier {% from(ast.ImportStmt) %}

@@ -1,12 +1,21 @@
 var sum = [a:int b:int] -> int {
-	return (a + b)
+  if false (return a + b / 2)
+  2
 }
 
-for i 10 {
-	print "test"; print "test2"
+var cool = for i 10 {
+  print "test"; print "test2"
+  print {
+    var scopedVariable = "wow"
+    scopedVariable + scopedVariable
+  }
 }
 
 var addOne = <sum 1>
 
-var test:int = if 1 == 1 { <addOne 3> } else { <addOne 5> }
-print test
+if {
+  var test:int = if 1 < 2 > 0 <addOne 3> else <addOne 5>
+  test = 4
+} {
+  print "wowwow"
+}
