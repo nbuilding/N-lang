@@ -6,6 +6,9 @@ A programming language by N Building with stuff like modular imports.
 In `python/`, put all of the code into `run.n` then run `n.py`
 
 ```sh
+# Command line argument parsing
+pip install argparse
+
 # Parsing package
 pip install lark
 
