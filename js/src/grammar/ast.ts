@@ -1,5 +1,5 @@
 import moo from 'moo'
-import { isToken, shouldBe, shouldSatisfy } from '../utils/type-guards'
+import { isEnum, isToken, shouldBe, shouldSatisfy } from '../utils/type-guards'
 
 type NearleyArgs = (Base | moo.Token | NearleyArgs | null)[]
 function shouldBeNearleyArgs (value: any): asserts value is NearleyArgs {
@@ -148,7 +148,10 @@ export class VarStmt extends Base {
     return `var ${this.declaration} = ${this.value}`
   }
 
-  static fromAny (pos: BasePosition, [, , decl, , , , expr]: NearleyArgs): VarStmt {
+  static fromAny (
+    pos: BasePosition,
+    [_var, _sp1, decl, _sp2, _eq, _sp3, expr]: NearleyArgs
+  ): VarStmt {
     shouldBe(Declaration, decl)
     shouldSatisfy(isExpression, expr)
     return new VarStmt(pos, decl, expr)
@@ -326,7 +329,6 @@ export enum Compare {
   NEQ = 'not-equal',
   GEQ = 'greater-or-equal',
 }
-
 function compareToString (self: Compare): string {
   switch (self) {
     case Compare.LESS: return '<'
@@ -344,26 +346,12 @@ interface Comparison {
   b: Expression
 }
 
-interface RawComparison {
-  expr: Expression
-  comparison: Compare
-}
-
 export class Comparisons extends Base {
   comparisons: Comparison[]
 
-  constructor (pos: BasePosition, [value, ...comparisons]: RawComparison[]) {
+  constructor (pos: BasePosition, comparisons: Comparison[]) {
     super(pos)
-    this.comparisons = []
-    let lastValue = value.expr
-    for (const { expr, comparison } of comparisons) {
-      this.comparisons.push({
-        type: comparison,
-        a: lastValue,
-        b: expr
-      })
-      lastValue = expr
-    }
+    this.comparisons = comparisons
   }
 
   toString () {
@@ -372,6 +360,44 @@ export class Comparisons extends Base {
       str += ` ${compareToString(type)} ${b}`
     }
     return `(${str})`
+  }
+
+  static fromAny (pos: BasePosition, [maybeComparisons, value]: NearleyArgs): Comparisons {
+    const comparisons: Comparison[] = []
+    let lastExpr
+    shouldBe(Array, maybeComparisons)
+    for (const comparisonOperatorPair of maybeComparisons) {
+      shouldBe(Array, comparisonOperatorPair)
+      const [left, , operator] = comparisonOperatorPair
+      shouldSatisfy(isExpression, left)
+      if (lastExpr) {
+        shouldSatisfy(isEnum(Compare), lastExpr.operator)
+        comparisons.push({
+          type: lastExpr.operator,
+          a: lastExpr.left,
+          b: left,
+        })
+      }
+      shouldSatisfy(isToken, operator)
+      lastExpr = {
+        left,
+        operator: operator.value
+      }
+    }
+    shouldSatisfy(isExpression, value)
+    if (lastExpr) {
+      shouldSatisfy(isEnum(Compare), lastExpr.operator)
+      comparisons.push({
+        type: lastExpr.operator,
+        a: lastExpr.left,
+        b: value,
+      })
+    }
+    if (comparisons.length === 0) {
+      console.log(maybeComparisons)
+      throw new TypeError('I should have at least one comparison!')
+    }
+    return new Comparisons(pos, comparisons)
   }
 }
 

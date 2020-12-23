@@ -10,23 +10,24 @@ const {
 	UnaryOperation: { operation: unaryOperation },
 } = ast
 
-const compare = (comparison: ast.Compare) =>
-	([compareExpr, , , , expr]: any[]) =>
-		[...compareExpr, { expr, comparison }]
-
 const escapes: { [key: string]: string } = {
 	n: '\n', r: '\r', t: '\t', v: '\v', 0: '\0', f: '\f', b: '\b'
-}
-function unescape (char: string): string {
-	return escapes[char] || char
 }
 
 // Order of rules matter! So most specific -> most general
 const lexer = moo.compile({
-	keyword: ['import', 'print', 'return', 'var', 'else'],
+	keyword: ['import', 'print', 'return', 'var', 'else', 'for'],
 	symbol: [
-		'->', '|', ':', '<', '<=', '==', '=', '=>', '>', '+', '-', '*', '/', '^',
-		'.', '//', '%', '&', '|', '/=', '!='
+		'->', ':', '.',
+	],
+	arithmeticOperator: [
+		'+', '-', '*', '//', '%', '/', '^',
+	],
+	comparisonOperator: [
+		'<', '<=', '=', '==', '=>', '>', '/=', '!=',
+	],
+	booleanOperator: [
+		'&', '|', 'not',
 	],
 	lbracket: ['{', '[', '(', '<'],
 	rbracket: ['}', ']', ')', '>'],
@@ -34,12 +35,12 @@ const lexer = moo.compile({
 	number: /\d+/,
 	identifier: /[a-zA-Z]\w*/,
 	string: {
-		match: /"(?:[^\r\n\\"]|\\[^uU]|\\[uU])*"/,
+		match: /"(?:[^\r\n\\"]|\\[nrtv0fb]|u\{[0-9a-fA-F]+\})*"/,
 		value: string => string
 			.slice(1, -1)
 			.replace(
-				/\\(?:([^u])|u\{([0-9a-f])\})/gi,
-				([, char, unicode]) => char ? unescape(char) : String.fromCodePoint(parseInt(unicode, 16))
+				/\\(?:([^u])|u\{([0-9a-fA-F]+)\})/g,
+				([, char, unicode]) => char ? escapes[char] : String.fromCodePoint(parseInt(unicode, 16))
 			)
 	},
 	comment: /\/\/.*?$/,
@@ -87,14 +88,14 @@ notExpression -> compareExpression {% id %}
 	| "not" _ notExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
 
 compareExpression -> sumExpression {% id %}
-	| (sumExpression compareOperator):+ sumExpression {% from(ast.Comparisons) %}
+	| (sumExpression _ compareOperator _):+ sumExpression {% from(ast.Comparisons) %}
 
-compareOperator -> ("==" | "=") {% ([token]) => ({ ...token, value: ast.Compare.EQUAL }) %}
+compareOperator -> ("==" | "=") {% ([token]) => ({ ...token[0], value: ast.Compare.EQUAL }) %}
 	| ">" {% ([token]) => ({ ...token, value: ast.Compare.GREATER }) %}
 	| "<" {% ([token]) => ({ ...token, value: ast.Compare.LESS }) %}
 	| ">=" {% ([token]) => ({ ...token, value: ast.Compare.GEQ }) %}
 	| "<=" {% ([token]) => ({ ...token, value: ast.Compare.LEQ }) %}
-	| ("!=" | "/=") {% ([token]) => ({ ...token, value: ast.Compare.NEQ }) %}
+	| ("!=" | "/=") {% ([token]) => ({ ...token[0], value: ast.Compare.NEQ }) %}
 
 sumExpression -> productExpression {% id %}
 	| sumExpression _ "+" _ productExpression {% operation(ast.Operator.ADD) %}

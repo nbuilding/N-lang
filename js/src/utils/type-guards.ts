@@ -7,6 +7,15 @@ export function isNumber (value: any): value is number {
   return typeof value === 'number'
 }
 
+// https://stackoverflow.com/a/58278753
+export function isEnum<T> (enumObject: T) {
+  const values = Object.values(enumObject)
+  function isOfEnum (value: any): value is T[keyof T] {
+    return values.includes(value)
+  }
+  return isOfEnum
+}
+
 export function isToken (value: any): value is moo.Token {
   return 'value' in value && 'offset' in value && 'text' in value &&
     'lineBreaks' in value && 'line' in value && 'col' in value &&
@@ -28,11 +37,13 @@ function displayValueType (value: any): string {
 type Constructor<T> = { new (...args: any[]): T }
 export function shouldBe<T> (ClassObject: Constructor<T>, value: any): asserts value is T {
   if (!(value instanceof ClassObject)) {
+    console.log(value)
     throw new TypeError(`${value} (${displayValueType(value)}) is not a ${ClassObject.name}.`)
   }
 }
 export function shouldSatisfy<T> (guard: (value: any) => value is T, value: any): asserts value is T {
   if (!guard(value)) {
+    console.log(value)
     throw new TypeError(`${value} (${displayValueType(value)}) does not satisfy ${guard.name}.`)
   }
 }
