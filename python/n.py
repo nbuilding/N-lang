@@ -341,8 +341,6 @@ class Scope:
 		elif command.data == "for":
 			var, iterable, code = command.children
 			name, type = get_name_type(var)
-			if type != "int":
-				print("I cannot loop over a value of type %s." % type)
 			for i in range(int(iterable)):
 				scope = self.new_scope()
 				scope.variables[name] = Variable(type, i)
