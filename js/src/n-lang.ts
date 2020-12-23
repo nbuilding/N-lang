@@ -2,7 +2,7 @@
 
 import fs from 'fs/promises'
 import util from 'util'
-// import { compileToJS } from './compiler/to-js'
+import { compileToJS } from './compiler/to-js'
 import { parse } from './grammar/parse'
 import parseArgs from 'minimist'
 
@@ -43,10 +43,10 @@ async function main () {
   if (ast) console.log(util.inspect(script, false, null, true))
   if (repr) console.log(script.toString(true))
   if (js || running) {
-    // const compiled = compileToJS(script)
-    // if (js) console.log(compiled)
-    // // Indirect call of eval to run in global scope
-    // if (running) (null, eval)(compiled)
+    const compiled = compileToJS(script)
+    if (js) console.log(compiled)
+    // Indirect call of eval to run in global scope
+    if (running) (null, eval)(compiled)
   }
 }
 
