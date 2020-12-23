@@ -160,10 +160,10 @@ def get_name_type(name_type):
 		return name.value, type.value
 
 class Scope:
-	def __init__(self, parent=None, parent_function=None, errors=[], warnings=[]):
+	def __init__(self, parent=None, parent_function=None, errors=[], warnings=[], imports=[]):
 		self.parent = parent
 		self.parent_function = parent_function
-		self.imports = []
+		self.imports = imports
 		self.variables = {}
 		self.errors = errors
 		self.warnings = warnings
@@ -179,6 +179,7 @@ class Scope:
 			parent_function=parent_function or self.parent_function,
 			errors=self.errors,
 			warnings=self.warnings,
+			imports=self.imports,
 		)
 
 	def get_variable(self, name, err=True):
@@ -346,6 +347,7 @@ class Scope:
 			name, type = get_name_type(var)
 			for i in range(int(iterable)):
 				scope = self.new_scope()
+
 				scope.variables[name] = Variable(type, i)
 				for child in code.children:
 					exit, value = scope.eval_command(child)
@@ -417,10 +419,11 @@ class Scope:
 			if if_true_type != if_false_type:
 				self.errors.append(TypeCheckError(expr, "The branches of the if-else expression should have the same type, but the true branch has type %s while the false branch has type %s." % (display_type(if_true_type), display_type(if_false_type))))
 				return None
-			if condition.children[0].value == "true":
-				self.warnings.append(TypeCheckError(condition, "The else statement of the expression will never run."))
-			if condition.children[0].value == "false":
-				self.warnings.append(TypeCheckError(condition, "The if statement of the expression will never run."))
+			if type(condition.children[0]) is lark.Token:
+				if condition.children[0].value == "true":
+					self.warnings.append(TypeCheckError(condition, "The else statement of the expression will never run."))
+				if condition.children[0].value == "false":
+					self.warnings.append(TypeCheckError(condition, "The if statement of the expression will never run."))
 			return if_true_type
 		elif expr.data == "function_def":
 			arguments, returntype, codeblock = expr.children
@@ -630,7 +633,7 @@ with open(filename, "r") as f:
 global_scope = Scope()
 global_scope.add_native_function(
 	"intInBase10",
-	[("int", "number")],
+	[("number", "int")],
 	"str",
 	lambda number: str(number),
 )

@@ -21,9 +21,9 @@ for: "for" name_type NUMBER code_block
 imp: "import" NAME
 return: "return" expression
 imported_command: "<" NAME "." NAME (" " [value (" " value)*])? ">"
-if: "if" expression ("{" value "}" | "{" instruction "}" | code_block)
-ifelse: "if" expression ("{" value "}" | "{" instruction "}" | code_block) "else" ("{" instruction "}" | code_block)
-ifelse_expr: "if" expression "{" expression "}" "else" "{" expression "}"
+if: "if" expression ("{"? value "}"? | "{"? instruction "}"? | code_block)
+ifelse: "if" expression ("{"? value "}"? | "{"? instruction "}"? | code_block) "else" ("{"? instruction "}"? | code_block)
+ifelse_expr: "if" expression "{"? expression "}"? "else" "{"? expression "}"?
 
 //helpers
 name_type: NAME [":" NAME]
