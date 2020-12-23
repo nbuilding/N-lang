@@ -17,7 +17,7 @@ python n.py
 ```
 
 ### Features to add:
-- idk
+- look at features.md
 
 ### Bugs:
 - None currently

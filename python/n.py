@@ -5,6 +5,7 @@ from lark import Lark
 from lark import Transformer
 from lark import tree
 import lark
+import sys
 from colorama import init, Fore, Style
 init()
 
@@ -14,36 +15,38 @@ class Variable:
 		self.value = value
 
 class Function(Variable):
-	def __init__(self, scope, arguments, returntype, codeblock, defaultreturn):
+	def __init__(self, scope, arguments, returntype, codeblock):
 		# Tuples represent function types. (a, b, c) represents a -> b -> c.
 		types = tuple([type for _, type in arguments] + [returntype])
 		super(Function, self).__init__(types, self)
 
 		self.scope = scope
-		# Discarding types for now
-		self.arguments = [(type, name) for name, type in arguments]
+		self.arguments = arguments
 		self.returntype = returntype
 		self.codeblock = codeblock
-		self.defaultreturn = defaultreturn
 
 	def run(self, arguments):
 		scope = self.scope.new_scope(parent_function=self)
-		if len(arguments) < len(self.arguments):
-			raise TypeError("Missing arguments %s" % ", ".join(name for _, name in self.arguments[len(arguments):]))
-		for value, (arg_type, arg_name) in zip(arguments, self.arguments):
+		for value, (arg_name, arg_type) in zip(arguments, self.arguments):
 			scope.variables[arg_name] = Variable(arg_type, value)
+		if len(arguments) < len(self.arguments):
+			# Curry :o
+			return Function(scope, self.arguments[len(arguments):], self.returntype, self.codeblock)
 		for instruction in self.codeblock.children:
 			exit, value = scope.eval_command(instruction)
 			if exit:
 				return value
-		return scope.eval_expr(self.defaultreturn)
 
 class NativeFunction(Function):
-	def __init__(self, scope, arguments, return_type, function):
-		super(NativeFunction, self).__init__(scope, arguments, return_type, None, None)
+	def __init__(self, scope, arguments, return_type, function, argument_cache=[]):
+		super(NativeFunction, self).__init__(scope, arguments, return_type, None)
 		self.function = function
+		self.argument_cache = argument_cache
 
 	def run(self, arguments):
+		arguments = self.argument_cache + arguments
+		if len(arguments) < len(self.arguments):
+			return NativeFunction(self.scope, self.arguments, self.return_type, self.function, argument_cache=self.argument_cache + arguments)
 		return self.function(*arguments)
 
 class File:
@@ -85,7 +88,8 @@ class File:
 class TypeCheckError:
 	def __init__(self, token_or_tree, message):
 		if type(token_or_tree) is not lark.Token and type(token_or_tree) is not lark.Tree:
-			raise TypeError("token_or_tree should be a Lark Token or Tree.")
+			exit()
+			#raise TypeError("token_or_tree should be a Lark Token or Tree.")
 		self.datum = token_or_tree
 		self.message = message
 
@@ -96,7 +100,8 @@ class TypeCheckError:
 		elif display_type == "warning":
 			output += f"{Fore.YELLOW}{Style.BRIGHT}Warning{Style.RESET_ALL}"
 		else:
-			raise ValueError("%s is not a valid display type for TypeCheckError." % display_type)
+			exit()
+			#raise ValueError("%s is not a valid display type for TypeCheckError." % display_type)
 		output += ": %s\n" % self.message
 		if type(self.datum) is lark.Token:
 			output += f"{Fore.CYAN}  --> {Fore.BLUE}run.n:{self.datum.line}:{self.datum.column}{Style.RESET_ALL}\n"
@@ -107,18 +112,12 @@ class TypeCheckError:
 				self.datum.end_column,
 			)
 		else:
-			first_token = self.datum
-			while type(first_token) is lark.Tree:
-				first_token = first_token.children[0]
-			last_token = self.datum
-			while type(last_token) is lark.Tree:
-				last_token = last_token.children[-1]
-			output += f"{Fore.CYAN}  --> {Fore.BLUE}run.n:{first_token.line}:{first_token.column}{Style.RESET_ALL}\n"
+			output += f"{Fore.CYAN}  --> {Fore.BLUE}run.n:{self.datum.line}:{self.datum.column}{Style.RESET_ALL}\n"
 			output += file.display(
-				first_token.line,
-				first_token.column,
-				last_token.end_line,
-				last_token.end_column,
+				self.datum.line,
+				self.datum.column,
+				self.datum.end_line,
+				self.datum.end_column,
 			)
 		return output
 
@@ -152,6 +151,13 @@ def display_type(n_type):
 		print('display_type was given a value that is neither a string nor a tuple.', n_type)
 		return Fore.RED + '???' + Style.RESET_ALL
 
+def get_name_type(name_type):
+	if len(name_type.children) == 1:
+		return name_type.children[0].value, 'infer'
+	else:
+		name, type = name_type.children
+		return name.value, type.value
+
 class Scope:
 	def __init__(self, parent=None, parent_function=None, errors=[], warnings=[]):
 		self.parent = parent
@@ -180,7 +186,8 @@ class Scope:
 			if self.parent:
 				return self.parent.get_variable(name, err=err)
 			elif err:
-				raise NameError("You tried to get a variable/function `%s`, but it isn't defined." % name)
+				exit()
+				#raise NameError("You tried to get a variable/function `%s`, but it isn't defined." % name)
 		else:
 			return variable
 
@@ -206,11 +213,13 @@ class Scope:
 			elif value.value == "true":
 				return True
 			else:
-				raise SyntaxError("Unexpected boolean value %s" % value.value)
+				exit()
+				#raise SyntaxError("Unexpected boolean value %s" % value.value)
 		elif value.type == "NAME":
 			return self.get_variable(value.value).value
 		else:
-			raise SyntaxError("Unexpected value type %s value %s" % (value.type, value.value))
+			exit()
+			#raise SyntaxError("Unexpected value type %s value %s" % (value.type, value.value))
 
 	"""
 	Evaluate a parsed expression with Trees and Tokens from Lark.
@@ -225,6 +234,14 @@ class Scope:
 				return self.eval_expr(if_true)
 			else:
 				return self.eval_expr(if_false)
+		elif expr.data == "function_def":
+			arguments, returntype, codeblock = expr.children
+			return Function(
+				self,
+				[(arg.children[0].value, arg.children[1].value) for arg in arguments.children],
+				returntype.value,
+				codeblock
+			)
 		elif expr.data == "function_callback":
 			function, *arguments = expr.children[0].children
 			return self.eval_expr(function).run([self.eval_expr(arg) for arg in arguments])
@@ -232,10 +249,12 @@ class Scope:
 			l, c, *args = expr.children
 			library = self.find_import(l)
 			if library == None:
-				raise SyntaxError("Library %s not found" %(l))
+				exit()
+				#raise SyntaxError("Library %s not found" %(l))
 			com = getattr(library, c)
 			if com == None:
-				raise SyntaxError("Command %s not found" %(c))
+				exit()
+				#raise SyntaxError("Command %s not found" %(c))
 			return com([self.eval_expr(a.children[0]) for a in args])
 		elif expr.data == "or_expression":
 			left, _, right = expr.children
@@ -272,10 +291,11 @@ class Scope:
 				return self.eval_expr(left) < self.eval_expr(right)
 			elif comparison == "GREATER":
 				return self.eval_expr(left) > self.eval_expr(right)
-			elif comparison == "NEQUALS" or comparison == "NEQUALS_QUIRKY":
+			elif comparison == "NEQUALS":
 				return self.eval_expr(left) != self.eval_expr(right)
 			else:
-				raise SyntaxError("Unexpected operation for compare_expression: %s" % comparison)
+				exit()
+				#raise SyntaxError("Unexpected operation for compare_expression: %s" % comparison)
 		elif expr.data == "sum_expression":
 			left, operation, right = expr.children
 			if operation.type == "ADD":
@@ -283,7 +303,8 @@ class Scope:
 			elif operation.type == "SUBTRACT":
 				return self.eval_expr(left) - self.eval_expr(right)
 			else:
-				raise SyntaxError("Unexpected operation for sum_expression: %s" % operation)
+				exit()
+				#raise SyntaxError("Unexpected operation for sum_expression: %s" % operation)
 		elif expr.data == "product_expression":
 			left, operation, right = expr.children
 			if operation.type == "MULTIPLY":
@@ -295,7 +316,8 @@ class Scope:
 			elif operation.type == "MODULO":
 				return self.eval_expr(left) % self.eval_expr(right)
 			else:
-				raise SyntaxError("Unexpected operation for product_expression: %s" % operation)
+				exit()
+				#raise SyntaxError("Unexpected operation for product_expression: %s" % operation)
 		elif expr.data == "exponent_expression":
 			left, _, right = expr.children
 			return self.eval_expr(left) ** self.eval_expr(right)
@@ -304,7 +326,8 @@ class Scope:
 			if operation.type == "NEGATE":
 				return -self.eval_expr(value)
 			else:
-				raise SyntaxError("Unexpected operation for unary_expression: %s" % operation)
+				exit()
+				#raise SyntaxError("Unexpected operation for unary_expression: %s" % operation)
 		elif expr.data == "value":
 			token_or_tree = expr.children[0]
 			if type(token_or_tree) is lark.Tree:
@@ -312,35 +335,26 @@ class Scope:
 			else:
 				return self.eval_value(token_or_tree)
 		else:
-			print('(see below)', expr)
-			raise SyntaxError("Unexpected command/expression type %s" % expr.data)
+			print('(parse tree):', expr)
+			exit()
+			#raise SyntaxError("Unexpected command/expression type %s" % expr.data)
 
 	"""
 	Evaluates a command given parsed Trees and Tokens from Lark.
 	"""
 	def eval_command(self, tree):
 		if tree.data != "instruction":
-			raise SyntaxError("Command %s not implemented" %(t.data))
+			exit()
+			#raise SyntaxError("Command %s not implemented" %(t.data))
 
 		command = tree.children[0]
 
 		if command.data == "imp":
 			self.imports.append(importlib.import_module(command.children[0]))
-		elif command.data == "function_def":
-			if len(command.children) == 3:
-				deccall, returntype, codeblock = command.children
-				defaultreturn = None
-			else:
-				deccall, returntype, codeblock, defaultreturn = command.children
-			name, *arguments = deccall.children
-			arguments = [(arg.children[0].value, arg.children[1].value) for arg in arguments]
-			self.variables[name] = Function(self, arguments, returntype.value, codeblock, defaultreturn)
-		elif command.data == "loop":
-			times, var, code = command.children
-			name, type = var.children
-			if type != "int":
-				print("I cannot loop over a value of type %s." % type)
-			for i in range(int(times)):
+		elif command.data == "for":
+			var, iterable, code = command.children
+			name, type = get_name_type(var)
+			for i in range(int(iterable)):
 				scope = self.new_scope()
 				scope.variables[name] = Variable(type, i)
 				for child in code.children:
@@ -353,7 +367,7 @@ class Scope:
 			return (True, self.eval_expr(command.children[0]))
 		elif command.data == "declare":
 			name_type, value = command.children
-			name, type = name_type.children
+			name, type = get_name_type(name_type)
 			self.variables[name] = Variable(type, self.eval_expr(value))
 		elif command.data == "if":
 			condition, body = command.children
@@ -414,19 +428,43 @@ class Scope:
 				self.errors.append(TypeCheckError(expr, "The branches of the if-else expression should have the same type, but the true branch has type %s while the false branch has type %s." % (display_type(if_true_type), display_type(if_false_type))))
 				return None
 			return if_true_type
+		elif expr.data == "function_def":
+			arguments, returntype, codeblock = expr.children
+			arguments = [(arg.children[0].value, arg.children[1].value) for arg in arguments.children]
+			dummy_function = Function(self, arguments, returntype.value, codeblock)
+			scope = self.new_scope(parent_function=dummy_function)
+			for arg_name, arg_type in arguments:
+				scope.variables[arg_name] = Variable(arg_type, "anything")
+			exit_point = None
+			warned = False
+			for instruction in codeblock.children:
+				exit = scope.type_check_command(instruction)
+				if exit and exit_point is None:
+					exit_point = exit
+				elif exit_point and not warned:
+					warned = True
+					self.warnings.append(TypeCheckError(exit_point, "There are commands after this return statement, but I will never run them."))
+			return dummy_function.type
 		elif expr.data == "function_callback":
 			function, *arguments = expr.children[0].children
 			func_type = self.type_check_expr(function)
 			if func_type is None:
+				return None
+			if not isinstance(func_type, tuple):
+				self.errors.append(TypeCheckError(expr, "You tried to call a %s, which isn't a function." % display_type(func_type)))
 				return None
 			*arg_types, return_type = func_type
 			for n, (argument, arg_type) in enumerate(zip(arguments, arg_types), start=1):
 				check_type = self.type_check_expr(argument)
 				if check_type is not None and check_type != arg_type:
 					self.errors.append(TypeCheckError(expr, "For a %s's argument #%d, you gave a %s, but you should've given a %s." % (display_type(func_type), n, display_type(check_type), display_type(arg_type))))
-			if len(arguments) != len(arg_types):
+			if len(arguments) > len(arg_types):
 				self.errors.append(TypeCheckError(expr, "A %s has %d argument(s), but you gave %d." % (display_type(func_type), len(arg_types), len(arguments))))
-			return return_type
+				return None
+			elif len(arguments) < len(arg_types):
+				return func_type[len(arguments):]
+			else:
+				return return_type
 		elif expr.data == "imported_command":
 			self.warnings.append(TypeCheckError(expr, "I currently don't know how to type check imported commands."))
 			return None
@@ -514,51 +552,20 @@ class Scope:
 
 		if command.data == "imp":
 			self.imports.append(importlib.import_module(command.children[0]))
-		elif command.data == "function_def":
-			if len(command.children) == 3:
-				deccall, returntype, codeblock = command.children
-				defaultreturn = None
-			else:
-				deccall, returntype, codeblock, defaultreturn = command.children
-			name, *arguments = deccall.children
-			arguments = [(arg.children[0].value, arg.children[1].value) for arg in arguments]
-			# Check default return
-			if defaultreturn:
-				default_return_type = self.type_check_expr(defaultreturn)
-				if default_return_type is not None and default_return_type != returntype:
-					self.errors.append(TypeCheckError(defaultreturn, "%s's return type is %s, but your default return value is a %s." % (name, display_type(returntype), display_type(default_return_type))))
-			# Check if duplicate name
-			if name.value in self.variables:
-				self.errors.append(TypeCheckError(name, "You've already defined `%s`." % name))
-			# Check function body
-			function = Function(self, arguments, returntype.value, codeblock, defaultreturn)
-			self.variables[name.value] = function
-			scope = self.new_scope(parent_function=function)
-			for arg_type, arg_name in function.arguments:
-				scope.variables[arg_name] = Variable(arg_type, "anything")
-			exit_point = None
-			warned = False
-			for instruction in codeblock.children:
-				exit = scope.type_check_command(instruction)
-				if exit and exit_point is None:
-					exit_point = exit
-				elif exit_point and not warned:
-					warned = True
-					self.warnings.append(TypeCheckError(exit_point, "There are commands after this return statement, but I will never run them."))
-			if exit_point and defaultreturn:
-				self.warnings.append(TypeCheckError(exit_point, "There is no need to have an explicit return statement because you have a default return expression that will never run."))
-		elif command.data == "loop":
-			iterable, var, code = command.children
-			name, type = var.children
+		elif command.data == "for":
+			var, iterable, code = command.children
+			name, type = get_name_type(var)
 			iterable_type = self.type_check_expr(iterable)
 			iterated_type = iterable_types.get(iterable_type)
 			if iterable_type is not None:
 				if iterated_type is None:
 					self.errors.append(TypeCheckError(iterable, "I can't loop over a %s." % display_type(iterable_type)))
+				elif type == 'infer':
+					type = iterated_type
 				elif type != iterated_type:
 					self.errors.append(TypeCheckError(type, "Looping over a %s produces %s values, not %s." % (display_type(iterable_type), display_type(iterated_type), display_type(type))))
 			scope = self.new_scope()
-			scope.variables[name.value] = Variable(type, "whatever")
+			scope.variables[name] = Variable(type, "whatever")
 			exit_point = False
 			for child in code.children:
 				exit = scope.type_check_command(child)
@@ -580,14 +587,16 @@ class Scope:
 			return command
 		elif command.data == "declare":
 			name_type, value = command.children
-			name, type = name_type.children
-			# print(name, self.variables)
-			if name.value in self.variables:
+			name, type = get_name_type(name_type)
+			if name in self.variables:
 				self.errors.append(TypeCheckError(name, "You've already defined `%s`." % name))
 			value_type = self.type_check_expr(value)
 			if value_type is not None and value_type != type:
-				self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(type), display_type(value_type))))
-			self.variables[name.value] = Variable(type, "whatever")
+				if type == 'infer':
+					type = value_type
+				else:
+					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(type), display_type(value_type))))
+			self.variables[name] = Variable(type, "whatever")
 		elif command.data == "if":
 			condition, body = command.children
 			cond_type = self.type_check_expr(condition)
@@ -614,16 +623,20 @@ class Scope:
 
 with open("syntax.lark", "r") as f:
 	parse = f.read()
-n_parser = Lark(parse, start="start")
+n_parser = Lark(parse, start="start", propagate_positions=True)
 
-with open("run.n", "r") as f:
+file = "run.n"
+if len(sys.argv) > 1:
+	file = ''.join(sys.argv[1:])
+
+with open(file, "r") as f:
 	file = File(f)
 
 # Define global functions/variables
 global_scope = Scope()
 global_scope.add_native_function(
 	"intInBase10",
-	[("number", "int")],
+	[("int", "number")],
 	"str",
 	lambda number: str(number),
 )
@@ -647,7 +660,8 @@ def parse_tree(tree):
 		for child in tree.children:
 			scope.eval_command(child)
 	else:
-		raise SyntaxError("Unable to run parse_tree on non-starting branch")
+		exit()
+		#raise SyntaxError("Unable to run parse_tree on non-starting branch")
 
 tree = file.parse(n_parser)
 error_count, warning_count = type_check(file, tree)
