@@ -63,14 +63,14 @@ class File:
 	def get_lines(self, start, end):
 		return self.lines[start - 1:end]
 
-	def display(self, start_line, start_col, end_line, end_col):
+	def display(self, start_line, start_col, end_line, end_col, color=Fore.RED):
 		output = []
 		if start_line == end_line:
 			line = self.get_line(start_line)
 			output.append(f"{Fore.CYAN}{start_line:>{self.line_num_width}} | {Style.RESET_ALL}{line}")
 			output.append(
 				' ' * (self.line_num_width + 2 + start_col) +
-				Fore.RED +
+				color +
 				'^' * (end_col - start_col) +
 				Style.RESET_ALL
 			)
@@ -88,23 +88,23 @@ class File:
 class TypeCheckError:
 	def __init__(self, token_or_tree, message):
 		if type(token_or_tree) is not lark.Token and type(token_or_tree) is not lark.Tree:
-			exit()
-			#raise TypeError("token_or_tree should be a Lark Token or Tree.")
+			raise TypeError("token_or_tree should be a Lark Token or Tree.")
 		self.datum = token_or_tree
 		self.message = message
 
 	def display(self, display_type, file):
 		output = ""
+		color = Fore.RED
 		if display_type == "error":
 			output += f"{Fore.RED}{Style.BRIGHT}Error{Style.RESET_ALL}"
 		elif display_type == "warning":
 			output += f"{Fore.YELLOW}{Style.BRIGHT}Warning{Style.RESET_ALL}"
+			color = Fore.YELLOW
 		else:
-			exit()
-			#raise ValueError("%s is not a valid display type for TypeCheckError." % display_type)
+			raise ValueError("%s is not a valid display type for TypeCheckError." % display_type)
 		output += ": %s\n" % self.message
 		if type(self.datum) is lark.Token:
-			output += f"{Fore.CYAN}  --> {Fore.BLUE}run.n:{self.datum.line}:{self.datum.column}{Style.RESET_ALL}\n"
+			output += f"{Fore.CYAN} --> {Fore.BLUE}run.n:{self.datum.line}:{self.datum.column}{Style.RESET_ALL}\n"
 			output += file.display(
 				self.datum.line,
 				self.datum.column,
@@ -112,12 +112,13 @@ class TypeCheckError:
 				self.datum.end_column,
 			)
 		else:
-			output += f"{Fore.CYAN}  --> {Fore.BLUE}run.n:{self.datum.line}:{self.datum.column}{Style.RESET_ALL}\n"
+			output += f"{Fore.CYAN} --> {Fore.BLUE}run.n:{self.datum.line}:{self.datum.column}{Style.RESET_ALL}\n"
 			output += file.display(
 				self.datum.line,
 				self.datum.column,
 				self.datum.end_line,
 				self.datum.end_column,
+				color
 			)
 		return output
 
@@ -186,8 +187,7 @@ class Scope:
 			if self.parent:
 				return self.parent.get_variable(name, err=err)
 			elif err:
-				exit()
-				#raise NameError("You tried to get a variable/function `%s`, but it isn't defined." % name)
+				raise NameError("You tried to get a variable/function `%s`, but it isn't defined." % name)
 		else:
 			return variable
 
@@ -213,13 +213,11 @@ class Scope:
 			elif value.value == "true":
 				return True
 			else:
-				exit()
-				#raise SyntaxError("Unexpected boolean value %s" % value.value)
+				raise SyntaxError("Unexpected boolean value %s" % value.value)
 		elif value.type == "NAME":
 			return self.get_variable(value.value).value
 		else:
-			exit()
-			#raise SyntaxError("Unexpected value type %s value %s" % (value.type, value.value))
+			raise SyntaxError("Unexpected value type %s value %s" % (value.type, value.value))
 
 	"""
 	Evaluate a parsed expression with Trees and Tokens from Lark.
@@ -249,12 +247,10 @@ class Scope:
 			l, c, *args = expr.children
 			library = self.find_import(l)
 			if library == None:
-				exit()
-				#raise SyntaxError("Library %s not found" %(l))
+				raise SyntaxError("Library %s not found" %(l))
 			com = getattr(library, c)
 			if com == None:
-				exit()
-				#raise SyntaxError("Command %s not found" %(c))
+				raise SyntaxError("Command %s not found" %(c))
 			return com([self.eval_expr(a.children[0]) for a in args])
 		elif expr.data == "or_expression":
 			left, _, right = expr.children
@@ -294,8 +290,7 @@ class Scope:
 			elif comparison == "NEQUALS":
 				return self.eval_expr(left) != self.eval_expr(right)
 			else:
-				exit()
-				#raise SyntaxError("Unexpected operation for compare_expression: %s" % comparison)
+				raise SyntaxError("Unexpected operation for compare_expression: %s" % comparison)
 		elif expr.data == "sum_expression":
 			left, operation, right = expr.children
 			if operation.type == "ADD":
@@ -303,8 +298,7 @@ class Scope:
 			elif operation.type == "SUBTRACT":
 				return self.eval_expr(left) - self.eval_expr(right)
 			else:
-				exit()
-				#raise SyntaxError("Unexpected operation for sum_expression: %s" % operation)
+				raise SyntaxError("Unexpected operation for sum_expression: %s" % operation)
 		elif expr.data == "product_expression":
 			left, operation, right = expr.children
 			if operation.type == "MULTIPLY":
@@ -316,8 +310,7 @@ class Scope:
 			elif operation.type == "MODULO":
 				return self.eval_expr(left) % self.eval_expr(right)
 			else:
-				exit()
-				#raise SyntaxError("Unexpected operation for product_expression: %s" % operation)
+				raise SyntaxError("Unexpected operation for product_expression: %s" % operation)
 		elif expr.data == "exponent_expression":
 			left, _, right = expr.children
 			return self.eval_expr(left) ** self.eval_expr(right)
@@ -326,8 +319,7 @@ class Scope:
 			if operation.type == "NEGATE":
 				return -self.eval_expr(value)
 			else:
-				exit()
-				#raise SyntaxError("Unexpected operation for unary_expression: %s" % operation)
+				raise SyntaxError("Unexpected operation for unary_expression: %s" % operation)
 		elif expr.data == "value":
 			token_or_tree = expr.children[0]
 			if type(token_or_tree) is lark.Tree:
@@ -336,16 +328,14 @@ class Scope:
 				return self.eval_value(token_or_tree)
 		else:
 			print('(parse tree):', expr)
-			exit()
-			#raise SyntaxError("Unexpected command/expression type %s" % expr.data)
+			raise SyntaxError("Unexpected command/expression type %s" % expr.data)
 
 	"""
 	Evaluates a command given parsed Trees and Tokens from Lark.
 	"""
 	def eval_command(self, tree):
 		if tree.data != "instruction":
-			exit()
-			#raise SyntaxError("Command %s not implemented" %(t.data))
+			raise SyntaxError("Command %s not implemented" %(t.data))
 
 		command = tree.children[0]
 
@@ -427,6 +417,10 @@ class Scope:
 			if if_true_type != if_false_type:
 				self.errors.append(TypeCheckError(expr, "The branches of the if-else expression should have the same type, but the true branch has type %s while the false branch has type %s." % (display_type(if_true_type), display_type(if_false_type))))
 				return None
+			if condition.children[0].value == "true":
+				self.warnings.append(TypeCheckError(expr, "The else statement of the expression will never run."))
+			if condition.children[0].value == "false":
+				self.warnings.append(TypeCheckError(expr, "The if statement of the expression will never run."))
 			return if_true_type
 		elif expr.data == "function_def":
 			arguments, returntype, codeblock = expr.children
@@ -589,7 +583,7 @@ class Scope:
 			name_type, value = command.children
 			name, type = get_name_type(name_type)
 			if name in self.variables:
-				self.errors.append(TypeCheckError(name, "You've already defined `%s`." % name))
+				self.errors.append(TypeCheckError(name_type, "You've already defined `%s`." % name))
 			value_type = self.type_check_expr(value)
 			if value_type is not None and value_type != type:
 				if type == 'infer':
@@ -625,11 +619,11 @@ with open("syntax.lark", "r") as f:
 	parse = f.read()
 n_parser = Lark(parse, start="start", propagate_positions=True)
 
-file = "run.n"
+filename = "run.n"
 if len(sys.argv) > 1:
-	file = ''.join(sys.argv[1:])
+	filename = ''.join(sys.argv[1:])
 
-with open(file, "r") as f:
+with open(filename, "r") as f:
 	file = File(f)
 
 # Define global functions/variables
@@ -648,10 +642,11 @@ def type_check(file, tree):
 			scope.type_check_command(child)
 	else:
 		scope.errors.append(TypeCheckError(tree, "Internal issue: I cannot type check from a non-starting branch."))
-	print('\n'.join(
-		[warning.display('warning', file) for warning in scope.warnings] +
-		[error.display('error', file) for error in scope.errors]
-	))
+	if len(scope.errors) > 0:
+		print('\n'.join(
+			[warning.display('warning', file) for warning in scope.warnings] +
+			[error.display('error', file) for error in scope.errors]
+		))
 	return (len(scope.errors), len(scope.warnings))
 
 def parse_tree(tree):
@@ -660,11 +655,17 @@ def parse_tree(tree):
 		for child in tree.children:
 			scope.eval_command(child)
 	else:
-		exit()
-		#raise SyntaxError("Unable to run parse_tree on non-starting branch")
+		raise SyntaxError("Unable to run parse_tree on non-starting branch")
 
 tree = file.parse(n_parser)
 error_count, warning_count = type_check(file, tree)
-parse_tree(tree)
 if error_count > 0:
-	print(f"{Fore.BLUE}Ran with {Fore.RED}{error_count} error(s){Fore.BLUE} and {Fore.YELLOW}{warning_count} warning(s){Fore.BLUE}.{Style.RESET_ALL}")
+	error_s = ""
+	warning_s = ""
+	if error_count > 1:
+		error_s = "s"
+	if warning_count > 1:
+		warning_s = "s"
+	print(f"{Fore.BLUE}Ran with {Fore.RED}{error_count} error{error_s}{Fore.BLUE} and {Fore.YELLOW}{warning_count} warning{warning_s}{Fore.BLUE}.{Style.RESET_ALL}")
+	exit()
+parse_tree(tree)
