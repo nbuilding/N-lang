@@ -9,16 +9,16 @@ export class Block {
     return new Block([...this.statements, statement])
   }
 
-  toString (indent: number = 0) {
-    const indentation = '\t'.repeat(indent)
+  toString (topLevel = false) {
+    if (topLevel) {
+      return this.statements.join('\n')
+    }
     // Add additional indentation after every newline
-    return indentation +
-      this.statements.join('\n').replace(/\n/g, '\n' + indentation)
+    return `{\n\t${this.statements.join('\n').replace(/\n/g, '\n\t')}\n}`
   }
 }
 
-export type Statement = ImportStmt | VarStmt | FuncDeclaration | LoopStmt
-  | Expression
+export type Statement = ImportStmt | VarStmt | Expression
 
 export class ImportStmt {
   name: string
@@ -42,71 +42,64 @@ export class VarStmt {
   }
 
   toString () {
-    return `var ${this.declaration} < ${this.value}`
+    return `var ${this.declaration} = ${this.value}`
   }
 }
 
-export class FuncDeclaration {
-  name: string
+export class Function {
   params: Declaration[]
-  returnType?: Type
-  body: Block
-  returnExpr?: Expression
+  returnType: Type
+  body: Expression
 
   constructor (
-    { name, params } : { name: string, params: Declaration[] },
-    returnType: Type | undefined,
-    body: Block,
-    returnExpr?: Expression
+    params: Declaration[],
+    returnType: Type,
+    body: Expression,
   ) {
-    this.name = name
     this.params = params
     this.returnType = returnType
     this.body = body
-    this.returnExpr = returnExpr
   }
 
-  toString () {
-    return `> ${this.name}` + this.params.map(param => ' ' + param).join('')
-      + (this.returnType ? ` -> ${this.returnType}` : '')
-      + ` |\n${this.body.toString(1)}\n<`
+  toString (): string {
+    return `[${this.params.join(' ')}] -> ${this.returnType} ${this.body}`
   }
 }
 
-export class LoopStmt {
+export class For {
   value: Expression
   var: Declaration
-  body: Block
+  body: Expression
 
-  constructor (value: Expression, decl: Declaration, body: Block) {
+  constructor (value: Expression, decl: Declaration, body: Expression) {
     this.value = value
     this.var = decl
     this.body = body
   }
 
-  toString () {
-    return `> loop ${this.value} ${this.var} |\n${this.body.toString(1)}\n<`
+  toString (): string {
+    return `for ${this.var} ${this.value} ${this.body}`
   }
 }
 
 export class Declaration {
   name: string
-  type: Type
+  type: Type | null
 
-  constructor (name: string, type: Type) {
+  constructor (name: string, type: Type | null) {
     this.name = name
     this.type = type
   }
 
   toString () {
-    return `${this.name}: ${this.type}`
+    return this.type ? `${this.name}: ${this.type}` : this.name
   }
 }
 
 type Type = Identifier
 
 export type Expression = Literal | Operation | UnaryOperation | Comparisons
-  | CallFunc | Print | Return | If | Identifier
+  | CallFunc | Print | Return | If | Identifier | Function | For | Block
 
 export abstract class Literal {
   abstract value: string
@@ -142,6 +135,9 @@ export enum Compare {
   LESS = 'less',
   EQUAL = 'equal',
   GREATER = 'greater',
+  LEQ = 'less-or-equal',
+  NEQ = 'not-equal',
+  GEQ = 'greater-or-equal',
 }
 
 function compareToString (self: Compare): string {
@@ -149,6 +145,9 @@ function compareToString (self: Compare): string {
     case Compare.LESS: return '<'
     case Compare.EQUAL: return '='
     case Compare.GREATER: return '>'
+    case Compare.LEQ: return '<='
+    case Compare.NEQ: return '/='
+    case Compare.GEQ: return '>='
   }
 }
 
@@ -266,7 +265,7 @@ export class CallFunc {
   }
 
   toString () {
-    return `{${this.func}${this.params.map(param => ' ' + param).join('')}}`
+    return `<${this.func}${this.params.map(param => ' ' + param).join('')}>`
   }
 }
 
@@ -306,7 +305,7 @@ export class If {
   }
 
   toString () {
-    return `if ${this.condition} then ${this.then}`
+    return `if ${this.condition} ${this.then}`
       + (this.else ? ` else ${this.else}` : '')
   }
 }

@@ -33,11 +33,11 @@ export function parse (script: string, { ambiguityOutput = 'omit' }: ParseOption
         break
       }
       case 'string': {
-        results = parser.results.map(a => a.toString()).join('\n\n')
+        results = parser.results.map(a => a.toString(true)).join('\n\n')
         break
       }
     }
-    throw new SyntaxError(`You've discovered an ambiguity in the grammar! ${results} (${parser.results.length} items)`)
+    throw new SyntaxError(`You've discovered an ambiguity in the grammar!\n\n${results}\n\n(${parser.results.length} items)`)
   }
   return result
 }
