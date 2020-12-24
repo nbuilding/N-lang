@@ -249,11 +249,7 @@ class Scope:
 		elif expr.data == "imported_command":
 			l, c, *args = expr.children
 			library = self.find_import(l)
-			if library == None:
-				raise SyntaxError("Library %s not found" %(l))
 			com = getattr(library, c)
-			if com == None:
-				raise SyntaxError("Command %s not found" %(c))
 			return com([self.eval_expr(a.children[0]) for a in args])
 		elif expr.data == "or_expression":
 			left, _, right = expr.children
@@ -552,7 +548,27 @@ class Scope:
 		command = tree.children[0]
 
 		if command.data == "imp":
-			self.imports.append(importlib.import_module(command.children[0]))
+			try:
+				imp = importlib.import_module(command.children[0])
+				self.imports.append(imp)
+				try:
+					getattr(imp, "_values")
+				except:
+					self.errors.append(TypeCheckError(command.children[0], "Library %s not compatable." % command.children[0]))
+			except:
+				self.errors.append(TypeCheckError(command.children[0], "Library %s not found to import." % command.children[0]))
+		elif command.data == "imported_command":
+			l, c, *args = command.children
+			library = self.find_import(l)
+			if library == None:
+				self.errors.append(TypeCheckError(l, "Library %s not found." % l))
+			else:
+				try:
+					if c not in library._values():
+						self.errors.append(TypeCheckError(c, "Command %s in %s not found." % c, l))
+				except:
+					pass
+			
 		elif command.data == "for":
 			var, iterable, code = command.children
 			name, type = get_name_type(var)
