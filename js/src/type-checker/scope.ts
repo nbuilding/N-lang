@@ -6,6 +6,7 @@ import NType, * as types from "./n-type"
 // TEMP?
 enum Implementation {
   Compare,
+  Iterate,
   Add,
   Subtract,
   Multiply,
@@ -62,7 +63,7 @@ export class Scope {
     }
   }
 
-  private _getExprType (expression: ast.Expression): [NType, boolean?] {
+  private _getExprType (expression: ast.Expression): [NType, ast.Expression?] {
     const displ = types.display
     if (expression instanceof ast.Literal) {
       if (expression instanceof ast.Number) {
@@ -78,9 +79,10 @@ export class Scope {
     } else if (expression instanceof ast.Operation) {
       const [aType, aExit] = this.getExprType(expression.a)
       const [bType, bExit] = this.getExprType(expression.b)
-      if (aExit || bExit) {
-        this.checker.err(expression, `Performing this ${ast.operatorToString(expression.type)} operation is useless because the output will never be used (due to the function returning).`)
-      }
+      const exit = aExit || bExit
+      // TODO: Technically, & and | short circuit for booleans, so it's not
+      // exactly necessary to check if they'll exit.
+      if (exit) exit(expression, `I'll never perform this ${ast.operatorToString(expression.type)}`)
       let returnType
       // Special case for exponentiation because it goes right to left
       if (expression.type === ast.Operator.EXPONENT) {
@@ -111,9 +113,7 @@ export class Scope {
       return [returnType]
     } else if (expression instanceof ast.UnaryOperation) {
       const [type, exit] = this.getExprType(expression.value)
-      if (exit) {
-        this.checker.err(expression, `Performing this ${ast.unaryOperatorToString(expression.type)} operation is useless because the output will never be used (due to the function returning).`)
-      }
+      if (exit) exit(expression, `I'll never perform this ${ast.unaryOperatorToString(expression.type)} operation`)
       if (!type) return [null]
       const impl = this.implements(type, unaryOperatorToImpl[expression.type])
       if (impl) {
@@ -140,17 +140,16 @@ export class Scope {
             }
           }
         }
-        if (!warned && (aExit || bExit)) {
+        const exit = aExit || bExit
+        if (!warned && exit) {
           warned = true
-          this.checker.err(comparison, `Comparing here is useless because the output will never be used (due to the function returning).`)
+          exit(comparison, 'I\'ll never make this comparison')
         }
       }
       return [types.bool()]
     } else if (expression instanceof ast.CallFunc) {
       const [fnInitType, fnExit] = this.getExprType(expression.func)
-      if (fnExit) {
-        this.checker.err(expression.func, `Running this function is useless because the output will never be used (due to the outer function returning).`)
-      }
+      if (fnExit) fnExit(expression.func, 'I\'ll never call this function')
       if (fnInitType && !types.isFunc(fnInitType)) {
         this.checker.err(expression.func, `I cannot run ${displ(fnInitType)} because it is not a function.`)
       }
@@ -158,9 +157,7 @@ export class Scope {
       let argNum = 1
       for (const param of expression.params) {
         const [type, exit] = this.getExprType(param)
-        if (exit) {
-          this.checker.err(param, `Running this function is useless because the output will never be used (due to the outer function returning).`)
-        }
+        if (exit) exit(param, 'I\'ll never use this argument for this function')
         if (fnType) {
           if (types.isFunc(fnType)) {
             const { takes, returns } = fnType
@@ -177,23 +174,40 @@ export class Scope {
       return types.isFunc(fnInitType) ? [fnType] : [null]
     } else if (expression instanceof ast.Print) {
       const [type, exit] = this.getExprType(expression.value)
-      if (exit) {
-        this.checker.err(expression, `This will never print (due to the outer function returning).`)
-      }
+      if (exit) exit(expression, 'This will never print')
       return [type]
     } else if (expression instanceof ast.Return) {
       const [type] = this.getExprType(expression.value)
       if (!this.returnType) {
-        this.checker.err(expression, `You can't outside a function.`)
-        return [null, false]
+        this.checker.err(expression, `You can't return outside a function.`)
+        return [null]
       } else {
         if (type && type !== this.returnType) {
           this.checker.err(expression.value, `You returned a ${types.display(type)} in a function that is meant to return a ${types.display(this.returnType)}`)
         }
-        return [types.never(), true]
+        return [types.never(), expression]
       }
     } else if (expression instanceof ast.If) {
-      // TODO
+      const [condType, exit] = this.getExprType(expression.condition)
+      if (exit) exit(expression.condition, 'I\'ll never check the condition')
+      if (!types.isBool(condType)) {
+        this.checker.err(expression.condition, `The condition should return a boolean.`)
+      }
+      const [ifTrueType, ifTrueExit] = this.getExprType(expression.then)
+      if (expression.else) {
+        const [ifFalseType, ifFalseExit] = this.getExprType(expression.else)
+        const exit = ifTrueExit && ifFalseExit ? expression : undefined
+        if (!types.is(ifTrueType, ifFalseType)) {
+          this.checker.err(expression, `The types of either branch, ${displ(ifTrueType)} and ${displ(ifFalseType)}, are not the same.`)
+          return [null, exit]
+        }
+        // There may be good reason to have both branches exit, so we aren't
+        // warning here.
+        return [ifTrueType, exit]
+      } else {
+        this.checker.warn(expression, 'Unimplemented: I currently cannot return values from conditionals without an "else" branch.')
+        return [null]
+      }
     } else if (expression instanceof ast.Identifier) {
       // TODO
     } else if (expression instanceof ast.Function) {
@@ -209,12 +223,19 @@ export class Scope {
   }
 
   // Wrapper method to check if
-  getExprType (expression: ast.Expression): [NType, boolean?] {
+  getExprType (expression: ast.Expression): [NType, ((expr: ast.Base, message: string) => void)?] {
     const maybeType = this.checker.types.get(expression)
     if (maybeType !== undefined) return [maybeType]
     const [type, exit] = this._getExprType(expression)
     this.checker.types.set(expression, type)
-    return [type, exit]
+    return [
+      type,
+      (expr, message) => {
+        this.checker.warn(expr, `${message} because the expression will return out of the function.`, {
+          exit
+        })
+      }
+    ]
   }
 
   checkStatementType (statement: ast.Statement) {
@@ -237,7 +258,10 @@ export class TopLevelScope extends Scope {
     this.values.set('true', types.bool())
 
     // Global implementations
+    // TODO: This isn't ideal.
     this.implementations.set(types.int(), new Map([
+      [Implementation.Compare, [null, null]],
+      [Implementation.Iterate, [null, types.int()]],
       [Implementation.Negate, [null, types.int()]],
       [Implementation.Add, [types.int(), types.int()]],
       [Implementation.Subtract, [types.int(), types.int()]],
@@ -251,6 +275,7 @@ export class TopLevelScope extends Scope {
       [Implementation.Not, [null, types.int()]],
     ]))
     this.implementations.set(types.float(), new Map([
+      [Implementation.Compare, [null, null]],
       [Implementation.Negate, [null, types.float()]],
       [Implementation.Add, [types.float(), types.float()]],
       [Implementation.Subtract, [types.float(), types.float()]],
