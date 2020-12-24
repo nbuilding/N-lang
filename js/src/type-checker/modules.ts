@@ -39,7 +39,7 @@ nativeModules.fek = Module.from({
   },
 })
 
-const futureArray = types.custom([])
+const futureArray = types.custom('future.array')
 nativeModules.future = Module.from({
   values: {
     split: types.func(types.string(), types.func(types.string(), futureArray)),

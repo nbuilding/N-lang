@@ -85,14 +85,17 @@ export function toFunc ([param, ...rest]: NType[]): NType {
 }
 
 class NCustomType {
+  // TODO
+  name: string
   generics: (string | NType)[]
 
-  constructor (generics: (string | NType)[]) {
+  constructor (name: string, generics: (string | NType)[]) {
+    this.name = name
     this.generics = generics
   }
 }
-export function custom (generics: string[]): NCustomType {
-  return new NCustomType(generics)
+export function custom (name: string, generics: string[] = []): NCustomType {
+  return new NCustomType(name, generics)
 }
 export function isCustom (type: NType): type is NCustomType {
   return type instanceof NCustomType
@@ -113,8 +116,31 @@ export function is (a: NType, b: NType): boolean {
   }
 }
 
-export function display (_type: NType): string {
-  return 'todo'
+export function display (type: NType): string {
+  if (isBaseType(type)) {
+    switch (type) {
+      case NBaseType.Never: return 'never'
+      case NBaseType.Infer: return 'inferred'
+      case NBaseType.Number: return 'number'
+      case NBaseType.Int: return 'int'
+      case NBaseType.Float: return 'float'
+      case NBaseType.String: return 'string'
+      case NBaseType.Boolean: return 'boolean'
+    }
+  } else if (isFunc(type)) {
+    return (isFunc(type.takes) ? `(${display(type.takes)})` : display(type.takes))
+      + ' -> '
+      + display(type.returns)
+  } else if (isCustom(type)) {
+    return type.name
+      + (type.generics.length ? `<${
+        type.generics
+          .map(type => typeof type === 'string' ? type : display(type))
+          .join(', ')
+      }>` : '')
+  } else {
+    return '???--this means that the type is unknown due to an error elsewhere, but this should never show in errors (type checker bug)--'
+  }
 }
 
 export default NType

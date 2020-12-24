@@ -2,18 +2,28 @@
 
 import fs from 'fs/promises'
 import util from 'util'
+import parseArgs from 'minimist'
 import { compileToJS } from './compiler/to-js'
 import { parse } from './grammar/parse'
-import parseArgs from 'minimist'
+import { FileLines, TypeChecker } from './type-checker/checker'
 
 async function main () {
-  const { _: [fileName], help, ast, repr, js, run, 'ambiguity-output': ambiguityOutput } = parseArgs(process.argv.slice(2), {
-    boolean: ['help', 'ast', 'repr', 'js', 'run'],
+  const {
+    _: [fileName],
+    help,
+    ast,
+    repr,
+    js,
+    run,
+    'check-only': checksOnly,
+    'ambiguity-output': ambiguityOutput,
+  } = parseArgs(process.argv.slice(2), {
+    boolean: ['help', 'ast', 'repr', 'js', 'run', 'check-only'],
     string: ['ambiguity-output'],
     alias: {
       h: 'help',
-      ao: 'ambiguity-output'
-    }
+      ao: 'ambiguity-output',
+    },
   })
 
   if (help) {
@@ -25,6 +35,7 @@ async function main () {
     console.log('\t--ast\tOutputs the AST.')
     console.log('\t--repr\tOutputs the textual, N-like representation of the AST.')
     console.log('\t--ambiguity-output=[omit|object|string] (--ao=)\tWhether to omit, show the AST objects, or the string representations of ambiguious parsings. Omits by default.')
+    console.log('\t--check-only\tOnly performs type checks without compiling to JS.')
     console.log('\t--js\tOutputs the compiled JS.')
     console.log('\t--run\tExecutes the compiled JS. This is enabled by default if none of the other flags are given.')
     return
@@ -34,7 +45,7 @@ async function main () {
     throw new Error('You need to give a file to parse.')
   }
 
-  const running = run || !(ast || repr || js)
+  const running = run || !(ast || repr || js || checksOnly)
 
   const file = await fs.readFile(fileName, 'utf8')
   const script = parse(file, {
@@ -42,12 +53,22 @@ async function main () {
   })
   if (ast) console.log(util.inspect(script, false, null, true))
   if (repr) console.log(script.toString(true))
-  if (js || running) {
-    const compiled = compileToJS(script)
-    if (js) console.log(compiled)
-    // Indirect call of eval to run in global scope
-    if (running) (null, eval)(compiled)
-  }
+
+  if (!(js || running || checksOnly)) return
+
+  const lines = new FileLines(file, fileName)
+  const checker = new TypeChecker({
+    colours: true
+  })
+  checker.check(script)
+  console.log(checker.displayWarnings(lines))
+
+  if (checksOnly) return
+
+  const compiled = compileToJS(script)
+  if (js) console.log(compiled)
+  // Indirect call of eval to run in global scope
+  if (running) (null, eval)(compiled)
 }
 
 main()

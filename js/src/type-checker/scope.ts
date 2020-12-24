@@ -141,7 +141,7 @@ export class Scope extends Module {
   }
 
   private _getExprType (expression: ast.Expression): [NType, ast.Expression?] {
-    const displ = types.display
+    const displ = (type: NType) => this.checker.displayType(type)
     if (expression instanceof ast.Literal) {
       if (expression instanceof ast.Number) {
         // IDEA: Maybe it should keep track of all the number types so when it's
@@ -400,7 +400,7 @@ export class Scope extends Module {
   }
 
   checkStatementType (statement: ast.Statement): [NType?, boolean?] {
-    const displ = types.display
+    const displ = (type: NType) => this.checker.displayType(type)
     if (statement instanceof ast.ImportStmt) {
       const module = this.checker.getModule(statement.name)
       if (module) {
