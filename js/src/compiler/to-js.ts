@@ -18,6 +18,10 @@ function __intDivide(a, b) {
 function __modulo(a, b) {
   return (a % b + b) % b;
 }
+function __never() {
+  throw new Error("This error should never have been thrown! This is a bug with the compiler.")
+}
+var __unset = { symbol: "Unset" };
   `,
   fek: `
 __nativeModules.fek = __module(function (exports) {
@@ -28,22 +32,33 @@ __nativeModules.fek = __module(function (exports) {
   `,
   future: `
 __nativeModules.future = __module(function (exports) {
-  exports.split = function (separator, string) {
-    return string.split(separator);
+  exports.split = function (separator) {
+    return function (string) {
+      return string.split(separator);
+    };
   };
-  exports.map = function (mapFn, array) {
-    return array.map(mapFn)
+  exports.join = function (separator) {
+    return function (list) {
+      return list.join(separator);
+    };
+  };
+  exports.map = function (mapFn) {
+    return function (array) {
+      return array.map(mapFn);
+    };
   };
   exports.length = function (array) {
-    return array.length
+    return array.length;
   };
-  exports.get = function (array, index) {
-    return array[index]
+  exports.get = function (array) {
+    return function (index) {
+      return array[index];
+    };
   };
-  exports.strToInt = function (string) {
+  exports.strToIntOrZero = function (string) {
     return parseInt(string) || 0;
   };
-  exports.intToStr = function (int) {
+  exports.intInBase10 = function (int) {
     return int.toString();
   };
 });
@@ -86,6 +101,10 @@ interface CompiledExpression {
   expression: string
   statements: string[]
 }
+interface CompiledStatement {
+  expression: string | null
+  statements: string[]
+}
 
 class JSCompiler {
   modules: Set<string>
@@ -116,15 +135,13 @@ class JSCompiler {
     if (!aName) {
       aName = this.uid('intermediate')
       const { expression: output, statements: evalStmts } = this.expressionToJS(a)
-      statements.push(...evalStmts)
-      statements.push(`var ${aName} = ${output};`)
+      statements.push(...evalStmts, `var ${aName} = ${output};`)
       variables.set(a, aName)
     }
     if (!bName) {
       bName = this.uid('intermediate')
       const { expression: output, statements: evalStmts } = this.expressionToJS(b)
-      statements.push(...evalStmts)
-      statements.push(`var ${bName} = ${output};`)
+      statements.push(...evalStmts, `var ${bName} = ${output};`)
       variables.set(b, bName)
     }
     const condition = `if (${aName} ${jsComparators[type]} ${bName}) `
@@ -134,6 +151,20 @@ class JSCompiler {
       statements.push(condition + statementsToBlock(this.comparisonToJS(varName, variables, rest)))
     }
     return statements
+  }
+
+  functionToJS (body: ast.Expression, [param, ...params]: ast.Declaration[]): string {
+    if (params.length) {
+      return `function (${param.name}) ` + statementsToBlock([
+        `return ${this.functionToJS(body, params)};`,
+      ])
+    } else {
+      const { expression, statements } = this.expressionToJS(body)
+      return `function (${param.name}) ` + statementsToBlock([
+        ...statements,
+        `return ${expression};`,
+      ])
+    }
   }
 
   expressionToJS (expression: ast.Expression): CompiledExpression {
@@ -182,85 +213,128 @@ class JSCompiler {
         statements,
       }
     } else if (expression instanceof ast.Print) {
-      const { expression: value, statements: stmts } = this.expressionToJS(expression.value)
+      const { expression: value, statements } = this.expressionToJS(expression.value)
       const varName = this.uid('print')
-      const statements = [
-        ...stmts,
-        `var ${varName} = ${value};`,
-        `console.log(${varName});`,
-      ]
+      return {
+        expression: varName,
+        statements: [
+          ...statements,
+          `var ${varName} = ${value};`,
+          `console.log(${varName});`,
+        ],
+      }
+    } else if (expression instanceof ast.Return) {
+      const { expression: value, statements } = this.expressionToJS(expression.value)
+      return {
+        expression: '__never()',
+        statements: [...statements, `return ${value}`],
+      }
+    } else if (expression instanceof ast.If) {
+      const { expression: condition, statements: stmts } = this.expressionToJS(expression.condition)
+      const varName = this.uid('if_output')
+      const statements = [...stmts, `var ${varName} = __unset;`]
+      const cond = `if (${condition}) `
+      if (expression.else) {
+        const { expression: ifTrue, statements: stmtsTrue } = this.expressionToJS(expression.then)
+        const { expression: ifFalse, statements: stmtsFalse } = this.expressionToJS(expression.else)
+        statements.push(cond + statementsToBlock([
+          ...stmtsTrue,
+          `${varName} = ${ifTrue};`
+        ]) + ' else ' + statementsToBlock([
+          ...stmtsFalse,
+          `${varName} = ${ifFalse};`
+        ]))
+      } else {
+        const { expression: value, statements: stmts } = this.expressionToJS(expression.then)
+        // TODO: This is not the proper return value
+        statements.push(cond + statementsToBlock([
+          ...stmts,
+          `${varName} = ${value};`
+        ]))
+      }
       return {
         expression: varName,
         statements,
       }
-    } else if (expression instanceof ast.Return) {
-      return `return ${this.expressionToJS(expression.value)}`
-    } else if (expression instanceof ast.If) {
-      if (expression.else) {
-        return `${
-          this.expressionToJS(expression.condition)
-        } ? ${
-          this.expressionToJS(expression.then)
-        } : ${
-          this.expressionToJS(expression.else)
-        }`
-      } else {
-        return `${
-          this.expressionToJS(expression.condition)
-        } && ${
-          this.expressionToJS(expression.then)
-        }`
-      }
     } else if (expression instanceof ast.Identifier) {
-      return expression.toString()
+      return {
+        expression: expression.toString(),
+        statements: [],
+      }
     } else if (expression instanceof ast.Function) {
-      return `function (${
-        expression.params.map(param => param.name).join(', ')
-      }) {${
-        this.expressionToJS(expression.body)
-      }}`
+      return {
+        expression: this.functionToJS(expression.body, expression.params),
+        statements: [],
+      }
     } else if (expression instanceof ast.For) {
+      // TODO: This only works with iterating over ints (ranges and lists to come?).
       const varName = expression.var.name
       const endName = this.uid('end_' + varName)
-      return `for (var ${varName} = 0, ${endName} = ${
-        this.expressionToJS(expression.value)
-      }; ${varName} < ${endName}; ${varName}++) {${
-        this.expressionToJS(expression.body)
-      }}`
+      const outputName = this.uid('arr_' + varName)
+      const { expression: value, statements } = this.expressionToJS(expression.value)
+      const { expression: body, statements: bodyStmts } = this.expressionToJS(expression.body)
+      return {
+        expression: outputName,
+        statements: [
+          ...statements,
+          `var ${outputName} = [];`,
+          `for (var ${varName} = 0, ${endName} = ${value}; ${varName} < ${endName}; ${varName}++) ` + statementsToBlock([
+            ...bodyStmts,
+            `if (${body} !== __unset) ${outputName}.push(${body});`
+          ]),
+        ]
+      }
     } else if (expression instanceof ast.Block) {
-      return this.blockToJS(expression, true)
+      return this.blockToJS(expression)
     } else {
       throw new TypeError(`Expression is... not an expression?? (type ${displayType(expression)}) ${expression}`)
     }
   }
 
-  statementToJS (statement: ast.Statement): string {
+  statementToJS (statement: ast.Statement): CompiledStatement {
     if (statement instanceof ast.ImportStmt) {
       this.modules.add(statement.name)
-      return `var ${statement.name} = __require(${JSON.stringify(statement.name)});`
+      return {
+        expression: '__unset',
+        statements: [`var ${statement.name} = __require(${JSON.stringify(statement.name)});`],
+      }
     } else if (statement instanceof ast.VarStmt) {
-      return `var ${statement.declaration.name} = ${this.expressionToJS(statement.value)};`
+      // Using the return value of `var` might be useful for recursion.
+      const { expression, statements } = this.expressionToJS(statement.value)
+      return {
+        expression: statement.declaration.name,
+        statements: [
+          ...statements,
+          `var ${statement.declaration.name} = ${expression};`,
+        ],
+      }
     } else {
-      return this.expressionToJS(statement) + ';'
+      return this.expressionToJS(statement)
     }
   }
 
-  blockToJS (block: ast.Block, inBlock: boolean): string {
-    const output = block.statements.map(this.statementToJS).join('\n')
-    if (inBlock) {
-      return `\n  ${output.replace(/\n/g, '\n  ')}\n`
-    } else {
-      return output
+  blockToJS (block: ast.Block): CompiledExpression {
+    const statements = []
+    let lastExpression = 'null'
+    for (const statement of block.statements) {
+      const { expression, statements: stmts } = this.statementToJS(statement)
+      statements.push(...stmts)
+      if (expression !== null) lastExpression = expression
+    }
+    return {
+      expression: lastExpression,
+      statements,
     }
   }
 
   compile (script: ast.Block): string {
-    const output = this.blockToJS(script, false)
-    let moduleOutput = ''
-    for (const module of this.modules) {
-      moduleOutput += modules[module] || ''
-    }
-    return moduleOutput + '\n' + output
+    // Must be run first in order to populate this.modules
+    const { statements } = this.blockToJS(script)
+    return `(function () ${statementsToBlock([
+      '"use strict";',
+      ...Array.from(this.modules, module => modules[module] || ''),
+      ...statements,
+    ])})();`
   }
 }
 

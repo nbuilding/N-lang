@@ -1,3 +1,5 @@
+import future
+
 var sum = [a:int b:int] -> int {
   if a = 1 {
     return a + (if b = 2 (return 3) else b) / 2
@@ -23,3 +25,4 @@ if {
 }
 
 var wow: List = for i 5 (if i % 2 = 0 ((i + 1) ^ 2))
+print <future.join " " wow>
