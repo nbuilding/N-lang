@@ -42,6 +42,7 @@ anonymous_func: "(" arguments "->" NAME "|" (instruction (";" instruction)*) ")"
 
 ?expression: ifelse_expr
            | boolean_expression
+           | imported_command
 
 ?boolean_expression: or_expression
 ?or_expression: [or_expression OR] and_expression

@@ -463,7 +463,18 @@ class Scope:
 			else:
 				return return_type
 		elif expr.data == "imported_command":
-			self.warnings.append(TypeCheckError(expr, "I currently don't know how to type check imported commands."))
+			l, c, *args = expr.children
+			library = self.find_import(l)
+			if library == None:
+				self.errors.append(TypeCheckError(l, "Library %s not found." % l))
+			else:
+				try:
+					if c not in library._values():
+						self.errors.append(TypeCheckError(c, "Command %s in %s not found." % c, l))
+					else:
+						return library._values[c]
+				except:
+					pass
 			return None
 		elif expr.data == "value":
 			token_or_tree = expr.children[0]
@@ -557,18 +568,6 @@ class Scope:
 					self.errors.append(TypeCheckError(command.children[0], "Library %s not compatable." % command.children[0]))
 			except:
 				self.errors.append(TypeCheckError(command.children[0], "Library %s not found to import." % command.children[0]))
-		elif command.data == "imported_command":
-			l, c, *args = command.children
-			library = self.find_import(l)
-			if library == None:
-				self.errors.append(TypeCheckError(l, "Library %s not found." % l))
-			else:
-				try:
-					if c not in library._values():
-						self.errors.append(TypeCheckError(c, "Command %s in %s not found." % c, l))
-				except:
-					pass
-			
 		elif command.data == "for":
 			var, iterable, code = command.children
 			name, type = get_name_type(var)
