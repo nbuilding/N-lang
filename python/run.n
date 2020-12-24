@@ -1,4 +1,5 @@
 import fek
+import SystemIO
 
 var main = [test:int test1:str] -> bool {
 	print "# Main"
@@ -33,8 +34,13 @@ print (a < c < b)
 
 print <round 10.1>
 
+var test2:str = <SystemIO.inp "hi, how are you? ">
+
+print ("You responded with " + test2)
+
 <main test1 eee>
-<fek.paer test>
+<fek.paer "test">
+print (<fek.paer "test">)
 if ~<main test "hello"> {
 	print "<main test \"hello\"> returned false"
 }
@@ -45,4 +51,3 @@ if <main test eee> {
 }
 
 print (2 + 3 * (4 + 1) * 4 + 5)
-
