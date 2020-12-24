@@ -243,6 +243,14 @@ class Scope:
 				returntype.value,
 				codeblock
 			)
+		elif expr.data == "anonymous_func":
+			arguments, returntype, *codeblock = expr.children
+			return Function(
+				self,
+				[(arg.children[0].value, arg.children[1].value) for arg in arguments.children],
+				returntype.value,
+				lark.tree.Tree("codeblock", codeblock)
+			)
 		elif expr.data == "function_callback":
 			function, *arguments = expr.children[0].children
 			return self.eval_expr(function).run([self.eval_expr(arg) for arg in arguments])
@@ -427,6 +435,24 @@ class Scope:
 			return if_true_type
 		elif expr.data == "function_def":
 			arguments, returntype, codeblock = expr.children
+			arguments = [(arg.children[0].value, arg.children[1].value) for arg in arguments.children]
+			dummy_function = Function(self, arguments, returntype.value, codeblock)
+			scope = self.new_scope(parent_function=dummy_function)
+			for arg_name, arg_type in arguments:
+				scope.variables[arg_name] = Variable(arg_type, "anything")
+			exit_point = None
+			warned = False
+			for instruction in codeblock.children:
+				exit = scope.type_check_command(instruction)
+				if exit and exit_point is None:
+					exit_point = exit
+				elif exit_point and not warned:
+					warned = True
+					self.warnings.append(TypeCheckError(exit_point, "There are commands after this return statement, but I will never run them."))
+			return dummy_function.type
+		elif expr.data == "anonymous_func":
+			arguments, returntype, *cb = expr.children
+			codeblock = lark.tree.Tree("codeblock", cb)
 			arguments = [(arg.children[0].value, arg.children[1].value) for arg in arguments.children]
 			dummy_function = Function(self, arguments, returntype.value, codeblock)
 			scope = self.new_scope(parent_function=dummy_function)
