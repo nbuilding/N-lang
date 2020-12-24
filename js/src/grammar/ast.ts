@@ -60,7 +60,7 @@ interface BasePosition {
   endCol: number
 }
 
-class Base {
+export class Base {
   line: number
   col: number
   endLine: number
@@ -416,7 +416,7 @@ export enum Operator {
   EXPONENT = 'exponent',
 }
 
-function operatorToString (self: Operator): string {
+export function operatorToString (self: Operator): string {
   switch (self) {
     case Operator.AND: return '&'
     case Operator.OR: return '|'
@@ -465,7 +465,7 @@ export enum UnaryOperator {
   NOT = 'not',
 }
 
-function unaryOperatorToString (self: UnaryOperator): string {
+export function unaryOperatorToString (self: UnaryOperator): string {
   switch (self) {
     case UnaryOperator.NEGATE: return '-'
     case UnaryOperator.NOT: return 'not '
