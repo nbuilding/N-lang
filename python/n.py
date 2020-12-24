@@ -204,6 +204,8 @@ class Scope:
 	def eval_value(self, value):
 		if value.type == "NUMBER":
 			# QUESTION: Float or int?
+			if "." in str(value.value):
+				return float(value)
 			return int(value)
 		elif value.type == "STRING":
 			# TODO: Character escapes
@@ -385,6 +387,8 @@ class Scope:
 		if value.type == "NUMBER":
 			# TODO: We should return a generic `number` type and then try to
 			# figure it out later.
+			if "." in str(value.value):
+				return "float"
 			return "int"
 		elif value.type == "STRING":
 			return "str"
@@ -624,7 +628,7 @@ n_parser = Lark(parse, start="start", propagate_positions=True)
 
 parser = argparse.ArgumentParser(description='Allows to only show warnings and choose the file location')
 parser.add_argument('--file', type=str, default="run.n", help="The file to read. (optional. if not included, it'll just run run.n)")
-parser.add_argument('--check', type=bool, default=False, help="Set to true if you want to only compile and check for errors and warnings.")
+parser.add_argument('--check', action='store_true')
 
 args = parser.parse_args()
 
@@ -640,6 +644,25 @@ global_scope.add_native_function(
 	[("number", "int")],
 	"str",
 	lambda number: str(number),
+)
+
+global_scope.add_native_function(
+	"round",
+	[("number", "float")],
+	"int",
+	lambda number: round(number),
+)
+global_scope.add_native_function(
+	"floor",
+	[("number", "float")],
+	"int",
+	lambda number: floor(number),
+)
+global_scope.add_native_function(
+	"ceil",
+	[("number", "float")],
+	"int",
+	lambda number: ceil(number),
 )
 
 def type_check(file, tree):
@@ -670,9 +693,9 @@ error_count, warning_count = type_check(file, tree)
 if error_count > 0 or args.check:
 	error_s = ""
 	warning_s = ""
-	if error_count > 1:
+	if error_count != 1:
 		error_s = "s"
-	if warning_count > 1:
+	if warning_count != 1:
 		warning_s = "s"
 	print(f"{Fore.BLUE}Ran with {Fore.RED}{error_count} error{error_s}{Fore.BLUE} and {Fore.YELLOW}{warning_count} warning{warning_s}{Fore.BLUE}.{Style.RESET_ALL}")
 	exit()

@@ -31,6 +31,8 @@ var b:int = 3
 var c:int = 2
 print (a < c < b)
 
+print <round 10.1>
+
 <main test1 eee>
 <fek.paer test>
 if ~<main test "hello"> {
