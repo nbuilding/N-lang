@@ -11,7 +11,8 @@ const {
 } = ast
 
 const escapes: { [key: string]: string } = {
-	n: '\n', r: '\r', t: '\t', v: '\v', 0: '\0', f: '\f', b: '\b'
+	n: '\n', r: '\r', t: '\t', v: '\v', 0: '\0', f: '\f', b: '\b',
+	'"': '"', '\\': '\\',
 }
 
 // Order of rules matter! So most specific -> most general
@@ -36,7 +37,7 @@ const lexer = moo.compile({
 	number: /\d+/,
 	identifier: /[a-zA-Z]\w*/,
 	string: {
-		match: /"(?:[^\r\n\\"]|\\[nrtv0fb]|u\{[0-9a-fA-F]+\})*"/,
+		match: /"(?:[^\r\n\\"]|\\[nrtv0fb"\\]|u\{[0-9a-fA-F]+\})*"/,
 		value: string => string
 			.slice(1, -1)
 			.replace(
@@ -64,10 +65,15 @@ statement -> expression {% id %}
 
 expression -> booleanExpression {% id %}
 	| "print" __ expression {% from(ast.Print) %}
+	| "print" bracketedExpression {% from(ast.Print) %}
 	| "return" __ expression {% from(ast.Return) %}
+	| "return" bracketedExpression {% from(ast.Return) %}
 	| ifExpression {% id %}
 	| funcExpr {% id %}
 	| forLoop {% id %}
+
+bracketedExpression -> bracketedValue {% id %}
+	| funcExpr {% id %}
 
 funcExpr -> "[" _ declaration (__ declaration):* _ "]" _ "->" _ type __ value {% from(ast.Function) %}
 
@@ -118,7 +124,11 @@ unaryExpression -> value {% id %}
 value -> modIdentifier {% id %}
 	| %number {% from(ast.Number) %}
 	| %string {% from(ast.String) %}
-	| "(" _ expression _ ")" {% ([, , expr]) => expr %}
+	| bracketedValue {% id %}
+
+# Allows there to be a special case for print/return to not have a space between
+# the keyword and a bracket
+bracketedValue -> "(" _ expression _ ")" {% ([, , expr]) => expr %}
 	| functionCall {% id %}
 	| "{" _ block _ "}" {% ([, , block]) => block %}
 

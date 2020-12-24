@@ -18,7 +18,7 @@ export function isEnum<T> (enumObject: T) {
 }
 
 export function isToken (value: any): value is moo.Token {
-  return 'value' in value && 'offset' in value && 'text' in value &&
+  return value && 'value' in value && 'offset' in value && 'text' in value &&
     'lineBreaks' in value && 'line' in value && 'col' in value &&
     isString(value.value) && isNumber(value.offset) && isString(value.text) &&
     isNumber(value.lineBreaks) && isNumber(value.line) && isNumber(value.col)

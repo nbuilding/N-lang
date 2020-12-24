@@ -539,7 +539,8 @@ export class Print extends Base {
     return `print ${this.value}`
   }
 
-  static fromAny (pos: BasePosition, [, , expr]: NearleyArgs): Print {
+  static fromAny (pos: BasePosition, [, maybeExpr1, maybeExpr2]: NearleyArgs): Print {
+    const expr = maybeExpr1 || maybeExpr2
     shouldSatisfy(isExpression, expr)
     return new Print(pos, expr)
   }
@@ -557,7 +558,8 @@ export class Return extends Base {
     return `return ${this.value}`
   }
 
-  static fromAny (pos: BasePosition, [, , expr]: NearleyArgs): Return {
+  static fromAny (pos: BasePosition, [, maybeExpr1, maybeExpr2]: NearleyArgs): Return {
+    const expr = maybeExpr1 || maybeExpr2
     shouldSatisfy(isExpression, expr)
     return new Return(pos, expr)
   }
