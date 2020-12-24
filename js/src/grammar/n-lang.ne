@@ -16,12 +16,13 @@ const escapes: { [key: string]: string } = {
 
 // Order of rules matter! So most specific -> most general
 const lexer = moo.compile({
+	comment: /\/\/.*?$/,
 	keyword: ['import', 'print', 'return', 'var', 'else', 'for'],
 	symbol: [
 		'->', ':', '.',
 	],
 	arithmeticOperator: [
-		'+', '-', '*', '//', '%', '/', '^',
+		'+', '-', '*', '%', '/', '^',
 	],
 	comparisonOperator: [
 		'<', '<=', '=', '==', '=>', '>', '/=', '!=',
@@ -43,7 +44,6 @@ const lexer = moo.compile({
 				([, char, unicode]) => char ? escapes[char] : String.fromCodePoint(parseInt(unicode, 16))
 			)
 	},
-	comment: /\/\/.*?$/,
 	newline: { match: /\r?\n/, lineBreaks: true },
 	spaces: /[ \t]+/,
 	whitespace: { match: /\s+/, lineBreaks: true },
@@ -104,7 +104,6 @@ sumExpression -> productExpression {% id %}
 productExpression -> exponentExpression {% id %}
 	| productExpression _ "*" _ exponentExpression {% operation(ast.Operator.MULTIPLY) %}
 	| productExpression _ "/" _ exponentExpression {% operation(ast.Operator.DIVIDE) %}
-	| productExpression _ "//" _ exponentExpression {% operation(ast.Operator.INT_DIVIDE) %}
 	| productExpression _ "%" _ exponentExpression {% operation(ast.Operator.MODULO) %}
 
 exponentExpression -> unaryExpression {% id %}
@@ -126,7 +125,7 @@ value -> modIdentifier {% id %}
 # identifier [...parameters]
 functionCall -> "<" _ value (__ value):* _ ">" {% from(ast.CallFunc) %}
 
-ifExpression -> "if" __ expression __ value (__ "else" __ value):? {% from(ast.If) %}
+ifExpression -> "if" __ expression __ value (__ "else" __ expression):? {% from(ast.If) %}
 
 modIdentifier -> (%identifier "."):* %identifier {% from(ast.Identifier) %}
 

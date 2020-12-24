@@ -412,7 +412,6 @@ export enum Operator {
   MINUS = 'minus',
   MULTIPLY = 'multiply',
   DIVIDE = 'divide',
-  INT_DIVIDE = 'int-divide',
   MODULO = 'modulo',
   EXPONENT = 'exponent',
 }
@@ -425,7 +424,6 @@ function operatorToString (self: Operator): string {
     case Operator.MINUS: return '-'
     case Operator.MULTIPLY: return '*'
     case Operator.DIVIDE: return '/'
-    case Operator.INT_DIVIDE: return '//'
     case Operator.MODULO: return '%'
     case Operator.EXPONENT: return '^'
   }

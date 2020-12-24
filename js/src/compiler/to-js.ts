@@ -22,6 +22,9 @@ function __never() {
   throw new Error("This error should never have been thrown! This is a bug with the compiler.")
 }
 var __unset = { symbol: "Unset" };
+function intInBase10(int) {
+  return int.toString();
+}
   `,
   fek: `
 __nativeModules.fek = __module(function (exports) {
@@ -58,9 +61,6 @@ __nativeModules.future = __module(function (exports) {
   exports.strToIntOrZero = function (string) {
     return parseInt(string) || 0;
   };
-  exports.intInBase10 = function (int) {
-    return int.toString();
-  };
 });
   `
 }
@@ -72,7 +72,6 @@ const jsOperations: { [operation in ast.Operator]: string } = {
   [ast.Operator.MINUS]: '-',
   [ast.Operator.MULTIPLY]: '*',
   [ast.Operator.DIVIDE]: '/',
-  [ast.Operator.INT_DIVIDE]: '@__intDivide',
   [ast.Operator.MODULO]: '@__modulo',
   [ast.Operator.EXPONENT]: '@Math.pow',
 }
