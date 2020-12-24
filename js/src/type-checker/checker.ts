@@ -1,4 +1,5 @@
 import * as ast from '../grammar/ast'
+import { Module, nativeModules } from './modules'
 import NType from './n-type'
 import { TopLevelScope } from './scope'
 
@@ -34,5 +35,9 @@ export class TypeChecker {
   check (ast: ast.Block) {
     const scope = new TopLevelScope(this)
     scope.checkStatementType(ast)
+  }
+
+  getModule (moduleName: string): Module | undefined {
+    return nativeModules[moduleName]
   }
 }

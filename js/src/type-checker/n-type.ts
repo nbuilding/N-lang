@@ -61,34 +61,41 @@ export function isBool (type: NType): boolean {
 
 const isBaseType = isEnum(NBaseType)
 
-interface NFunction {
+class NFunction {
   takes: NType
   returns: NType
+
+  constructor (takes: NType, returns: NType) {
+    this.takes = takes
+    this.returns = returns
+  }
 }
 export function func (takes: NType, returns: NType): NFunction {
-  return { takes, returns }
+  return new NFunction(takes, returns)
 }
 export function isFunc (type: NType): type is NFunction {
-  if (type && !isBaseType(type) && !isCustom(type)) {
-    return true
+  return type instanceof NFunction
+}
+export function toFunc ([param, ...rest]: NType[]): NType {
+  if (rest.length === 0) {
+    return param
   } else {
-    return false
+    return func(param, toFunc(rest))
   }
 }
 
-// TODO
-interface NCustomType {
-  generics: string[]
+class NCustomType {
+  generics: (string | NType)[]
+
+  constructor (generics: (string | NType)[]) {
+    this.generics = generics
+  }
 }
 export function custom (generics: string[]): NCustomType {
-  return { generics }
+  return new NCustomType(generics)
 }
 export function isCustom (type: NType): type is NCustomType {
-  if (type && !isBaseType(type) && !isFunc(type)) {
-    return true
-  } else {
-    return false
-  }
+  return type instanceof NCustomType
 }
 
 // null means error, which is used to avoid spouting a flood of errors when

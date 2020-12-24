@@ -1,6 +1,7 @@
 import * as ast from '../grammar/ast'
 import { displayType } from '../utils/display-type'
 import { TypeChecker } from "./checker"
+import { Module } from './modules'
 import NType, * as types from "./n-type"
 
 // TEMP?
@@ -33,19 +34,95 @@ const unaryOperatorToImpl: { [operator in ast.UnaryOperator]: Implementation } =
   [ast.UnaryOperator.NEGATE]: Implementation.Negate,
 }
 
-export class Scope {
+export class Scope extends Module {
   checker: TypeChecker
   parent?: Scope
   returnType?: NType
-  values: Map<string, NType>
   implementations: Map<NType, Map<Implementation, [NType, NType]>>
 
   constructor (checker: TypeChecker, parent?: Scope, returnType?: NType) {
+    super(new Map(), new Map(), new Map())
     this.checker = checker
     this.parent = parent
     this.returnType = returnType
-    this.values = new Map()
     this.implementations = new Map()
+  }
+
+  getModule (moduleName: string): Module | null | undefined {
+    const module = this.modules.get(moduleName)
+    if (module !== undefined) {
+      return module
+    } else if (this.parent) {
+      return this.parent.getModule(moduleName)
+    } else {
+      return null
+    }
+  }
+
+  resolveModuleSource (moduleNames: string[]): Module | string | null {
+    let source: Module = this
+    if (moduleNames.length) {
+      const [moduleName, ...innerModules] = moduleNames
+      const module = this.getModule(moduleName)
+      if (!module) {
+        if (module === null) {
+          return null
+        } else if (this.parent) {
+          return this.resolveModuleSource(moduleNames)
+        } else {
+          return `I do not know of a module named "${moduleName}" in this scope.`
+        }
+      }
+      let lastModuleName = moduleName
+      for (const moduleName of innerModules) {
+        const module = source.getModule(moduleName)
+        if (module) {
+          source = module
+        } else {
+          return `Module ${lastModuleName} does not have a submodule named "${moduleName}."`
+        }
+        lastModuleName = moduleName
+      }
+    }
+    return source
+  }
+
+  getValue (id: ast.Identifier): NType | string {
+    const { modules, name } = id
+    const source = this.resolveModuleSource(modules)
+    if (!source || typeof source === 'string') return source
+    const value = source.values.get(name)
+    if (value) {
+      return value
+    } else if (modules.length === 0 && this.parent) {
+      return this.parent.getValue(id)
+    } else {
+      return null
+    }
+  }
+
+  getType (typeId: ast.Identifier): NType | string {
+    const { modules, name } = typeId
+    const source = this.resolveModuleSource(modules)
+    if (!source || typeof source === 'string') return source
+    const type = source.types.get(name)
+    if (type) {
+      return type
+    } else if (modules.length === 0 && this.parent) {
+      return this.parent.getType(typeId)
+    } else {
+      return null
+    }
+  }
+
+  astToType (typeId: ast.Identifier): NType {
+    const type = this.getType(typeId)
+    if (typeof type === 'string') {
+      this.checker.err(typeId, type)
+      return null
+    } else {
+      return type
+    }
   }
 
   implements (type: NType, impl: Implementation): [NType, NType] | null {
@@ -75,6 +152,7 @@ export class Scope {
       } else {
         console.error(expression)
         this.checker.err(expression, `Internal problem: I wasn't expecting this kind of Literal (type ${displayType(expression)}). (This is a bug with the type checker.)`)
+        return [null]
       }
     } else if (expression instanceof ast.Operation) {
       const [aType, aExit] = this.getExprType(expression.a)
@@ -197,28 +275,111 @@ export class Scope {
       if (expression.else) {
         const [ifFalseType, ifFalseExit] = this.getExprType(expression.else)
         const exit = ifTrueExit && ifFalseExit ? expression : undefined
-        if (!types.is(ifTrueType, ifFalseType)) {
+        if (!types.isNever(ifTrueType) && !types.isNever(ifFalseType) && !types.is(ifTrueType, ifFalseType)) {
           this.checker.err(expression, `The types of either branch, ${displ(ifTrueType)} and ${displ(ifFalseType)}, are not the same.`)
           return [null, exit]
         }
         // There may be good reason to have both branches exit, so we aren't
         // warning here.
-        return [ifTrueType, exit]
+        return [
+          ifTrueType && ifFalseType
+            // If both branches return, then the if-else's type shall be never.
+            ? (types.isNever(ifTrueType) ? ifFalseType : ifTrueType)
+            : null,
+          exit
+        ]
       } else {
+        // TODO
         this.checker.warn(expression, 'Unimplemented: I currently cannot return values from conditionals without an "else" branch.')
         return [null]
       }
     } else if (expression instanceof ast.Identifier) {
-      // TODO
+      const value = this.getValue(expression)
+      if (typeof value === 'string') {
+        this.checker.err(expression, value)
+        return [null]
+      }
+      return [value]
     } else if (expression instanceof ast.Function) {
-      // TODO
+      const returnType = this.astToType(expression.returnType)
+      const scope = this.newScope(returnType)
+      const fnTypes = []
+      for (const declaration of expression.params) {
+        const { name, type: maybeType } = declaration
+        if (!maybeType) {
+          this.checker.err(declaration, 'I need to know what type this parameter is.')
+        }
+        const type = maybeType ? this.astToType(maybeType) : null
+        fnTypes.push(type)
+        if (scope.values.has(name)) {
+          this.checker.err(declaration, 'This is a duplicate parameter name.')
+        }
+        scope.values.set(name, type)
+      }
+      fnTypes.push(returnType)
+      const [actualReturnType] = scope.getExprType(expression.body)
+      if (returnType && actualReturnType && !types.is(returnType, actualReturnType)) {
+        this.checker.err(expression.body, `The body of this function, which should return a ${displ(returnType)}, returns a ${displ(actualReturnType)}.`)
+      }
+      return [types.toFunc(fnTypes)]
     } else if (expression instanceof ast.For) {
+      const [iterable] = this.getExprType(expression.value)
+      const impl = this.implements(iterable, Implementation.Iterate)
+      const scope = this.newScope()
+      const { name, type } = expression.var
+      scope.values.set(name, null)
+      if (impl) {
+        const [, iterated] = impl
+        const resolvedType = type && this.astToType(type)
+        if (type) {
+          if (types.is(iterated, resolvedType)) {
+            scope.values.set(name, iterated)
+          } else if (resolvedType) {
+            this.checker.err(expression.var, `Iterating over ${displ(iterable)} produces values of ${displ(iterated)}, not ${displ(resolvedType)}.`)
+          }
+        }
+      } else if (iterable) {
+        this.checker.err(expression.value, `I can't iterate over ${displ(iterable)}.`)
+      }
+      // The for loop will not warn about exits, so using the private method to
+      // pass on the expression directly.
+      const [, exit] = scope._getExprType(expression.body)
       // TODO
+      this.checker.warn(expression, 'Unimplemented: I currently can\'t determine the return type of for loops.')
+      return [null, exit]
     } else if (expression instanceof ast.Block) {
-      // TODO
+      const scope = this.newScope()
+      let exited = false
+      let warned = false
+      let lastType
+      for (const statement of expression.statements) {
+        const [type, exit] = scope.checkStatementType(statement)
+        if (type !== undefined) {
+          lastType = type
+        }
+        if (exited) {
+          if (!warned) {
+            warned = true
+            this.checker.warn(statement, 'All code beyond here will never run because the function has returned.')
+          }
+        } else if (exit) {
+          exited = true
+        }
+      }
+      // TODO: Warn about unused variables/types/imports
+      // TODO: Warn about needlessly using `return` on the last line? (But only
+      // if it's directly of a child)
+      if (lastType === undefined) {
+        // TODO: Warn only if used as expression?
+        this.checker.err(expression, `The block doesn't return a value.`)
+        return [null]
+      } else {
+        return [lastType]
+      }
     } else {
       console.error(expression)
       this.checker.err(expression, `Internal problem: I wasn't expecting this kind of Expression (type ${displayType(expression)}). (This is a bug with the type checker.)`)
+      return [null]
     }
   }
 
@@ -238,14 +399,43 @@ export class Scope {
     ]
   }
 
-  checkStatementType (statement: ast.Statement) {
+  checkStatementType (statement: ast.Statement): [NType?, boolean?] {
+    const displ = types.display
     if (statement instanceof ast.ImportStmt) {
-      // TODO
+      const module = this.checker.getModule(statement.name)
+      if (module) {
+        // Allows for "import ... as ..." statements in the future
+        this.modules.set(statement.name, module)
+      } else {
+        this.modules.set(statement.name, null)
+        this.checker.err(statement, `I don't know of a module named "${statement.name}".`)
+      }
+      return []
     } else if (statement instanceof ast.VarStmt) {
-      // TODO
+      const { name, type } = statement.declaration
+      if (this.values.has(name)) {
+        this.checker.err(statement.declaration, `You already defined ${name} in this scope.`)
+      }
+      const [resolvedType, exit] = this.getExprType(statement.value)
+      if (exit) exit(statement, 'I will never create this variable')
+      if (type) {
+        const idealType = this.astToType(type)
+        if (resolvedType && !types.is(idealType, resolvedType)) {
+          this.checker.err(statement.value, `You set ${name}, which should be ${displ(idealType)}, to a value of ${displ(resolvedType)}`)
+        }
+        this.values.set(name, idealType)
+      } else {
+        this.values.set(name, types.isNever(resolvedType) ? null : resolvedType)
+      }
+      return [undefined, !!exit]
     } else {
-      this.getExprType(statement)
+      const [type, exit] = this.getExprType(statement)
+      return [type, !!exit]
     }
+  }
+
+  newScope (returnType: NType | undefined = this.returnType): Scope {
+    return new Scope(this.checker, this, returnType)
   }
 }
 
@@ -256,6 +446,12 @@ export class TopLevelScope extends Scope {
     // Global variables and functions
     this.values.set('false', types.bool())
     this.values.set('true', types.bool())
+
+    // Global types
+    this.types.set('str', types.string())
+    this.types.set('int', types.int())
+    this.types.set('float', types.float())
+    this.types.set('bool', types.bool())
 
     // Global implementations
     // TODO: This isn't ideal.

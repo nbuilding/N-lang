@@ -30,6 +30,7 @@ function intInBase10(int) {
 __nativeModules.fek = __module(function (exports) {
   exports.paer = function (message) {
     console.log(message);
+    return message;
   };
 });
   `,
@@ -53,9 +54,9 @@ __nativeModules.future = __module(function (exports) {
   exports.length = function (array) {
     return array.length;
   };
-  exports.get = function (array) {
-    return function (index) {
-      return array[index];
+  exports.get = function (index) {
+    return function (array) {
+      return array[index] || 0;
     };
   };
   exports.strToIntOrZero = function (string) {
