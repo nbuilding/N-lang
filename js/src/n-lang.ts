@@ -63,8 +63,6 @@ async function main () {
   checker.check(script)
   console.log(checker.displayWarnings(lines))
 
-  if (checksOnly) return
-
   const compiled = compileToJS(script)
   if (js) console.log(compiled)
   // Indirect call of eval to run in global scope

@@ -32,12 +32,14 @@ export class TypeChecker {
   errors: Warning[]
   warnings: Warning[]
   options: CheckerOptions
+  global: TopLevelScope
 
   constructor (options: CheckerOptions = {}) {
     this.types = new Map()
     this.errors = []
     this.warnings = []
     this.options = options
+    this.global = new TopLevelScope(this)
   }
 
   err (base: ast.Base, message: string, options?: WarningOptions) {
@@ -49,8 +51,7 @@ export class TypeChecker {
   }
 
   check (ast: ast.Block) {
-    const scope = new TopLevelScope(this)
-    scope.checkStatementType(ast)
+    this.global.checkStatementType(ast)
   }
 
   getModule (moduleName: string): Module | undefined {
@@ -58,6 +59,9 @@ export class TypeChecker {
   }
 
   displayType (type: NType): string {
+    if (type === null) {
+      console.warn(new Error('Received an error type, which should never happen.'))
+    }
     if (this.options.colours) {
       return colours.yellow(display(type))
     } else {
@@ -67,8 +71,9 @@ export class TypeChecker {
 
   displayBase (file: FileLines, { line, col, endLine, endCol }: ast.Base): string {
     const header = this.options.colours
-      ? ' ' + colours.cyan('-->') + ' ' + colours.blue(`${file.name}:${line}:${col}`) + '\n'
-      : ` --> ${file.name}:${line}:${col}\n`
+      ? ' '.repeat(file.lineNumWidth) + colours.cyan('-->') + ' ' +
+        colours.blue(`${file.name}:${line}:${col}`) + '\n'
+      : ' '.repeat(file.lineNumWidth) + `--> ${file.name}:${line}:${col}\n`
     if (line === endLine) {
       const output = this.options.colours
         ? colours.bold(colours.cyan(`${line.toString().padStart(file.lineNumWidth, ' ')} | `))

@@ -92,12 +92,12 @@ export class Scope extends Module {
     const source = this.resolveModuleSource(modules)
     if (!source || typeof source === 'string') return source
     const value = source.values.get(name)
-    if (value) {
+    if (value !== undefined) {
       return value
     } else if (modules.length === 0 && this.parent) {
       return this.parent.getValue(id)
     } else {
-      return null
+      return `I can't find a variable with the name ${name} in this scope.`
     }
   }
 
@@ -111,7 +111,7 @@ export class Scope extends Module {
     } else if (modules.length === 0 && this.parent) {
       return this.parent.getType(typeId)
     } else {
-      return null
+      return `I can't find a type with the name ${name} in this scope.`
     }
   }
 
@@ -239,7 +239,7 @@ export class Scope extends Module {
         if (fnType) {
           if (types.isFunc(fnType)) {
             const { takes, returns } = fnType
-            if (!types.is(takes, type)) {
+            if (type && !types.is(takes, type)) {
               this.checker.err(param, `${displ(fnInitType)}'s argument #${argNum} takes ${displ(takes)}, not ${displ(type)}.`)
             }
             fnType = returns
@@ -275,7 +275,10 @@ export class Scope extends Module {
       if (expression.else) {
         const [ifFalseType, ifFalseExit] = this.getExprType(expression.else)
         const exit = ifTrueExit && ifFalseExit ? expression : undefined
-        if (!types.isNever(ifTrueType) && !types.isNever(ifFalseType) && !types.is(ifTrueType, ifFalseType)) {
+        const neitherBranchNever = !types.isNever(ifTrueType) && !types.isNever(ifFalseType)
+        if (!ifTrueType || !ifFalseType) {
+          return [null, exit]
+        } else if (neitherBranchNever && !types.is(ifTrueType, ifFalseType)) {
           this.checker.err(expression, `The types of either branch, ${displ(ifTrueType)} and ${displ(ifFalseType)}, are not the same.`)
           return [null, exit]
         }
@@ -343,10 +346,9 @@ export class Scope extends Module {
       }
       // The for loop will not warn about exits, so using the private method to
       // pass on the expression directly.
-      const [, exit] = scope._getExprType(expression.body)
-      // TODO
-      this.checker.warn(expression, 'Unimplemented: I currently can\'t determine the return type of for loops.')
-      return [null, exit]
+      const [bodyType, exit] = scope._getExprType(expression.body)
+      // TODO: generics???
+      return [bodyType && this.checker.global.defTypes.list, exit]
     } else if (expression instanceof ast.Block) {
       const scope = this.newScope()
       let exited = false
@@ -391,11 +393,13 @@ export class Scope extends Module {
     this.checker.types.set(expression, type)
     return [
       type,
-      (expr, message) => {
-        this.checker.warn(expr, `${message} because the expression will return out of the function.`, {
-          exit
-        })
-      }
+      exit
+        ? (expr, message) => {
+          this.checker.warn(expr, `${message} because the expression will return out of the function.`, {
+            exit
+          })
+        }
+        : undefined
     ]
   }
 
@@ -440,18 +444,31 @@ export class Scope extends Module {
 }
 
 export class TopLevelScope extends Scope {
+  defTypes: { [name: string]: NType }
+
   constructor (checker: TypeChecker) {
     super(checker)
 
     // Global variables and functions
     this.values.set('false', types.bool())
     this.values.set('true', types.bool())
+    this.values.set('intInBase10', types.func(types.int(), types.string()))
 
     // Global types
     this.types.set('str', types.string())
     this.types.set('int', types.int())
     this.types.set('float', types.float())
     this.types.set('bool', types.bool())
+    this.defTypes = {
+      list: types.custom('List', ['T']),
+      maybe: types.custom('Maybe', ['T']),
+      result: types.custom('Result', ['T', 'E']),
+      cmd: types.custom('Cmd', ['T']),
+    }
+    this.types.set('List', this.defTypes.list)
+    this.types.set('Maybe', this.defTypes.maybe)
+    this.types.set('Result', this.defTypes.result)
+    this.types.set('Cmd', this.defTypes.cmd)
 
     // Global implementations
     // TODO: This isn't ideal.

@@ -87,9 +87,9 @@ export function toFunc ([param, ...rest]: NType[]): NType {
 class NCustomType {
   // TODO
   name: string
-  generics: (string | NType)[]
+  generics: string[]
 
-  constructor (name: string, generics: (string | NType)[]) {
+  constructor (name: string, generics: string[]) {
     this.name = name
     this.generics = generics
   }
