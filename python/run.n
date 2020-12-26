@@ -9,7 +9,7 @@ var main = [test:int test1:str] -> bool {
 	return false
 }
 
-for i 100 {
+for i 15 {
 	var n:int = i + 1
 	print
 		(if n % 3 == 0 && n % 5 == 0 {
@@ -36,11 +36,18 @@ print (a < c < b)
 
 print <round 10.1>
 
+if false {
+	print "test of a thing"
+}
+
 <main test1 eee>
 <fek.paer "test">
 print (<fek.paer "test">)
-if ~<main test "hello"> {
+print (if true { "hi" } else { "hello" })
+if true {
 	print "<main test \"hello\"> returned false"
+} else {
+	print "test"
 }
 if <main test eee> {
 	print "{main test eee} returned true"

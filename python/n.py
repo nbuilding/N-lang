@@ -17,7 +17,7 @@ class Variable:
 class Function(Variable):
 	def __init__(self, scope, arguments, returntype, codeblock):
 		# Tuples represent function types. (a, b, c) represents a -> b -> c.
-		types = tuple([type for _, type in arguments] + [returntype])
+		types = tuple([ty for _, ty in arguments] + [returntype])
 		super(Function, self).__init__(types, self)
 
 		self.scope = scope
@@ -596,18 +596,18 @@ class Scope:
 				self.errors.append(TypeCheckError(command.children[0], "Library %s not found to import." % command.children[0]))
 		elif command.data == "for":
 			var, iterable, code = command.children
-			name, type = get_name_type(var)
+			name, ty = get_name_type(var)
 			iterable_type = self.type_check_expr(iterable)
 			iterated_type = iterable_types.get(iterable_type)
 			if iterable_type is not None:
 				if iterated_type is None:
 					self.errors.append(TypeCheckError(iterable, "I can't loop over a %s." % display_type(iterable_type)))
-				elif type == 'infer':
-					type = iterated_type
-				elif type != iterated_type:
-					self.errors.append(TypeCheckError(type, "Looping over a %s produces %s values, not %s." % (display_type(iterable_type), display_type(iterated_type), display_type(type))))
+				elif ty == 'infer':
+					ty = iterated_type
+				elif ty != iterated_type:
+					self.errors.append(TypeCheckError(ty, "Looping over a %s produces %s values, not %s." % (display_type(iterable_type), display_type(iterated_type), display_type(ty))))
 			scope = self.new_scope()
-			scope.variables[name] = Variable(type, "whatever")
+			scope.variables[name] = Variable(ty, "whatever")
 			exit_point = False
 			for child in code.children:
 				exit = scope.type_check_command(child)
@@ -629,25 +629,35 @@ class Scope:
 			return command
 		elif command.data == "declare":
 			name_type, value = command.children
-			name, type = get_name_type(name_type)
+			name, ty = get_name_type(name_type)
 			if name in self.variables:
 				self.errors.append(TypeCheckError(name_type, "You've already defined `%s`." % name))
 			value_type = self.type_check_expr(value)
-			if value_type is not None and value_type != type:
-				if type == 'infer':
-					type = value_type
+			if value_type is not None and value_type != ty:
+				if ty == 'infer':
+					ty = value_type
 				else:
 					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(type), display_type(value_type))))
-			self.variables[name] = Variable(type, "whatever")
+			self.variables[name] = Variable(ty, "whatever")
 		elif command.data == "if":
 			condition, body = command.children
 			cond_type = self.type_check_expr(condition)
+			if type(condition.children[0]) is lark.Token:
+				if condition.children[0].value == "true":
+					self.warnings.append(TypeCheckError(condition, "This will always run."))
+				if condition.children[0].value == "false":
+					self.warnings.append(TypeCheckError(condition, "This will never run."))
 			if cond_type is not None and cond_type != "bool":
 				self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
 			self.type_check_command(body)
 		elif command.data == "ifelse":
 			condition, if_true, if_false = command.children
 			cond_type = self.type_check_expr(condition)
+			if type(condition.children[0]) is lark.Token:
+				if condition.children[0].value == "true":
+					self.warnings.append(TypeCheckError(condition, "The else statement of the expression will never run."))
+				if condition.children[0].value == "false":
+					self.warnings.append(TypeCheckError(condition, "The if statement of the expression will never run."))
 			if cond_type is not None and cond_type != "bool":
 				self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
 			exit_if_true = self.type_check_command(if_true)
