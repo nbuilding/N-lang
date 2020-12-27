@@ -34,12 +34,15 @@ code_block: "{" instruction* "}"
 function_def: arguments ["->" NAME] code_block
 arguments: "[" (name_type (" " name_type)*)? "]"
 anonymous_func: "(" arguments "->" NAME ":" (instruction (";" instruction)*) ")"
+char: "\\" ( escape_code | "{" /./ "}")
+escape_code: /[tnr]/
 
 // Boolean and number expressions, with order of operations.
 // Question mark "inlines" the branch, so we don't get nested
 // boolean_expression(or_expression(and_expression etc)).
 // Square brackets mean that the stuff inside it can appear 0 or 1 time. Same as
 // (whatever)?
+
 
 ?expression: ifelse_expr
            | boolean_expression
@@ -71,6 +74,7 @@ value: NUMBER
      | NAME
      | "(" expression ")"
      | function_callback
+     | char
 
 //constants
 BOOLEAN: ("true" | "false")
