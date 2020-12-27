@@ -176,7 +176,7 @@ export class Function extends Base {
   }
 
   toString (): string {
-    return `[${this.params.join(' ')}] -> ${this.returnType} ${this.body}`
+    return `[${this.params.join(' ')}] -> ${this.returnType} : ${this.body}`
   }
 
   static fromAny (
@@ -193,7 +193,7 @@ export class Function extends Base {
       _space4,
       returnType,
       _space5,
-      expr,
+      exprWrapper,
     ]: NearleyArgs
   ): Function {
     shouldBe(Declaration, firstParam)
@@ -206,6 +206,8 @@ export class Function extends Base {
       params.push(decl)
     }
     shouldSatisfy(isType, returnType)
+    shouldBe(Array, exprWrapper)
+    const [, , expr] = exprWrapper
     shouldSatisfy(isExpression, expr)
     return new Function(pos, params, returnType, expr)
   }
@@ -303,6 +305,7 @@ export class String extends Literal {
   }
 }
 
+// A number can represent either an int or a float
 export class Number extends Literal {
   value: string
 
@@ -318,6 +321,24 @@ export class Number extends Literal {
   static fromAny (pos: BasePosition, [num]: NearleyArgs): Number {
     shouldSatisfy(isToken, num)
     return new Number(pos, num.value)
+  }
+}
+
+export class Float extends Literal {
+  value: string
+
+  constructor (pos: BasePosition, float: string) {
+    super(pos)
+    this.value = float
+  }
+
+  toString () {
+    return this.value
+  }
+
+  static fromAny (pos: BasePosition, [float]: NearleyArgs): Number {
+    shouldSatisfy(isToken, float)
+    return new Number(pos, float.value)
   }
 }
 

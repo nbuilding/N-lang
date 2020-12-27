@@ -34,7 +34,8 @@ const lexer = moo.compile({
 	lbracket: ['{', '[', '(', '<'],
 	rbracket: ['}', ']', ')', '>'],
 	semicolon: ';',
-	number: /\d+/,
+	number: /-?\d+/,
+	float: /-?(?:\d+\.\d*|\.\d+)/,
 	identifier: /[a-zA-Z]\w*/,
 	string: {
 		match: /"(?:[^\r\n\\"]|\\[nrtv0fb"\\]|u\{[0-9a-fA-F]+\})*"/,
@@ -75,7 +76,7 @@ expression -> booleanExpression {% id %}
 bracketedExpression -> bracketedValue {% id %}
 	| funcExpr {% id %}
 
-funcExpr -> "[" _ declaration (__ declaration):* _ "]" _ "->" _ type __ value {% from(ast.Function) %}
+funcExpr -> "[" _ declaration (__ declaration):* _ "]" _ "->" _ type _ ("{" _ block _ "}" | ":" _ expression) {% from(ast.Function) %}
 
 funcDefParams -> declaration {% ([decl]) => [decl] %}
 	| funcDefParams __ declaration {% ([params, , decl]) => [...params, decl] %}
@@ -123,11 +124,12 @@ unaryExpression -> value {% id %}
 # ambiguities.
 value -> modIdentifier {% id %}
 	| %number {% from(ast.Number) %}
+	| %float {% from(ast.Float) %}
 	| %string {% from(ast.String) %}
 	| bracketedValue {% id %}
 
-# Allows there to be a special case for print/return to not have a space between
-# the keyword and a bracket
+# Separate rule here to allow a special case for print/return to not have a
+# space between the keyword and a bracket
 bracketedValue -> "(" _ expression _ ")" {% ([, , expr]) => expr %}
 	| functionCall {% id %}
 	| "{" _ block _ "}" {% ([, , block]) => block %}

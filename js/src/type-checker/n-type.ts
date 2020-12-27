@@ -1,3 +1,5 @@
+import * as ast from '../grammar/ast'
+import { displayType } from '../utils/display-type'
 import { isEnum } from "../utils/type-guards"
 
 enum NBaseType {
@@ -22,13 +24,6 @@ export function infer (): NType {
 }
 export function isInfer (type: NType): boolean {
   return type === NBaseType.Infer
-}
-
-export function number (): NType {
-  return NBaseType.Number
-}
-export function isNumber (type: NType): boolean {
-  return type === NBaseType.Number
 }
 
 export function int (): NType {
@@ -60,6 +55,39 @@ export function isBool (type: NType): boolean {
 }
 
 const isBaseType = isEnum(NBaseType)
+
+// The number type is unusual in that it contains state.
+export class NNumber {
+  toResolve: Set<ast.Base>
+
+  constructor () {
+    this.toResolve = new Set()
+  }
+
+  addToResolve (base: ast.Base): NNumber {
+    this.toResolve.add(base)
+    return this
+  }
+
+  merge (numType: NNumber): NNumber {
+    for (const base of numType.toResolve) {
+      this.toResolve.add(base)
+    }
+    for (const base of this.toResolve) {
+      numType.toResolve.add(base)
+    }
+    return this
+  }
+}
+export function number (): NNumber {
+  return new NNumber()
+}
+export function isNumber (type: NType): type is NNumber {
+  return type instanceof NNumber
+}
+export function isNumberResolvable (type: NType): boolean {
+  return isInt(type) || isFloat(type)
+}
 
 class NFunction {
   takes: NType
@@ -103,16 +131,21 @@ export function isCustom (type: NType): type is NCustomType {
 
 // null means error, which is used to avoid spouting a flood of errors when
 // something goes wrong.
-type NType = null | NBaseType | NFunction | NCustomType
+type NType = null | NBaseType | NNumber | NFunction | NCustomType
 
 export function is (a: NType, b: NType): boolean {
   if (a === null || isBaseType(a)) {
     return a === b
+  } else if (isNumber(a)) {
+    return isNumber(b)
   } else if (isFunc(a)) {
     return isFunc(b) && is(a.takes, b.takes) && is(a.returns, b.returns)
-  } else {
+  } else if (isCustom(a)) {
     return isCustom(b) && a.generics.length === b.generics.length &&
       a.generics.every((generic, i) => generic === b.generics[i])
+  } else {
+    console.warn(new Error('Stack trace for discovered never type.'), a, b)
+    return false
   }
 }
 
@@ -127,6 +160,9 @@ export function display (type: NType): string {
       case NBaseType.String: return 'string'
       case NBaseType.Boolean: return 'boolean'
     }
+  } else if (isNumber(type)) {
+    // console.warn(new Error('Stack trace for discovered number type.'), type)
+    return 'number'
   } else if (isFunc(type)) {
     return (isFunc(type.takes) ? `(${display(type.takes)})` : display(type.takes))
       + ' -> '
@@ -138,8 +174,12 @@ export function display (type: NType): string {
           .map(type => typeof type === 'string' ? type : display(type))
           .join(', ')
       }>` : '')
+  } else if (type === null) {
+    // console.warn(new Error('Stack trace for discovered null type.'), type)
+    return '??? (this means that the type is unknown due to an error elsewhere, but this should never show in errors--type checker bug)'
   } else {
-    return '???--this means that the type is unknown due to an error elsewhere, but this should never show in errors (type checker bug)--'
+    // console.warn(new Error('Stack trace for discovered "never" type.'), type)
+    return `??? (this should never show a ${displayType(type)}--type checker bug)`
   }
 }
 

@@ -4,48 +4,16 @@ import { TypeChecker } from "./checker"
 import { Module } from './modules'
 import NType, * as types from "./n-type"
 
-// TEMP?
-enum Implementation {
-  Compare,
-  Iterate,
-  Add,
-  Subtract,
-  Multiply,
-  Divide,
-  Modulo,
-  Exponent,
-  And,
-  Or,
-  Not,
-  Negate,
-}
-const operatorToImpl: { [operator in ast.Operator]: Implementation } = {
-  [ast.Operator.ADD]: Implementation.Add,
-  [ast.Operator.MINUS]: Implementation.Subtract,
-  [ast.Operator.MULTIPLY]: Implementation.Multiply,
-  [ast.Operator.DIVIDE]: Implementation.Divide,
-  [ast.Operator.MODULO]: Implementation.Modulo,
-  [ast.Operator.EXPONENT]: Implementation.Exponent,
-  [ast.Operator.AND]: Implementation.And,
-  [ast.Operator.OR]: Implementation.Or,
-}
-const unaryOperatorToImpl: { [operator in ast.UnaryOperator]: Implementation } = {
-  [ast.UnaryOperator.NOT]: Implementation.Not,
-  [ast.UnaryOperator.NEGATE]: Implementation.Negate,
-}
-
 export class Scope extends Module {
   checker: TypeChecker
   parent?: Scope
   returnType?: NType
-  implementations: Map<NType, Map<Implementation, [NType, NType]>>
 
   constructor (checker: TypeChecker, parent?: Scope, returnType?: NType) {
     super(new Map(), new Map(), new Map())
     this.checker = checker
     this.parent = parent
     this.returnType = returnType
-    this.implementations = new Map()
   }
 
   getModule (moduleName: string): Module | null | undefined {
@@ -125,17 +93,27 @@ export class Scope extends Module {
     }
   }
 
-  implements (type: NType, impl: Implementation): [NType, NType] | null {
-    const impls = this.implementations.get(type)
-    if (impls) {
-      const types = impls.get(impl)
-      if (types) {
-        return types
-      }
+  private _resolveNumberAs (numberType: types.NNumber, as: NType) {
+    const { toResolve } = numberType
+    for (const base of toResolve) {
+      this.checker.types.set(base, as)
     }
-    if (this.parent) {
-      return this.parent.implements(type, impl)
+  }
+
+  private _ensureMatch (a: NType, b: NType, base: ast.Base, message: string): NType {
+    if (a === null || b === null) {
+      return null
+    } else if (types.is(a, b)) {
+      // NOTE: If both types are number, then this will return number.
+      return a
+    } else if (types.isNumberResolvable(a) && types.isNumber(b)) {
+      this._resolveNumberAs(b, a)
+      return a
+    } else if (types.isNumberResolvable(b) && types.isNumber(a)) {
+      this._resolveNumberAs(a, b)
+      return b
     } else {
+      this.checker.warn(base, message)
       return null
     }
   }
@@ -144,9 +122,9 @@ export class Scope extends Module {
     const displ = (type: NType) => this.checker.displayType(type)
     if (expression instanceof ast.Literal) {
       if (expression instanceof ast.Number) {
-        // IDEA: Maybe it should keep track of all the number types so when it's
-        // resolved, all of these can be set to the resolved number type.
         return [types.number()]
+      } else if (expression instanceof ast.Float) {
+        return [types.float()]
       } else if (expression instanceof ast.String) {
         return [types.string()]
       } else {
@@ -155,52 +133,133 @@ export class Scope extends Module {
         return [null]
       }
     } else if (expression instanceof ast.Operation) {
-      const [aType, aExit] = this.getExprType(expression.a)
+      let [aType, aExit] = this.getExprType(expression.a)
       const [bType, bExit] = this.getExprType(expression.b)
-      const exit = aExit || bExit
-      // TODO: Technically, & and | short circuit for booleans, so it's not
-      // exactly necessary to check if they'll exit.
-      if (exit) exit(expression, `I'll never perform this ${ast.operatorToString(expression.type)}`)
       let returnType
-      // Special case for exponentiation because it goes right to left
-      if (expression.type === ast.Operator.EXPONENT) {
-        if (!bType) return [null]
-        const impl = this.implements(bType, operatorToImpl[expression.type])
-        if (!impl) {
-          this.checker.err(expression, `${displ(bType)} cannot perform exponentiation.`)
-          return [null]
+      let shortCircuit = false
+      // TODO: Operator overloading?
+      if (types.isNumber(aType)) {
+        // Assumes that both operands are the same type
+        if (types.isInt(bType) || types.isFloat(bType)) {
+          this._resolveNumberAs(aType, bType)
+          aType = bType
+        } else if (types.isString(bType)) {
+          this._resolveNumberAs(aType, types.int())
+          aType = types.int()
         }
-        const [idealOtherType, implReturnType] = impl
-        if (aType && types.is(idealOtherType, aType)) {
-          this.checker.err(expression, `${displ(bType)} performs exponentiation with ${displ(idealOtherType)}, not ${displ(aType)}.`)
+      }
+      if (types.isNumber(aType) && types.isNumber(bType)) {
+        // At this point, both operands are numbers
+        if ([
+          ast.Operator.ADD,
+          ast.Operator.MINUS,
+          ast.Operator.MULTIPLY,
+          ast.Operator.DIVIDE,
+          ast.Operator.MODULO,
+          ast.Operator.EXPONENT,
+        ].includes(expression.type)) {
+          returnType = aType.merge(bType)
+        } else if ([
+          ast.Operator.AND,
+          ast.Operator.OR,
+        ].includes(expression.type)) {
+          // Only int supports these operations, so therefore both numbers are
+          // ints.
+          this._resolveNumberAs(aType, types.int())
+          this._resolveNumberAs(bType, types.int())
+          returnType = types.int()
         }
-        returnType = implReturnType
+      } else if (types.isInt(aType)) {
+        if (expression.type === ast.Operator.MULTIPLY && types.isString(bType)) {
+          // String multiplication like in Python
+          returnType = types.string()
+        } else if ([
+          ast.Operator.ADD,
+          ast.Operator.MINUS,
+          ast.Operator.MULTIPLY,
+          ast.Operator.DIVIDE,
+          ast.Operator.MODULO,
+          // Negative exponents shall be rounded to zero
+          ast.Operator.EXPONENT,
+          ast.Operator.AND,
+          ast.Operator.OR,
+        ].includes(expression.type)) {
+          // These operations are int op int, so bType must be an int.
+          returnType = this._ensureMatch(aType, bType, expression, `${displ(aType)} performs ${ast.operatorToString(expression.type)} with ${displ(types.int())}, not ${displ(bType)}.`)
+        }
+      } else if (types.isFloat(aType)) {
+        if ([
+          ast.Operator.ADD,
+          ast.Operator.MINUS,
+          ast.Operator.MULTIPLY,
+          ast.Operator.DIVIDE,
+          ast.Operator.MODULO,
+          ast.Operator.EXPONENT,
+        ].includes(expression.type)) {
+          // These operations are float op float, so bType must be an float.
+          returnType = this._ensureMatch(aType, bType, expression, `${displ(aType)} performs ${ast.operatorToString(expression.type)} with ${displ(types.float())}, not ${displ(bType)}.`)
+        }
+      } else if (types.isBool(aType)) {
+        if ([
+          ast.Operator.AND,
+          ast.Operator.OR,
+        ].includes(expression.type)) {
+          // These operations are bool op bool, so bType must be an bool.
+          returnType = this._ensureMatch(aType, bType, expression, `${displ(aType)} performs ${ast.operatorToString(expression.type)} with ${displ(types.bool())}, not ${displ(bType)}.`)
+          shortCircuit = true
+        }
+      } else if (types.isString(aType)) {
+        if (expression.type === ast.Operator.ADD && types.isString(bType)) {
+          returnType = types.string()
+        } else if (expression.type === ast.Operator.MULTIPLY && (types.isInt(bType) || types.isNumber(bType))) {
+          if (types.isNumber(bType)) {
+            this._resolveNumberAs(bType, types.int())
+          }
+          // Commutative case for int * string
+          returnType = types.string()
+        }
+      }
+      if (shortCircuit) {
+        if (bExit) bExit(expression, `I'll never perform this ${ast.operatorToString(expression.type)}`)
       } else {
-        if (!aType) return [null]
-        const impl = this.implements(aType, operatorToImpl[expression.type])
-        if (!impl) {
-          this.checker.err(expression, `${displ(aType)} cannot perform ${ast.operatorToString(expression.type)}.`)
-          return [null]
+        const exit = aExit || bExit
+        if (exit) exit(expression, `I'll never perform this ${ast.operatorToString(expression.type)}`)
+      }
+      if (returnType === undefined) {
+        if (aType && bType) {
+          this.checker.err(expression, `${displ(aType)} and ${displ(bType)} cannot perform ${ast.operatorToString(expression.type)}.`)
         }
-        const [idealOtherType, implReturnType] = impl
-        if (bType && !types.is(idealOtherType, bType)) {
-          this.checker.err(expression, `${displ(aType)} performs ${ast.operatorToString(expression.type)} with ${displ(idealOtherType)}, not ${displ(bType)}.`)
-        }
-        returnType = implReturnType
+        returnType = null
       }
       return [returnType]
     } else if (expression instanceof ast.UnaryOperation) {
       const [type, exit] = this.getExprType(expression.value)
       if (exit) exit(expression, `I'll never perform this ${ast.unaryOperatorToString(expression.type)} operation`)
-      if (!type) return [null]
-      const impl = this.implements(type, unaryOperatorToImpl[expression.type])
-      if (impl) {
-        const [, returnType] = impl
-        return [returnType]
-      } else {
-        this.checker.err(expression, `${displ(type)} cannot perform ${ast.unaryOperatorToString(expression.type)}.`)
-        return [null]
+      let returnType
+      // TODO: Operator overloading?
+      if (types.isInt(type)) {
+        if ([
+          ast.UnaryOperator.NEGATE,
+          ast.UnaryOperator.NOT,
+        ].includes(expression.type)) {
+          returnType = type
+        }
+      } else if (types.isFloat(type)) {
+        if (expression.type === ast.UnaryOperator.NEGATE) {
+          returnType = type
+        }
+      } else if (types.isBool(type)) {
+        if (expression.type === ast.UnaryOperator.NOT) {
+          returnType = type
+        }
       }
+      if (returnType === undefined) {
+        if (type) {
+          this.checker.err(expression, `${displ(type)} cannot perform ${ast.unaryOperatorToString(expression.type)}.`)
+        }
+        returnType = null
+      }
+      return [returnType]
     } else if (expression instanceof ast.Comparisons) {
       let warned = false
       for (const comparison of expression.comparisons) {
@@ -208,13 +267,14 @@ export class Scope extends Module {
         const [aType, aExit] = this.getExprType(a)
         const [bType, bExit] = this.getExprType(b)
         if (aType && bType) {
-          if (aType !== bType) {
-            this.checker.err(comparison, `I can't compare ${displ(aType)} and ${displ(bType)} since they're different types.`)
-          } else if (types.isFunc(aType)) {
+          const result = this._ensureMatch(aType, bType, comparison, `I can't compare ${displ(aType)} and ${displ(bType)} since they're different types.`)
+          if (types.isFunc(aType)) {
             this.checker.err(comparison, `I can't compare ${displ(aType)} because it's rather complicated to compare functions.`)
-          } else if (type !== ast.Compare.EQUAL && type !== ast.Compare.NEQ) {
-            if (!this.implements(aType, Implementation.Compare)) {
-              this.checker.err(comparison, `I can't compare ${displ(aType)} values.`)
+          }
+          // TODO: Custom comparisons?
+          if (type !== ast.Compare.EQUAL && type !== ast.Compare.NEQ) {
+            if (result && !(types.isInt(result) || types.isFloat(result))) {
+              this.checker.err(comparison, `I can't compare ${displ(result)} values.`)
             }
           }
         }
@@ -239,9 +299,7 @@ export class Scope extends Module {
         if (fnType) {
           if (types.isFunc(fnType)) {
             const { takes, returns } = fnType
-            if (type && !types.is(takes, type)) {
-              this.checker.err(param, `${displ(fnInitType)}'s argument #${argNum} takes ${displ(takes)}, not ${displ(type)}.`)
-            }
+            this._ensureMatch(takes, type, param, `${displ(fnInitType)}'s argument #${argNum} takes ${displ(takes)}, not ${displ(type)}.`)
             fnType = returns
           } else {
             this.checker.err(param, `${displ(fnInitType)} does not take an argument #${argNum}.`)
@@ -268,8 +326,8 @@ export class Scope extends Module {
     } else if (expression instanceof ast.If) {
       const [condType, exit] = this.getExprType(expression.condition)
       if (exit) exit(expression.condition, 'I\'ll never check the condition')
-      if (!types.isBool(condType)) {
-        this.checker.err(expression.condition, `The condition should return a boolean.`)
+      if (condType && !types.isBool(condType)) {
+        this.checker.err(expression.condition, `The condition should return a boolean, not a ${displ(condType)}.`)
       }
       const [ifTrueType, ifTrueExit] = this.getExprType(expression.then)
       if (expression.else) {
@@ -278,22 +336,23 @@ export class Scope extends Module {
         const neitherBranchNever = !types.isNever(ifTrueType) && !types.isNever(ifFalseType)
         if (!ifTrueType || !ifFalseType) {
           return [null, exit]
-        } else if (neitherBranchNever && !types.is(ifTrueType, ifFalseType)) {
-          this.checker.err(expression, `The types of either branch, ${displ(ifTrueType)} and ${displ(ifFalseType)}, are not the same.`)
-          return [null, exit]
-        }
-        // There may be good reason to have both branches exit, so we aren't
-        // warning here.
-        return [
-          ifTrueType && ifFalseType
+        } else if (neitherBranchNever) {
+          return [
+            this._ensureMatch(ifTrueType, ifFalseType, expression, `The types of either branch, ${displ(ifTrueType)} and ${displ(ifFalseType)}, are not the same.`),
+            exit
+          ]
+        } else {
+          return [
             // If both branches return, then the if-else's type shall be never.
-            ? (types.isNever(ifTrueType) ? ifFalseType : ifTrueType)
-            : null,
-          exit
-        ]
+            // There may be a good reason to have both branches exit, so we
+            // aren't warning about it here.
+            types.isNever(ifTrueType) ? ifFalseType : ifTrueType,
+            exit
+          ]
+        }
       } else {
         // TODO
-        this.checker.warn(expression, 'Unimplemented: I currently cannot return values from conditionals without an "else" branch.')
+        this.checker.warn(expression, 'Unimplemented: I currently cannot determine return values from conditionals without an "else" branch.')
         return [null]
       }
     } else if (expression instanceof ast.Identifier) {
@@ -321,21 +380,34 @@ export class Scope extends Module {
       }
       fnTypes.push(returnType)
       const [actualReturnType] = scope.getExprType(expression.body)
-      if (returnType && actualReturnType && !types.is(returnType, actualReturnType)) {
-        this.checker.err(expression.body, `The body of this function, which should return a ${displ(returnType)}, returns a ${displ(actualReturnType)}.`)
+      // This only checks the implicit return value of blocks (and expressions);
+      // explicit return statements are checked by the return statement, not
+      // here.
+      if (!types.isNever(actualReturnType)) {
+        this._ensureMatch(returnType, actualReturnType, expression.body, `The body of this function, which should return a ${displ(returnType)}, returns a ${displ(actualReturnType)}.`)
       }
       return [types.toFunc(fnTypes)]
     } else if (expression instanceof ast.For) {
-      const [iterable] = this.getExprType(expression.value)
-      const impl = this.implements(iterable, Implementation.Iterate)
-      const scope = this.newScope()
+      const [iterable, iterableExit] = this.getExprType(expression.value)
+      if (iterableExit) iterableExit(expression, 'I\'ll never iterate')
       const { name, type } = expression.var
+      const scope = this.newScope()
       scope.values.set(name, null)
-      if (impl) {
-        const [, iterated] = impl
+      // TODO: Implementing iteration protocol?
+      let iterated
+      if (iterable && (types.isInt(iterable) || types.isNumber(iterable))) {
+        if (types.isNumber(iterable)) {
+          this._resolveNumberAs(iterable, types.int())
+        }
+        iterated = types.int()
+      }
+      if (iterated) {
         const resolvedType = type && this.astToType(type)
         if (type) {
           if (types.is(iterated, resolvedType)) {
+            // Only set the type if everything is ok because I'm not sure if the
+            // user used the wrong iterable type or the wrong type declaration,
+            // and I don't want to give irrelevant errors.
             scope.values.set(name, iterated)
           } else if (resolvedType) {
             this.checker.err(expression.var, `Iterating over ${displ(iterable)} produces values of ${displ(iterated)}, not ${displ(resolvedType)}.`)
@@ -347,8 +419,9 @@ export class Scope extends Module {
       // The for loop will not warn about exits, so using the private method to
       // pass on the expression directly.
       const [bodyType, exit] = scope._getExprType(expression.body)
-      // TODO: generics???
-      return [bodyType && this.checker.global.defTypes.list, exit]
+      // TODO
+      this.checker.warn(expression, 'Unimplemented: I currently cannot determine return values from for loops.')
+      return [null, exit]
     } else if (expression instanceof ast.Block) {
       const scope = this.newScope()
       let exited = false
@@ -385,11 +458,14 @@ export class Scope extends Module {
     }
   }
 
-  // Wrapper method to check if
+  // Wrapper method to cache expression types
   getExprType (expression: ast.Expression): [NType, ((expr: ast.Base, message: string) => void)?] {
     const maybeType = this.checker.types.get(expression)
     if (maybeType !== undefined) return [maybeType]
     const [type, exit] = this._getExprType(expression)
+    if (types.isNumber(type)) {
+      type.addToResolve(expression)
+    }
     this.checker.types.set(expression, type)
     return [
       type,
@@ -424,9 +500,7 @@ export class Scope extends Module {
       if (exit) exit(statement, 'I will never create this variable')
       if (type) {
         const idealType = this.astToType(type)
-        if (resolvedType && !types.is(idealType, resolvedType)) {
-          this.checker.err(statement.value, `You set ${name}, which should be ${displ(idealType)}, to a value of ${displ(resolvedType)}`)
-        }
+        this._ensureMatch(idealType, resolvedType, statement.value, `You set ${name}, which should be ${displ(idealType)}, to a value of ${displ(resolvedType)}`)
         this.values.set(name, idealType)
       } else {
         this.values.set(name, types.isNever(resolvedType) ? null : resolvedType)
@@ -469,42 +543,5 @@ export class TopLevelScope extends Scope {
     this.types.set('Maybe', this.defTypes.maybe)
     this.types.set('Result', this.defTypes.result)
     this.types.set('Cmd', this.defTypes.cmd)
-
-    // Global implementations
-    // TODO: This isn't ideal.
-    this.implementations.set(types.int(), new Map([
-      [Implementation.Compare, [null, null]],
-      [Implementation.Iterate, [null, types.int()]],
-      [Implementation.Negate, [null, types.int()]],
-      [Implementation.Add, [types.int(), types.int()]],
-      [Implementation.Subtract, [types.int(), types.int()]],
-      [Implementation.Multiply, [types.int(), types.int()]],
-      [Implementation.Divide, [types.int(), types.int()]],
-      [Implementation.Modulo, [types.int(), types.int()]],
-      // Negative powers can lead to
-      [Implementation.Exponent, [types.int(), types.float()]],
-      [Implementation.And, [types.int(), types.int()]],
-      [Implementation.Or, [types.int(), types.int()]],
-      [Implementation.Not, [null, types.int()]],
-    ]))
-    this.implementations.set(types.float(), new Map([
-      [Implementation.Compare, [null, null]],
-      [Implementation.Negate, [null, types.float()]],
-      [Implementation.Add, [types.float(), types.float()]],
-      [Implementation.Subtract, [types.float(), types.float()]],
-      [Implementation.Multiply, [types.float(), types.float()]],
-      [Implementation.Divide, [types.float(), types.float()]],
-      [Implementation.Modulo, [types.float(), types.float()]],
-      [Implementation.Exponent, [types.float(), types.float()]],
-    ]))
-    this.implementations.set(types.string(), new Map([
-      [Implementation.Add, [types.string(), types.string()]],
-      [Implementation.Multiply, [types.int(), types.string()]],
-    ]))
-    this.implementations.set(types.bool(), new Map([
-      [Implementation.And, [types.bool(), types.bool()]],
-      [Implementation.Or, [types.bool(), types.bool()]],
-      [Implementation.Not, [null, types.bool()]],
-    ]))
   }
 }
