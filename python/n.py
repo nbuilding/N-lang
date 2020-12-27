@@ -127,7 +127,7 @@ class TypeCheckError:
 binary_operation_types = {
 	"OR": { ("bool", "bool"): "bool", ("int", "int"): "int" },
 	"AND": { ("bool", "bool"): "bool", ("int", "int"): "int" },
-	"ADD": { ("int", "int"): "int", ("float", "float"): "float", ("str", "str"): "str" },
+	"ADD": { ("int", "int"): "int", ("float", "float"): "float", ("str", "str"): "str", ("char", "char"): "str"},
 	"SUBTRACT": { ("int", "int"): "int", ("float", "float"): "float" },
 	"MULTIPLY": { ("int", "int"): "int", ("float", "float"): "float" },
 	"DIVIDE": { ("int", "int"): "int", ("float", "float"): "float" },
@@ -327,6 +327,20 @@ class Scope:
 				return -self.eval_expr(value)
 			else:
 				raise SyntaxError("Unexpected operation for unary_expression: %s" % operation)
+		elif expr.data == "char":
+			val = expr.children[0]
+			if type(val) == lark.Tree:
+				code = val.children[0].value
+				if code == "n":
+					return "\n"
+				elif code == "t":
+					return "\t"
+				elif code == "r":
+					return "\r"
+				else:
+					raise SyntaxError("Unexpected escape code: %s" % code)
+			else:
+				return val.value
 		elif expr.data == "value":
 			token_or_tree = expr.children[0]
 			if type(token_or_tree) is lark.Tree:
@@ -388,6 +402,12 @@ class Scope:
 		return (False, None)
 
 	def get_value_type(self, value):
+		if type(value) == lark.Tree:
+			if value.data == "char":
+				if type(value.children[0]) == lark.Tree:
+					if value.children[0].children[0].value not in ["n", "r", "t"]:
+						errors.append(TypeCheckError(value, "Escape code \\%s not allowed." % value.children[0].value))
+				return "char"
 		if value.type == "NUMBER":
 			# TODO: We should return a generic `number` type and then try to
 			# figure it out later.
@@ -505,10 +525,12 @@ class Scope:
 		elif expr.data == "value":
 			token_or_tree = expr.children[0]
 			if type(token_or_tree) is lark.Tree:
-				return self.type_check_expr(token_or_tree)
+				if token_or_tree.data != "char":
+					return self.type_check_expr(token_or_tree)
+				else:
+					return self.get_value_type(token_or_tree)
 			else:
 				return self.get_value_type(token_or_tree)
-
 		if len(expr.children) == 2 and type(expr.children[0]) is lark.Token:
 			operation, value = expr.children
 			types = unary_operation_types.get(operation.type)

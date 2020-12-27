@@ -40,6 +40,10 @@ if false {
 	print "test of a thing"
 }
 
+var ch:char = \n
+
+print ch
+
 <main test1 eee>
 <fek.paer "test">
 print (<fek.paer "test">)
