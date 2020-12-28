@@ -148,16 +148,20 @@ def display_type(n_type):
 		return Fore.YELLOW + n_type + Style.RESET_ALL
 	elif isinstance(n_type, tuple):
 		return Fore.YELLOW + ' -> '.join(n_type) + Style.RESET_ALL
+	elif isinstance(n_type, list):
+		return Fore.YELLOW + '(' + ', '.join(n_type) + ')' + Style.RESET_ALL
 	else:
-		print('display_type was given a value that is neither a string nor a tuple.', n_type)
+		print('display_type was given a value that is neither a string nor a tuple nor a list.', n_type)
 		return Fore.RED + '???' + Style.RESET_ALL
 
 def get_name_type(name_type):
 	if len(name_type.children) == 1:
 		return name_type.children[0].value, 'infer'
 	else:
-		name, type = name_type.children
-		return name.value, type.value
+		name, ty = name_type.children
+		if type(ty) == lark.Tree:
+			return name.value, ty.children
+		return name.value, ty.value
 
 class Scope:
 	def __init__(self, parent=None, parent_function=None, errors=[], warnings=[], imports=[]):
@@ -347,6 +351,8 @@ class Scope:
 				return self.eval_expr(token_or_tree)
 			else:
 				return self.eval_value(token_or_tree)
+		elif expr.data == "tupleval":
+			return tuple([self.eval_expr(e) for e in expr.children])
 		else:
 			print('(parse tree):', expr)
 			raise SyntaxError("Unexpected command/expression type %s" % expr.data)
@@ -592,6 +598,8 @@ class Scope:
 				# for sure that comparison operators return a boolean.
 				return 'bool'
 
+		elif expr.data == "tupleval":
+			return [self.type_check_expr(e) for e in expr.children]
 		self.errors.append(TypeCheckError(expr, "Internal problem: I don't know the command/expression type %s." % expr.data))
 		return None
 
@@ -659,7 +667,15 @@ class Scope:
 				if ty == 'infer':
 					ty = value_type
 				else:
-					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(type), display_type(value_type))))
+					typ = ty
+					if type(typ) == list:
+						typ = []
+						for t in ty:
+							if type(t) is lark.Token:
+								typ.append(t.value)
+							else:
+								typ.append(t)
+					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(typ), display_type(value_type))))
 			self.variables[name] = Variable(ty, "whatever")
 		elif command.data == "if":
 			condition, body = command.children

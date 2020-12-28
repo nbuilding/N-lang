@@ -42,7 +42,13 @@ if false {
 
 var ch:char = \n
 
+var tup:(int, str) = (1, eee)
+
+print tup
+
 print ch
+
+print (0.1 + 0.2 == 0.3)
 
 <main test1 eee>
 <fek.paer "test">
