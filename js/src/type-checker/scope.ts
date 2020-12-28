@@ -131,7 +131,7 @@ export class Scope extends Module {
       this._resolveNumberAs(a, b)
       return b
     } else {
-      this.checker.warn(base, message)
+      this.checker.err(base, message)
       return null
     }
   }

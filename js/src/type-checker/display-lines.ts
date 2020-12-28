@@ -1,3 +1,6 @@
+import { ParseOptions, parse } from '../grammar/parse'
+import { Block } from '../grammar/ast'
+
 export class FileLines {
   name: string
   lines: string[]
@@ -11,5 +14,9 @@ export class FileLines {
 
   getLine (line: number): string {
     return this.lines[line - 1] || ''
+  }
+
+  parse (options: ParseOptions = {}): Block {
+    return parse(this.lines.join('\n'), options)
   }
 }

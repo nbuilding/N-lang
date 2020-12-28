@@ -4,7 +4,17 @@ import grammar from './n-lang.grammar'
 import { Block } from './ast'
 import assert from 'assert'
 
-interface ParseOptions {
+export class ParseError extends SyntaxError {
+  results: any[]
+
+  constructor (results: any[], message: string) {
+    super(message)
+    this.name = this.constructor.name
+    this.results = results
+  }
+}
+
+export interface ParseOptions {
   ambiguityOutput?: 'omit' | 'object' | 'string'
 }
 
@@ -13,7 +23,7 @@ export function parse (script: string, { ambiguityOutput = 'omit' }: ParseOption
   parser.feed(script)
   const [result, ...ambiguities] = parser.results
   if (!result) {
-    throw new SyntaxError('Unexpected end of input.')
+    throw new ParseError(parser.results, 'Unexpected end of input.')
   }
   if (ambiguities.length) {
     try {
@@ -37,7 +47,7 @@ export function parse (script: string, { ambiguityOutput = 'omit' }: ParseOption
         break
       }
     }
-    throw new SyntaxError(`You've discovered an ambiguity in the grammar!\n\n${results}\n\n(${parser.results.length} items)`)
+    throw new ParseError(parser.results, `You've discovered an ambiguity in the grammar!\n\n${results}\n\n(${parser.results.length} items)`)
   }
   return result
 }

@@ -1,6 +1,6 @@
 import * as monaco from 'monaco-editor'
 import { saveAs } from 'file-saver'
-import { parse, compileToJS, FileLines, TypeChecker } from 'n-lang'
+import { compileToJS, FileLines, TypeChecker } from 'n-lang'
 
 import './n-lang/index'
 import './error'
@@ -8,6 +8,7 @@ import materialTheme from './monaco-material-theme'
 import defaultCode from './default-code'
 
 import './style.css'
+import { displayDiagnostics } from './n-lang/diagnostics'
 
 function getElement (id: string): HTMLElement {
   const element = document.getElementById(id)
@@ -44,6 +45,11 @@ const editor = monaco.editor.create(getElement('container'), {
   tabCompletion: 'on',
 })
 
+const editorModel = editor.getModel()
+if (editorModel) {
+  displayDiagnostics(editorModel)
+}
+
 const log = monaco.editor.create(getElement('log'), {
   theme: 'material',
   readOnly: true,
@@ -71,19 +77,27 @@ function run () {
     }
     log.setValue('')
     const code = editor.getValue()
-    const ast = parse(code, {
+    const lines = new FileLines(code, 'run.n')
+    const ast = lines.parse({
       ambiguityOutput: 'string'
     })
-    const lines = new FileLines(code, 'run.n')
     const checker = new TypeChecker({
       colours: false
     })
     checker.check(ast)
-    log.setValue(log.getValue() + checker.displayWarnings(lines) + '\n')
-    const compiled = compileToJS(ast, checker.types, {
-      print: '__addToLog'
-    })
-    ;(null, eval)(compiled)
+    if (checker.errors.length || checker.warnings.length) {
+      log.setValue(log.getValue() + checker.displayWarnings(lines) + '\n')
+    }
+    if (checker.errors.length) {
+      if (logModel) {
+        monaco.editor.setModelLanguage(logModel, 'error')
+      }
+    } else {
+      const compiled = compileToJS(ast, checker.types, {
+        print: '__addToLog'
+      })
+      ;(null, eval)(compiled)
+    }
   } catch (err) {
     console.error(err)
     log.setValue(log.getValue() + err.stack + '\n')

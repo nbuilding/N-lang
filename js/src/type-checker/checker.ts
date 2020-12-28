@@ -8,7 +8,7 @@ import { FileLines } from './display-lines'
 
 export { FileLines }
 
-interface Warning {
+export interface Warning {
   base: ast.Base
   message: string
   options?: WarningOptions
@@ -23,7 +23,7 @@ enum WarningType {
   Warning,
 }
 
-interface CheckerOptions {
+export interface CheckerOptions {
   colours?: boolean
 }
 
@@ -94,7 +94,7 @@ export class TypeChecker {
           lines += colours.bold(colours.cyan(`${l.toString().padStart(file.lineNumWidth, ' ')} | `))
             + text
         } else {
-          lines += `${line.toString().padStart(file.lineNumWidth, ' ')} | ${lineContent}`
+          lines += `${l.toString().padStart(file.lineNumWidth, ' ')} | ${lineContent}`
         }
         if (l < endLine) {
           lines += '\n'

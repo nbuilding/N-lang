@@ -30,7 +30,15 @@ module.exports = {
     ],
   },
   resolve: {
-    extensions: [ '.tsx', '.ts', '.js' ],
+    extensions: ['.tsx', '.ts', '.js'],
+    symlinks: true,
+    alias: {
+      'n-lang': path.resolve(__dirname, '../js/src/'),
+      // Ignore some Node modules
+      'util': false,
+      'assert': false,
+      'colors/safe': false,
+    },
   },
   plugins: [
     new MonacoWebpackPlugin(),
@@ -42,8 +50,5 @@ module.exports = {
   ],
   devServer: {
     contentBase: path.join(__dirname, 'dist'),
-  },
-  resolve: {
-    symlinks: true,
   },
 }

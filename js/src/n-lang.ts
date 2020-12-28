@@ -4,7 +4,6 @@ import fs from 'fs/promises'
 import util from 'util'
 import parseArgs from 'minimist'
 import { compileToJS } from './compiler/to-js'
-import { parse } from './grammar/parse'
 import { FileLines, TypeChecker } from './type-checker/checker'
 
 async function main () {
@@ -48,7 +47,8 @@ async function main () {
   const running = run || !(ast || repr || js || checksOnly)
 
   const file = await fs.readFile(fileName, 'utf8')
-  const script = parse(file, {
+  const lines = new FileLines(file, fileName)
+  const script = lines.parse({
     ambiguityOutput
   })
   if (ast) console.log(util.inspect(script, false, null, true))
@@ -56,7 +56,6 @@ async function main () {
 
   if (!(js || running || checksOnly)) return
 
-  const lines = new FileLines(file, fileName)
   const checker = new TypeChecker({
     colours: true
   })

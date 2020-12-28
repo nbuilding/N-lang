@@ -4,7 +4,7 @@ export const configuration: monaco.languages.LanguageConfiguration = {
   // the default separators except `@$`
   wordPattern: /(-?\d*\.\d\w*)|([^\`\~\!\#\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g,
   comments: {
-    lineComment: ';'
+    lineComment: '//'
   },
   brackets: [
     ['{', '}'],
@@ -26,11 +26,6 @@ export const configuration: monaco.languages.LanguageConfiguration = {
     { open: '<', close: '>' },
     { open: '"', close: '"' },
   ],
-  indentationRules: {
-    increaseIndentPattern: /^\s*>/,
-    decreaseIndentPattern: /^\s*</,
-    indentNextLinePattern: /(?:\b(?:then|else|print)|->|\w\s*<)\s*$/,
-  },
 }
 
 // Create your own language definition here

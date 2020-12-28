@@ -47,7 +47,7 @@ export function provideCompletionItems (
       range: range,
     },
     {
-      label: 'loop',
+      label: 'for',
       kind: monaco.languages.CompletionItemKind.Snippet,
       insertText: [
         'for ${1:i} ${2:10} {',
@@ -59,7 +59,7 @@ export function provideCompletionItems (
       range: range,
     },
     {
-      label: 'define',
+      label: 'function',
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: [
         'var ${1:function} = [${2:arg: type}] -> ${4:type} : {',
