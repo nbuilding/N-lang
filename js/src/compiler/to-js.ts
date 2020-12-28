@@ -1,5 +1,5 @@
 import * as ast from '../grammar/ast'
-import NType from '../type-checker/n-type'
+import NType, * as types from '../type-checker/n-type'
 import { displayType } from '../utils/display-type'
 
 const modules: { [key: string]: string } = {
@@ -13,11 +13,15 @@ function __module(module) {
   module(exports);
   return exports;
 }
-function __intDivide(a, b) {
-  return Math.floor(a / b);
-}
 function __modulo(a, b) {
   return (a % b + b) % b;
+}
+function __intPow(base, power) {
+  if (power < 0) {
+    return 0;
+  } else {
+    return Math.pow(base, power);
+  }
 }
 function __never() {
   throw new Error("This error should never have been thrown! This is a bug with the compiler.")
@@ -68,8 +72,8 @@ __nativeModules.future = __module(function (exports) {
 }
 
 const jsOperations: { [operation in ast.Operator]: string } = {
-  [ast.Operator.AND]: '&&',
-  [ast.Operator.OR]: '||',
+  [ast.Operator.AND]: '&',
+  [ast.Operator.OR]: '|',
   [ast.Operator.ADD]: '+',
   [ast.Operator.MINUS]: '-',
   [ast.Operator.MULTIPLY]: '*',
@@ -173,14 +177,67 @@ class JSCompiler {
 
   expressionToJS (expression: ast.Expression): CompiledExpression {
     if (expression instanceof ast.Literal) {
+      const type = this.types.get(expression)
       return {
-        expression: expression.toString(),
+        expression: this.options.useBigInt && type && types.isInt(type)
+          ? expression + 'n'
+          : expression.toString(),
         statements: [],
       }
     } else if (expression instanceof ast.Operation) {
+      const type = this.types.get(expression)
       const { expression: a, statements: aStmts } = this.expressionToJS(expression.a)
       const { expression: b, statements: bStmts } = this.expressionToJS(expression.b)
+      if (expression.type === ast.Operator.AND || expression.type === ast.Operator.OR) {
+        if (type && types.isBool(type)) {
+          const varName = this.uid('bool')
+          let statements
+          if (expression.type === ast.Operator.AND) {
+            statements = [
+              `var ${varName} = ${a};`,
+              `if (${varName}) `+ statementsToBlock([
+                ...bStmts,
+                `${varName} = ${b};`
+              ])
+            ]
+          } else {
+            statements = [
+              `var ${varName} = ${a};`,
+              `if (!${varName}) `+ statementsToBlock([
+                ...bStmts,
+                `${varName} = ${b};`
+              ])
+            ]
+          }
+          return {
+            expression: varName,
+            statements: [
+              ...aStmts,
+              ...statements
+            ]
+          }
+        }
+      }
       const statements = [...aStmts, ...bStmts]
+      if (type && types.isInt(type)) {
+        if (expression.type === ast.Operator.EXPONENT) {
+          return { expression: `__intPow(${a}, ${b})`, statements }
+        } else if (expression.type === ast.Operator.DIVIDE) {
+          if (this.options.useBigInt) {
+            return { expression: `${b} !== 0n ? ${a} / ${b} : 0n`, statements }
+          } else {
+            return { expression: `${b} !== 0 ? Math.trunc(${a} / ${b}) : 0`, statements }
+          }
+        }
+      } else if (type && types.isString(type) && expression.type === ast.Operator.MULTIPLY) {
+        const aType = this.types.get(expression.a)
+        return {
+          expression: aType && types.isString(aType)
+            ? `${a}.repeat(${b})`
+            : `${b}.repeat(${a})`,
+          statements
+        }
+      }
       const operator = jsOperations[expression.type]
       if (operator.startsWith('@')) {
         return { expression: `${operator.slice(1)}(${a}, ${b})`, statements }
@@ -188,9 +245,14 @@ class JSCompiler {
         return { expression: `(${a} ${operator} ${b})`, statements }
       }
     } else if (expression instanceof ast.UnaryOperation) {
+      const type = this.types.get(expression)
       const { expression: compiled, statements } = this.expressionToJS(expression.value)
       return {
-        expression: `(${jsUnaryOperators[expression.type]}${compiled})`,
+        expression: expression.type === ast.UnaryOperator.NEGATE
+          ? `(${jsUnaryOperators[expression.type]}${compiled})`
+          : type && types.isBool(type)
+          ? `(!${compiled})`
+          : `(~${compiled})`,
         statements,
       }
     } else if (expression instanceof ast.Comparisons) {
@@ -224,7 +286,7 @@ class JSCompiler {
         statements: [
           ...statements,
           `var ${varName} = ${value};`,
-          `console.log(${varName});`,
+          `${this.options.print || 'console.log'}(${varName});`,
         ],
       }
     } else if (expression instanceof ast.Return) {

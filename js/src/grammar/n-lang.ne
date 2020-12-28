@@ -35,9 +35,9 @@ const lexer = moo.compile({
 	lbracket: ['{', '[', '(', '<'],
 	rbracket: ['}', ']', ')', '>'],
 	semicolon: ';',
-	number: /-?\d+/,
-	float: /-?(?:\d+\.\d*|\.\d+)/,
 	identifier: /[a-zA-Z]\w*/,
+	float: /-?(?:\d+\.\d*|\.\d+)/,
+	number: /-?\d+/,
 	string: {
 		match: /"(?:[^\r\n\\"]|\\[nrtv0fb"\\]|u\{[0-9a-fA-F]+\})*"/,
 		value: string => string

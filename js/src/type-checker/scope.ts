@@ -267,7 +267,14 @@ export class Scope extends Module {
       if (exit) this.warnExit(exit, expression, `I'll never perform this ${ast.unaryOperatorToString(expression.type)} operation`)
       let returnType
       // TODO: Operator overloading?
-      if (types.isInt(type)) {
+      if (types.isNumber(type)) {
+        if (expression.type === ast.UnaryOperator.NEGATE) {
+          returnType = type
+        } else if (expression.type === ast.UnaryOperator.NOT) {
+          this._resolveNumberAs(type, types.int())
+          returnType = types.int()
+        }
+      } else if (types.isInt(type)) {
         if ([
           ast.UnaryOperator.NEGATE,
           ast.UnaryOperator.NOT,
@@ -384,7 +391,7 @@ export class Scope extends Module {
           ]
         }
       } else {
-        if (context.asStatement) {
+        if (!context.asStatement) {
           // TODO
           this.checker.warn(expression, 'Unimplemented: I currently cannot determine return values from conditionals without an "else" branch.')
         }
@@ -461,8 +468,10 @@ export class Scope extends Module {
         asStatement: context.asStatement
       })
       scope.endScope()
-      // TODO
-      this.checker.warn(expression, 'Unimplemented: I currently cannot determine return values from for loops.')
+      if (!context.asStatement) {
+        // TODO
+        this.checker.warn(expression, 'Unimplemented: I currently cannot determine return values from for loops.')
+      }
       return [null, exit]
     } else if (expression instanceof ast.Block) {
       const scope = this.newScope()

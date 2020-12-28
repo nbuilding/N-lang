@@ -1,18 +1,6 @@
-var test = [a:int] -> float {
-  {
-    var six = 6
-    six
-  }
-  var seven = 7
-  if seven = 7 {
-    if a = 3 {
-      print "wow"
-    } else {
-      print a
-    }
-  } else {
-    print 6
-  }
-  return seven + 7
-}
-print <test 3>
+print "wow" * 5 * 4
+print 3 * "apple"
+var a: int = 1 / 0
+var b: int = 0/0
+print a
+print b
