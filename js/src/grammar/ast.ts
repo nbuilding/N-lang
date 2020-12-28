@@ -73,18 +73,43 @@ interface BasePosition {
   endLine: number
   endCol: number
 }
+function posHas (
+  { line: startLine, col: startCol, endLine, endCol }: BasePosition,
+  line: number,
+  col: number,
+): boolean {
+  return line > startLine && line < endLine
+    || line === startLine && col >= startCol
+    || line === endLine && col <= endCol
+}
 
 export class Base {
   line: number
   col: number
   endLine: number
   endCol: number
+  children: Base[]
 
-  constructor ({ line, col, endLine, endCol }: BasePosition) {
+  constructor ({ line, col, endLine, endCol }: BasePosition, children: Base[] = []) {
     this.line = line
     this.col = col
     this.endLine = endLine
     this.endCol = endCol
+    this.children = children
+  }
+
+  find (line: number, col: number): Base[] {
+    if (posHas(this, line, col)) {
+      const bases: Base[] = [this]
+      for (const base of this.children) {
+        if (posHas(base, line, col)) {
+          bases.push(...base.find(line, col))
+        }
+      }
+      return bases
+    } else {
+      return []
+    }
   }
 
   static fromAny (pos: BasePosition, _: NearleyArgs): Base {
@@ -96,7 +121,7 @@ export class Block extends Base {
   statements: Statement[]
 
   constructor (pos: BasePosition, statements: Statement[] = []) {
-    super(pos)
+    super(pos, statements)
     this.statements = statements
   }
 
@@ -153,7 +178,7 @@ export class VarStmt extends Base {
   value: Expression
 
   constructor (pos: BasePosition, decl: Declaration, expr: Expression) {
-    super(pos)
+    super(pos, [decl, expr])
     this.declaration = decl
     this.value = expr
   }
@@ -183,7 +208,7 @@ export class Function extends Base {
     returnType: Type,
     body: Expression,
   ) {
-    super(pos)
+    super(pos, [...params, returnType, body])
     this.params = params
     this.returnType = returnType
     this.body = body
@@ -238,7 +263,7 @@ export class For extends Base {
     decl: Declaration,
     body: Expression,
   ) {
-    super(pos)
+    super(pos, [value, decl, body])
     this.value = value
     this.var = decl
     this.body = body
@@ -261,7 +286,7 @@ export class Declaration extends Base {
   type: Type | null
 
   constructor (pos: BasePosition, name: string, type: Type | null) {
-    super(pos)
+    super(pos, type ? [type] : [])
     this.name = name
     this.type = type
   }
@@ -386,7 +411,7 @@ export class Comparison extends Base {
       col: a.col,
       endLine: b.endLine,
       endCol: b.endCol,
-    })
+    }, [a, b])
     this.type = type
     this.a = a
     this.b = b
@@ -397,7 +422,7 @@ export class Comparisons extends Base {
   comparisons: Comparison[]
 
   constructor (pos: BasePosition, comparisons: Comparison[]) {
-    super(pos)
+    super(pos, comparisons)
     this.comparisons = comparisons
   }
 
@@ -475,7 +500,7 @@ export class Operation extends Base {
     expr: Expression,
     val: Expression,
   ) {
-    super(pos)
+    super(pos, [expr, val])
     this.type = operator
     this.a = expr
     this.b = val
@@ -512,7 +537,7 @@ export class UnaryOperation extends Base {
   value: Expression
 
   constructor (pos: BasePosition, operator: UnaryOperator, value: Expression) {
-    super(pos)
+    super(pos, [value])
     this.type = operator
     this.value = value
   }
@@ -539,7 +564,7 @@ export class CallFunc extends Base {
     value: Expression,
     params: Expression[],
   ) {
-    super(pos)
+    super(pos, [value, ...params])
     this.func = value
     this.params = params
   }
@@ -566,7 +591,7 @@ export class Print extends Base {
   value: Expression
 
   constructor (pos: BasePosition, expr: Expression) {
-    super(pos)
+    super(pos, [expr])
     this.value = expr
   }
 
@@ -585,7 +610,7 @@ export class Return extends Base {
   value: Expression
 
   constructor (pos: BasePosition, expr: Expression) {
-    super(pos)
+    super(pos, [expr])
     this.value = expr
   }
 
@@ -611,7 +636,7 @@ export class If extends Base {
     statement: Expression,
     maybeElse?: Expression
   ) {
-    super(pos)
+    super(pos, [condition, statement, ...(maybeElse ? [maybeElse] : [])])
     this.condition = condition
     this.then = statement
     this.else = maybeElse

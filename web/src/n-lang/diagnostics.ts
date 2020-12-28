@@ -1,5 +1,6 @@
 import * as monaco from 'monaco-editor'
 import { FileLines, TypeChecker, Warning, ParseError } from 'n-lang'
+import { Block } from 'n-lang/src/grammar/ast'
 
 function toMarker (
   warning: Warning,
@@ -19,11 +20,12 @@ function toMarker (
 // https://github.com/rcjsuen/dockerfile-language-service/blob/fb40a5d1504a8270cd21a533403d5bd7a0734a63/example/src/client.ts#L236-L252
 export function displayDiagnostics (model: monaco.editor.ITextModel) {
   let lastDiagnosticMarkers: monaco.editor.IMarkerData[] = []
+  let file: FileLines, ast: Block, checker: TypeChecker
   function showDiagnostics () {
-    const file = new FileLines(model.getValue())
+    file = new FileLines(model.getValue())
     try {
-      const ast = file.parse()
-      const checker = new TypeChecker({
+      ast = file.parse()
+      checker = new TypeChecker({
         colours: false
       })
       checker.check(ast)
