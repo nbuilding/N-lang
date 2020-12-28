@@ -7,9 +7,9 @@ var main = [test:int test1:str] -> bool {
 	print test1
 	// if test1 == hi {return true}
 	return false
-}
+} 
 
-for i 100 {
+for i 10 {
 	var n:int = i + 1
 	print
 		(if n % 3 == 0 && n % 5 == 0 {
