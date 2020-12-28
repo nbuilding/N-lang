@@ -1,1 +1,18 @@
-print "test\q"
+var test = [a:int] -> float {
+  {
+    var six = 6
+    six
+  }
+  var seven = 7
+  if seven = 7 {
+    if a = 3 {
+      print "wow"
+    } else {
+      print a
+    }
+  } else {
+    print 6
+  }
+  return seven + 7
+}
+print <test 3>

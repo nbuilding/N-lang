@@ -6,6 +6,7 @@ import * as ast from './ast'
 
 const {
 	from,
+	includeBrackets,
 	Operation: { operation },
 	UnaryOperation: { operation: unaryOperation },
 } = ast
@@ -130,9 +131,9 @@ value -> modIdentifier {% id %}
 
 # Separate rule here to allow a special case for print/return to not have a
 # space between the keyword and a bracket
-bracketedValue -> "(" _ expression _ ")" {% ([, , expr]) => expr %}
+bracketedValue -> "(" _ expression _ ")" {% includeBrackets %}
 	| functionCall {% id %}
-	| "{" _ block _ "}" {% ([, , block]) => block %}
+	| "{" _ block _ "}" {% includeBrackets %}
 
 # identifier [...parameters]
 functionCall -> "<" _ value (__ value):* _ ">" {% from(ast.CallFunc) %}

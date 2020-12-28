@@ -51,7 +51,9 @@ export class TypeChecker {
   }
 
   check (ast: ast.Block) {
-    this.global.checkStatementType(ast)
+    const scope = this.global.newScope()
+    scope.checkStatementType(ast)
+    scope.endScope()
   }
 
   getModule (moduleName: string): Module | undefined {
@@ -59,9 +61,6 @@ export class TypeChecker {
   }
 
   displayType (type: NType): string {
-    if (type === null) {
-      console.warn(new Error('Received an error type, which should never happen.'))
-    }
     if (this.options.colours) {
       return colours.yellow(display(type))
     } else {
@@ -101,7 +100,7 @@ export class TypeChecker {
           lines += '\n'
         }
       }
-      return lines
+      return header + lines
     }
   }
 
@@ -123,7 +122,7 @@ export class TypeChecker {
     }
     output += `: ${message}\n${this.displayBase(file, base)}`
     if (options.exit) {
-      output += '\n' + ' '.repeat(file.lineNumWidth + 1) + 'The function exits here:\n'
+      output += '\n The function exits here:\n'
         + this.displayBase(file, options.exit)
     }
     return output

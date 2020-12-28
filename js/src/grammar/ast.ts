@@ -11,7 +11,7 @@ function shouldBeNearleyArgs (value: any): asserts value is NearleyArgs {
   }
 }
 
-interface FromAnyable<T> {
+interface FromAnyable<T extends Base> {
   fromAny (pos: BasePosition, args: NearleyArgs): T
 }
 
@@ -31,7 +31,7 @@ function getNonNullArgs (args: NearleyArgs): (Base | moo.Token)[] {
   return nonNullArgs
 }
 
-export function from<T> (fromAnyable: FromAnyable<T>) {
+export function from<T extends Base> (fromAnyable: FromAnyable<T>) {
   function preprocessor (args: any[], _loc?: number, _reject?: {}): T {
     shouldBeNearleyArgs(args)
     const nonNullArgs = getNonNullArgs(args)
@@ -46,12 +46,26 @@ export function from<T> (fromAnyable: FromAnyable<T>) {
       endCol = lastTokenOrBase.endCol
     } else {
       endLine = lastTokenOrBase.line + lastTokenOrBase.lineBreaks
-      endCol = lastTokenOrBase.col + lastTokenOrBase.text.length // TODO: This doesn't deal with line breaks!
+      const lastLine = lastTokenOrBase.text.includes('\n')
+        ? lastTokenOrBase.text.slice(lastTokenOrBase.text.lastIndexOf('\n') + 1)
+        : lastTokenOrBase.text
+      endCol = lastTokenOrBase.col + lastLine.length
     }
     return fromAnyable.fromAny({ line, col, endLine, endCol }, args)
   }
   return preprocessor
 }
+
+export const includeBrackets = from({
+  fromAny ({ line, col, endLine, endCol }: BasePosition, [, , base]: NearleyArgs): Base {
+    shouldBe(Base, base)
+    base.line = line
+    base.col = col
+    base.endLine = endLine
+    base.endCol = endCol
+    return base
+  }
+})
 
 interface BasePosition {
   line: number
@@ -274,7 +288,7 @@ function isType (value: any): value is Type {
 
 export type Expression = Literal | Operation | UnaryOperation | Comparisons
   | CallFunc | Print | Return | If | Identifier | Function | For | Block
-function isExpression (value: any): value is Expression {
+export function isExpression (value: any): value is Expression {
   return value instanceof Literal || value instanceof Operation ||
     value instanceof UnaryOperation || value instanceof Comparisons ||
     value instanceof CallFunc || value instanceof Print ||
