@@ -8,7 +8,7 @@ experience.
 
 ```sh
 # Install global dependencies
-npm install --global rollup ts-node
+npm install --global ts-node
 
 # Install more dependencies
 npm install

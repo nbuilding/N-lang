@@ -41,12 +41,7 @@ export function provideCompletionItems (
     {
       label: 'ifelse',
       kind: monaco.languages.CompletionItemKind.Keyword,
-      insertText: [
-        'if ${1:condition} then',
-        '\t$2',
-        'else',
-        '\t$0',
-      ].join('\n'),
+      insertText: 'if ${1:condition} {$2} else {$0}',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
       documentation: 'If-else expression',
       range: range,
@@ -55,9 +50,9 @@ export function provideCompletionItems (
       label: 'loop',
       kind: monaco.languages.CompletionItemKind.Snippet,
       insertText: [
-        '> loop ${1:10} ${2:i}: int |',
+        'for ${1:i} ${2:10} {',
         '\t$0',
-        '<',
+        '}',
       ].join('\n'),
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
       documentation: 'Loop statement',
@@ -67,9 +62,9 @@ export function provideCompletionItems (
       label: 'define',
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: [
-        '> ${1:myFunction} $2 ${3:-> $4 }|',
+        'var ${1:function} = [${2:arg: type}] -> ${4:type} : {',
         '\t$0',
-        '<',
+        '}',
       ].join('\n'),
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
       documentation: 'Define a function',
@@ -78,7 +73,7 @@ export function provideCompletionItems (
     {
       label: 'var',
       kind: monaco.languages.CompletionItemKind.Variable,
-      insertText: 'var ${1:name}: ${2:type} < ${3:value}',
+      insertText: 'var ${1:name}: ${2:type} = ${3:value}',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
       documentation: 'Declare a variable',
       range: range,

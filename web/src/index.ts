@@ -1,6 +1,6 @@
 import * as monaco from 'monaco-editor'
 import { saveAs } from 'file-saver'
-import { parse, compileToJS } from 'n-lang'
+import { parse, compileToJS, FileLines, TypeChecker } from 'n-lang'
 
 import './n-lang/index'
 import './error'
@@ -59,8 +59,7 @@ const log = monaco.editor.create(getElement('log'), {
 })
 
 function addToLog (value: any) {
-  const existingOutput = log.getValue()
-  log.setValue(existingOutput ? existingOutput + '\n' + value : value + '')
+  log.setValue(log.getValue() + value + '\n')
 }
 (window as any).__addToLog = addToLog
 
@@ -71,16 +70,23 @@ function run () {
       monaco.editor.setModelLanguage(logModel, '')
     }
     log.setValue('')
-    const ast = parse(editor.getValue(), {
+    const code = editor.getValue()
+    const ast = parse(code, {
       ambiguityOutput: 'string'
     })
-    const compiled = compileToJS(ast, {
+    const lines = new FileLines(code, 'run.n')
+    const checker = new TypeChecker({
+      colours: false
+    })
+    checker.check(ast)
+    log.setValue(log.getValue() + checker.displayWarnings(lines) + '\n')
+    const compiled = compileToJS(ast, checker.types, {
       print: '__addToLog'
     })
     ;(null, eval)(compiled)
   } catch (err) {
     console.error(err)
-    log.setValue(err.stack)
+    log.setValue(log.getValue() + err.stack + '\n')
     if (logModel) {
       monaco.editor.setModelLanguage(logModel, 'error')
     }

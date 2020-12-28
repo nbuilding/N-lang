@@ -8,16 +8,22 @@ export const configuration: monaco.languages.LanguageConfiguration = {
   },
   brackets: [
     ['{', '}'],
-    ['(', ')']
+    ['(', ')'],
+    ['[', ']'],
+    ['<', '>'],
   ],
   autoClosingPairs: [
     { open: '{', close: '}' },
     { open: '(', close: ')' },
-    { open: '"', close: '"' }
+    { open: '[', close: ']' },
+    { open: '<', close: '>' },
+    { open: '"', close: '"' },
   ],
   surroundingPairs: [
     { open: '{', close: '}' },
     { open: '(', close: ')' },
+    { open: '[', close: ']' },
+    { open: '<', close: '>' },
     { open: '"', close: '"' },
   ],
   indentationRules: {
@@ -35,16 +41,16 @@ export const language = <monaco.languages.IMonarchLanguage>{
   // defaultToken: 'invalid',
 
   keywords: [
-    'import', 'loop', 'var', 'return', 'if',
-    'then', 'else', 'print',
+    'import', 'for', 'var', 'return', 'if',
+    'else', 'print',
   ],
 
   typeKeywords: [
-    'int', 'str', 'bool',
+    'int', 'str', 'bool', 'float',
   ],
 
   operators: [
-    '->', '>=', '<=', '%', '//', '=', '>', '<', '&', '|', '+', '-',
+    '->', '>=', '<=', '%', '=', '>', '<', '&', '|', '+', '-',
     '*', '/', 'not',
   ],
 

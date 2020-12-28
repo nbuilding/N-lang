@@ -1,4 +1,5 @@
 import * as ast from '../grammar/ast'
+import NType from '../type-checker/n-type'
 import { displayType } from '../utils/display-type'
 
 const modules: { [key: string]: string } = {
@@ -95,6 +96,7 @@ function statementsToBlock (statements: string[]): string {
 
 interface CompilerOptions {
   print?: string
+  useBigInt?: boolean
 }
 
 interface CompiledExpression {
@@ -107,11 +109,13 @@ interface CompiledStatement {
 }
 
 class JSCompiler {
+  types: Map<ast.Base, NType>
   modules: Set<string>
   id: number
   options: CompilerOptions
 
-  constructor (options: CompilerOptions) {
+  constructor (types: Map<ast.Base, NType>, options: CompilerOptions) {
+    this.types = types
     this.modules = new Set(['_prelude'])
     this.id = 0
     this.options = options
@@ -338,6 +342,6 @@ class JSCompiler {
   }
 }
 
-export function compileToJS (script: ast.Block, options: CompilerOptions = {}): string {
-  return new JSCompiler(options).compile(script)
+export function compileToJS (script: ast.Block, types: Map<ast.Base, NType>, options: CompilerOptions = {}): string {
+  return new JSCompiler(types, options).compile(script)
 }
