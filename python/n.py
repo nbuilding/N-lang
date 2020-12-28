@@ -17,7 +17,7 @@ class Variable:
 class Function(Variable):
 	def __init__(self, scope, arguments, returntype, codeblock):
 		# Tuples represent function types. (a, b, c) represents a -> b -> c.
-		types = tuple([type for _, type in arguments] + [returntype])
+		types = tuple([ty for _, ty in arguments] + [returntype])
 		super(Function, self).__init__(types, self)
 
 		self.scope = scope
@@ -127,7 +127,7 @@ class TypeCheckError:
 binary_operation_types = {
 	"OR": { ("bool", "bool"): "bool", ("int", "int"): "int" },
 	"AND": { ("bool", "bool"): "bool", ("int", "int"): "int" },
-	"ADD": { ("int", "int"): "int", ("float", "float"): "float", ("str", "str"): "str" },
+	"ADD": { ("int", "int"): "int", ("float", "float"): "float", ("str", "str"): "str", ("char", "char"): "str"},
 	"SUBTRACT": { ("int", "int"): "int", ("float", "float"): "float" },
 	"MULTIPLY": { ("int", "int"): "int", ("float", "float"): "float" },
 	"DIVIDE": { ("int", "int"): "int", ("float", "float"): "float" },
@@ -148,16 +148,20 @@ def display_type(n_type):
 		return Fore.YELLOW + n_type + Style.RESET_ALL
 	elif isinstance(n_type, tuple):
 		return Fore.YELLOW + ' -> '.join(n_type) + Style.RESET_ALL
+	elif isinstance(n_type, list):
+		return Fore.YELLOW + '(' + ', '.join(n_type) + ')' + Style.RESET_ALL
 	else:
-		print('display_type was given a value that is neither a string nor a tuple.', n_type)
+		print('display_type was given a value that is neither a string nor a tuple nor a list.', n_type)
 		return Fore.RED + '???' + Style.RESET_ALL
 
 def get_name_type(name_type):
 	if len(name_type.children) == 1:
 		return name_type.children[0].value, 'infer'
 	else:
-		name, type = name_type.children
-		return name.value, type.value
+		name, ty = name_type.children
+		if type(ty) == lark.Tree:
+			return name.value, ty.children
+		return name.value, ty.value
 
 class Scope:
 	def __init__(self, parent=None, parent_function=None, errors=[], warnings=[], imports=[]):
@@ -327,12 +331,28 @@ class Scope:
 				return -self.eval_expr(value)
 			else:
 				raise SyntaxError("Unexpected operation for unary_expression: %s" % operation)
+		elif expr.data == "char":
+			val = expr.children[0]
+			if type(val) == lark.Tree:
+				code = val.children[0].value
+				if code == "n":
+					return "\n"
+				elif code == "t":
+					return "\t"
+				elif code == "r":
+					return "\r"
+				else:
+					raise SyntaxError("Unexpected escape code: %s" % code)
+			else:
+				return val.value
 		elif expr.data == "value":
 			token_or_tree = expr.children[0]
 			if type(token_or_tree) is lark.Tree:
 				return self.eval_expr(token_or_tree)
 			else:
 				return self.eval_value(token_or_tree)
+		elif expr.data == "tupleval":
+			return tuple([self.eval_expr(e) for e in expr.children])
 		else:
 			print('(parse tree):', expr)
 			raise SyntaxError("Unexpected command/expression type %s" % expr.data)
@@ -388,6 +408,12 @@ class Scope:
 		return (False, None)
 
 	def get_value_type(self, value):
+		if type(value) == lark.Tree:
+			if value.data == "char":
+				if type(value.children[0]) == lark.Tree:
+					if value.children[0].children[0].value not in ["n", "r", "t"]:
+						errors.append(TypeCheckError(value, "Escape code \\%s not allowed." % value.children[0].value))
+				return "char"
 		if value.type == "NUMBER":
 			# TODO: We should return a generic `number` type and then try to
 			# figure it out later.
@@ -505,10 +531,12 @@ class Scope:
 		elif expr.data == "value":
 			token_or_tree = expr.children[0]
 			if type(token_or_tree) is lark.Tree:
-				return self.type_check_expr(token_or_tree)
+				if token_or_tree.data != "char":
+					return self.type_check_expr(token_or_tree)
+				else:
+					return self.get_value_type(token_or_tree)
 			else:
 				return self.get_value_type(token_or_tree)
-
 		if len(expr.children) == 2 and type(expr.children[0]) is lark.Token:
 			operation, value = expr.children
 			types = unary_operation_types.get(operation.type)
@@ -570,6 +598,8 @@ class Scope:
 				# for sure that comparison operators return a boolean.
 				return 'bool'
 
+		elif expr.data == "tupleval":
+			return [self.type_check_expr(e) for e in expr.children]
 		self.errors.append(TypeCheckError(expr, "Internal problem: I don't know the command/expression type %s." % expr.data))
 		return None
 
@@ -596,18 +626,18 @@ class Scope:
 				self.errors.append(TypeCheckError(command.children[0], "Library %s not found to import." % command.children[0]))
 		elif command.data == "for":
 			var, iterable, code = command.children
-			name, type = get_name_type(var)
+			name, ty = get_name_type(var)
 			iterable_type = self.type_check_expr(iterable)
 			iterated_type = iterable_types.get(iterable_type)
 			if iterable_type is not None:
 				if iterated_type is None:
 					self.errors.append(TypeCheckError(iterable, "I can't loop over a %s." % display_type(iterable_type)))
-				elif type == 'infer':
-					type = iterated_type
-				elif type != iterated_type:
-					self.errors.append(TypeCheckError(type, "Looping over a %s produces %s values, not %s." % (display_type(iterable_type), display_type(iterated_type), display_type(type))))
+				elif ty == 'infer':
+					ty = iterated_type
+				elif ty != iterated_type:
+					self.errors.append(TypeCheckError(ty, "Looping over a %s produces %s values, not %s." % (display_type(iterable_type), display_type(iterated_type), display_type(ty))))
 			scope = self.new_scope()
-			scope.variables[name] = Variable(type, "whatever")
+			scope.variables[name] = Variable(ty, "whatever")
 			exit_point = False
 			for child in code.children:
 				exit = scope.type_check_command(child)
@@ -629,25 +659,43 @@ class Scope:
 			return command
 		elif command.data == "declare":
 			name_type, value = command.children
-			name, type = get_name_type(name_type)
+			name, ty = get_name_type(name_type)
 			if name in self.variables:
 				self.errors.append(TypeCheckError(name_type, "You've already defined `%s`." % name))
 			value_type = self.type_check_expr(value)
-			if value_type is not None and value_type != type:
-				if type == 'infer':
-					type = value_type
+			if value_type is not None and value_type != ty:
+				if ty == 'infer':
+					ty = value_type
 				else:
-					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(type), display_type(value_type))))
-			self.variables[name] = Variable(type, "whatever")
+					typ = ty
+					if type(typ) == list:
+						typ = []
+						for t in ty:
+							if type(t) is lark.Token:
+								typ.append(t.value)
+							else:
+								typ.append(t)
+					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(typ), display_type(value_type))))
+			self.variables[name] = Variable(ty, "whatever")
 		elif command.data == "if":
 			condition, body = command.children
 			cond_type = self.type_check_expr(condition)
+			if type(condition.children[0]) is lark.Token:
+				if condition.children[0].value == "true":
+					self.warnings.append(TypeCheckError(condition, "This will always run."))
+				if condition.children[0].value == "false":
+					self.warnings.append(TypeCheckError(condition, "This will never run."))
 			if cond_type is not None and cond_type != "bool":
 				self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
 			self.type_check_command(body)
 		elif command.data == "ifelse":
 			condition, if_true, if_false = command.children
 			cond_type = self.type_check_expr(condition)
+			if type(condition.children[0]) is lark.Token:
+				if condition.children[0].value == "true":
+					self.warnings.append(TypeCheckError(condition, "The else statement of the expression will never run."))
+				if condition.children[0].value == "false":
+					self.warnings.append(TypeCheckError(condition, "The if statement of the expression will never run."))
 			if cond_type is not None and cond_type != "bool":
 				self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
 			exit_if_true = self.type_check_command(if_true)
