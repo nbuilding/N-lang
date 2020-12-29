@@ -78,9 +78,16 @@ function posHas (
   line: number,
   col: number,
 ): boolean {
-  return line > startLine && line < endLine
-    || line === startLine && col >= startCol
-    || line === endLine && col <= endCol
+  if (line > startLine && line < endLine) {
+    return true
+  } else if (line === startLine) {
+    if (col < startCol) return false
+    return line === endLine ? col <= endCol : true
+  } else if (line === endLine) {
+    return col <= endCol
+  } else {
+    return false
+  }
 }
 
 export class Base {
@@ -100,12 +107,13 @@ export class Base {
 
   find (line: number, col: number): Base[] {
     if (posHas(this, line, col)) {
-      const bases: Base[] = [this]
+      const bases: Base[] = []
       for (const base of this.children) {
         if (posHas(base, line, col)) {
           bases.push(...base.find(line, col))
         }
       }
+      bases.push(this)
       return bases
     } else {
       return []

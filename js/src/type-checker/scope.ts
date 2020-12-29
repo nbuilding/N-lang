@@ -422,8 +422,10 @@ export class Scope extends Module {
         }
         scope.values.set(name, type)
         scope.unusedValues.set(name, declaration)
+        this.checker.types.set(declaration, type)
       }
       fnTypes.push(returnType)
+      this.checker.types.set(expression.returnType, returnType)
       const [actualReturnType] = scope.getExprType(expression.body, {
         functionBody: true
       })
@@ -450,16 +452,20 @@ export class Scope extends Module {
         iterated = types.int()
       }
       if (iterated) {
-        const resolvedType = type && this.astToType(type)
         if (type) {
+          const resolvedType = this.astToType(type)
           if (types.is(iterated, resolvedType)) {
             // Only set the type if everything is ok because I'm not sure if the
             // user used the wrong iterable type or the wrong type declaration,
             // and I don't want to give irrelevant errors.
             scope.values.set(name, iterated)
+            this.checker.types.set(expression.var, iterated)
           } else if (resolvedType) {
             this.checker.err(expression.var, `Iterating over ${displ(iterable)} produces values of ${displ(iterated)}, not ${displ(resolvedType)}.`)
           }
+        } else {
+          scope.values.set(name, iterated)
+          this.checker.types.set(expression.var, iterated)
         }
       } else if (iterable) {
         this.checker.err(expression.value, `I can't iterate over ${displ(iterable)}.`)
@@ -567,8 +573,11 @@ export class Scope extends Module {
         const idealType = this.astToType(type)
         this._ensureMatch(idealType, resolvedType, statement.value, `You set ${name}, which should be ${displ(idealType)}, to a value of ${displ(resolvedType)}`)
         this.values.set(name, idealType)
+        this.checker.types.set(statement.declaration, idealType)
       } else {
-        this.values.set(name, types.isNever(resolvedType) ? null : resolvedType)
+        const type = types.isNever(resolvedType) ? null : resolvedType
+        this.values.set(name, type)
+        this.checker.types.set(statement.declaration, type)
       }
       this.unusedValues.set(name, statement.declaration)
       return exit

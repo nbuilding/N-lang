@@ -19,19 +19,15 @@ function toMarker (
 
 // https://github.com/rcjsuen/dockerfile-language-service/blob/fb40a5d1504a8270cd21a533403d5bd7a0734a63/example/src/client.ts#L236-L252
 export function displayDiagnostics (watcher: Watcher) {
-  let lastDiagnosticMarkers: monaco.editor.IMarkerData[] = []
   function showDiagnostics () {
-    if (watcher.status.type === 'success') {
-      lastDiagnosticMarkers = [
-        ...watcher.checker.errors.map(error => toMarker(error, monaco.MarkerSeverity.Error)),
-        ...watcher.checker.warnings.map(warning => toMarker(warning, monaco.MarkerSeverity.Warning)),
-      ]
-      monaco.editor.setModelMarkers(watcher.model, 'n', lastDiagnosticMarkers)
-    } else {
+    const markers = watcher.lastSuccess ? [
+      ...watcher.checker.errors.map(error => toMarker(error, monaco.MarkerSeverity.Error)),
+      ...watcher.checker.warnings.map(warning => toMarker(warning, monaco.MarkerSeverity.Warning)),
+    ] : []
+    if (watcher.status.type !== 'success') {
       const { error: err } = watcher.status
       // Avoid losing errors in the middle of typing (where there'll be syntax
       // errors)
-      const markers = [...lastDiagnosticMarkers]
       if (err instanceof ParseError) {
         markers.push({
           severity: monaco.MarkerSeverity.Error,
@@ -59,7 +55,7 @@ export function displayDiagnostics (watcher: Watcher) {
           source: 'run.n',
         })
       } else if (err instanceof Error) {
-        const match = err.message.match(/invalid syntax at line (\d+) col (\d+)/)
+        const match = err.message.match(/(?:invalid syntax|Syntax error) at line (\d+) col (\d+)/)
         if (match) {
           const [, line, col] = match
           markers.push({
@@ -72,13 +68,13 @@ export function displayDiagnostics (watcher: Watcher) {
             source: 'run.n',
           })
         } else {
-          console.dir(err)
+          console.dir('Didn\'t match syntax error location finder', err)
         }
       } else {
         console.dir(err)
       }
-      monaco.editor.setModelMarkers(watcher.model, 'n', markers)
     }
+    monaco.editor.setModelMarkers(watcher.model, 'n', markers)
   }
   watcher.listen(showDiagnostics, true)
 }

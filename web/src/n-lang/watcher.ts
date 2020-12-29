@@ -16,6 +16,7 @@ export class Watcher {
   model: monaco.editor.ITextModel
   file!: FileLines
   status!: Success | Failure
+  lastSuccess: Success | null = null
   checker!: TypeChecker
   listeners: Set<(watcher: Watcher) => void> = new Set()
 
@@ -35,6 +36,7 @@ export class Watcher {
       const ast = this.file.parse()
       this.checker.check(ast)
       this.status = { type: 'success', ast }
+      this.lastSuccess = this.status
     } catch (error) {
       this.status = { type: 'failure', error }
     }

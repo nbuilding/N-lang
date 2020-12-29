@@ -105,7 +105,7 @@ export const language = <monaco.languages.IMonarchLanguage>{
 
     whitespace: [
       [/[ \t\r\n]+/, 'white'],
-      [/;.*$/,    'comment'],
+      [/\/\/.*$/,    'comment'],
     ],
   },
 }

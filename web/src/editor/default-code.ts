@@ -1,13 +1,18 @@
-export default `for i 100 {
-\tvar n = i + 1
-\tprint
-\t\tif n % 3 = 0 & n % 5 = 0
-\t\t\t"FizzBuzz"
-\t\telse if n % 3 = 0
-\t\t\t"Fizz"
-\t\telse if n % 5 = 0
-\t\t\t"Buzz"
-\t\telse
-\t\t\t<intInBase10 n>
+export default `// There's a warning below because \`to\` is unused. Try fixing it!
+var fizzbuzz = [to: int] -> str {
+\tfor i 10 {
+\t\tvar n = i + 1
+\t\tprint
+\t\t\tif n % 3 = 0 & n % 5 = 0
+\t\t\t\t"FizzBuzz"
+\t\t\telse if n % 3 = 0
+\t\t\t\t"Fizz"
+\t\t\telse if n % 5 = 0
+\t\t\t\t"Buzz"
+\t\t\telse
+\t\t\t\t<intInBase10 n>
+\t}
+\t"Done with fizzbuzzing"
 }
+print <fizzbuzz 100> + " for 100 rounds."
 `

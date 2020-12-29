@@ -5,7 +5,6 @@ import { displayDiagnostics } from '../n-lang/diagnostics'
 import { Watcher } from '../n-lang/watcher'
 import { getElementUnsafely, getModelUnsafely } from '../utils'
 import defaultCode from './default-code'
-import { run } from './index'
 
 export const editor = monaco.editor.create(getElementUnsafely('container'), {
   value: defaultCode,
@@ -20,6 +19,7 @@ export const editor = monaco.editor.create(getElementUnsafely('container'), {
   fontFamily: '"Fira Code", Consolas, "Courier New", monospace',
   fontLigatures: '"ss06"',
   tabCompletion: 'on',
+  wordWrap: 'on',
 })
 
 export const editorModel = getModelUnsafely(editor)
@@ -37,12 +37,4 @@ editor.addAction({
     const blob = new Blob([editor.getValue()], { type: 'text/x-n-lang;charset=utf-8' })
     saveAs(blob, 'main.n', { autoBom: true })
   }
-})
-editor.addAction({
-  id: 'run',
-  label: 'Execute code',
-  keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
-  contextMenuGroupId: 'n-lang',
-  contextMenuOrder: 1,
-  run
 })
