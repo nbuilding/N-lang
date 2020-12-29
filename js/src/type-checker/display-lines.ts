@@ -17,6 +17,10 @@ export class FileLines {
   }
 
   parse (options: ParseOptions = {}): Block {
-    return parse(this.lines.join('\n'), options)
+    return parse(this.toString(), options)
+  }
+
+  toString (): string {
+    return this.lines.join('\n')
   }
 }

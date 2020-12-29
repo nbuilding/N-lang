@@ -7,7 +7,9 @@ import { getElementUnsafely, getModelUnsafely } from '../utils'
 import defaultCode from './default-code'
 
 export const editor = monaco.editor.create(getElementUnsafely('container'), {
-  value: defaultCode,
+  value: window.location.hash
+    ? decodeURIComponent(window.location.hash.slice(1))
+    : defaultCode,
   theme: 'material',
   language: 'n',
   // What full autoindent means:
@@ -37,4 +39,8 @@ editor.addAction({
     const blob = new Blob([editor.getValue()], { type: 'text/x-n-lang;charset=utf-8' })
     saveAs(blob, 'main.n', { autoBom: true })
   }
+})
+
+watcher.listen(() => {
+  window.history.replaceState({}, '', '#' + encodeURIComponent(watcher.model.getValue()))
 })
