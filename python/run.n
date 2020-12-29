@@ -7,7 +7,7 @@ var main = [test:int test1:str] -> bool {
 	print test1
 	// if test1 == hi {return true}
 	return false
-} 
+}
 
 for i 15 {
 	var n:int = i + 1
@@ -55,13 +55,13 @@ print (0.1 + 0.2 == 0.3)
 print (<fek.paer "test">)
 print (if true { "hi" } else { "hello" })
 if true {
-	print "<main test \"hello\"> returned false"
+	print ("<main test " + \{"} + "hello" + \{"} + "> returned false")
 } else {
 	print "test"
 }
 if <main test eee> {
 	print "{main test eee} returned true"
-} else { 
+} else {
 	print "{main test eee} returned false"
 }
 
