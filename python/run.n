@@ -1,12 +1,68 @@
-var sum = [a:int b:int] -> int {
-	return (a + b)
+import fek
+import SystemIO
+
+var main = [test:int test1:str] -> bool {
+	print "# Main"
+	print test
+	print test1
+	// if test1 == hi {return true}
+	return false
 }
 
-for i 10 {
-	print "test"; print "test2"
+for i 15 {
+	var n:int = i + 1
+	print
+		(if n % 3 == 0 && n % 5 == 0 {
+			"Fizzbuzz"
+		} else if n % 3 == 0 {
+			"Fizz"
+		} else if n % 5 = 0 {
+			"Buzz"
+		} else {
+			<intInBase10 n>
+		})
 }
 
-var addOne = <sum 1>
 
-var test:int = if true { <addOne 3> } else { <addOne 5> }
-print test
+
+var test:int = if ! 1 == 1 || 2 > 3 1 else 3
+var test1:int = 1 + 1
+var eee:str = "hi"
+
+var a:int = 1
+var b:int = 3
+var c:int = 2
+print (a < c < b)
+
+print <round 10.1>
+
+if false {
+	print "test of a thing"
+}
+
+var ch:char = \n
+
+var tup:(int, str) = (1, eee)
+
+print tup
+
+print ch
+
+print (0.1 + 0.2 == 0.3)
+
+<main test1 eee>
+<fek.paer "test">
+print (<fek.paer "test">)
+print (if true { "hi" } else { "hello" })
+if true {
+	print "<main test \"hello\"> returned false"
+} else {
+	print "test"
+}
+if <main test eee> {
+	print "{main test eee} returned true"
+} else { 
+	print "{main test eee} returned false"
+}
+
+print (2 + 3 * (4 + 1) * 4 + 5)

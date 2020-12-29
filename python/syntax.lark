@@ -16,23 +16,28 @@ non_infix_boolval: value
 // functions
 declare: "var " name_type "=" (expression | function_def | anonymous_func)
 print: "print" value
-function_callback: "<" (function_call | anonymous_func) ">"
+function_callback: "<" (function_call | anonymous_function_call) ">"
 for: "for" name_type NUMBER code_block
 imp: "import" NAME
 return: "return" expression
 imported_command: "<" NAME "." NAME (" " [value (" " value)*])? ">"
-if: "if" expression ("{" value "}" | "{" instruction "}" | code_block)
-ifelse: "if" expression ("{" value "}" | "{" instruction "}" | code_block) "else" ("{" instruction "}" | code_block)
-ifelse_expr: "if" expression "{" expression "}" "else" "{" expression "}"
+if: "if" expression ("{"? value "}"? | "{"? instruction "}"? | code_block)
+ifelse: "if" expression ("{"? value "}"? | "{"? instruction "}"? | code_block) "else" ("{"? instruction "}"? | code_block)
+ifelse_expr: "if" expression "{"? expression "}"? "else" "{"? expression "}"?
 
 //helpers
-name_type: NAME [":" NAME]
+name_type: NAME [":" types]
 function_dec_call: NAME (" " [name_type (" " name_type)*])?
 function_call : value (" " value)*
+anonymous_function_call : anonymous_func (" " value)*
 code_block: "{" instruction* "}"
 function_def: arguments ["->" NAME] code_block
 arguments: "[" (name_type (" " name_type)*)? "]"
-anonymous_func: "(" arguments "->" NAME "|" (instruction (";" instruction)*) ")"
+anonymous_func: "(" arguments "->" NAME ":" (instruction (";" instruction)*) ")"
+char: "\\" ( escape_code | "{" /./ "}")
+escape_code: /[tnr]/
+tupledef: "(" NAME ("," NAME)* ")"
+tupleval: "(" value ("," value)* ")"
 
 // Boolean and number expressions, with order of operations.
 // Question mark "inlines" the branch, so we don't get nested
@@ -40,8 +45,12 @@ anonymous_func: "(" arguments "->" NAME "|" (instruction (";" instruction)*) ")"
 // Square brackets mean that the stuff inside it can appear 0 or 1 time. Same as
 // (whatever)?
 
+?types: NAME
+      | tupledef
+
 ?expression: ifelse_expr
            | boolean_expression
+           | imported_command
 
 ?boolean_expression: or_expression
 ?or_expression: [or_expression OR] and_expression
@@ -69,6 +78,8 @@ value: NUMBER
      | NAME
      | "(" expression ")"
      | function_callback
+     | char
+     | tupleval
 
 //constants
 BOOLEAN: ("true" | "false")

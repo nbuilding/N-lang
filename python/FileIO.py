@@ -9,3 +9,6 @@ def append(args):
 def read(args):
 	with open(str(args[0])[1:-1], "r", encoding="utf-8") as f:
 		return f.read()
+
+def _values():
+	return {"write": None, "append": None, "read": None}
