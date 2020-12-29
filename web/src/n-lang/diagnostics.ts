@@ -1,6 +1,6 @@
 import * as monaco from 'monaco-editor'
-import { FileLines, TypeChecker, Warning, ParseError } from 'n-lang'
-import { Block } from 'n-lang/src/grammar/ast'
+import { Warning, ParseError } from 'n-lang'
+import { Watcher } from './watcher'
 
 function toMarker (
   warning: Warning,
@@ -18,23 +18,17 @@ function toMarker (
 }
 
 // https://github.com/rcjsuen/dockerfile-language-service/blob/fb40a5d1504a8270cd21a533403d5bd7a0734a63/example/src/client.ts#L236-L252
-export function displayDiagnostics (model: monaco.editor.ITextModel) {
+export function displayDiagnostics (watcher: Watcher) {
   let lastDiagnosticMarkers: monaco.editor.IMarkerData[] = []
-  let file: FileLines, ast: Block, checker: TypeChecker
   function showDiagnostics () {
-    file = new FileLines(model.getValue())
-    try {
-      ast = file.parse()
-      checker = new TypeChecker({
-        colours: false
-      })
-      checker.check(ast)
+    if (watcher.status.type === 'success') {
       lastDiagnosticMarkers = [
-        ...checker.errors.map(error => toMarker(error, monaco.MarkerSeverity.Error)),
-        ...checker.warnings.map(warning => toMarker(warning, monaco.MarkerSeverity.Warning)),
+        ...watcher.checker.errors.map(error => toMarker(error, monaco.MarkerSeverity.Error)),
+        ...watcher.checker.warnings.map(warning => toMarker(warning, monaco.MarkerSeverity.Warning)),
       ]
-      monaco.editor.setModelMarkers(model, 'n', lastDiagnosticMarkers)
-    } catch (err) {
+      monaco.editor.setModelMarkers(watcher.model, 'n', lastDiagnosticMarkers)
+    } else {
+      const { error: err } = watcher.status
       // Avoid losing errors in the middle of typing (where there'll be syntax
       // errors)
       const markers = [...lastDiagnosticMarkers]
@@ -42,10 +36,10 @@ export function displayDiagnostics (model: monaco.editor.ITextModel) {
         markers.push({
           severity: monaco.MarkerSeverity.Error,
           message: err.message,
-          startLineNumber: file.lines.length,
+          startLineNumber: watcher.file.lines.length,
           startColumn: 1,
-          endLineNumber: file.lines.length,
-          endColumn: file.getLine(file.lines.length).length,
+          endLineNumber: watcher.file.lines.length,
+          endColumn: watcher.file.getLine(watcher.file.lines.length).length,
           source: 'run.n',
         })
       } else if (err.token) {
@@ -83,9 +77,8 @@ export function displayDiagnostics (model: monaco.editor.ITextModel) {
       } else {
         console.dir(err)
       }
-      monaco.editor.setModelMarkers(model, 'n', markers)
+      monaco.editor.setModelMarkers(watcher.model, 'n', markers)
     }
   }
-  model.onDidChangeContent(showDiagnostics)
-  showDiagnostics()
+  watcher.listen(showDiagnostics, true)
 }
