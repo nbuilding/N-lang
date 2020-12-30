@@ -154,6 +154,16 @@ export class Block extends Base {
     stmts.push(statement)
     return new Block(pos, stmts)
   }
+
+  static empty (): Block {
+    return new Block({
+      // Dummy values
+      line: 0,
+      col: 0,
+      endLine: 0,
+      endCol: 0,
+    })
+  }
 }
 
 export type Statement = ImportStmt | VarStmt | Expression

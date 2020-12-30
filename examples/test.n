@@ -1,3 +1,11 @@
-let ok: int -> (int, str) = [a: int] -> int, str : (a, "string")
-let n: int = 1
-print <ok 1> = (n, "string")
+let a = {
+3
+import fek
+}
+print a
+
+
+let main = [a: ()] -> str : {
+    <intInBase10 (print 3)>
+}
+<main ()>

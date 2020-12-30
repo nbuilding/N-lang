@@ -201,12 +201,24 @@ class JSCompiler {
 
   expressionToJS (expression: ast.Expression): CompiledExpression {
     if (expression instanceof ast.Literal) {
-      const type = this.types.get(expression)
-      return {
-        expression: this.options.useBigInt && type && types.isInt(type)
-          ? expression + 'n'
-          : expression.toString(),
-        statements: [],
+      if (expression instanceof ast.Unit) {
+        return {
+          expression: '0',
+          statements: [],
+        }
+      } else if (expression instanceof ast.Char) {
+        return {
+          expression: JSON.stringify(expression.value),
+          statements: [],
+        }
+      } else {
+        const type = this.types.get(expression)
+        return {
+          expression: this.options.useBigInt && type && types.isInt(type)
+            ? expression + 'n'
+            : expression.toString(),
+          statements: [],
+        }
       }
     } else if (expression instanceof ast.Operation) {
       const type = this.types.get(expression)
@@ -397,14 +409,14 @@ class JSCompiler {
     if (statement instanceof ast.ImportStmt) {
       this.modules.add(statement.name)
       return {
-        expression: '__unset',
+        expression: null,
         statements: [`var ${statement.name} = __require(${JSON.stringify(statement.name)});`],
       }
     } else if (statement instanceof ast.VarStmt) {
       // Using the return value of `var` might be useful for recursion.
       const { expression, statements } = this.expressionToJS(statement.value)
       return {
-        expression: statement.declaration.name,
+        expression: null,
         statements: [
           ...statements,
           `var ${statement.declaration.name} = ${expression};`,
@@ -431,11 +443,12 @@ class JSCompiler {
 
   compile (script: ast.Block): string {
     // Must be run first in order to populate this.modules
-    const { statements } = this.blockToJS(script)
+    const { statements, expression } = this.blockToJS(script)
     return `(function () ${statementsToBlock([
       '"use strict";',
       ...Array.from(this.modules, module => modules[module] || ''),
       ...statements,
+      expression,
     ])})();`
   }
 }

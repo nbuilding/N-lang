@@ -22,6 +22,7 @@ export const editor = monaco.editor.create(getElementUnsafely('container'), {
   fontLigatures: '"ss06"',
   tabCompletion: 'on',
   wordWrap: 'on',
+  showUnused: true,
 })
 
 export const editorModel = getModelUnsafely(editor)

@@ -55,14 +55,14 @@ export function provideCompletionItems (
         '}',
       ].join('\n'),
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      documentation: 'Loop statement',
+      documentation: 'For loop',
       range: range,
     },
     {
       label: 'function',
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: [
-        'var ${1:function} = [${2:arg: type}] -> ${4:type} : {',
+        'let ${1:function} = [${2:arg: type}] -> ${4:type} : {',
         '\t$0',
         '}',
       ].join('\n'),
@@ -71,9 +71,9 @@ export function provideCompletionItems (
       range: range,
     },
     {
-      label: 'var',
+      label: 'let',
       kind: monaco.languages.CompletionItemKind.Variable,
-      insertText: 'var ${1:name}: ${2:type} = ${3:value}',
+      insertText: 'let ${1:name}: ${2:type} = ${3:value}',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
       documentation: 'Declare a variable',
       range: range,

@@ -17,6 +17,30 @@ function toMarker (
   }
 }
 
+function getExpectationsFromErrMsg (err: string): string {
+  const nearleyExpectRegex = /^A (.+) based on:$/gm
+  const expectations = []
+  let match
+  while ((match = nearleyExpectRegex.exec(err))) {
+    const [, expectation] = match
+    expectations.push(
+      expectation[0] === '"'
+        ? expectation :
+        'a ' + expectation
+    )
+  }
+  if (expectations.length === 1) {
+    return `I expected to see ${expectations[0]}.`
+  } else if (expectations.length === 2) {
+    return `I expected to see ${expectations.join(' or ')}.`
+  } else if (expectations.length > 2) {
+    const last = expectations.pop()
+    return `I expected to see ${expectations.join(', ')}, or ${last}.`
+  } else {
+    return 'At this point I didn\'t expect anything.'
+  }
+}
+
 // https://github.com/rcjsuen/dockerfile-language-service/blob/fb40a5d1504a8270cd21a533403d5bd7a0734a63/example/src/client.ts#L236-L252
 export function displayDiagnostics (watcher: Watcher) {
   function showDiagnostics () {
@@ -47,7 +71,7 @@ export function displayDiagnostics (watcher: Watcher) {
         const endCol = err.token.col + lastLine.length
         markers.push({
           severity: monaco.MarkerSeverity.Error,
-          message: err.message,
+          message: `Syntax error: ${getExpectationsFromErrMsg(err.message)}`,
           startLineNumber: line,
           startColumn: col,
           endLineNumber: endLine,
@@ -60,7 +84,7 @@ export function displayDiagnostics (watcher: Watcher) {
           const [, line, col] = match
           markers.push({
             severity: monaco.MarkerSeverity.Error,
-            message: err.message,
+            message: `Syntax error: ${getExpectationsFromErrMsg(err.message)}`,
             startLineNumber: +line,
             startColumn: +col,
             endLineNumber: +line,

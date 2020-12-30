@@ -83,6 +83,7 @@ const lexer = moo.states({
 @lexer lexer
 
 main -> _ block _ {% ([, block]) => block %}
+	| _ {% () => ast.Block.empty() %}
 
 # statement
 # ...
@@ -123,7 +124,7 @@ funcTypeExpr -> typeValue {% id %}
 
 typeValue -> modIdentifier {% id %}
 	| "(" _ type _ ")" {% includeBrackets %}
-	| "()" {% from(ast.UnitType) %}
+	| "(" _ ")" {% from(ast.UnitType) %}
 
 tupleExpression -> booleanExpression {% id %}
 	| (booleanExpression _ "," _):+ booleanExpression {% from(ast.Tuple) %}
@@ -176,7 +177,7 @@ value -> modIdentifier {% id %}
 bracketedValue -> "(" _ expression _ ")" {% includeBrackets %}
 	| functionCall {% id %}
 	| "{" _ block _ "}" {% includeBrackets %}
-	| "()" {% from(ast.Unit) %}
+	| "(" _ ")" {% from(ast.Unit) %}
 
 # identifier [...parameters]
 functionCall -> "<" _ value (__ value):* _ ">" {% from(ast.CallFunc) %}

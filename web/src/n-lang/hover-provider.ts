@@ -13,7 +13,6 @@ export function provideHover (
   const { lineNumber, column } = position
   // From most specific -> least specific range
   const bases = watcher.lastSuccess.ast.find(lineNumber, column)
-  console.log(bases, position, bases.map(base => watcher.checker.types.get(base)))
   let typeEntry: [Base, NType] | undefined
   for (const base of bases) {
     const type = watcher.checker.types.get(base)

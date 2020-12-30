@@ -6,6 +6,7 @@ body {
   margin: 0;
   display: flex;
   font-family: 'Fira Code', monospace;
+  overflow: hidden;
 }
 button,
 input,
