@@ -387,6 +387,9 @@ class Scope:
 			name_type, value = command.children
 			name, type = get_name_type(name_type)
 			self.variables[name] = Variable(type, self.eval_expr(value))
+		elif command.data == "vary":
+			name, value = command.children
+			self.variables[name].value = self.eval_expr(value)
 		elif command.data == "if":
 			condition, body = command.children
 			if self.eval_expr(condition):
@@ -677,6 +680,15 @@ class Scope:
 								typ.append(t)
 					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(typ), display_type(value_type))))
 			self.variables[name] = Variable(ty, "whatever")
+		elif command.data == "vary":
+			name, value = command.children
+			if name not in self.variables:
+				self.errors.append(TypeCheckError(value, "The variable %s does not exist." % (name)))
+			else:
+				ty = self.variables[name].type
+				value_type = self.type_check_expr(value)
+				if value_type != ty:
+					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
 		elif command.data == "if":
 			condition, body = command.children
 			cond_type = self.type_check_expr(condition)
