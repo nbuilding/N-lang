@@ -19,25 +19,39 @@ function toMarker (
 
 function getExpectationsFromErrMsg (err: string): string {
   const nearleyExpectRegex = /^A (.+) based on:$/gm
-  const expectations = []
+  const literals: Set<string> = new Set()
+  const tokens: Set<string> = new Set()
   let match
   while ((match = nearleyExpectRegex.exec(err))) {
     const [, expectation] = match
-    expectations.push(
-      expectation[0] === '"'
-        ? expectation :
-        'a ' + expectation
-    )
+    if (expectation[0] === '"') {
+      literals.add(expectation)
+    } else {
+      tokens.add(expectation)
+    }
   }
-  if (expectations.length === 1) {
-    return `I expected to see ${expectations[0]}.`
-  } else if (expectations.length === 2) {
-    return `I expected to see ${expectations.join(' or ')}.`
-  } else if (expectations.length > 2) {
-    const last = expectations.pop()
-    return `I expected to see ${expectations.join(', ')}, or ${last}.`
+  if (tokens.size === 0) {
+    if (literals.size === 0) {
+      return 'I didn\'t expect anything.'
+    }
+    const literalsArr = [...literals]
+    if (literalsArr.length === 1) {
+      return `I expected ${literalsArr[0]}.`
+    } else if (literalsArr.length === 2) {
+      return `I expected ${literalsArr.join(' or ')}.`
+    } else {
+      const last = literalsArr.pop()
+      return `I expected ${literalsArr.join(', ')}, or ${last}.`
+    }
   } else {
-    return 'At this point I didn\'t expect anything.'
+    const tokensArr = [...tokens]
+    return `I expected ${
+      literals.size === 0
+        ? ''
+        : [...literals].join(', ') + (literals.size === 1 ? ' ' : ', ')
+    }or one of the following:${
+      tokensArr.map(token => `\n- a ${token}`).join('')
+    }`
   }
 }
 

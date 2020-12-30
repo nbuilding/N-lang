@@ -39,3 +39,13 @@ button:not(:disabled) {
 #log {
   flex: auto;
 }
+
+.n-error {
+  color: #f48771;
+}
+.n-warning {
+  color: #cca700;
+}
+.n-info {
+  color: #75beff;
+}

@@ -1,7 +1,7 @@
 export default `// There's a warning below because \`to\` is unused. Try fixing it!
-var fizzbuzz = [to: int] -> str {
+let fizzbuzz = [to: int] -> str {
 \tfor i 10 {
-\t\tvar n = i + 1
+\t\tlet n = i + 1
 \t\tprint
 \t\t\tif n % 3 = 0 & n % 5 = 0
 \t\t\t\t"FizzBuzz"

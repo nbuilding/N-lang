@@ -470,7 +470,7 @@ export class Scope extends Module {
         this._ensureMatch(returnType, actualReturnType, expression.body, `The body of this function, which should return a ${displ(returnType)}, returns a ${displ(actualReturnType)}.`)
       }
       scope.endScope()
-      return [types.toFunc(fnTypes)]
+      return [fnTypes.includes(null) ? null : types.toFunc(fnTypes)]
     } else if (expression instanceof ast.For) {
       const [iterable, iterableExit] = this.getExprType(expression.value)
       if (iterableExit) this.warnExit(iterableExit, expression, 'I\'ll never iterate')
