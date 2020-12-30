@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "An online editor for interacting with N.",
   "scripts": {
-    "build": "NODE_ENV=production webpack build",
+    "build": "NODE_ENV=production webpack",
     "deploy": "ts-node scripts/deploy.ts",
     "serve": "webpack serve",
     "test": "echo \"Error: no test specified\" && exit 1"

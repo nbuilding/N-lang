@@ -155,6 +155,8 @@ export class Scope extends Module {
         return [types.float()]
       } else if (expression instanceof ast.String) {
         return [types.string()]
+      } else if (expression instanceof ast.Char) {
+        return [types.char()]
       } else {
         console.error(expression)
         this.checker.err(expression, `Internal problem: I wasn't expecting this kind of Literal (type ${displayType(expression)}). (This is a bug with the type checker.)`)
@@ -628,6 +630,7 @@ export class TopLevelScope extends Scope {
 
     // Global types
     this.types.set('str', types.string())
+    this.types.set('char', types.char())
     this.types.set('int', types.int())
     this.types.set('float', types.float())
     this.types.set('bool', types.bool())

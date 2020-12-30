@@ -15,11 +15,20 @@ const escapes: { [key: string]: string } = {
 	n: '\n', r: '\r', t: '\t', v: '\v', 0: '\0', f: '\f', b: '\b',
 	'"': '"', '\\': '\\',
 }
+function unescape (str: string): string {
+	return str.replace(
+		/\\(?:([nrtv0fb"\\])|u\{([0-9a-fA-F]+)\}|\{(.|[\uD800-\uDBFF][\uDC00-\uDFFF])\})/g,
+		(_, name, unicode, char) => name
+			? escapes[name]
+			: unicode
+			? String.fromCodePoint(parseInt(unicode, 16))
+			: char
+	)
+}
 
 // Order of rules matter! So most specific -> most general
 const lexer = moo.compile({
 	comment: /\/\/.*?$/,
-	keyword: ['import', 'print', 'return', 'var', 'else', 'for'],
 	symbol: [
 		'->', ':', '.',
 	],
@@ -27,25 +36,35 @@ const lexer = moo.compile({
 		'+', '-', '*', '%', '/', '^',
 	],
 	comparisonOperator: [
-		'<', '<=', '=', '==', '=>', '>', '/=', '!=',
+		'<=', '==', '=>', '/=', '!=', '<', '=', '>',
 	],
 	booleanOperator: [
-		'&', '|', 'not',
+		'&&', '||', '&', '|', '!', '~',
 	],
 	lbracket: ['{', '[', '(', '<'],
 	rbracket: ['}', ']', ')', '>'],
 	semicolon: ';',
-	identifier: /[a-zA-Z]\w*/,
+	identifier: {
+		match: /[a-zA-Z]\w*/,
+		type: moo.keywords({
+			'import keyword': 'import',
+			'print keyword': 'print',
+			'return keyword': 'return',
+			'var keyword': 'var',
+			'else keyword': 'else',
+			'for keyword': 'for',
+			'not operator': 'not',
+		}),
+	},
 	float: /-?(?:\d+\.\d*|\.\d+)/,
 	number: /-?\d+/,
 	string: {
-		match: /"(?:[^\r\n\\"]|\\[nrtv0fb"\\]|u\{[0-9a-fA-F]+\})*"/,
-		value: string => string
-			.slice(1, -1)
-			.replace(
-				/\\(?:([^u])|u\{([0-9a-fA-F]+)\})/g,
-				([, char, unicode]) => char ? escapes[char] : String.fromCodePoint(parseInt(unicode, 16))
-			)
+		match: /"(?:[^\r\n\\"]|\\(?:[nrtv0fb"\\]|u\{[0-9a-fA-F]+\}|\{(?:.|[\uD800-\uDBFF][\uDC00-\uDFFF])\}))*"/,
+		value: string => unescape(string.slice(1, -1)),
+	},
+	char: {
+		match: /\\(?:[nrtv0fb"\\]|u\{[0-9a-fA-F]+\}|\{(?:.|[\uD800-\uDBFF][\uDC00-\uDFFF])\})/,
+		value: char => unescape(char),
 	},
 	newline: { match: /\r?\n/, lineBreaks: true },
 	spaces: /[ \t]+/,
@@ -89,8 +108,8 @@ declaration -> %identifier (_ ":" _ type):? {% from(ast.Declaration) %}
 type -> modIdentifier {% id %}
 
 booleanExpression -> notExpression {% id %}
-	| booleanExpression _ "&" _ notExpression {% operation(ast.Operator.AND) %}
-	| booleanExpression _ "|" _ notExpression {% operation(ast.Operator.OR) %}
+	| booleanExpression _ ("&&" | "&") _ notExpression {% operation(ast.Operator.AND) %}
+	| booleanExpression _ ("||" | "|") _ notExpression {% operation(ast.Operator.OR) %}
 
 notExpression -> compareExpression {% id %}
 	| "not" _ notExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
@@ -119,6 +138,7 @@ exponentExpression -> unaryExpression {% id %}
 
 unaryExpression -> value {% id %}
 	| "-" _ unaryExpression {% unaryOperation(ast.UnaryOperator.NEGATE) %}
+	| ("!" | "~") _ unaryExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
 
 # Generally, values are the same as expressions except they require some form of
 # enclosing brackets for more complex expressions, which can help avoid syntax
@@ -127,6 +147,7 @@ value -> modIdentifier {% id %}
 	| %number {% from(ast.Number) %}
 	| %float {% from(ast.Float) %}
 	| %string {% from(ast.String) %}
+	| %char {% from(ast.Char) %}
 	| bracketedValue {% id %}
 
 # Separate rule here to allow a special case for print/return to not have a

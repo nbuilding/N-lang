@@ -1,6 +1,6 @@
-print "wow" * 5 * 4
-print 3 * "apple"
-var a: int = 1 / 0
-var b: int = 0/0
-print a
-print b
+print "\" \u{b7} \{q} \{{} \{}} \{ } \{🤔}"
+var printa = \{{}
+var nota = \{ }
+var nota = \{🤔}
+var nota = \u{b7}
+var nota = \"

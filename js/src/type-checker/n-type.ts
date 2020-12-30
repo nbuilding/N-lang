@@ -4,11 +4,10 @@ import { isEnum } from "../utils/type-guards"
 
 enum NBaseType {
   Never,
-  Infer,
-  Number,
   Int,
   Float,
   String,
+  Char,
   Boolean,
 }
 
@@ -17,13 +16,6 @@ export function never (): NType {
 }
 export function isNever (type: NType): boolean {
   return type === NBaseType.Never
-}
-
-export function infer (): NType {
-  return NBaseType.Infer
-}
-export function isInfer (type: NType): boolean {
-  return type === NBaseType.Infer
 }
 
 export function int (): NType {
@@ -52,6 +44,13 @@ export function bool (): NType {
 }
 export function isBool (type: NType): boolean {
   return type === NBaseType.Boolean
+}
+
+export function char (): NType {
+  return NBaseType.Char
+}
+export function isChar (type: NType): boolean {
+  return type === NBaseType.Char
 }
 
 const isBaseType = isEnum(NBaseType)
@@ -153,12 +152,11 @@ export function display (type: NType): string {
   if (isBaseType(type)) {
     switch (type) {
       case NBaseType.Never: return 'never'
-      case NBaseType.Infer: return 'inferred'
-      case NBaseType.Number: return 'number'
       case NBaseType.Int: return 'int'
       case NBaseType.Float: return 'float'
-      case NBaseType.String: return 'string'
-      case NBaseType.Boolean: return 'boolean'
+      case NBaseType.String: return 'str'
+      case NBaseType.Char: return 'char'
+      case NBaseType.Boolean: return 'bool'
     }
   } else if (isNumber(type)) {
     // console.warn(new Error('Stack trace for discovered number type.'), type)

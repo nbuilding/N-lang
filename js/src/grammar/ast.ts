@@ -352,6 +352,24 @@ export class String extends Literal {
   }
 }
 
+export class Char extends Literal {
+  value: string
+
+  constructor (pos: BasePosition, string: string) {
+    super(pos)
+    this.value = string
+  }
+
+  toString () {
+    return JSON.stringify(this.value)
+  }
+
+  static fromAny (pos: BasePosition, [str]: NearleyArgs): Char {
+    shouldSatisfy(isToken, str)
+    return new Char(pos, str.value)
+  }
+}
+
 // A number can represent either an int or a float
 export class Number extends Literal {
   value: string
@@ -383,9 +401,9 @@ export class Float extends Literal {
     return this.value
   }
 
-  static fromAny (pos: BasePosition, [float]: NearleyArgs): Number {
+  static fromAny (pos: BasePosition, [float]: NearleyArgs): Float {
     shouldSatisfy(isToken, float)
-    return new Number(pos, float.value)
+    return new Float(pos, float.value)
   }
 }
 
