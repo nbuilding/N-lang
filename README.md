@@ -32,3 +32,10 @@ The JavaScript version uses [Node](https://nodejs.org/),
 [Nearley](https://nearley.js.org/).
 
 See how to run it in the [js/ folder](./js/README.md).
+
+## Web editor
+
+An IDE is available at https://nbuilding.github.io/N-lang/. It uses the JS
+version and [Monaco](https://microsoft.github.io/monaco-editor/), the same
+editor used in VSCode. The code for the editor is available in the [web/
+folder](./web/README.md).

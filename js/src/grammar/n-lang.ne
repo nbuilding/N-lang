@@ -27,48 +27,56 @@ function unescape (str: string): string {
 }
 
 // Order of rules matter! So most specific -> most general
-const lexer = moo.compile({
-	comment: /\/\/.*?$/,
-	symbol: [
-		'->', ':', '.',
-	],
-	arithmeticOperator: [
-		'+', '-', '*', '%', '/', '^',
-	],
-	comparisonOperator: [
-		'<=', '==', '=>', '/=', '!=', '<', '=', '>',
-	],
-	booleanOperator: [
-		'&&', '||', '&', '|', '!', '~',
-	],
-	lbracket: ['{', '[', '(', '<'],
-	rbracket: ['}', ']', ')', '>'],
-	semicolon: ';',
-	identifier: {
-		match: /[a-zA-Z]\w*/,
-		type: moo.keywords({
-			'import keyword': 'import',
-			'print keyword': 'print',
-			'return keyword': 'return',
-			'var keyword': 'var',
-			'else keyword': 'else',
-			'for keyword': 'for',
-			'not operator': 'not',
-		}),
+const lexer = moo.states({
+	main: {
+		comment: /\/\/.*?$/,
+		multilineCommentStart: { match: '/*', push: 'multilineComment' },
+		symbol: [
+			'->', ':', '.',
+		],
+		arithmeticOperator: [
+			'+', '-', '*', '%', '/', '^',
+		],
+		comparisonOperator: [
+			'<=', '==', '=>', '/=', '!=', '<', '=', '>',
+		],
+		booleanOperator: [
+			'&&', '||', '&', '|', '!', '~',
+		],
+		lbracket: ['{', '[', '(', '<'],
+		rbracket: ['}', ']', ')', '>'],
+		semicolon: ';',
+		identifier: {
+			match: /[a-zA-Z]\w*/,
+			type: moo.keywords({
+				'import keyword': 'import',
+				'print keyword': 'print',
+				'return keyword': 'return',
+				'let keyword': 'let',
+				'else keyword': 'else',
+				'for keyword': 'for',
+				'not operator': 'not',
+			}),
+		},
+		float: /-?(?:\d+\.\d*|\.\d+)/,
+		number: /-?\d+/,
+		string: {
+			match: /"(?:[^\r\n\\"]|\\(?:[nrtv0fb"\\]|u\{[0-9a-fA-F]+\}|\{(?:.|[\uD800-\uDBFF][\uDC00-\uDFFF])\}))*"/,
+			value: string => unescape(string.slice(1, -1)),
+		},
+		char: {
+			match: /\\(?:[nrtv0fb"\\]|u\{[0-9a-fA-F]+\}|\{(?:.|[\uD800-\uDBFF][\uDC00-\uDFFF])\})/,
+			value: char => unescape(char),
+		},
+		newline: { match: /\r?\n/, lineBreaks: true },
+		spaces: /[ \t]+/,
+		whitespace: { match: /\s+/, lineBreaks: true },
 	},
-	float: /-?(?:\d+\.\d*|\.\d+)/,
-	number: /-?\d+/,
-	string: {
-		match: /"(?:[^\r\n\\"]|\\(?:[nrtv0fb"\\]|u\{[0-9a-fA-F]+\}|\{(?:.|[\uD800-\uDBFF][\uDC00-\uDFFF])\}))*"/,
-		value: string => unescape(string.slice(1, -1)),
+	multilineComment: {
+		multilineCommentStart: { match: '/*', push: 'multilineComment' },
+		multilineCommentEnd: { match: '*/', pop: 1 },
+		any: { match: /[^]+?/, lineBreaks: true },
 	},
-	char: {
-		match: /\\(?:[nrtv0fb"\\]|u\{[0-9a-fA-F]+\}|\{(?:.|[\uD800-\uDBFF][\uDC00-\uDFFF])\})/,
-		value: char => unescape(char),
-	},
-	newline: { match: /\r?\n/, lineBreaks: true },
-	spaces: /[ \t]+/,
-	whitespace: { match: /\s+/, lineBreaks: true },
 })
 %}
 
@@ -82,7 +90,7 @@ block -> (statement blockSeparator):* statement {% from(ast.Block) %}
 
 statement -> expression {% id %}
 	| "import" __ %identifier {% from(ast.ImportStmt) %}
-	| "var" __ declaration _ "=" _ expression {% from(ast.VarStmt) %}
+	| "let" __ declaration _ "=" _ expression {% from(ast.VarStmt) %}
 
 expression -> booleanExpression {% id %}
 	| "print" __ expression {% from(ast.Print) %}
@@ -166,14 +174,19 @@ modIdentifier -> (%identifier "."):* %identifier {% from(ast.Identifier) %}
 # // comment
 lineComment -> %comment {% () => null %}
 
+multilineComment -> "/*" multilineCommentBody:* "*/" {% () => null %}
+
+multilineCommentBody -> %any {% () => null %}
+	| multilineComment {% () => null %}
+
 blockSeparator -> (_spaces (newline | ";")):+ _spaces {% () => null %}
 
 newline -> lineComment:? %newline {% () => null %}
 
-_spaces -> %spaces:? {% () => null %}
+_spaces -> (%spaces:? multilineComment):* %spaces:? {% () => null %}
 
 # Obligatory whitespace
-__ -> (newline | %whitespace | %spaces):+ {% () => null %}
+__ -> (newline | %whitespace | %spaces | multilineComment):+ {% () => null %}
 
 # Optional whitespace
 _ -> __:? {% () => null %}

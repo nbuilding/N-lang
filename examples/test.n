@@ -1,6 +1,9 @@
-print "\" \u{b7} \{q} \{{} \{}} \{ } \{🤔}"
-var printa = \{{}
-var nota = \{ }
-var nota = \{🤔}
-var nota = \u{b7}
-var nota = \"
+print/* this is ok*/"do not ignore"
+/*
+print "ignore"
+/*
+print "ignore"
+*/
+print "ignore"
+*/
+print "do not ignore"
