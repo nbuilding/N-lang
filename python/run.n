@@ -53,6 +53,10 @@ print tup
 
 print ch
 
+<tsettestset 1>
+
+<tsettestset "test">
+
 print (0.1 + 0.2 == 0.3)
 
 <main test1 eee>
