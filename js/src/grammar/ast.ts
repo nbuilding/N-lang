@@ -320,90 +320,77 @@ function isType (value: any): value is Type {
 }
 
 export type Expression = Literal | Operation | UnaryOperation | Comparisons
-  | CallFunc | Print | Return | If | Identifier | Function | For | Block
+  | CallFunc | Print | Return | If | Identifier | Function | For | Block | Tuple
 export function isExpression (value: any): value is Expression {
   return value instanceof Literal || value instanceof Operation ||
     value instanceof UnaryOperation || value instanceof Comparisons ||
     value instanceof CallFunc || value instanceof Print ||
     value instanceof Return || value instanceof If ||
     value instanceof Identifier || value instanceof Function ||
-    value instanceof For || value instanceof Block
+    value instanceof For || value instanceof Block || value instanceof Tuple
 }
 
-export abstract class Literal extends Base {
-  abstract value: string
-}
-
-export class String extends Literal {
+export class Literal extends Base {
   value: string
 
-  constructor (pos: BasePosition, string: string) {
+  constructor (pos: BasePosition, value: string) {
     super(pos)
-    this.value = string
+    this.value = value
   }
 
   toString () {
-    return JSON.stringify(this.value)
+    return this.value
   }
 
-  static fromAny (pos: BasePosition, [str]: NearleyArgs): String {
+  static fromAny<T extends typeof Literal> (pos: BasePosition, [str]: NearleyArgs): InstanceType<T> {
     shouldSatisfy(isToken, str)
-    return new String(pos, str.value)
+    return new this(pos, str.value) as InstanceType<T>
+  }
+}
+
+export class String extends Literal {
+  toString () {
+    return JSON.stringify(this.value)
   }
 }
 
 export class Char extends Literal {
-  value: string
-
-  constructor (pos: BasePosition, string: string) {
-    super(pos)
-    this.value = string
-  }
-
   toString () {
-    return JSON.stringify(this.value)
-  }
-
-  static fromAny (pos: BasePosition, [str]: NearleyArgs): Char {
-    shouldSatisfy(isToken, str)
-    return new Char(pos, str.value)
+    return `\\{${this.value}}`
   }
 }
 
 // A number can represent either an int or a float
-export class Number extends Literal {
-  value: string
+export class Number extends Literal {}
 
-  constructor (pos: BasePosition, number: string) {
+export class Float extends Literal {}
+
+export class Unit extends Literal {}
+
+export class Tuple extends Base {
+  values: Expression[]
+
+  constructor (pos: BasePosition, values: Expression[]) {
     super(pos)
-    this.value = number
+    this.values = values
   }
 
   toString () {
-    return this.value
+    return `(${this.values.join(', ')})`
   }
 
-  static fromAny (pos: BasePosition, [num]: NearleyArgs): Number {
-    shouldSatisfy(isToken, num)
-    return new Number(pos, num.value)
-  }
-}
-
-export class Float extends Literal {
-  value: string
-
-  constructor (pos: BasePosition, float: string) {
-    super(pos)
-    this.value = float
-  }
-
-  toString () {
-    return this.value
-  }
-
-  static fromAny (pos: BasePosition, [float]: NearleyArgs): Float {
-    shouldSatisfy(isToken, float)
-    return new Float(pos, float.value)
+  static fromAny (pos: BasePosition, [maybeValues, value]: NearleyArgs): Tuple {
+    const values: Expression[] = []
+    shouldBe(Array, maybeValues)
+    for (const valueArr of maybeValues) {
+      shouldBe(Array, valueArr)
+      const [value] = valueArr
+      shouldSatisfy(isExpression, value)
+      values.push(value)
+    }
+    shouldSatisfy(isExpression, value)
+    values.push(value)
+    return new Tuple(pos, values)
   }
 }
 

@@ -9,6 +9,7 @@ enum NBaseType {
   String,
   Char,
   Boolean,
+  Unit,
 }
 
 export function never (): NType {
@@ -51,6 +52,13 @@ export function char (): NType {
 }
 export function isChar (type: NType): boolean {
   return type === NBaseType.Char
+}
+
+export function unit (): NType {
+  return NBaseType.Unit
+}
+export function isUnit (type: NType): boolean {
+  return type === NBaseType.Unit
 }
 
 const isBaseType = isEnum(NBaseType)
@@ -111,6 +119,11 @@ export function toFunc ([param, ...rest]: NType[]): NType {
   }
 }
 
+type NTuple = NType[]
+export function isTuple (type: NType): type is NTuple {
+  return Array.isArray(type)
+}
+
 class NCustomType {
   // TODO
   name: string
@@ -130,7 +143,7 @@ export function isCustom (type: NType): type is NCustomType {
 
 // null means error, which is used to avoid spouting a flood of errors when
 // something goes wrong.
-type NType = null | NBaseType | NNumber | NFunction | NCustomType
+type NType = null | NBaseType | NNumber | NFunction | NTuple | NCustomType
 
 export function is (a: NType, b: NType): boolean {
   if (a === null || isBaseType(a)) {
@@ -139,9 +152,12 @@ export function is (a: NType, b: NType): boolean {
     return isNumber(b)
   } else if (isFunc(a)) {
     return isFunc(b) && is(a.takes, b.takes) && is(a.returns, b.returns)
+  } else if (isTuple(a)) {
+    return isTuple(b) && a.length === b.length
+      && a.every((type, i) => is(type, b[i]))
   } else if (isCustom(a)) {
-    return isCustom(b) && a.generics.length === b.generics.length &&
-      a.generics.every((generic, i) => generic === b.generics[i])
+    return isCustom(b) && a.generics.length === b.generics.length
+      && a.generics.every((generic, i) => generic === b.generics[i])
   } else {
     console.warn(new Error('Stack trace for discovered never type.'), a, b)
     return false
@@ -157,6 +173,7 @@ export function display (type: NType): string {
       case NBaseType.String: return 'str'
       case NBaseType.Char: return 'char'
       case NBaseType.Boolean: return 'bool'
+      case NBaseType.Unit: return '()'
     }
   } else if (isNumber(type)) {
     // console.warn(new Error('Stack trace for discovered number type.'), type)
@@ -165,13 +182,15 @@ export function display (type: NType): string {
     return (isFunc(type.takes) ? `(${display(type.takes)})` : display(type.takes))
       + ' -> '
       + display(type.returns)
+  } else if (isTuple(type)) {
+    return `(${type.map(display).join(', ')})`
   } else if (isCustom(type)) {
     return type.name
-      + (type.generics.length ? `<${
+      + (type.generics.length ? `[${
         type.generics
           .map(type => typeof type === 'string' ? type : display(type))
           .join(', ')
-      }>` : '')
+      }]` : '')
   } else if (type === null) {
     // console.warn(new Error('Stack trace for discovered null type.'), type)
     return '??? (this means that the type is unknown due to an error elsewhere, but this should never show in errors--type checker bug)'

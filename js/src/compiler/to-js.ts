@@ -26,6 +26,20 @@ function __intPow(base, power) {
 function __never() {
   throw new Error("This error should never have been thrown! This is a bug with the compiler.")
 }
+function __deepEquals(a, b) {
+  if (Array.isArray(a)) {
+    for (var i = 0; i < a.length; i++) {
+      if (!__deepEquals(a[i], b[i])) return false;
+    }
+  } else if (typeof a === "object" && a !== null) {
+    for (var key in a) {
+      if (!__deepEquals(a[key], b[key])) return false;
+    }
+  } else {
+    return a === b;
+  }
+  return true;
+}
 var __unset = { symbol: "Unset" };
 function intInBase10(int) {
   return int.toString();
@@ -152,7 +166,17 @@ class JSCompiler {
       statements.push(...evalStmts, `var ${bName} = ${output};`)
       variables.set(b, bName)
     }
-    const condition = `if (${aName} ${jsComparators[type]} ${bName}) `
+    const comparableType = this.types.get(a)
+    let condition
+    if (comparableType && types.isTuple(comparableType)) {
+      const isNeq = type === ast.Compare.NEQ
+      if (isNeq || type === ast.Compare.EQUAL) {
+        condition = `if (${isNeq ? '!' : ''}__deepEquals(${aName}, ${bName})) `
+      }
+    }
+    if (!condition) {
+      condition = `if (${aName} ${jsComparators[type]} ${bName}) `
+    }
     if (rest.length === 0) {
       statements.push(condition + `${varName} = true;`)
     } else {
@@ -264,6 +288,18 @@ class JSCompiler {
       return {
         expression: varName,
         statements,
+      }
+    } else if (expression instanceof ast.Tuple) {
+      const statements = []
+      const expressions = []
+      for (const value of expression.values) {
+        const { statements: stmts, expression } = this.expressionToJS(value)
+        statements.push(...stmts)
+        expressions.push(expression)
+      }
+      return {
+        expression: `[${expressions.join(', ')}]`,
+        statements
       }
     } else if (expression instanceof ast.CallFunc) {
       const { expression: fnValue, statements: stmts } = this.expressionToJS(expression.func)

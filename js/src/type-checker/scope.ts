@@ -124,6 +124,12 @@ export class Scope extends Module {
     } else if (types.is(a, b)) {
       // NOTE: If both types are number, then this will return number.
       return a
+    } else if (types.isTuple(a) && types.isTuple(b) && a.length === b.length) {
+      const type = a.map((type, i) => this._ensureMatch(type, b[i], base, message))
+      if (type.includes(null)) {
+        return null
+      }
+      return type
     } else if (types.isNumberResolvable(a) && types.isNumber(b)) {
       this._resolveNumberAs(b, a)
       return a
@@ -157,6 +163,8 @@ export class Scope extends Module {
         return [types.string()]
       } else if (expression instanceof ast.Char) {
         return [types.char()]
+      } else if (expression instanceof ast.Unit) {
+        return [types.unit()]
       } else {
         console.error(expression)
         this.checker.err(expression, `Internal problem: I wasn't expecting this kind of Literal (type ${displayType(expression)}). (This is a bug with the type checker.)`)
@@ -325,6 +333,14 @@ export class Scope extends Module {
         }
       }
       return [types.bool()]
+    } else if (expression instanceof ast.Tuple) {
+      return [
+        expression.values.map(value => {
+          const [type, exit] = this.getExprType(value)
+          if (exit) this.warnExit(exit, expression, 'I\'ll never make this tuple')
+          return type
+        })
+      ]
     } else if (expression instanceof ast.CallFunc) {
       const [fnInitType, fnExit] = this.getExprType(expression.func)
       if (fnExit) this.warnExit(fnExit, expression.func, 'I\'ll never call this function')

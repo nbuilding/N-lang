@@ -1,9 +1,3 @@
-print/* this is ok*/"do not ignore"
-/*
-print "ignore"
-/*
-print "ignore"
-*/
-print "ignore"
-*/
-print "do not ignore"
+let ok = 1, "string"
+let n: int = 1
+print ok = (n, "string")

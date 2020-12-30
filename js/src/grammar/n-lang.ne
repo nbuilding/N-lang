@@ -32,7 +32,7 @@ const lexer = moo.states({
 		comment: /\/\/.*?$/,
 		multilineCommentStart: { match: '/*', push: 'multilineComment' },
 		symbol: [
-			'->', ':', '.',
+			'->', ':', '.', ',',
 		],
 		arithmeticOperator: [
 			'+', '-', '*', '%', '/', '^',
@@ -92,7 +92,7 @@ statement -> expression {% id %}
 	| "import" __ %identifier {% from(ast.ImportStmt) %}
 	| "let" __ declaration _ "=" _ expression {% from(ast.VarStmt) %}
 
-expression -> booleanExpression {% id %}
+expression -> tupleExpression {% id %}
 	| "print" __ expression {% from(ast.Print) %}
 	| "print" bracketedExpression {% from(ast.Print) %}
 	| "return" __ expression {% from(ast.Return) %}
@@ -114,6 +114,9 @@ forLoop -> "for" _ declaration _ value _ value {% from(ast.For) %}
 declaration -> %identifier (_ ":" _ type):? {% from(ast.Declaration) %}
 
 type -> modIdentifier {% id %}
+
+tupleExpression -> booleanExpression {% id %}
+	| (booleanExpression _ "," _):+ booleanExpression {% from(ast.Tuple) %}
 
 booleanExpression -> notExpression {% id %}
 	| booleanExpression _ ("&&" | "&") _ notExpression {% operation(ast.Operator.AND) %}
@@ -163,6 +166,7 @@ value -> modIdentifier {% id %}
 bracketedValue -> "(" _ expression _ ")" {% includeBrackets %}
 	| functionCall {% id %}
 	| "{" _ block _ "}" {% includeBrackets %}
+	| "()" {% from(ast.Unit) %}
 
 # identifier [...parameters]
 functionCall -> "<" _ value (__ value):* _ ">" {% from(ast.CallFunc) %}
