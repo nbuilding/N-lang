@@ -45,24 +45,3 @@ editor.addAction({
 watcher.listen(() => {
   window.history.replaceState({}, '', '#' + encodeURIComponent(watcher.model.getValue()))
 })
-
-editor.deltaDecorations([], [
-  {
-    range: new monaco.Range(3, 1, 3, 1),
-    options: {
-      isWholeLine: true,
-      glyphMarginClassName: 'codicon-error n-error',
-      hoverMessage: { value: 'mm hmm!' },
-      glyphMarginHoverMessage: { value: 'fdgjndfgj' },
-    }
-  },
-  {
-    range: new monaco.Range(2, 3, 2, 5),
-    options: {
-      isWholeLine: false,
-      glyphMarginClassName: 'codicon-warning n-warning',
-      hoverMessage: { value: 'ok I see' },
-      glyphMarginHoverMessage: { value: 'oh' },
-    }
-  },
-])

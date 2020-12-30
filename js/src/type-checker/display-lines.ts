@@ -1,14 +1,20 @@
 import { ParseOptions, parse } from '../grammar/parse'
 import { Block } from '../grammar/ast'
 
+export interface FileLinesOptions {
+  tabSize?: number
+}
+
 export class FileLines {
   name: string
   lines: string[]
   lineNumWidth: number
 
-  constructor (file: string, name: string = '<file>') {
+  constructor (file: string, name: string = '<file>', options: FileLinesOptions = {}) {
     this.name = name
-    this.lines = file.split(/\r?\n/)
+    this.lines = file
+      .replace(/\t/, ' '.repeat(options.tabSize || 4))
+      .split(/\r?\n/)
     this.lineNumWidth = (this.lines.length + 1 + '').length
   }
 

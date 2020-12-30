@@ -1,5 +1,7 @@
 import * as monaco from 'monaco-editor'
 import { Warning, ParseError } from 'n-lang'
+
+import { editor } from '../editor/editor'
 import { Watcher } from './watcher'
 
 function toMarker (
@@ -57,6 +59,7 @@ function getExpectationsFromErrMsg (err: string): string {
 
 // https://github.com/rcjsuen/dockerfile-language-service/blob/fb40a5d1504a8270cd21a533403d5bd7a0734a63/example/src/client.ts#L236-L252
 export function displayDiagnostics (watcher: Watcher) {
+  let oldDecorations: string[] = []
   function showDiagnostics () {
     const markers = watcher.lastSuccess ? [
       ...watcher.checker.errors.map(error => toMarker(error, monaco.MarkerSeverity.Error)),
@@ -113,6 +116,22 @@ export function displayDiagnostics (watcher: Watcher) {
       }
     }
     monaco.editor.setModelMarkers(watcher.model, 'n', markers)
+
+    const decorations: monaco.editor.IModelDeltaDecoration[] = markers.map(({
+      startLineNumber,
+      severity,
+      message,
+    }) => ({
+      range: new monaco.Range(startLineNumber, 1, startLineNumber, 1),
+      options: {
+        isWholeLine: false,
+        glyphMarginClassName: severity === monaco.MarkerSeverity.Error
+          ? 'codicon-error n-error'
+          : 'codicon-warning n-warning',
+        glyphMarginHoverMessage: { value: message },
+      }
+    }))
+    oldDecorations = editor.deltaDecorations(oldDecorations, decorations)
   }
   watcher.listen(showDiagnostics, true)
 }

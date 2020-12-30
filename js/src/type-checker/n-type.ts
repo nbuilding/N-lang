@@ -104,6 +104,16 @@ class NFunction {
     this.takes = takes
     this.returns = returns
   }
+
+  getArgs (): NType[] {
+    const args = []
+    let func: NType = this
+    while (func instanceof NFunction) {
+      args.push(func.takes)
+      func = func.returns
+    }
+    return args
+  }
 }
 export function func (takes: NType, returns: NType): NFunction {
   return new NFunction(takes, returns)

@@ -80,7 +80,7 @@ export class Scope extends Module {
     } else if (modules.length === 0 && this.parent) {
       return this.parent.getValue(id)
     } else {
-      return `I can't find a variable with the name ${name} in this scope.`
+      return `I can't find a variable with the name \`${name}\` in this scope.`
     }
   }
 
@@ -97,7 +97,7 @@ export class Scope extends Module {
     } else if (modules.length === 0 && this.parent) {
       return this.parent.getType(typeId)
     } else {
-      return `I can't find a type with the name ${name} in this scope.`
+      return `I can't find a type with the name \`${name}\` in this scope.`
     }
   }
 
@@ -361,8 +361,9 @@ export class Scope extends Module {
       const [fnInitType, fnExit] = this.getExprType(expression.func)
       if (fnExit) this.warnExit(fnExit, expression.func, 'I\'ll never call this function')
       if (fnInitType && !types.isFunc(fnInitType)) {
-        this.checker.err(expression.func, `I cannot run ${displ(fnInitType)} because it is not a function.`)
+        this.checker.err(expression.func, `I cannot call ${displ(fnInitType)} because it is not a function.`)
       }
+      const argCount = types.isFunc(fnInitType) ? fnInitType.getArgs().length : 0
       let fnType = fnInitType
       let argNum = 1
       for (const param of expression.params) {
@@ -371,10 +372,22 @@ export class Scope extends Module {
         if (fnType) {
           if (types.isFunc(fnType)) {
             const { takes, returns } = fnType
-            this._ensureMatch(takes, type, param, `${displ(fnInitType)}'s argument #${argNum} takes ${displ(takes)}, not ${displ(type)}.`)
+            this._ensureMatch(
+              takes,
+              type,
+              param,
+              argCount === 1 && argNum === 1
+                ? `${displ(fnInitType)} takes ${displ(takes)}, not ${displ(type)}.`
+                : `${displ(fnInitType)}'s argument #${argNum} takes ${displ(takes)}, not ${displ(type)}.`
+            )
             fnType = returns
           } else {
-            this.checker.err(param, `${displ(fnInitType)} does not take an argument #${argNum}.`)
+            this.checker.err(
+              param,
+              argCount === 1 && argNum === 1
+                ? `${displ(fnInitType)} doesn't take an argument because it's not a function.`
+                : `${displ(fnInitType)} doesn't take an argument #${argNum}.`
+            )
           }
         }
         argNum++
@@ -397,7 +410,7 @@ export class Scope extends Module {
       const [condType, exit] = this.getExprType(expression.condition)
       if (exit) this.warnExit(exit, expression.condition, 'I\'ll never check the condition')
       if (condType && !types.isBool(condType)) {
-        this.checker.err(expression.condition, `The condition should return a boolean, not a ${displ(condType)}.`)
+        this.checker.err(expression.condition, `The condition should return a ${displ(types.bool())}, not a ${displ(condType)}.`)
       }
       const [ifTrueType, ifTrueExit] = this.getExprType(expression.then, {
         asStatement: context.asStatement
@@ -584,7 +597,7 @@ export class Scope extends Module {
     const displ = (type: NType) => this.checker.displayType(type)
     if (statement instanceof ast.ImportStmt) {
       if (this.modules.has(statement.name)) {
-        this.checker.err(statement, `You already imported ${statement.name} in this scope.`)
+        this.checker.err(statement, `You already imported \`${statement.name}\` in this scope.`)
       }
       const module = this.checker.getModule(statement.name)
       if (module) {
@@ -599,13 +612,13 @@ export class Scope extends Module {
     } else if (statement instanceof ast.VarStmt) {
       const { name, type } = statement.declaration
       if (this.values.has(name)) {
-        this.checker.err(statement.declaration, `You already defined ${name} in this scope.`)
+        this.checker.err(statement.declaration, `You already defined \`${name}\` in this scope.`)
       }
       const [resolvedType, exit] = this.getExprType(statement.value)
       if (exit) this.warnExit(exit, statement, 'I will never create this variable')
       if (type) {
         const idealType = this.astToType(type)
-        this._ensureMatch(idealType, resolvedType, statement.value, `You set ${name}, which should be ${displ(idealType)}, to a value of ${displ(resolvedType)}`)
+        this._ensureMatch(idealType, resolvedType, statement.value, `You set \`${name}\`, which should be ${displ(idealType)}, to a value of ${displ(resolvedType)}`)
         this.values.set(name, idealType)
         this.checker.types.set(statement.declaration, idealType)
       } else {
@@ -631,19 +644,19 @@ export class Scope extends Module {
     for (const [name] of this.modules) {
       const base = this.unusedModules.get(name)
       if (base) {
-        this.checker.warn(base, `You imported ${name} but never used it.`)
+        this.checker.warn(base, `You imported \`${name}\` but never used it.`)
       }
     }
     for (const [name] of this.values) {
       const base = this.unusedValues.get(name)
       if (base) {
-        this.checker.warn(base, `You declared ${name} but never used it.`)
+        this.checker.warn(base, `You declared \`${name}\` but never used it.`)
       }
     }
     for (const [name] of this.types) {
       const base = this.unusedTypes.get(name)
       if (base) {
-        this.checker.warn(base, `You never used ${name}.`)
+        this.checker.warn(base, `You never used \`${name}\`.`)
       }
     }
   }

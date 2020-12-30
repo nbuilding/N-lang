@@ -40,12 +40,12 @@ button:not(:disabled) {
   flex: auto;
 }
 
-.n-error {
-  color: #f48771;
+.n-info {
+  color: #75beff;
 }
 .n-warning {
   color: #cca700;
 }
-.n-info {
-  color: #75beff;
+.n-error {
+  color: #f48771;
 }

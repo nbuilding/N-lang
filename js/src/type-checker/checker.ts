@@ -64,7 +64,7 @@ export class TypeChecker {
     if (this.options.colours) {
       return colours.yellow(display(type))
     } else {
-      return display(type)
+      return '`' + display(type) + '`'
     }
   }
 
