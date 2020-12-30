@@ -1,11 +1,5 @@
-let a = {
-3
-import fek
+let main = [_: ()] -> int {
+  3
 }
-print a
-
-
-let main = [a: ()] -> str : {
-    <intInBase10 (print 3)>
-}
-<main ()>
+let _unused = <main ()>
+print _unused

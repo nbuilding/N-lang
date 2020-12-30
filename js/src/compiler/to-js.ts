@@ -187,12 +187,12 @@ class JSCompiler {
 
   functionToJS (body: ast.Expression, [param, ...params]: ast.Declaration[]): string {
     if (params.length) {
-      return `function (${param.name}) ` + statementsToBlock([
+      return `function (${param.name || ''}) ` + statementsToBlock([
         `return ${this.functionToJS(body, params)};`,
       ])
     } else {
       const { expression, statements } = this.expressionToJS(body)
-      return `function (${param.name}) ` + statementsToBlock([
+      return `function (${param.name || ''}) ` + statementsToBlock([
         ...statements,
         `return ${expression};`,
       ])
@@ -382,7 +382,7 @@ class JSCompiler {
       }
     } else if (expression instanceof ast.For) {
       // TODO: This only works with iterating over ints (ranges and lists to come?).
-      const varName = expression.var.name
+      const varName = expression.var.name || '__unused'
       const endName = this.uid('end_' + varName)
       const outputName = this.uid('arr_' + varName)
       const { expression: value, statements } = this.expressionToJS(expression.value)
@@ -419,7 +419,9 @@ class JSCompiler {
         expression: null,
         statements: [
           ...statements,
-          `var ${statement.declaration.name} = ${expression};`,
+          statement.declaration.name
+            ? `var ${statement.declaration.name} = ${expression};`
+            : expression + ';',
         ],
       }
     } else {
@@ -448,7 +450,7 @@ class JSCompiler {
       '"use strict";',
       ...Array.from(this.modules, module => modules[module] || ''),
       ...statements,
-      expression,
+      expression + ';',
     ])})();`
   }
 }

@@ -42,7 +42,7 @@ export const language = <monaco.languages.IMonarchLanguage>{
 
   keywords: [
     'import', 'for', 'let', 'return', 'if',
-    'else', 'print',
+    'else', 'print', '_',
   ],
 
   typeKeywords: [
@@ -72,7 +72,7 @@ export const language = <monaco.languages.IMonarchLanguage>{
     root: [
       // identifiers and keywords
       [
-        /[a-z][\w]*/,
+        /\w+/,
         {
           cases: {
             '@typeKeywords': 'support.type',

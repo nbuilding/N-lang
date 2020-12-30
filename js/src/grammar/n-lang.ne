@@ -47,7 +47,7 @@ const lexer = moo.states({
 		rbracket: ['}', ']', ')', '>'],
 		semicolon: ';',
 		identifier: {
-			match: /[a-zA-Z]\w*/,
+			match: /_?[a-zA-Z]\w*/,
 			type: moo.keywords({
 				'import keyword': 'import',
 				'print keyword': 'print',
@@ -58,6 +58,7 @@ const lexer = moo.states({
 				'not operator': 'not',
 			}),
 		},
+		discard: '_',
 		float: /-?(?:\d+\.\d*|\.\d+)/,
 		number: /-?\d+/,
 		string: {
@@ -113,6 +114,7 @@ funcDefParams -> declaration {% ([decl]) => [decl] %}
 forLoop -> "for" _ declaration _ value _ value {% from(ast.For) %}
 
 declaration -> %identifier (_ ":" _ type):? {% from(ast.Declaration) %}
+	| "_" (_ ":" _ type):? {% from(ast.Declaration) %}
 
 type -> tupleTypeExpr {% id %}
 

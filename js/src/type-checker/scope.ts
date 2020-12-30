@@ -446,6 +446,9 @@ export class Scope extends Module {
       }
     } else if (expression instanceof ast.Identifier) {
       if (context.asStatement) this.checker.warn(expression, 'You don\'t store its value anywhere, so this is redundant.')
+      if (expression.modules.length === 0 && expression.name.startsWith('_')) {
+        this.checker.warn(expression, `You should remove the underscore prefix from \`${expression.name}\` now that you\'re using it because the underscore denoted that you weren't using the variable yet.`)
+      }
       const value = this.getValue(expression)
       if (typeof value === 'string') {
         this.checker.err(expression, value)
@@ -464,11 +467,13 @@ export class Scope extends Module {
         }
         const type = maybeType ? this.astToType(maybeType) : null
         fnTypes.push(type)
-        if (scope.values.has(name)) {
+        if (name && scope.values.has(name)) {
           this.checker.err(declaration, 'This is a duplicate parameter name.')
         }
-        scope.values.set(name, type)
-        scope.unusedValues.set(name, declaration)
+        if (name) {
+          scope.values.set(name, type)
+          if (!name.startsWith('_')) scope.unusedValues.set(name, declaration)
+        }
         this.checker.types.set(declaration, type)
       }
       fnTypes.push(returnType)
@@ -489,7 +494,12 @@ export class Scope extends Module {
       if (iterableExit) this.warnExit(iterableExit, expression, 'I\'ll never iterate')
       const { name, type } = expression.var
       const scope = this.newScope()
-      scope.values.set(name, null)
+      if (name) {
+        scope.values.set(name, null)
+        if (!name.startsWith('_')) {
+          scope.unusedValues.set(name, expression.var)
+        }
+      }
       // TODO: Implementing iteration protocol?
       let iterated
       if (iterable && (types.isInt(iterable) || types.isNumber(iterable))) {
@@ -505,13 +515,13 @@ export class Scope extends Module {
             // Only set the type if everything is ok because I'm not sure if the
             // user used the wrong iterable type or the wrong type declaration,
             // and I don't want to give irrelevant errors.
-            scope.values.set(name, iterated)
+            if (name) scope.values.set(name, iterated)
             this.checker.types.set(expression.var, iterated)
           } else if (resolvedType) {
             this.checker.err(expression.var, `Iterating over ${displ(iterable)} produces values of ${displ(iterated)}, not ${displ(resolvedType)}.`)
           }
         } else {
-          scope.values.set(name, iterated)
+          if (name) scope.values.set(name, iterated)
           this.checker.types.set(expression.var, iterated)
         }
       } else if (iterable) {
@@ -611,22 +621,24 @@ export class Scope extends Module {
       return
     } else if (statement instanceof ast.VarStmt) {
       const { name, type } = statement.declaration
-      if (this.values.has(name)) {
+      if (name && this.values.has(name)) {
         this.checker.err(statement.declaration, `You already defined \`${name}\` in this scope.`)
       }
       const [resolvedType, exit] = this.getExprType(statement.value)
       if (exit) this.warnExit(exit, statement, 'I will never create this variable')
       if (type) {
         const idealType = this.astToType(type)
-        this._ensureMatch(idealType, resolvedType, statement.value, `You set \`${name}\`, which should be ${displ(idealType)}, to a value of ${displ(resolvedType)}`)
-        this.values.set(name, idealType)
+        this._ensureMatch(idealType, resolvedType, statement.value, `You set \`${name || '_'}\`, which should be ${displ(idealType)}, to a value of ${displ(resolvedType)}`)
+        if (name) this.values.set(name, idealType)
         this.checker.types.set(statement.declaration, idealType)
       } else {
         const type = types.isNever(resolvedType) ? null : resolvedType
-        this.values.set(name, type)
+        if (name) this.values.set(name, type)
         this.checker.types.set(statement.declaration, type)
       }
-      this.unusedValues.set(name, statement.declaration)
+      if (name && !name.startsWith('_')) {
+        this.unusedValues.set(name, statement.declaration)
+      }
       return exit
     } else {
       const [, exit] = this.getExprType(statement, {

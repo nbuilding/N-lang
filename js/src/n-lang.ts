@@ -3,8 +3,7 @@
 import fs from 'fs/promises'
 import util from 'util'
 import parseArgs from 'minimist'
-import { compileToJS } from './compiler/to-js'
-import { FileLines, TypeChecker } from './type-checker/checker'
+import { compileToJS, TypeChecker, FileLines } from './index'
 
 async function main () {
   const {

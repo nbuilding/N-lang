@@ -300,10 +300,10 @@ export class For extends Base {
 }
 
 export class Declaration extends Base {
-  name: string
+  name: string | null
   type: Type | null
 
-  constructor (pos: BasePosition, name: string, type: Type | null) {
+  constructor (pos: BasePosition, name: string | null, type: Type | null) {
     super(pos, type ? [type] : [])
     this.name = name
     this.type = type
@@ -320,7 +320,7 @@ export class Declaration extends Base {
       type = maybeType[3]
       shouldSatisfy(isType, type)
     }
-    return new Declaration(pos, id.value, type)
+    return new Declaration(pos, id.value === '_' ? null : id.value, type)
   }
 }
 
