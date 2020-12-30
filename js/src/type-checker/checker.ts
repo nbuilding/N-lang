@@ -6,8 +6,6 @@ import NType, { display } from './n-type'
 import { TopLevelScope } from './scope'
 import { FileLines } from './display-lines'
 
-export { FileLines }
-
 export interface Warning {
   base: ast.Base
   message: string
@@ -74,12 +72,18 @@ export class TypeChecker {
         colours.blue(`${file.name}:${line}:${col}`) + '\n'
       : ' '.repeat(file.lineNumWidth) + `--> ${file.name}:${line}:${col}\n`
     if (line === endLine) {
+      const lineStr = file.getLine(line)
+      const spaces = ' '.repeat(file.lineNumWidth + 3)
+        + lineStr.slice(0, col - 1).replace(/\S/g, ' ')
       const output = this.options.colours
         ? colours.bold(colours.cyan(`${line.toString().padStart(file.lineNumWidth, ' ')} | `))
-          + file.getLine(line) + '\n' + ' '.repeat(file.lineNumWidth + 2 + col)
+          + lineStr
+          + '\n'
+          + spaces
           + colours.red('^'.repeat(endCol - col))
-        : `${line.toString().padStart(file.lineNumWidth, ' ')} | ${file.getLine(line)}\n`
-          + ' '.repeat(file.lineNumWidth + 2 + col) + '^'.repeat(endCol - col)
+        : `${line.toString().padStart(file.lineNumWidth, ' ')} | ${lineStr}\n`
+          + spaces
+          + '^'.repeat(endCol - col)
       return header + output
     } else {
       let lines = ''

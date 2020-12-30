@@ -23,6 +23,8 @@ export const editor = monaco.editor.create(getElementUnsafely('container'), {
   tabCompletion: 'on',
   wordWrap: 'on',
   showUnused: true,
+  tabSize: 4,
+  insertSpaces: false,
 })
 
 export const editorModel = getModelUnsafely(editor)
