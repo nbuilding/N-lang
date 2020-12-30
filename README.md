@@ -1,4 +1,6 @@
 # N
+![Status](https://img.shields.io/badge/Status-Work%20In%20Progress-brightgreen)
+
 A programming language by N Building with stuff like modular imports.
 
 ## Python instructions
