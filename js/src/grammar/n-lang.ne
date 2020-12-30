@@ -113,7 +113,17 @@ forLoop -> "for" _ declaration _ value _ value {% from(ast.For) %}
 
 declaration -> %identifier (_ ":" _ type):? {% from(ast.Declaration) %}
 
-type -> modIdentifier {% id %}
+type -> tupleTypeExpr {% id %}
+
+tupleTypeExpr -> funcTypeExpr {% id %}
+	| (funcTypeExpr _ "," _):+ funcTypeExpr {% from(ast.TupleType) %}
+
+funcTypeExpr -> typeValue {% id %}
+	| typeValue _ "->" _ funcTypeExpr {% from(ast.FuncType) %}
+
+typeValue -> modIdentifier {% id %}
+	| "(" _ type _ ")" {% includeBrackets %}
+	| "()" {% from(ast.UnitType) %}
 
 tupleExpression -> booleanExpression {% id %}
 	| (booleanExpression _ "," _):+ booleanExpression {% from(ast.Tuple) %}

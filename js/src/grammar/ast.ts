@@ -314,9 +314,56 @@ export class Declaration extends Base {
   }
 }
 
-type Type = Identifier
-function isType (value: any): value is Type {
-  return value instanceof Identifier
+export type Type = Identifier | UnitType | TupleType | FuncType
+export function isType (value: any): value is Type {
+  return value instanceof Identifier || value instanceof UnitType
+    || value instanceof TupleType || value instanceof FuncType
+}
+
+export class UnitType extends Base {
+  static fromAny (pos: BasePosition, _: NearleyArgs): UnitType {
+    return new UnitType(pos)
+  }
+}
+
+export class TupleType extends Base {
+  types: Type[]
+
+  constructor (pos: BasePosition, types: Type[]) {
+    super(pos)
+    this.types = types
+  }
+
+  static fromAny (pos: BasePosition, [maybeTypes, type]: NearleyArgs): TupleType {
+    const types: Type[] = []
+    shouldBe(Array, maybeTypes)
+    for (const typeArr of maybeTypes) {
+      shouldBe(Array, typeArr)
+      const [type] = typeArr
+      shouldSatisfy(isType, type)
+      types.push(type)
+    }
+    shouldSatisfy(isType, type)
+    types.push(type)
+    return new TupleType(pos, types)
+  }
+}
+
+export class FuncType extends Base {
+  takes: Type
+  returns: Type
+
+  constructor (pos: BasePosition, takes: Type, returns: Type) {
+    super(pos)
+    this.takes = takes
+    this.returns = returns
+  }
+
+  static fromAny (pos: BasePosition, [takes, , , , returns]: NearleyArgs): FuncType {
+    shouldSatisfy(isType, takes)
+    shouldSatisfy(isType, returns)
+    return new FuncType(pos, takes, returns)
+  }
 }
 
 export type Expression = Literal | Operation | UnaryOperation | Comparisons

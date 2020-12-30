@@ -101,14 +101,30 @@ export class Scope extends Module {
     }
   }
 
-  astToType (typeId: ast.Identifier): NType {
-    const type = this.getType(typeId)
-    if (typeof type === 'string') {
-      this.checker.err(typeId, type)
-      return null
-    } else {
-      return type
+  astToType (type: ast.Type): NType {
+    if (type instanceof ast.FuncType) {
+      const takes = this.astToType(type.takes)
+      const returns = this.astToType(type.returns)
+      if (takes && returns) {
+        return types.func(takes, returns)
+      }
+    } else if (type instanceof ast.UnitType) {
+      return types.unit()
+    } else if (type instanceof ast.TupleType) {
+      const types = type.types.map(type => this.astToType(type))
+      if (!types.includes(null)) {
+        return types
+      }
+    } else if (type instanceof ast.Identifier) {
+      const resolvedType = this.getType(type)
+      if (typeof resolvedType === 'string') {
+        this.checker.err(type, resolvedType)
+        return null
+      } else {
+        return resolvedType
+      }
     }
+    return null
   }
 
   private _resolveNumberAs (numberType: types.NNumber, as: NType) {

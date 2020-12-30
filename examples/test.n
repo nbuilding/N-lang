@@ -1,3 +1,3 @@
-let ok = 1, "string"
+let ok: int -> (int, str) = [a: int] -> int, str : (a, "string")
 let n: int = 1
-print ok = (n, "string")
+print <ok 1> = (n, "string")
