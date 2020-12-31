@@ -39,7 +39,7 @@ print c
 
 print <round 10.1>
 
-<testing "a">
+print "a".<charAt 0>.<charCode>
 
 if false {
 	print "test of a thing"
