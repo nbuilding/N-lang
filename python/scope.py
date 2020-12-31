@@ -220,7 +220,7 @@ class Scope:
 	"""
 	def eval_command(self, tree):
 		if tree.data != "instruction":
-			raise SyntaxError("Command %s not implemented" %(t.data))
+			raise SyntaxError("Command %s not implemented" % (tree.data))
 
 		command = tree.children[0]
 
@@ -273,7 +273,7 @@ class Scope:
 			if value.data == "char":
 				if type(value.children[0]) == lark.Tree:
 					if value.children[0].children[0].value not in ["n", "r", "t"]:
-						errors.append(TypeCheckError(value, "Escape code \\%s not allowed." % value.children[0].value))
+						self.errors.append(TypeCheckError(value, "Escape code \\%s not allowed." % value.children[0].value))
 				return "char"
 		if value.type == "NUMBER":
 			# TODO: We should return a generic `number` type and then try to
@@ -405,7 +405,7 @@ class Scope:
 			else:
 				try:
 					if c not in library._values():
-						self.errors.append(TypeCheckError(c, "Command %s in %s not found." % c, l))
+						self.errors.append(TypeCheckError(c, "Command %s in %s not found." % (c, l)))
 					else:
 						return library._values[c]
 				except:

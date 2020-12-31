@@ -4,8 +4,8 @@ from colorama import init, Fore, Style
 init()
 
 from file import File
-from scope import get_name_type, Scope
 from native_functions import global_scope
+from type_check_error import TypeCheckError
 
 with open("syntax.lark", "r") as f:
 	parse = f.read()

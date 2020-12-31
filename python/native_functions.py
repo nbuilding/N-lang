@@ -1,3 +1,5 @@
+import math
+
 from scope import Scope
 
 def substr(s, st, en):
@@ -40,13 +42,13 @@ global_scope.add_native_function(
 	"floor",
 	[("number", "float")],
 	"int",
-	lambda number: floor(number),
+	lambda number: math.floor(number),
 )
 global_scope.add_native_function(
 	"ceil",
 	[("number", "float")],
 	"int",
-	lambda number: ceil(number),
+	lambda number: math.ceil(number),
 )
 global_scope.add_native_function(
 	"charCode",
