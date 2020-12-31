@@ -1,30 +1,36 @@
 import * as monaco from 'monaco-editor'
 
+const escapes = /\\(?:[nrtv0fb"\\]|u\{[0-9a-fA-F]+\}|\{(?:.|[\uD800-\uDBFF][\uDC00-\uDFFF])\})/
+
 export const configuration: monaco.languages.LanguageConfiguration = {
   // the default separators except `@$`
   wordPattern: /(-?\d*\.\d\w*)|([^\`\~\!\#\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g,
   comments: {
-    lineComment: ';'
+    lineComment: '//',
+    blockComment: ['/*', '*/'],
   },
   brackets: [
     ['{', '}'],
-    ['(', ')']
+    ['(', ')'],
+    ['[', ']'],
+    ['<', '>'],
   ],
   autoClosingPairs: [
     { open: '{', close: '}' },
     { open: '(', close: ')' },
-    { open: '"', close: '"' }
+    { open: '[', close: ']' },
+    { open: '<', close: '>' },
+    { open: '"', close: '"' },
+    { open: '/*', close: '*/' },
   ],
   surroundingPairs: [
     { open: '{', close: '}' },
     { open: '(', close: ')' },
+    { open: '[', close: ']' },
+    { open: '<', close: '>' },
     { open: '"', close: '"' },
+    { open: '/*', close: '*/' },
   ],
-  indentationRules: {
-    increaseIndentPattern: /^\s*>/,
-    decreaseIndentPattern: /^\s*</,
-    indentNextLinePattern: /(?:\b(?:then|else|print)|->|\w\s*<)\s*$/,
-  },
 }
 
 // Create your own language definition here
@@ -35,40 +41,50 @@ export const language = <monaco.languages.IMonarchLanguage>{
   // defaultToken: 'invalid',
 
   keywords: [
-    'import', 'loop', 'var', 'return', 'if',
-    'then', 'else', 'print',
+    'import', 'for', 'let', 'return', 'if',
+    'else', 'print', '_',
   ],
 
   typeKeywords: [
-    'int', 'str', 'bool',
+    'int', 'str', 'bool', 'float',
   ],
 
   operators: [
-    '->', '>=', '<=', '%', '//', '=', '>', '<', '&', '|', '+', '-',
-    '*', '/', 'not',
+    '->', '>=', '<=', '%', '=', '>', '<', '&', '|', '+', '-',
+    '*', '/', 'not', '!', '~', '&&', '||', '/=', '!=',
   ],
 
   constants: [
     'true', 'false',
   ],
 
+  builtIns: [
+    'intInBase10',
+  ],
+
   // we include these common regular expressions
   symbols:  /[=><!~?:&|+\-*\/\^%]+/,
 
-  escapes: /\\(?:[0bfnrtv\\"']|u\{[0-9A-Fa-f]+\})/,
+  escapes,
 
   // The main tokenizer for our languages
   tokenizer: {
     root: [
+      // numbers
+      [/\d*\.\d+([eE][\-+]?\d+)?/, 'constant.numeric.float'],
+      [/0[xX][0-9a-fA-F]+/, 'constant.numeric.hex'],
+      [/\d+/, 'constant.numeric'],
+
       // identifiers and keywords
       [
-        /[a-z][\w$]*/,
+        /\w+/,
         {
           cases: {
             '@typeKeywords': 'support.type',
             '@keywords': 'keyword',
             '@constants': 'constant.language',
             '@operators': 'keyword.operator',
+            '@builtIns': 'keyword.other.special-method',
             '@default': 'support.other.variable'
           }
         }
@@ -82,10 +98,8 @@ export const language = <monaco.languages.IMonarchLanguage>{
       // delimiters and operators
       [/[{}()\[\]\>\<]/, '@brackets'],
 
-      // numbers
-      [/\d*\.\d+([eE][\-+]?\d+)?/, 'constant.numeric.float'],
-      [/0[xX][0-9a-fA-F]+/, 'constant.numeric.hex'],
-      [/\d+/, 'constant.numeric'],
+      // chars
+      [escapes, 'constant.character'],
 
       // delimiter: after number because of .\d floats
       [/[.]/, 'delimiter'],
@@ -93,6 +107,13 @@ export const language = <monaco.languages.IMonarchLanguage>{
       // strings
       [/"([^"\\]|\\.)*$/, 'invalid' ],  // non-teminated string
       [/"/,  { token: 'string.quote', bracket: '@open', next: '@string' } ],
+    ],
+
+    comment: [
+      [/[^\/*]+/, 'comment' ],
+      [/\/\*/,    'comment', '@push' ],    // nested comment
+      ["\\*/",    'comment', '@pop'  ],
+      [/[\/*]/,   'comment' ],
     ],
 
     string: [
@@ -104,7 +125,8 @@ export const language = <monaco.languages.IMonarchLanguage>{
 
     whitespace: [
       [/[ \t\r\n]+/, 'white'],
-      [/;.*$/,    'comment'],
+      [/\/\*/,       'comment', '@comment' ],
+      [/\/\/.*$/,    'comment'],
     ],
   },
 }

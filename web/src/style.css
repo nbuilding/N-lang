@@ -6,6 +6,7 @@ body {
   margin: 0;
   display: flex;
   font-family: 'Fira Code', monospace;
+  overflow: hidden;
 }
 button,
 input,
@@ -37,4 +38,14 @@ button:not(:disabled) {
 }
 #log {
   flex: auto;
+}
+
+.n-info {
+  color: #75beff;
+}
+.n-warning {
+  color: #cca700;
+}
+.n-error {
+  color: #f48771;
 }

@@ -4,166 +4,216 @@
 import moo from 'moo'
 import * as ast from './ast'
 
-const operation = (operator: ast.Operator) =>
-	([expr, , , , val]: any[]) =>
-		new ast.Operation(operator, expr as ast.Expression, val as ast.Expression)
-
-const unaryOperation = (operator: ast.UnaryOperator) =>
-	([, , value]: any[]) =>
-		new ast.UnaryOperation(operator, value as ast.Expression)
-
-const compare = (comparison: ast.Compare) =>
-	([compareExpr, , , , expr]: any[]) =>
-		[...compareExpr, { expr, comparison }]
+const {
+	from,
+	includeBrackets,
+	Operation: { operation },
+	UnaryOperation: { operation: unaryOperation },
+} = ast
 
 const escapes: { [key: string]: string } = {
-	n: '\n', r: '\r', t: '\t', v: '\v', 0: '\0', f: '\f', b: '\b'
+	n: '\n', r: '\r', t: '\t', v: '\v', 0: '\0', f: '\f', b: '\b',
+	'"': '"', '\\': '\\',
 }
-function unescape (char: string): string {
-	return escapes[char] || char
+function unescape (str: string): string {
+	return str.replace(
+		/\\(?:([nrtv0fb"\\])|u\{([0-9a-fA-F]+)\}|\{(.|[\uD800-\uDBFF][\uDC00-\uDFFF])\})/g,
+		(_, name, unicode, char) => name
+			? escapes[name]
+			: unicode
+			? String.fromCodePoint(parseInt(unicode, 16))
+			: char
+	)
 }
 
 // Order of rules matter! So most specific -> most general
-const lexer = moo.compile({
-	keyword: ['import', 'print', 'return', 'var', 'else'],
-	symbol: [
-		'->', '|', ':', '<', '=', '>', '+', '-', '*', '/', '^', '&', '|',
-		'.', '//', '%'
-	],
-	lbracket: ['{', '[', '('],
-	rbracket: ['}', ']', ')'],
-	number: /\d+/,
-	identifier: /[a-zA-Z]\w*/,
-	string: {
-		match: /"(?:[^\r\n\\"]|\\[^uU]|\\[uU])*"/,
-		value: string => string
-			.slice(1, -1)
-			.replace(
-				/\\(?:([^u])|u\{([0-9a-f])\})/gi,
-				([, char, unicode]) => char ? unescape(char) : String.fromCodePoint(parseInt(unicode, 16))
-			)
+const lexer = moo.states({
+	main: {
+		comment: /\/\/.*?$/,
+		multilineCommentStart: { match: '/*', push: 'multilineComment' },
+		symbol: [
+			'->', ':', '.', ',',
+		],
+		arithmeticOperator: [
+			'+', '-', '*', '%', '/', '^',
+		],
+		comparisonOperator: [
+			'<=', '==', '=>', '/=', '!=', '<', '=', '>',
+		],
+		booleanOperator: [
+			'&&', '||', '&', '|', '!', '~',
+		],
+		lbracket: ['{', '[', '(', '<'],
+		rbracket: ['}', ']', ')', '>'],
+		semicolon: ';',
+		identifier: {
+			match: /_?[a-zA-Z]\w*/,
+			type: moo.keywords({
+				'import keyword': 'import',
+				'print keyword': 'print',
+				'return keyword': 'return',
+				'let keyword': 'let',
+				'else keyword': 'else',
+				'for keyword': 'for',
+				'not operator': 'not',
+			}),
+		},
+		discard: '_',
+		float: /-?(?:\d+\.\d*|\.\d+)/,
+		number: /-?\d+/,
+		string: {
+			match: /"(?:[^\r\n\\"]|\\(?:[nrtv0fb"\\]|u\{[0-9a-fA-F]+\}|\{(?:.|[\uD800-\uDBFF][\uDC00-\uDFFF])\}))*"/,
+			value: string => unescape(string.slice(1, -1)),
+		},
+		char: {
+			match: /\\(?:[nrtv0fb"\\]|u\{[0-9a-fA-F]+\}|\{(?:.|[\uD800-\uDBFF][\uDC00-\uDFFF])\})/,
+			value: char => unescape(char),
+		},
+		newline: { match: /\r?\n/, lineBreaks: true },
+		spaces: /[ \t]+/,
+		whitespace: { match: /\s+/, lineBreaks: true },
 	},
-	comment: /[ \t]*;.*?$/,
-	newlines: { match: /\s*(?:\r?\n)\s*/, lineBreaks: true },
-	spaces: /[ \t]+/,
-	whitespace: { match: /\s+/, lineBreaks: true },
+	multilineComment: {
+		multilineCommentStart: { match: '/*', push: 'multilineComment' },
+		multilineCommentEnd: { match: '*/', pop: 1 },
+		any: { match: /[^]+?/, lineBreaks: true },
+	},
 })
 %}
 
 @lexer lexer
 
 main -> _ block _ {% ([, block]) => block %}
+	| _ {% () => ast.Block.empty() %}
 
 # statement
 # ...
-block -> commentedStatement {% ([statement]) => new ast.Block(statement ? [statement] : []) %}
-	| block newlines commentedStatement {% ([block, , statement]) => statement ? block.withStatement(statement) : block %}
+block -> (statement blockSeparator):* statement {% from(ast.Block) %}
 
-commentedStatement -> lineComment {% () => null %}
-	| statement lineComment:? {% id %}
-
-# command [; comment] | ; comment
 statement -> expression {% id %}
-	| "import" __ identifier {% ([, , id]) => new ast.ImportStmt(id) %}
-	| "var" __ declaration _ "<" _ expression {% ([, , decl, , , , expr]) => new ast.VarStmt(decl, expr) %}
-	| funcDef {% id %}
-	| loop {% id %}
+	| "import" __ %identifier {% from(ast.ImportStmt) %}
+	| "let" __ declaration _ "=" _ expression {% from(ast.VarStmt) %}
 
-funcDef -> ">" _ funcDefHeader funcDefReturnType:? _ "|" _ block newlines funcDefEnd {% ([, , header, returnType, , , , block, , end]) => new ast.FuncDeclaration(header, returnType, block, end) %}
+expression -> tupleExpression {% id %}
+	| "print" __ expression {% from(ast.Print) %}
+	| "print" bracketedExpression {% from(ast.Print) %}
+	| "return" __ expression {% from(ast.Return) %}
+	| "return" bracketedExpression {% from(ast.Return) %}
+	| ifExpression {% id %}
+	| funcExpr {% id %}
+	| forLoop {% id %}
 
-funcDefHeader -> identifier {% ([id]) => ({ name: id, params: [] }) %}
-	| identifier __ funcDefParams {% ([id, , params]) => ({ name: id, params }) %}
+bracketedExpression -> bracketedValue {% id %}
+	| funcExpr {% id %}
+
+funcExpr -> "[" _ declaration (__ declaration):* _ "]" _ "->" _ type _ ("{" _ block _ "}" | ":" _ expression) {% from(ast.Function) %}
 
 funcDefParams -> declaration {% ([decl]) => [decl] %}
 	| funcDefParams __ declaration {% ([params, , decl]) => [...params, decl] %}
 
-funcDefReturnType -> _ "->" _ type {% ([, , , type]) => type %}
+forLoop -> "for" _ declaration _ value _ value {% from(ast.For) %}
 
-funcDefEnd -> "<" {% () => null %}
-	| "<" _spaces expression {% ([, , expr]) => expr %}
+declaration -> %identifier (_ ":" _ type):? {% from(ast.Declaration) %}
+	| "_" (_ ":" _ type):? {% from(ast.Declaration) %}
 
-loop -> ">" _ "loop" _ value _ declaration _ "|" _ block newlines "<" {% ([, , , , value, , decl, , , , block]) => new ast.LoopStmt(value, decl, block) %}
+type -> tupleTypeExpr {% id %}
 
-declaration -> identifier _ ":" _ type {% ([id, , , , type]) => new ast.Declaration(id, type) %}
+tupleTypeExpr -> funcTypeExpr {% id %}
+	| (funcTypeExpr _ "," _):+ funcTypeExpr {% from(ast.TupleType) %}
 
-type -> modIdentifier {% id %}
+funcTypeExpr -> typeValue {% id %}
+	| typeValue _ "->" _ funcTypeExpr {% from(ast.FuncType) %}
 
-expression -> booleanExpression {% id %}
-	| "print" __ expression {% ([, , expr]) => new ast.Print(expr) %}
-	| "return" __ expression {% ([, , expr]) => new ast.Return(expr) %}
-	| ifExpression {% id %}
+typeValue -> modIdentifier {% id %}
+	| "(" _ type _ ")" {% includeBrackets %}
+	| "(" _ ")" {% from(ast.UnitType) %}
+
+tupleExpression -> booleanExpression {% id %}
+	| (booleanExpression _ "," _):+ booleanExpression {% from(ast.Tuple) %}
 
 booleanExpression -> notExpression {% id %}
-	| booleanExpression _ "&" _ notExpression {% operation(ast.Operator.AND) %}
-	| booleanExpression _ "|" _ notExpression {% operation(ast.Operator.OR) %}
+	| booleanExpression _ ("&&" | "&") _ notExpression {% operation(ast.Operator.AND) %}
+	| booleanExpression _ ("||" | "|") _ notExpression {% operation(ast.Operator.OR) %}
 
 notExpression -> compareExpression {% id %}
 	| "not" _ notExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
 
-compareExpression -> compareExpression_ {% ([comparisons]) => comparisons.length === 1 ? comparisons[0].expr : new ast.Comparisons(comparisons) %}
+compareExpression -> sumExpression {% id %}
+	| (sumExpression _ compareOperator _):+ sumExpression {% from(ast.Comparisons) %}
 
-# The first comparison gets ignored anyways
-compareExpression_ -> sumExpression {% ([expr]) => [{ expr, comparison: ast.Compare.EQUAL }] %}
-	| compareExpression_ _ "=" _ sumExpression {% compare(ast.Compare.EQUAL) %}
-	| compareExpression_ _ ">" _ sumExpression {% compare(ast.Compare.GREATER) %}
-	| compareExpression_ _ "<" _ sumExpression {% compare(ast.Compare.LESS) %}
+compareOperator -> ("==" | "=") {% ([token]) => ({ ...token[0], value: ast.Compare.EQUAL }) %}
+	| ">" {% ([token]) => ({ ...token, value: ast.Compare.GREATER }) %}
+	| "<" {% ([token]) => ({ ...token, value: ast.Compare.LESS }) %}
+	| ">=" {% ([token]) => ({ ...token, value: ast.Compare.GEQ }) %}
+	| "<=" {% ([token]) => ({ ...token, value: ast.Compare.LEQ }) %}
+	| ("!=" | "/=") {% ([token]) => ({ ...token[0], value: ast.Compare.NEQ }) %}
 
+# Avoid syntactic ambiguity with negation:
+# a - b is subtraction.
+# a -b is a and then negative b.
+# a- b is odd, but it can be subtraction.
+# a-b is subtraction.
 sumExpression -> productExpression {% id %}
 	| sumExpression _ "+" _ productExpression {% operation(ast.Operator.ADD) %}
-	| sumExpression _ "-" _ productExpression {% operation(ast.Operator.MINUS) %}
+	| sumExpression _ "-" __ productExpression {% operation(ast.Operator.MINUS) %}
+	| sumExpression empty "-" empty productExpression {% operation(ast.Operator.MINUS) %}
 
 productExpression -> exponentExpression {% id %}
 	| productExpression _ "*" _ exponentExpression {% operation(ast.Operator.MULTIPLY) %}
 	| productExpression _ "/" _ exponentExpression {% operation(ast.Operator.DIVIDE) %}
-	| productExpression _ "//" _ exponentExpression {% operation(ast.Operator.INT_DIVIDE) %}
 	| productExpression _ "%" _ exponentExpression {% operation(ast.Operator.MODULO) %}
 
 exponentExpression -> unaryExpression {% id %}
 	| exponentExpression _ "^" _ unaryExpression {% operation(ast.Operator.EXPONENT) %}
 
 unaryExpression -> value {% id %}
-	| "-" _ unaryExpression {% unaryOperation(ast.UnaryOperator.NEGATE) %}
+	| "-" empty unaryExpression {% unaryOperation(ast.UnaryOperator.NEGATE) %}
+	| ("!" | "~") _ unaryExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
 
+# Generally, values are the same as expressions except they require some form of
+# enclosing brackets for more complex expressions, which can help avoid syntax
+# ambiguities.
 value -> modIdentifier {% id %}
-	| number {% ([num]) => new ast.Number(num) %}
-	| string {% ([str]) => new ast.String(str) %}
-	| "(" _ expression _ ")" {% ([, , expr]) => expr %}
+	| %number {% from(ast.Number) %}
+	| %float {% from(ast.Float) %}
+	| %string {% from(ast.String) %}
+	| %char {% from(ast.Char) %}
+	| bracketedValue {% id %}
+
+# Separate rule here to allow a special case for print/return to not have a
+# space between the keyword and a bracket
+bracketedValue -> "(" _ expression _ ")" {% includeBrackets %}
 	| functionCall {% id %}
+	| "{" _ block _ "}" {% includeBrackets %}
+	| "(" _ ")" {% from(ast.Unit) %}
 
 # identifier [...parameters]
-functionCall -> "{" _ value _ "}" {% ([, , value]) => new ast.CallFunc(value) %}
-	| "{" _ value __ parameters _ "}" {% ([, , value, , params]) => new ast.CallFunc(value, params) %}
+functionCall -> "<" _ value (__ value):* _ ">" {% from(ast.CallFunc) %}
 
-# expression ...
-parameters -> value {% ([expr]) => [expr] %}
-	| parameters __ value {% ([params, , expr]) => [...params, expr] %}
+ifExpression -> "if" __ expression __ value (__ "else" __ expression):? {% from(ast.If) %}
 
-ifExpression -> "if" __ expression (_ "->" _ | __ "then" __)
-	expression
-	(__ "else" __ expression):?
-	{% ([, , cond, , a, b]) => new ast.If(cond, a, b && b[3]) %}
+modIdentifier -> (%identifier "."):* %identifier {% from(ast.Identifier) %}
 
-modIdentifier -> identifier {% ([id]) => new ast.Identifier(id) %}
-	| modIdentifier "." identifier {% ([modIdent, , id]) => modIdent.identifier(id) %}
-
-identifier -> %identifier {% ([token]) => token.value %}
-
-number -> %number {% ([token]) => token.value %}
-
-string -> %string {% ([token]) => token.value %}
-
-char -> %safeChar {% id %}
-	| "\\" . {% ([, char]) => char %}
-
-# ; comment
+# // comment
 lineComment -> %comment {% () => null %}
 
-newlines -> %newlines {% () => null %}
+multilineComment -> "/*" multilineCommentBody:* "*/" {% () => null %}
 
-_spaces -> %spaces:? {% () => null %}
+multilineCommentBody -> %any {% () => null %}
+	| multilineComment {% () => null %}
+
+blockSeparator -> (_spaces (newline | ";")):+ _spaces {% () => null %}
+
+newline -> lineComment:? %newline {% () => null %}
+
+_spaces -> (%spaces:? multilineComment):* %spaces:? {% () => null %}
 
 # Obligatory whitespace
-__ -> (%newlines | %whitespace | %spaces) {% () => null %}
+__ -> (newline | %whitespace | %spaces | multilineComment):+ {% () => null %}
 
 # Optional whitespace
 _ -> __:? {% () => null %}
+
+# "Epsilon rule" matches nothing; an empty placeholder to align the tokens.
+# I can't use `null` directly because it gets excluded from the token array.
+empty -> null {% () => null %}
