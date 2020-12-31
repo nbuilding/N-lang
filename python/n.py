@@ -9,6 +9,27 @@ from colorama import init, Fore, Style
 import argparse
 init()
 
+def substr(s, st, en):
+	try:
+		s[st:en]
+	except:
+		return ""
+
+def charAt(s, i):
+	try:
+		s[i]
+	except:
+		return ""
+
+def length(s):
+	try:
+		return len(s)
+	except:
+		try:
+			return len(str(s))
+		except:
+			return 0
+
 class Variable:
 	def __init__(self, t, value):
 		self.type = t
@@ -508,7 +529,7 @@ class Scope:
 			*arg_types, return_type = func_type
 			for n, (argument, arg_type) in enumerate(zip(arguments, arg_types), start=1):
 				check_type = self.type_check_expr(argument)
-				if check_type is not None and check_type != arg_type:
+				if check_type is not None and check_type != arg_type and arg_type != "any":
 					self.errors.append(TypeCheckError(expr, "For a %s's argument #%d, you gave a %s, but you should've given a %s." % (display_type(func_type), n, display_type(check_type), display_type(arg_type))))
 			if len(arguments) > len(arg_types):
 				self.errors.append(TypeCheckError(expr, "A %s has %d argument(s), but you gave %d." % (display_type(func_type), len(arg_types), len(arguments))))
@@ -781,13 +802,19 @@ global_scope.add_native_function(
 	"charAt",
 	[("string", "str"), ("location", "int")],
 	"char",
-	lambda string, location: string[location],
+	lambda string, location: charAt(string, location),
 )
 global_scope.add_native_function(
 	"substring",
 	[("string", "str"), ("start", "int"), ("end", "int")],
 	"char",
-	lambda string, start, end: string[start : end],
+	lambda string, start, end: substr(string, start, end),
+)
+global_scope.add_native_function(
+	"len",
+	[("obj", "any")],
+	"int",
+	lambda obj: length(obj),
 )
 
 

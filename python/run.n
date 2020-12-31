@@ -23,8 +23,6 @@ for i 15 {
 		})
 }
 
-
-
 let test:int = if ! 1 == 1 || 2 > 3 1 else 3
 let test1:int = 1 + 1
 let eee:str = "hi"
@@ -41,6 +39,8 @@ print c
 
 print <round 10.1>
 
+<testing "a">
+
 if false {
 	print "test of a thing"
 }
@@ -52,10 +52,6 @@ let tup:(int, str) = (1, eee)
 print tup
 
 print ch
-
-<tsettestset 1>
-
-<tsettestset "test">
 
 print (0.1 + 0.2 == 0.3)
 
