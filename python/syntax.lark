@@ -45,7 +45,9 @@ anonymous_func: "(" arguments "->" NAME ":" (instruction (";" instruction)*) ")"
 char: "\\" ( escape_code | "{" /./ "}")
 escape_code: /[tnr]/
 tupledef: "(" NAME ("," NAME)* ")"
+listdef: LIST "[" NAME "]"
 tupleval: "(" value ("," value)* ")"
+listval: "[" (value ("," value)*)? "]"
 
 // Boolean and number expressions, with order of operations.
 // Question mark "inlines" the branch, so we don't get nested
@@ -55,6 +57,7 @@ tupleval: "(" value ("," value)* ")"
 
 ?types: NAME
       | tupledef
+      | listdef
 
 ?expression: ifelse_expr
            | boolean_expression
@@ -90,6 +93,7 @@ value: NUMBER
      | function_callback_quirky_pipe
      | char
      | tupleval
+     | listval
 
 //constants
 BOOLEAN: ("true" | "false")
@@ -110,6 +114,7 @@ DIVIDE: "/"
 ROUNDDIV: "//"
 MODULO: "%"
 EXPONENT: "^"
+LIST: "list"
 %import common.ESCAPED_STRING -> STRING
 %import common.SIGNED_NUMBER  -> NUMBER
 %import common.CNAME  -> NAME

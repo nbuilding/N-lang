@@ -214,6 +214,8 @@ class Scope:
 				return self.eval_value(token_or_tree)
 		elif expr.data == "tupleval":
 			return tuple([self.eval_expr(e) for e in expr.children])
+		elif expr.data == "listval":
+			return [self.eval_expr(e) for e in expr.children]
 		else:
 			print('(parse tree):', expr)
 			raise SyntaxError("Unexpected command/expression type %s" % expr.data)
@@ -506,6 +508,15 @@ class Scope:
 
 		elif expr.data == "tupleval":
 			return [self.type_check_expr(e) for e in expr.children]
+		elif expr.data == "listval":
+			if (len(expr.children) == 0):
+				return [lark.Token("LIST", "list")]
+
+			for i,e in enumerate(expr.children):
+				if self.type_check_expr(e) != self.type_check_expr(expr.children[0]):
+					self.errors.append(TypeCheckError(e, "The list item #%s's types is %s while the first item's type is %s" % (i + 1, self.type_check_expr(e), self.type_check_expr(expr.children[0]))))
+			
+			return [lark.Token("LIST", "list"), self.type_check_expr(expr.children[0])]
 		self.errors.append(TypeCheckError(expr, "Internal problem: I don't know the command/expression type %s." % expr.data))
 		return None
 
@@ -569,18 +580,25 @@ class Scope:
 			if name in self.variables:
 				self.errors.append(TypeCheckError(name_type, "You've already defined `%s`." % name))
 			value_type = self.type_check_expr(value)
+
+			#Check for empty lists
+			if type(value_type) == list and len(value_type) == 1:
+				if type(value_type[0]) == lark.Token:
+					if value_type[0].type == "LIST":
+						value_type = ty
 			if value_type is not None and value_type != ty:
 				if ty == 'infer':
 					ty = value_type
 				else:
 					typ = ty
 					if type(typ) == list:
-						typ = []
-						for t in ty:
-							if type(t) is lark.Token:
-								typ.append(t.value)
-							else:
-								typ.append(t)
+						if typ[0].type != "LIST":
+							typ = []
+							for t in ty:
+								if type(t) is lark.Token:
+									typ.append(t.value)
+								else:
+									typ.append(t)
 					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(typ), display_type(value_type))))
 			self.variables[name] = Variable(ty, "whatever")
 		elif command.data == "vary":
