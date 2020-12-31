@@ -148,9 +148,15 @@ compareOperator -> ("==" | "=") {% ([token]) => ({ ...token[0], value: ast.Compa
 	| "<=" {% ([token]) => ({ ...token, value: ast.Compare.LEQ }) %}
 	| ("!=" | "/=") {% ([token]) => ({ ...token[0], value: ast.Compare.NEQ }) %}
 
+# Avoid syntactic ambiguity with negation:
+# a - b is subtraction.
+# a -b is a and then negative b.
+# a- b is odd, but it can be subtraction.
+# a-b is subtraction.
 sumExpression -> productExpression {% id %}
 	| sumExpression _ "+" _ productExpression {% operation(ast.Operator.ADD) %}
-	| sumExpression _ "-" _ productExpression {% operation(ast.Operator.MINUS) %}
+	| sumExpression _ "-" __ productExpression {% operation(ast.Operator.MINUS) %}
+	| sumExpression empty "-" empty productExpression {% operation(ast.Operator.MINUS) %}
 
 productExpression -> exponentExpression {% id %}
 	| productExpression _ "*" _ exponentExpression {% operation(ast.Operator.MULTIPLY) %}
@@ -161,7 +167,7 @@ exponentExpression -> unaryExpression {% id %}
 	| exponentExpression _ "^" _ unaryExpression {% operation(ast.Operator.EXPONENT) %}
 
 unaryExpression -> value {% id %}
-	| "-" _ unaryExpression {% unaryOperation(ast.UnaryOperator.NEGATE) %}
+	| "-" empty unaryExpression {% unaryOperation(ast.UnaryOperator.NEGATE) %}
 	| ("!" | "~") _ unaryExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
 
 # Generally, values are the same as expressions except they require some form of
@@ -207,3 +213,7 @@ __ -> (newline | %whitespace | %spaces | multilineComment):+ {% () => null %}
 
 # Optional whitespace
 _ -> __:? {% () => null %}
+
+# "Epsilon rule" matches nothing; an empty placeholder to align the tokens.
+# I can't use `null` directly because it gets excluded from the token array.
+empty -> null {% () => null %}

@@ -656,13 +656,28 @@ export class Scope extends Module {
     for (const [name] of this.modules) {
       const base = this.unusedModules.get(name)
       if (base) {
-        this.checker.warn(base, `You imported \`${name}\` but never used it.`)
+        this.checker.warn(base, `You imported \`${name}\` but never used it.`, {
+          fix: {
+            type: 'replace-with',
+            label: 'Remove the import.',
+            replace: base,
+            with: '',
+          }
+        })
       }
     }
     for (const [name] of this.values) {
       const base = this.unusedValues.get(name)
       if (base) {
-        this.checker.warn(base, `You declared \`${name}\` but never used it.`)
+        this.checker.warn(base, `You declared \`${name}\` but never used it.`, {
+          tip: 'You can prefix the variable name with an underscore to mark it as intentionally unused.',
+          fix: {
+            type: 'insert-before',
+            label: 'Prefix the variable name with an underscore.',
+            before: base,
+            insert: '_',
+          }
+        })
       }
     }
     for (const [name] of this.types) {

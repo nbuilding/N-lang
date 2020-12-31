@@ -1,4 +1,5 @@
 import * as monaco from 'monaco-editor'
+import { Base } from 'n-lang'
 
 export function getElementUnsafely (id: string): HTMLElement {
   const element = document.getElementById(id)
@@ -15,5 +16,14 @@ export function getModelUnsafely (editor: monaco.editor.ICodeEditor): monaco.edi
     return model
   } else {
     throw new Error('Couldn\'t get the model of editor.')
+  }
+}
+
+export function toMonacoRange (base: Base): monaco.IRange {
+  return {
+    startLineNumber: base.line,
+    startColumn: base.col,
+    endLineNumber: base.endLine,
+    endColumn: base.endCol,
   }
 }

@@ -1,5 +1,5 @@
-let main = [_: ()] -> int {
-  3
-}
-let _unused = <main ()>
-print _unused
+let n = 4
+let a = 3 - n-n
+-n
+- n
+let main = [a: ()] -> int : 3

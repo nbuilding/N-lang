@@ -14,6 +14,18 @@ export interface Warning {
 
 interface WarningOptions {
   exit?: ast.Base
+  tip?: string
+  fix?: {
+    type: 'replace-with',
+    label: string,
+    replace: ast.Base,
+    with: string,
+  } | {
+    type: 'insert-before',
+    label: string,
+    before: ast.Base,
+    insert: string,
+  }
 }
 
 enum WarningType {
@@ -128,6 +140,11 @@ export class TypeChecker {
     if (options.exit) {
       output += '\n The function exits here:\n'
         + this.displayBase(file, options.exit)
+    }
+    if (options.tip) {
+      output += `\n ${
+        this.options.colours ? colours.cyan('Tip:') : 'Tip:'
+      } ` + options.tip
     }
     return output
   }

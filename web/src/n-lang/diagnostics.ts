@@ -2,6 +2,7 @@ import * as monaco from 'monaco-editor'
 import { Warning, ParseError } from 'n-lang'
 
 import { editor } from '../editor/editor'
+import { toMonacoRange } from '../utils'
 import { Watcher } from './watcher'
 
 function toMarker (
@@ -10,12 +11,10 @@ function toMarker (
 ): monaco.editor.IMarkerData {
   return {
     severity,
-    startLineNumber: warning.base.line,
-    startColumn: warning.base.col,
-    endLineNumber: warning.base.endLine,
-    endColumn: warning.base.endCol,
-    message: warning.message,
+    message: warning.message
+      + (warning.options && warning.options.tip ? '\n\nTip: ' + warning.options.tip : ''),
     source: 'run.n',
+    ...toMonacoRange(warning.base),
   }
 }
 

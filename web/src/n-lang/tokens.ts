@@ -70,6 +70,11 @@ export const language = <monaco.languages.IMonarchLanguage>{
   // The main tokenizer for our languages
   tokenizer: {
     root: [
+      // numbers
+      [/\d*\.\d+([eE][\-+]?\d+)?/, 'constant.numeric.float'],
+      [/0[xX][0-9a-fA-F]+/, 'constant.numeric.hex'],
+      [/\d+/, 'constant.numeric'],
+
       // identifiers and keywords
       [
         /\w+/,
@@ -92,11 +97,6 @@ export const language = <monaco.languages.IMonarchLanguage>{
 
       // delimiters and operators
       [/[{}()\[\]\>\<]/, '@brackets'],
-
-      // numbers
-      [/\d*\.\d+([eE][\-+]?\d+)?/, 'constant.numeric.float'],
-      [/0[xX][0-9a-fA-F]+/, 'constant.numeric.hex'],
-      [/\d+/, 'constant.numeric'],
 
       // chars
       [escapes, 'constant.character'],
