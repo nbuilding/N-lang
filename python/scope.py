@@ -116,6 +116,11 @@ class Scope:
 			function, *arguments = expr.children[1].children
 			arguments.insert(0, mainarg)
 			return self.eval_expr(function).run([self.eval_expr(arg) for arg in arguments])
+		elif expr.data == "function_callback_quirky_pipe":
+			mainarg = expr.children[0]
+			function, *arguments = expr.children[1].children
+			arguments.insert(0, mainarg)
+			return self.eval_expr(function).run([self.eval_expr(arg) for arg in arguments])
 		elif expr.data == "imported_command":
 			l, c, *args = expr.children
 			library = self.find_import(l)
@@ -379,6 +384,28 @@ class Scope:
 			mainarg = expr.children[0]
 			function, *arguments = expr.children[1].children
 			arguments.insert(0, mainarg)
+			func_type = self.type_check_expr(function)
+			if func_type is None:
+				return None
+			if not isinstance(func_type, tuple):
+				self.errors.append(TypeCheckError(expr, "You tried to call a %s, which isn't a function." % display_type(func_type)))
+				return None
+			*arg_types, return_type = func_type
+			for n, (argument, arg_type) in enumerate(zip(arguments, arg_types), start=1):
+				check_type = self.type_check_expr(argument)
+				if check_type is not None and check_type != arg_type and arg_type != "any":
+					self.errors.append(TypeCheckError(expr, "For a %s's argument #%d, you gave a %s, but you should've given a %s." % (display_type(func_type), n, display_type(check_type), display_type(arg_type))))
+			if len(arguments) > len(arg_types):
+				self.errors.append(TypeCheckError(expr, "A %s has %d argument(s), but you gave %d." % (display_type(func_type), len(arg_types), len(arguments))))
+				return None
+			elif len(arguments) < len(arg_types):
+				return func_type[len(arguments):]
+			else:
+				return return_type
+		elif expr.data == "function_callback_quirky_pipe":
+			mainarg = expr.children[0]
+			function, *arguments = expr.children[1].children
+			arguments.append(mainarg)
 			func_type = self.type_check_expr(function)
 			if func_type is None:
 				return None

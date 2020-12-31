@@ -64,13 +64,13 @@ global_scope.add_native_function(
 )
 global_scope.add_native_function(
 	"charAt",
-	[("string", "str"), ("location", "int")],
+	[("location", "int"), ("string", "str")],
 	"char",
 	lambda string, location: char_at(string, location),
 )
 global_scope.add_native_function(
 	"substring",
-	[("string", "str"), ("start", "int"), ("end", "int")],
+	[("start", "int"), ("end", "int"), ("string", "str")],
 	"char",
 	lambda string, start, end: substr(string, start, end),
 )
