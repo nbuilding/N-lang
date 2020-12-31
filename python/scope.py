@@ -60,13 +60,11 @@ class Scope:
 
 	def eval_value(self, value):
 		if value.type == "NUMBER":
-			# QUESTION: Float or int?
 			if "." in str(value.value):
 				return float(value)
 			return int(value)
 		elif value.type == "STRING":
-			# TODO: Character escapes
-			return value[1:-1]
+			return bytes(value[1:-1], 'utf-8').decode('unicode_escape')
 		elif value.type == "BOOLEAN":
 			if value.value == "false":
 				return False
@@ -281,8 +279,6 @@ class Scope:
 						self.errors.append(TypeCheckError(value, "Escape code \\%s not allowed." % value.children[0].value))
 				return "char"
 		if value.type == "NUMBER":
-			# TODO: We should return a generic `number` type and then try to
-			# figure it out later.
 			if "." in str(value.value):
 				return "float"
 			return "int"
