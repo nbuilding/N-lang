@@ -48,6 +48,8 @@ tupledef: "(" NAME ("," NAME)* ")"
 listdef: LIST "[" NAME "]"
 tupleval: "(" value ("," value)* ")"
 listval: "[" (value ("," value)*)? "]"
+recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
+record_entry: NAME ":" expression
 
 // Boolean and number expressions, with order of operations.
 // Question mark "inlines" the branch, so we don't get nested
@@ -94,12 +96,13 @@ value: NUMBER
      | char
      | tupleval
      | listval
+     | recordval
 
 //constants
 BOOLEAN: ("true" | "false")
 COMMENT: "//" /[^\n]/*
-OR: "||"
-AND: "&&"
+OR: ("||" | "|")
+AND: ("&&" | "&")
 EQUALS: ("==" | "=")
 GORE: ">="
 LORE: "<="

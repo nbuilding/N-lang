@@ -38,20 +38,24 @@ class TypeCheckError:
 			)
 		return output
 
-def display_type(n_type):
+def display_type(n_type, color=True):
+	display = ""
 	if isinstance(n_type, str):
-		return Fore.YELLOW + n_type + Style.RESET_ALL
+		display = n_type
 	elif isinstance(n_type, tuple):
-		return Fore.YELLOW + ' -> '.join(n_type) + Style.RESET_ALL
+		display = ' -> '.join(display_type(type, False) for type in n_type)
 	elif isinstance(n_type, list):
 		if(type(n_type[0]) == lark.Token):
 			if (n_type[0].type == "LIST"):
-				# try catch for empty list stuff
-				try:
-					return Fore.YELLOW + 'list[' + display_type(n_type[1]) + Fore.YELLOW + ']' + Style.RESET_ALL
-				except:
-					return Fore.YELLOW + 'list[]' + Style.RESET_ALL
-		return Fore.YELLOW + '(' + ', '.join(n_type) + ')' + Style.RESET_ALL
+				if len(n_type) >= 2:
+					display = 'list[' + display_type(n_type[1], False) + ']'
+				else:
+					display = 'list[]'
+		if display == "":
+			display = '(' + ', '.join(display_type(type, False) for type in n_type) + ')'
+	elif isinstance(n_type, dict):
+		display = "{ %s }" % "; ".join('%s: %s' % (key, display_type(value, False)) for key, value in n_type.items())
 	else:
-		print('display_type was given a value that is neither a string nor a tuple nor a list.', n_type)
-		return Fore.RED + '???' + Style.RESET_ALL
+		print('display_type was given a value that is neither a string nor a tuple nor a list nor a dictionary.', n_type)
+		return Fore.RED + '???' + Style.RESET_ALL if color else "???"
+	return Fore.YELLOW + display + Style.RESET_ALL if color else display

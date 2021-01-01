@@ -474,7 +474,10 @@ class Scope:
 				# to log more errors. Stop checking and pass down the None.
 				if left_type is None or right_type is None:
 					return None
-				return_type = types.get((left_type, right_type))
+				if isinstance(left_type, dict) or isinstance(right_type, dict):
+					return_type = None
+				else:
+					return_type = types.get((left_type, right_type))
 				if return_type is None:
 					self.errors.append(TypeCheckError(expr, "I don't know how to use %s on a %s and %s." % (operation.type, display_type(left_type), display_type(right_type))))
 					return None
@@ -517,8 +520,10 @@ class Scope:
 			for i, e in enumerate(rest):
 				if e != first:
 					self.errors.append(TypeCheckError(expr.children[i+1], "The list item #%s's type is %s while the first item's type is %s" % (i + 2, e, first)))
-			
+
 			return [lark.Token("LIST", "list"), self.type_check_expr(expr.children[0])]
+		elif expr.data == "recordval":
+			return dict((entry.children[0].value, self.type_check_expr(entry.children[1].children[0])) for entry in expr.children)
 		self.errors.append(TypeCheckError(expr, "Internal problem: I don't know the command/expression type %s." % expr.data))
 		return None
 
