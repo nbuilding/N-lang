@@ -22,6 +22,23 @@ def length(s):
 			return len(str(s))
 		except:
 			return 0
+			
+def type_check(o):
+	if isinstance(n_type, str):
+		return n_type
+	elif isinstance(n_type, tuple):
+		return ' -> '.join(n_type)
+	elif isinstance(n_type, list):
+		if(type(n_type[0]) == lark.Token):
+			if (n_type[0].type == "LIST"):
+				# try catch for empty list stuff
+				try:
+					return 'list[' + display_type(n_type[1]) + Fore.YELLOW + ']'
+				except:
+					return 'list[]'
+		return '(' + ', '.join(n_type) + ')'
+	else:
+		return '???'
 
 # Define global functions/variables
 global_scope = Scope()
@@ -79,4 +96,10 @@ global_scope.add_native_function(
 	[("obj", "any")],
 	"int",
 	lambda obj: length(obj),
+)
+global_scope.add_native_function(
+	"type",
+	[("obj", "any")],
+	"str",
+	lambda obj: type_check(global_scope.type_check_expr(obj)),
 )
