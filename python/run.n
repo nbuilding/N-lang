@@ -49,6 +49,8 @@ if false {
 
 let ch:char = \n
 
+let lis = [1, 2, 3, 4]
+
 let tup:(int, str) = (1, eee)
 
 print tup

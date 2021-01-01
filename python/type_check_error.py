@@ -44,6 +44,13 @@ def display_type(n_type):
 	elif isinstance(n_type, tuple):
 		return Fore.YELLOW + ' -> '.join(n_type) + Style.RESET_ALL
 	elif isinstance(n_type, list):
+		if(type(n_type[0]) == lark.Token):
+			if (n_type[0].type == "LIST"):
+				# try catch for empty list stuff
+				try:
+					return Fore.YELLOW + 'list[' + display_type(n_type[1]) + Fore.YELLOW + ']' + Style.RESET_ALL
+				except:
+					return Fore.YELLOW + 'list[]' + Style.RESET_ALL
 		return Fore.YELLOW + '(' + ', '.join(n_type) + ')' + Style.RESET_ALL
 	else:
 		print('display_type was given a value that is neither a string nor a tuple nor a list.', n_type)
