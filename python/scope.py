@@ -512,9 +512,11 @@ class Scope:
 			if (len(expr.children) == 0):
 				return [lark.Token("LIST", "list")]
 
-			for i,e in enumerate(expr.children):
-				if self.type_check_expr(e) != self.type_check_expr(expr.children[0]):
-					self.errors.append(TypeCheckError(e, "The list item #%s's types is %s while the first item's type is %s" % (i + 1, self.type_check_expr(e), self.type_check_expr(expr.children[0]))))
+			first, *rest = [self.type_check_expr(e) for e in expr.children]
+
+			for i, e in enumerate(rest):
+				if e != first:
+					self.errors.append(TypeCheckError(expr.children[i+1], "The list item #%s's type is %s while the first item's type is %s" % (i + 2, e, first)))
 			
 			return [lark.Token("LIST", "list"), self.type_check_expr(expr.children[0])]
 		self.errors.append(TypeCheckError(expr, "Internal problem: I don't know the command/expression type %s." % expr.data))
@@ -585,6 +587,8 @@ class Scope:
 			if type(value_type) == list and len(value_type) == 1:
 				if type(value_type[0]) == lark.Token:
 					if value_type[0].type == "LIST":
+						if ty == "infer":
+							self.errors.append(TypeCheckError(name_type, "Unable to infer type of empty list"))
 						value_type = ty
 			if value_type is not None and value_type != ty:
 				if ty == 'infer':
@@ -608,6 +612,16 @@ class Scope:
 			else:
 				ty = self.variables[name].type
 				value_type = self.type_check_expr(value)
+
+
+				#Check for empty lists
+				if type(value_type) == list and len(value_type) == 1:
+					if type(value_type[0]) == lark.Token:
+						if value_type[0].type == "LIST":
+							if ty == "infer":
+								self.errors.append(TypeCheckError(name_type, "Unable to infer type of empty list"))
+							value_type = ty
+
 				if value_type != ty:
 					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
 		elif command.data == "if":

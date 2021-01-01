@@ -49,7 +49,7 @@ if false {
 
 let ch:char = \n
 
-let lis:list[int] = [1, 2, 3, 4]
+let lis = [1, 2, 3, 4]
 
 let tup:(int, str) = (1, eee)
 
