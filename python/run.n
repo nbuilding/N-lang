@@ -56,10 +56,11 @@ let lis = [1, 2, 3, 4]
 // var list = [1]
 
 let record = {
-  wow: "ok"
+  ch
   anyways: main; wo2w: true
 }
-print ({ nested: [(record, 3)] } + 1)
+print(record)
+//print ({ nested: [(record, 3)] } + 1)
 
 let tup:(int, str) = (1, eee)
 

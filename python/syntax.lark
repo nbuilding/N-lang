@@ -49,7 +49,8 @@ listdef: LIST "[" NAME "]"
 tupleval: "(" value ("," value)* ")"
 listval: "[" (value ("," value)*)? "]"
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
-record_entry: NAME ":" expression
+?record_entry: NAME ":" expression
+             | NAME
 
 // Boolean and number expressions, with order of operations.
 // Question mark "inlines" the branch, so we don't get nested
