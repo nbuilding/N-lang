@@ -58,6 +58,12 @@ class Scope:
 		else:
 			return self.parent_function
 
+	def eval_record_entry(self, entry):
+		if type(entry) is lark.Tree:
+			return entry.children[0].value, self.eval_expr(entry.children[1].children[0])
+		else:
+			return entry.value, self.eval_value(entry)
+
 	def eval_value(self, value):
 		if value.type == "NUMBER":
 			if "." in str(value.value):
@@ -216,6 +222,8 @@ class Scope:
 			return tuple([self.eval_expr(e) for e in expr.children])
 		elif expr.data == "listval":
 			return [self.eval_expr(e) for e in expr.children]
+		elif expr.data == "recordval":
+			return dict(self.eval_record_entry(entry) for entry in expr.children)
 		else:
 			print('(parse tree):', expr)
 			raise SyntaxError("Unexpected command/expression type %s" % expr.data)
@@ -272,6 +280,12 @@ class Scope:
 
 		# No return
 		return (False, None)
+
+	def get_record_entry_type(self, entry):
+		if type(entry) is lark.Tree:
+			return entry.children[0].value, self.type_check_expr(entry.children[1].children[0])
+		else:
+			return entry.value, self.get_value_type(entry)
 
 	def get_value_type(self, value):
 		if type(value) == lark.Tree:
@@ -474,7 +488,10 @@ class Scope:
 				# to log more errors. Stop checking and pass down the None.
 				if left_type is None or right_type is None:
 					return None
-				return_type = types.get((left_type, right_type))
+				if isinstance(left_type, dict) or isinstance(right_type, dict):
+					return_type = None
+				else:
+					return_type = types.get((left_type, right_type))
 				if return_type is None:
 					self.errors.append(TypeCheckError(expr, "I don't know how to use %s on a %s and %s." % (operation.type, display_type(left_type), display_type(right_type))))
 					return None
@@ -517,8 +534,10 @@ class Scope:
 			for i, e in enumerate(rest):
 				if e != first:
 					self.errors.append(TypeCheckError(expr.children[i+1], "The list item #%s's type is %s while the first item's type is %s" % (i + 2, e, first)))
-			
+
 			return [lark.Token("LIST", "list"), self.type_check_expr(expr.children[0])]
+		elif expr.data == "recordval":
+			return dict(self.get_record_entry_type(entry) for entry in expr.children)
 		self.errors.append(TypeCheckError(expr, "Internal problem: I don't know the command/expression type %s." % expr.data))
 		return None
 
