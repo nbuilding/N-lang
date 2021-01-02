@@ -1,4 +1,5 @@
 from lark import Lark
+import lark
 import argparse
 from colorama import init, Fore, Style
 init()
@@ -44,7 +45,20 @@ def parse_tree(tree):
 	else:
 		raise SyntaxError("Unable to run parse_tree on non-starting branch")
 
-tree = file.parse(n_parser)
+try:
+	tree = file.parse(n_parser)
+except lark.exceptions.UnexpectedCharacters as e:
+
+	for i,line in enumerate(file.lines):
+		if e.get_context(file.get_text(), 99999999999999)[0:-2].strip() == line.strip():
+			break
+	spaces = " "*(len(str(i+1) + " |") +  1)
+	print(f"{Fore.RED}{Style.BRIGHT}Error{Style.RESET_ALL}: Invalid syntax")
+	print(f"{Fore.CYAN} --> {Fore.BLUE}{file.name}:{i+1}")
+	print(f"{Fore.CYAN}{i + 1} |{Style.RESET_ALL} {e.get_context(file.get_text(), 99999999999999)[0:-2].strip()}")
+	print(f"{spaces}{Fore.RED}{Style.BRIGHT}^{Style.RESET_ALL}")
+	exit()
+
 error_count, warning_count = type_check(file, tree)
 if error_count > 0 or args.check:
 	error_s = ""

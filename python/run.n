@@ -53,6 +53,9 @@ let lis = [1, 2, 3, 4]
 
 // let list:list[func] = [main]
 
+
+eee
+
 // var list = [1]
 
 let record = {

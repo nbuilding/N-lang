@@ -20,7 +20,7 @@ class TypeCheckError:
 			raise ValueError("%s is not a valid display type for TypeCheckError." % display_type)
 		output += ": %s\n" % self.message
 		if type(self.datum) is lark.Token:
-			output += f"{Fore.CYAN} --> {Fore.BLUE}run.n:{self.datum.line}:{self.datum.column}{Style.RESET_ALL}\n"
+			output += f"{Fore.CYAN} --> {Fore.BLUE}{file.name}:{self.datum.line}:{self.datum.column}{Style.RESET_ALL}\n"
 			output += file.display(
 				self.datum.line,
 				self.datum.column,

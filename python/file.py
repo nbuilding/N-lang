@@ -3,6 +3,7 @@ from colorama import Fore, Style
 class File:
 	def __init__(self, file, tab_length=4):
 		self.lines = [line.rstrip().replace('\t', ' ' * tab_length) for line in file]
+		self.name = file.name
 		self.line_num_width = len(str(len(self.lines)))
 
 	def parse(self, parser):
@@ -13,6 +14,9 @@ class File:
 
 	def get_lines(self, start, end):
 		return self.lines[start - 1:end]
+
+	def get_text(self):
+		return "\n".join(self.lines)
 
 	def display(self, start_line, start_col, end_line, end_col, color=Fore.RED):
 		output = []
