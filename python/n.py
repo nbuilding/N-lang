@@ -52,9 +52,12 @@ except lark.exceptions.UnexpectedCharacters as e:
 	for i,line in enumerate(file.lines):
 		if e.get_context(file.get_text(), 99999999999999)[0:-2].strip() == line.strip():
 			break
+
+	
 	spaces = " "*(len(str(i+1) + " |") +  1)
+	spaces_arrow = " "*(len(str(i+1) + " |") - 3)
 	print(f"{Fore.RED}{Style.BRIGHT}Error{Style.RESET_ALL}: Invalid syntax")
-	print(f"{Fore.CYAN} --> {Fore.BLUE}{file.name}:{i+1}")
+	print(f"{Fore.CYAN}{spaces_arrow}--> {Fore.BLUE}{file.name}:{i+1}")
 	print(f"{Fore.CYAN}{i + 1} |{Style.RESET_ALL} {e.get_context(file.get_text(), 99999999999999)[0:-2].strip()}")
 	print(f"{spaces}{Fore.RED}{Style.BRIGHT}^{Style.RESET_ALL}")
 	exit()

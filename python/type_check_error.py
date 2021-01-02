@@ -19,8 +19,10 @@ class TypeCheckError:
 		else:
 			raise ValueError("%s is not a valid display type for TypeCheckError." % display_type)
 		output += ": %s\n" % self.message
+		spaces = " "*(len(str(file.line_num_width + 1) + " |") - 1)
 		if type(self.datum) is lark.Token:
-			output += f"{Fore.CYAN} --> {Fore.BLUE}{file.name}:{self.datum.line}:{self.datum.column}{Style.RESET_ALL}\n"
+			
+			output += f"{Fore.CYAN}{spaces}--> {Fore.BLUE}{file.name}:{self.datum.line}:{self.datum.column}{Style.RESET_ALL}\n"
 			output += file.display(
 				self.datum.line,
 				self.datum.column,
@@ -28,7 +30,7 @@ class TypeCheckError:
 				self.datum.end_column,
 			)
 		else:
-			output += f"{Fore.CYAN} --> {Fore.BLUE}run.n:{self.datum.line}:{self.datum.column}{Style.RESET_ALL}\n"
+			output += f"{Fore.CYAN}{spaces}--> {Fore.BLUE}{file.name}:{self.datum.line}:{self.datum.column}{Style.RESET_ALL}\n"
 			output += file.display(
 				self.datum.line,
 				self.datum.column,
