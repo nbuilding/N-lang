@@ -1,4 +1,5 @@
 from variable import Variable
+from type_check_error import display_type
 
 class Function(Variable):
 	def __init__(self, scope, arguments, returntype, codeblock):
@@ -22,3 +23,6 @@ class Function(Variable):
 			exit, value = scope.eval_command(instruction)
 			if exit:
 				return value
+
+	def __str__(self):
+		return display_type(self.arguments, False)

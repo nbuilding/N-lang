@@ -241,23 +241,45 @@ class Scope:
 			self.imports.append(importlib.import_module("libraries." + command.children[0]))
 		elif command.data == "for":
 			var, iterable, code = command.children
-			name, type = get_name_type(var)
+			name, ty = get_name_type(var)
 			for i in range(int(iterable)):
 				scope = self.new_scope()
 
-				scope.variables[name] = Variable(type, i)
+				scope.variables[name] = Variable(ty, i)
 				for child in code.children:
 					exit, value = scope.eval_command(child)
 					if exit:
 						return (True, value)
 		elif command.data == "print":
-			print(self.eval_expr(command.children[0]))
+			val = self.eval_expr(command.children[0])
+
+			if type(val) == dict:
+				print("{ ", end="")
+				for key in list(val.keys())[0:-1]:
+					print(key + ": ", end="")
+
+					if type(val[key]) == str:
+						print("\"" + str(val[key].encode('unicode_escape'))[2:-1].replace("\\\\", "\\") + "\", ", end="")
+					else:
+						print(str(val[key]) + ", ", end="")
+
+				key = list(val.keys())[-1]
+
+				print(key + ": ", end="")
+				if type(val[key]) == str:
+					print("\"" + str(val[key].encode('unicode_escape'))[2:-1].replace("\\\\", "\\") + "\"", end="")
+				else:
+					print(str(val[key]), end="")
+
+				print("}")
+			else:
+				print(val)
 		elif command.data == "return":
 			return (True, self.eval_expr(command.children[0]))
 		elif command.data == "declare":
 			name_type, value = command.children
-			name, type = get_name_type(name_type)
-			self.variables[name] = Variable(type, self.eval_expr(value))
+			name, ty = get_name_type(name_type)
+			self.variables[name] = Variable(ty, self.eval_expr(value))
 		elif command.data == "vary":
 			name, value = command.children
 			self.variables[name].value = self.eval_expr(value)
