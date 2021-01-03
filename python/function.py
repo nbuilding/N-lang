@@ -14,8 +14,8 @@ class Function(Variable):
 
 	def run(self, arguments):
 		scope = self.scope.new_scope(parent_function=self)
-		for value, (arg_name, arg_type) in zip(arguments, self.arguments):
-			scope.variables[arg_name] = Variable(arg_type, value)
+		for value, (arg_pattern, _) in zip(arguments, self.arguments):
+			scope.assign_to_pattern(arg_pattern, value)
 		if len(arguments) < len(self.arguments):
 			# Curry :o
 			return Function(scope, self.arguments[len(arguments):], self.returntype, self.codeblock)

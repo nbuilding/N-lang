@@ -9,6 +9,13 @@ let main = [test:int test1:str] -> bool {
 	return false
 }
 
+let wowowo = {
+  ok: (3, (("happy", \r), true))
+  uwu: "ok"//; extra: 3.4; extra2: 5.4
+}
+let { uwu; ok: aaa, ((caa, _), (((baa)))) } = wowowo
+print { uwu; aaa; caa; baa }
+
 for i 15 {
 	let n:int = i + 1
 	print
@@ -51,18 +58,15 @@ let ch:char = \n
 
 let lis = [1, 2, 3, 4]
 
+if let [a, b, c, d] = lis {
+  print { a; b; c; d }
+}
+
 // let list:list[func] = [main]
 
 
 
 // var list = [1]
-
-let record = {
-  ch
-  anyways: main; wo2w: true
-}
-print(record)
-//print ({ nested: [(record, 3)] } + 1)
 
 let tup:(int, str) = (1, eee)
 
@@ -88,3 +92,14 @@ if <main test eee> {
 }
 
 print (2 + 3 * (4 + 1) * 4 + 5)
+
+
+
+
+
+
+
+
+
+
+// if true {"teste"}

@@ -29,12 +29,15 @@ for: "for" name_type NUMBER code_block
 imp: "import" NAME
 return: "return" expression
 imported_command: "<" NAME "." NAME (" " [value (" " value)*])? ">"
-if: "if" expression ("{"? value "}"? | "{"? instruction "}"? | code_block)
-ifelse: "if" expression ("{"? value "}"? | "{"? instruction "}"? | code_block) "else" ("{"? instruction "}"? | code_block)
-ifelse_expr: "if" expression "{"? expression "}"? "else" "{"? expression "}"?
+if: "if" condition ("{"? value "}"? | "{"? instruction "}"? | code_block)
+ifelse: "if" condition ("{"? value "}"? | "{"? instruction "}"? | code_block) "else" ("{"? instruction "}"? | code_block)
+ifelse_expr: "if" condition "{"? expression "}"? "else" "{"? expression "}"?
+?condition: expression
+          | conditional_let
+conditional_let: "let" cond_pattern "=" (expression | function_def | anonymous_func)
 
 //helpers
-name_type: NAME [":" types]
+name_type: definite_pattern [":" types]
 function_dec_call: NAME (" " [name_type (" " name_type)*])?
 function_call : value (" " value)*
 anonymous_function_call : anonymous_func (" " value)*
@@ -51,6 +54,23 @@ listval: "[" (value ("," value)*)? "]"
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
 ?record_entry: NAME ":" expression
              | NAME
+
+?any_pattern: definite_pattern_value
+            | cond_pattern
+
+?definite_pattern: definite_pattern_value
+                 | tuple_pattern
+?definite_pattern_value: NAME
+                       | "_"
+                       | "(" definite_pattern ")"
+                       | record_pattern
+tuple_pattern: (definite_pattern_value ",")+ definite_pattern_value
+record_pattern: "{" (record_entry_pattern (";" | "\n"))* record_entry_pattern "}"
+?record_entry_pattern: NAME
+                     | NAME ":" definite_pattern
+
+?cond_pattern: list_pattern
+list_pattern: "[" (any_pattern ("," any_pattern)*)? "]"
 
 // Boolean and number expressions, with order of operations.
 // Question mark "inlines" the branch, so we don't get nested
