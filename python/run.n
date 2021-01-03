@@ -64,7 +64,7 @@ if let [a, b, c, d] = lis {
 
 // let list:list[func] = [main]
 
-
+print main.<type>
 
 // var list = [1]
 

@@ -358,7 +358,7 @@ class Scope:
 			val = self.eval_expr(command.children[0])
 
 			if type(val) == dict:
-				print("{ ", end="")
+				print("{", end="")
 				for key in list(val.keys())[0:-1]:
 					print(key + ": ", end="")
 
