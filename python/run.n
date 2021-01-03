@@ -88,14 +88,3 @@ if <main test eee> {
 }
 
 print (2 + 3 * (4 + 1) * 4 + 5)
-
-
-
-
-
-
-
-
-
-
-if true {"teste"}
