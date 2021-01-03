@@ -11,7 +11,7 @@ let main = [test:int test1:str] -> bool {
 
 let wowowo = {
   ok: (3, (("happy", \r), true))
-  uwu: "ok"
+  uwu: "ok"//; extra: 3.4; extra2: 5.4
 }
 let { uwu; ok: aaa, ((caa, _), (((baa)))) } = wowowo
 print { uwu; aaa; caa; baa }

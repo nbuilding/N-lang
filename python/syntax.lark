@@ -52,12 +52,13 @@ recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
 ?record_entry: NAME ":" expression
              | NAME
 
-?definite_pattern: NAME
-                 | "_"
-                 | "(" definite_pattern ")"
+?definite_pattern: definite_pattern_value
                  | tuple_pattern
-                 | record_pattern
-tuple_pattern: (definite_pattern ",")+ definite_pattern
+?definite_pattern_value: NAME
+                       | "_"
+                       | "(" definite_pattern ")"
+                       | record_pattern
+tuple_pattern: (definite_pattern_value ",")+ definite_pattern_value
 record_pattern: "{" (record_entry_pattern (";" | "\n"))* record_entry_pattern "}"
 ?record_entry_pattern: NAME
                      | NAME ":" definite_pattern

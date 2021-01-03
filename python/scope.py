@@ -81,43 +81,46 @@ class Scope:
 		path_name = path or "the value"
 		pattern, src = pattern_and_src
 		if isinstance(pattern, dict):
-			if not isinstance(value_or_type, dict):
+			is_dict = isinstance(value_or_type, dict)
+			if is_dict:
+				# Should this be an error? Warning?
+				unused_keys = [key for key in value_or_type.keys() if key not in pattern]
+				if len(unused_keys) > 0:
+					self.errors.append(TypeCheckError(src, "%s (%s) has field(s) %s, but you haven't destructured them. (Hint: use `_` to denote unused fields.)" % (display_type(value_or_type), path_name, ", ".join(unused_keys))))
+			else:
 				if warn:
 					self.errors.append(TypeCheckError(src, "I can't destructure %s as a record because %s is not a record." % (path_name, display_type(value_or_type))))
-					return
 				else:
 					raise TypeError("Destructuring non-record as record.")
 			for key, (sub_pattern, parse_src) in pattern.items():
-				value = value_or_type.get(key)
-				if value is None:
+				value = value_or_type.get(key) if is_dict else None
+				if is_dict and value is None:
 					if warn:
 						self.errors.append(TypeCheckError(parse_src, "I can't get the field %s from %s because %s doesn't have that field." % (key, path_name, display_type(value_or_type))))
 					else:
 						raise TypeError("Given record doesn't have a key %s." % key)
-				else:
-					self.assign_to_pattern((sub_pattern, parse_src), value, warn, "%s.%s" % (path or "<record>", key))
+				self.assign_to_pattern((sub_pattern, parse_src), value, warn, "%s.%s" % (path or "<record>", key))
 		elif isinstance(pattern, tuple):
 			# I believe the interpreter uses actual Python tuples, while the
 			# type checker uses lists for tuple types. We should fix that for
 			# the type checker.
-			if not (isinstance(value_or_type, list) if warn else isinstance(value_or_type, tuple)):
+			is_tuple = isinstance(value_or_type, list) if warn else isinstance(value_or_type, tuple)
+			if not is_tuple:
 				if warn:
 					self.errors.append(TypeCheckError(src, "I can't destructure %s as a tuple because %s is not a tuple." % (path_name, display_type(value_or_type))))
-					return
 				else:
 					raise TypeError("Destructuring non-record as record.")
-			if len(pattern) != len(value_or_type):
+			if is_tuple and len(pattern) != len(value_or_type):
 				if warn:
 					if len(pattern) > len(value_or_type):
 						_, parse_src = pattern[len(value_or_type)]
 						self.errors.append(TypeCheckError(parse_src, "I can't destructure %d items from a %s." % (len(pattern), display_type(value_or_type))))
 					else:
-						self.errors.append(TypeCheckError(src, "I can't destructure %d items from a %s. (Hint: use `_` to denote unused members of a destructured tuple.)" % (len(pattern), display_type(value_or_type))))
-					return
+						self.errors.append(TypeCheckError(src, "I can't destructure only %d items from a %s. (Hint: use `_` to denote unused members of a destructured tuple.)" % (len(pattern), display_type(value_or_type))))
 				else:
 					raise TypeError("Number of destructured values from tuple doesn't match tuple length.")
 			for i, (sub_pattern, parse_src) in enumerate(pattern):
-				value = value_or_type[i]
+				value = value_or_type[i] if is_tuple and i < len(value_or_type) else None
 				self.assign_to_pattern((sub_pattern, parse_src), value, warn, "%s.%d" % (path or "<tuple>", i))
 		elif pattern is not None:
 			name = pattern
