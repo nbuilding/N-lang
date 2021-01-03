@@ -58,6 +58,10 @@ let ch:char = \n
 
 let lis = [1, 2, 3, 4]
 
+if let [a, b, c, d] = lis {
+  print { a; b; c; d }
+}
+
 // let list:list[func] = [main]
 
 

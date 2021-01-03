@@ -22,6 +22,15 @@ def get_destructure_pattern(name):
 			return (tuple(get_destructure_pattern(pattern) for pattern in name.children), name)
 	return (None if name.value == "_" else name.value, name)
 
+def get_conditional_destructure_pattern(tree):
+	if type(tree) == lark.Tree:
+		if tree.data == "list_pattern":
+			patterns = []
+			for pattern in tree.children:
+				patterns.append(get_conditional_destructure_pattern(pattern))
+			return (patterns, tree)
+	return get_destructure_pattern(tree)
+
 def get_name_type(name_type):
 	pattern = get_destructure_pattern(name_type.children[0])
 	if len(name_type.children) == 1:
@@ -31,6 +40,14 @@ def get_name_type(name_type):
 		ty = name_type.children[1]
 		var_type = ty.children if type(ty) == lark.Tree else ty.value
 		return pattern, var_type
+
+def type_is_list(maybe_list_type):
+	if isinstance(maybe_list_type, list) and len(maybe_list_type) > 0 and type(maybe_list_type[0]) == lark.Token and maybe_list_type[0].type == "LIST":
+		if len(maybe_list_type) > 1:
+			return maybe_list_type[1]
+		else:
+			return "infer"
+	return False
 
 class Scope:
 	def __init__(self, parent=None, parent_function=None, errors=[], warnings=[], imports=[]):
@@ -128,6 +145,27 @@ class Scope:
 				self.errors.append(TypeCheckError(src, "You've already defined `%s`." % name))
 			self.variables[name] = Variable(value_or_type, value_or_type)
 
+	def assign_to_cond_pattern(self, cond_pattern_and_src, value_or_type, warn=False, path=None):
+		path_name = path or "the value"
+		pattern, src = cond_pattern_and_src
+		if isinstance(pattern, list):
+			if warn:
+				contained_type = type_is_list(value_or_type)
+				if contained_type is None:
+					self.errors.append(TypeCheckError(src, "I cannot destructure a %s as a list." % display_type(value_or_type)))
+			else:
+				if not isinstance(value_or_type, list):
+					raise TypeError("Destructuring non-list as list.")
+			if not warn and len(value_or_type) != len(pattern):
+				return False
+			for i, (sub_pattern, parse_src) in enumerate(pattern):
+				valid = self.assign_to_cond_pattern((sub_pattern, parse_src), contained_type if warn else value_or_type[i], warn, "%s[%d]" % (path or "<list>", i))
+				if not valid:
+					return False
+		else:
+			self.assign_to_pattern(cond_pattern_and_src, value_or_type, warn, path)
+		return True
+
 	def eval_record_entry(self, entry):
 		if type(entry) is lark.Tree:
 			return entry.children[0].value, self.eval_expr(entry.children[1].children[0])
@@ -166,21 +204,17 @@ class Scope:
 				return self.eval_expr(if_true)
 			else:
 				return self.eval_expr(if_false)
-		elif expr.data == "function_def":
-			arguments, returntype, codeblock = expr.children
+		elif expr.data == "function_def" or expr.data == "anonymous_func":
+			if expr.data == "function_def":
+				arguments, returntype, codeblock = expr.children
+			else:
+				arguments, returntype, *codeblock = expr.children
+				codeblock = lark.tree.Tree("codeblock", codeblock)
 			return Function(
 				self,
-				[(arg.children[0].value, arg.children[1].value) for arg in arguments.children],
+				[get_name_type(arg) for arg in arguments.children],
 				returntype.value,
 				codeblock
-			)
-		elif expr.data == "anonymous_func":
-			arguments, returntype, *codeblock = expr.children
-			return Function(
-				self,
-				[(arg.children[0].value, arg.children[1].value) for arg in arguments.children],
-				returntype.value,
-				lark.tree.Tree("codeblock", codeblock)
 			)
 		elif expr.data == "function_callback":
 			function, *arguments = expr.children[0].children
@@ -355,8 +389,14 @@ class Scope:
 			self.variables[name].value = self.eval_expr(value)
 		elif command.data == "if":
 			condition, body = command.children
-			if self.eval_expr(condition):
-				exit, value = self.new_scope().eval_command(body)
+			scope = self.new_scope()
+			if condition.data == "conditional_let":
+				pattern, value = condition.children
+				yes = scope.assign_to_cond_pattern(get_conditional_destructure_pattern(pattern), self.eval_expr(value))
+			else:
+				yes = self.eval_expr(condition)
+			if yes:
+				exit, value = scope.eval_command(body)
 				if exit:
 					return (True, value)
 		elif command.data == "ifelse":
@@ -382,9 +422,6 @@ class Scope:
 	def get_value_type(self, value):
 		if type(value) == lark.Tree:
 			if value.data == "char":
-				if type(value.children[0]) == lark.Tree:
-					if value.children[0].children[0].value not in ["n", "r", "t"]:
-						self.errors.append(TypeCheckError(value, "Escape code \\%s not allowed." % value.children[0].value))
 				return "char"
 		if value.type == "NUMBER":
 			if "." in str(value.value):
@@ -429,31 +466,17 @@ class Scope:
 				if condition.children[0].value == "false":
 					self.warnings.append(TypeCheckError(condition, "The if statement of the expression will never run."))
 			return if_true_type
-		elif expr.data == "function_def":
-			arguments, returntype, codeblock = expr.children
-			arguments = [(arg.children[0].value, arg.children[1].value) for arg in arguments.children]
+		elif expr.data == "function_def" or expr.data == "anonymous_func":
+			if expr.data == "function_def":
+				arguments, returntype, codeblock = expr.children
+			else:
+				arguments, returntype, *cb = expr.children
+				codeblock = lark.tree.Tree("codeblock", cb)
+			arguments = [get_name_type(arg) for arg in arguments.children]
 			dummy_function = Function(self, arguments, returntype.value, codeblock)
 			scope = self.new_scope(parent_function=dummy_function)
-			for arg_name, arg_type in arguments:
-				scope.variables[arg_name] = Variable(arg_type, "anything")
-			exit_point = None
-			warned = False
-			for instruction in codeblock.children:
-				exit = scope.type_check_command(instruction)
-				if exit and exit_point is None:
-					exit_point = exit
-				elif exit_point and not warned:
-					warned = True
-					self.warnings.append(TypeCheckError(exit_point, "There are commands after this return statement, but I will never run them."))
-			return dummy_function.type
-		elif expr.data == "anonymous_func":
-			arguments, returntype, *cb = expr.children
-			codeblock = lark.tree.Tree("codeblock", cb)
-			arguments = [(arg.children[0].value, arg.children[1].value) for arg in arguments.children]
-			dummy_function = Function(self, arguments, returntype.value, codeblock)
-			scope = self.new_scope(parent_function=dummy_function)
-			for arg_name, arg_type in arguments:
-				scope.variables[arg_name] = Variable(arg_type, "anything")
+			for arg_pattern, arg_type in arguments:
+				scope.assign_to_pattern(arg_pattern, arg_type, True)
 			exit_point = None
 			warned = False
 			for instruction in codeblock.children:
@@ -692,27 +715,25 @@ class Scope:
 			pattern, ty = get_name_type(name_type)
 			value_type = self.type_check_expr(value)
 
-			#Check for empty lists
-			if type(value_type) == list and len(value_type) == 1:
-				if type(value_type[0]) == lark.Token:
-					if value_type[0].type == "LIST":
-						if ty == "infer":
-							self.errors.append(TypeCheckError(name_type, "Unable to infer type of empty list"))
-						value_type = ty
+			# Check for empty lists
+			maybe_list_type = type_is_list(value_type)
+			if maybe_list_type == "infer":
+				if ty == "infer":
+					self.errors.append(TypeCheckError(name_type, "Unable to infer type of empty list"))
+				value_type = ty
 			if value_type is not None and value_type != ty:
 				if ty == 'infer':
 					ty = value_type
-				else:
-					typ = ty
-					if type(typ) == list:
-						if typ[0].type != "LIST":
-							typ = []
-							for t in ty:
-								if type(t) is lark.Token:
-									typ.append(t.value)
-								else:
-									typ.append(t)
+				elif type_is_list(ty):
+					typ = []
+					for t in ty:
+						if type(t) is lark.Token:
+							typ.append(t.value)
+						else:
+							typ.append(t)
 					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(typ), display_type(value_type))))
+				else:
+					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
 
 			self.assign_to_pattern(pattern, ty, True)
 		elif command.data == "vary":
@@ -736,15 +757,21 @@ class Scope:
 					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
 		elif command.data == "if":
 			condition, body = command.children
-			cond_type = self.type_check_expr(condition)
-			if type(condition.children[0]) is lark.Token:
-				if condition.children[0].value == "true":
-					self.warnings.append(TypeCheckError(condition, "This will always run."))
-				if condition.children[0].value == "false":
-					self.warnings.append(TypeCheckError(condition, "This will never run."))
-			if cond_type is not None and cond_type != "bool":
-				self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
-			self.type_check_command(body)
+			scope = self.new_scope()
+			if condition.data == "conditional_let":
+				pattern, value = condition.children
+				eval_type = self.type_check_expr(value)
+				scope.assign_to_cond_pattern(get_conditional_destructure_pattern(pattern), eval_type, True)
+			else:
+				cond_type = self.type_check_expr(condition)
+				if type(condition.children[0]) is lark.Token:
+					if condition.children[0].value == "true":
+						self.warnings.append(TypeCheckError(condition, "This will always run."))
+					if condition.children[0].value == "false":
+						self.warnings.append(TypeCheckError(condition, "This will never run."))
+				if cond_type is not None and cond_type != "bool":
+					self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
+			scope.type_check_command(body)
 		elif command.data == "ifelse":
 			condition, if_true, if_false = command.children
 			cond_type = self.type_check_expr(condition)
