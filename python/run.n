@@ -1,5 +1,6 @@
 import fek
 import SystemIO
+imp runner
 
 let main = [test:int test1:str] -> bool {
 	print "# Main"
@@ -100,6 +101,7 @@ print (2 + 3 * (4 + 1) * 4 + 5)
 
 
 
+print runner?eeeeee
 
 
 // if true {"teste"}

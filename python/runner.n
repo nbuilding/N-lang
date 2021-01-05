@@ -1,0 +1,3 @@
+print "test"
+let eeeeee:int = 0
+print eeeeee

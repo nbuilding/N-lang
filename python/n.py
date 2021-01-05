@@ -5,8 +5,12 @@ from colorama import init, Fore, Style
 init()
 
 from file import File
-from native_functions import global_scope
+from native_functions import add_funcs
 from type_check_error import TypeCheckError
+from scope import Scope
+
+global_scope = Scope()
+add_funcs(global_scope)
 
 with open("syntax.lark", "r") as f:
 	parse = f.read()
@@ -72,4 +76,5 @@ if error_count > 0 or args.check:
 		warning_s = "s"
 	print(f"{Fore.BLUE}Ran with {Fore.RED}{error_count} error{error_s}{Fore.BLUE} and {Fore.YELLOW}{warning_count} warning{warning_s}{Fore.BLUE}.{Style.RESET_ALL}")
 	exit()
+
 parse_tree(tree)

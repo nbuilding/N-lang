@@ -1,11 +1,72 @@
 import importlib
 import lark
+from lark import Lark
+from colorama import Fore, Style
 
 from variable import Variable
 from function import Function
 from native_function import NativeFunction
 from type_check_error import TypeCheckError, display_type
 from operation_types import binary_operation_types, unary_operation_types, comparable_types, iterable_types
+from file import File
+import native_functions
+
+def parse_file(file, check=False):
+	global_scope = Scope()
+	native_functions.add_funcs(global_scope)
+
+	with open("syntax.lark", "r") as f:
+		parse = f.read()
+	n_parser = Lark(parse, start="start", propagate_positions=True)
+
+	filename = file
+
+	with open(filename, "r") as f:
+		file = File(f)
+
+
+	try:
+		tree = file.parse(n_parser)
+	except lark.exceptions.UnexpectedCharacters as e:
+
+		for i,line in enumerate(file.lines):
+			if e.get_context(file.get_text(), 99999999999999)[0:-2].strip() == line.strip():
+				break
+
+		
+		spaces = " "*(len(str(i+1) + " |") +  1)
+		spaces_arrow = " "*(len(str(i+1) + " |") - 3)
+		print(f"{Fore.RED}{Style.BRIGHT}Error{Style.RESET_ALL}: Invalid syntax")
+		print(f"{Fore.CYAN}{spaces_arrow}--> {Fore.BLUE}{file.name}:{i+1}")
+		print(f"{Fore.CYAN}{i + 1} |{Style.RESET_ALL} {e.get_context(file.get_text(), 99999999999999)[0:-2].strip()}")
+		print(f"{spaces}{Fore.RED}{Style.BRIGHT}^{Style.RESET_ALL}")
+		exit()
+
+	if check:
+		global_scope.variables = {**global_scope.variables, **type_check(file, tree, global_scope).variables}
+	else:
+		global_scope.variables = {**global_scope.variables, **parse_tree(tree, global_scope).variables}
+
+	return global_scope 
+
+def type_check(file, tree, global_scope):
+	scope = global_scope.new_scope()
+	if tree.data == "start":
+		for child in tree.children:
+			scope.type_check_command(child)
+	else:
+		scope.errors.append(TypeCheckError(tree, "Internal issue: I cannot type check from a non-starting branch."))
+	return scope
+
+def parse_tree(tree, global_scope):
+	if tree.data == "start":
+		scope = global_scope.new_scope()
+		for child in tree.children:
+			scope.eval_command(child)
+		return scope
+	else:
+		raise SyntaxError("Unable to run parse_tree on non-starting branch")
+
 
 def get_destructure_pattern(name):
 	if type(name) == lark.Tree:
@@ -322,6 +383,8 @@ class Scope:
 				return self.eval_expr(token_or_tree)
 			else:
 				return self.eval_value(token_or_tree)
+		elif expr.data == "imported_value":
+			return self.variables[expr.children[0] + "?" + expr.children[1]].value
 		elif expr.data == "tupleval":
 			return tuple([self.eval_expr(e) for e in expr.children])
 		elif expr.data == "listval":
@@ -343,6 +406,11 @@ class Scope:
 
 		if command.data == "imp":
 			self.imports.append(importlib.import_module("libraries." + command.children[0]))
+		elif command.data == "impn":
+			val = parse_file(command.children[0] + ".n")
+			for key in val.variables.keys():
+				if not isinstance(val.variables[key], NativeFunction):
+					self.variables[command.children[0] + "?" + key] = val.variables[key]
 		elif command.data == "for":
 			var, iterable, code = command.children
 			pattern, ty = get_name_type(var)
@@ -574,6 +642,12 @@ class Scope:
 					return self.get_value_type(token_or_tree)
 			else:
 				return self.get_value_type(token_or_tree)
+		elif expr.data == "imported_value":
+			if expr.children[0] + "?" + expr.children[1] in self.variables:
+				return self.variables[expr.children[0] + "?" + expr.children[1]]
+			else:
+				self.errors.append(TypeCheckError(expr, "The imported variable %s does not exist." % (expr.children[0] + "?" + expr.children[1])))
+				return None
 		if len(expr.children) == 2 and type(expr.children[0]) is lark.Token:
 			operation, value = expr.children
 			types = unary_operation_types.get(operation.type)
@@ -677,6 +751,13 @@ class Scope:
 					self.errors.append(TypeCheckError(command.children[0], "Library %s not compatable." % command.children[0]))
 			except:
 				self.errors.append(TypeCheckError(command.children[0], "Library %s not found to import." % command.children[0]))
+		elif command.data == "impn":
+			val = parse_file(command.children[0] + ".n", True)
+			self.errors += val.errors
+			self.warnings += val.warnings
+			for key in val.variables.keys():
+				if not isinstance(val.variables[key], NativeFunction):
+					self.variables[command.children[0] + "?" + key] = val.variables[key]
 		elif command.data == "for":
 			var, iterable, code = command.children
 			pattern, ty = get_name_type(var)
