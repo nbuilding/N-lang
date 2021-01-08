@@ -22,6 +22,9 @@ pip install colorama
 # If there is a --file [file name] flag then it will run the file in the filename
 # If there is a --check flag then it will only do compile-time and show warnings
 python n.py
+
+# OPTIONAL: Check the code for accidental errors
+pylint **/*.py --disable=all --enable=E*,F*
 ```
 
 ### Features to add:
