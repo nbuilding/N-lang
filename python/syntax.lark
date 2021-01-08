@@ -7,7 +7,6 @@ instruction: declare (";")?
            | function_callback_quirky_pipe (";")?
            | for (";")?
            | imp (";")?
-           | impn (";")?
            | return (";")?
            | imported_command (";")?
            | if (";")?
@@ -124,6 +123,7 @@ value: NUMBER
      | tupleval
      | listval
      | recordval
+     | impn
      | record_access
 
 //constants

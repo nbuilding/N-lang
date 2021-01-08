@@ -1,6 +1,7 @@
 import fek
 import SystemIO
-imp runner
+
+let runner = imp runner
 
 let main = [test:int test1:str] -> bool {
 	print "# Main"

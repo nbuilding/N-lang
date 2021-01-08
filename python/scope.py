@@ -383,6 +383,13 @@ class Scope:
 				return self.eval_expr(token_or_tree)
 			else:
 				return self.eval_value(token_or_tree)
+		elif expr.data == "impn":
+			val = parse_file(expr.children[0] + ".n")
+			holder = {}
+			for key in val.variables.keys():
+				if val.variables[key].public:
+					holder[key] = val.variables[key].value
+			return holder
 		elif expr.data == "record_access":
 			return self.variables[expr.children[0]].value[expr.children[1]]
 		elif expr.data == "tupleval":
@@ -406,13 +413,6 @@ class Scope:
 
 		if command.data == "imp":
 			self.imports.append(importlib.import_module("libraries." + command.children[0]))
-		elif command.data == "impn":
-			val = parse_file(command.children[0] + ".n")
-			holder = {}
-			for key in val.variables.keys():
-				if val.variables[key].public:
-					holder[key] = val.variables[key]
-			self.assign_to_pattern(holder, command.children[0], False, None, True)
 		elif command.data == "for":
 			var, iterable, code = command.children
 			pattern, ty = get_name_type(var)
@@ -738,6 +738,17 @@ class Scope:
 					self.errors.append(TypeCheckError(expr.children[i+1], "The list item #%s's type is %s while the first item's type is %s" % (i + 2, e, first)))
 
 			return [lark.Token("LIST", "list"), self.type_check_expr(expr.children[0])]
+		elif expr.data == "impn":
+			val = parse_file(expr.children[0] + ".n", True)
+			self.errors += val.errors
+			self.warnings += val.warnings
+			holder = {}
+			for key in val.variables.keys():
+				if val.variables[key].public:
+					holder[key] = val.variables[key].value
+			if holder == {}:
+				self.warnings.append(expr.children[0], "There was nothing to import from %s" % expr.children[0])
+			return holder
 		elif expr.data == "recordval":
 			return dict(self.get_record_entry_type(entry) for entry in expr.children)
 		self.errors.append(TypeCheckError(expr, "Internal problem: I don't know the command/expression type %s." % expr.data))
@@ -764,17 +775,6 @@ class Scope:
 					self.errors.append(TypeCheckError(command.children[0], "Library %s not compatable." % command.children[0]))
 			except:
 				self.errors.append(TypeCheckError(command.children[0], "Library %s not found to import." % command.children[0]))
-		elif command.data == "impn":
-			val = parse_file(command.children[0] + ".n", True)
-			self.errors += val.errors
-			self.warnings += val.warnings
-			holder = {}
-			for key in val.variables.keys():
-				if val.variables[key].public:
-					holder[key] = val.variables[key]
-			if holder == {}:
-				self.warnings.append(command.children[0], "There was nothing to import from %s" % command.children[0])
-			self.assign_to_pattern(holder, command.children[0], True, None, True)
 		elif command.data == "for":
 			var, iterable, code = command.children
 			pattern, ty = get_name_type(var)
