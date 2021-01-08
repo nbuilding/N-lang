@@ -54,7 +54,7 @@ def parse_file(file, check=False):
 	return import_scope, file
 
 def type_check(file, tree, import_scope):
-	scope = import_scope.new_scope()
+	scope = import_scope.new_scope(inherit_errors=False)
 	if tree.data == "start":
 		for child in tree.children:
 			scope.type_check_command(child)
@@ -110,20 +110,20 @@ class Scope:
 		self.imports = imports
 		self.variables = {}
 		self.types = {}
-		self.errors = errors[:]
-		self.warnings = warnings[:]
+		self.errors = errors
+		self.warnings = warnings
 
 	def find_import(self, name):
 		for imp in self.imports:
 			if imp.__name__ == "libraries." + name:
 				return imp
 
-	def new_scope(self, parent_function=None):
+	def new_scope(self, parent_function=None, inherit_errors=True):
 		return Scope(
 			self,
 			parent_function=parent_function or self.parent_function,
-			errors=self.errors,
-			warnings=self.warnings,
+			errors=self.errors if inherit_errors else [],
+			warnings=self.warnings if inherit_errors else [],
 			imports=self.imports,
 		)
 
