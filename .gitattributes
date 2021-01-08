@@ -1,3 +1,0 @@
-# Force line ending normalization so that Git autoconverts to line feeds (\n).
-# This way, Mac and Windows nerds will not result in entire file rewrites.
-* text=auto
