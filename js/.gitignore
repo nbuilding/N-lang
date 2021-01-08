@@ -1,0 +1,10 @@
+# Built Nearley file
+*.grammar.ts
+
+# Built JS files
+src/**/*.js
+
+## Node
+
+# Dependency directories
+node_modules/

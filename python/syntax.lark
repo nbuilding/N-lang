@@ -20,7 +20,7 @@ non_infix_boolval: value
 
 // functions
 vary: "var " NAME "=" (expression | function_def | anonymous_func)
-declare: "let " modifier? name_type "=" (expression | function_def | anonymous_func)
+declare: "let " name_type "=" (expression | function_def | anonymous_func)
 print: "print" value
 function_callback: "<" (function_call | anonymous_function_call) ">"
 function_callback_quirky: value ".<" (function_call | anonymous_function_call) ">"
@@ -29,7 +29,7 @@ for: "for" name_type NUMBER code_block
 imp: "import" NAME
 impn: "imp" NAME
 return: "return" expression
-imported_command: "<" NAME "?" NAME (" " [value (" " value)*])? ">"
+imported_command: "<" NAME "." NAME (" " [value (" " value)*])? ">"
 if: "if" condition ("{"? value "}"? | "{"? instruction "}"? | code_block)
 ifelse: "if" condition ("{"? value "}"? | "{"? instruction "}"? | code_block) "else" ("{"? instruction "}"? | code_block)
 ifelse_expr: "if" condition "{"? expression "}"? "else" "{"? expression "}"?
@@ -53,9 +53,7 @@ listdef: LIST "[" NAME "]"
 tupleval: "(" value ("," value)* ")"
 listval: "[" (value ("," value)*)? "]"
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
-record_access: NAME "." NAME
-
-?modifier: PUBLIC
+imported_value: NAME "?" NAME
 
 ?record_entry: NAME ":" expression
              | NAME
@@ -123,8 +121,7 @@ value: NUMBER
      | tupleval
      | listval
      | recordval
-     | impn
-     | record_access
+     | imported_value
 
 //constants
 BOOLEAN: ("true" | "false")
@@ -146,7 +143,6 @@ ROUNDDIV: "//"
 MODULO: "%"
 EXPONENT: "^"
 LIST: "list"
-PUBLIC: "pub"
 %import common.ESCAPED_STRING -> STRING
 %import common.SIGNED_NUMBER  -> NUMBER
 %import common.CNAME  -> NAME
