@@ -8,6 +8,7 @@ from file import File
 from native_functions import add_funcs
 from type_check_error import TypeCheckError
 from scope import Scope
+from imported_error import ImportedError
 
 global_scope = Scope()
 add_funcs(global_scope)

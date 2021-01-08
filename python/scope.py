@@ -9,6 +9,7 @@ from native_function import NativeFunction
 from type_check_error import TypeCheckError, display_type
 from operation_types import binary_operation_types, unary_operation_types, comparable_types, iterable_types
 from file import File
+from imported_error import ImportedError
 import native_functions
 
 def parse_file(file, check=False):
@@ -47,7 +48,7 @@ def parse_file(file, check=False):
 	else:
 		global_scope.variables = {**global_scope.variables, **parse_tree(tree, global_scope).variables}
 
-	return global_scope 
+	return global_scope, file 
 
 def type_check(file, tree, global_scope):
 	scope = global_scope.new_scope()
@@ -384,7 +385,7 @@ class Scope:
 			else:
 				return self.eval_value(token_or_tree)
 		elif expr.data == "impn":
-			val = parse_file(expr.children[0] + ".n")
+			val = parse_file(expr.children[0] + ".n")[0]
 			holder = {}
 			for key in val.variables.keys():
 				if val.variables[key].public:
@@ -739,13 +740,13 @@ class Scope:
 
 			return [lark.Token("LIST", "list"), self.type_check_expr(expr.children[0])]
 		elif expr.data == "impn":
-			val = parse_file(expr.children[0] + ".n", True)
-			self.errors += val.errors
-			self.warnings += val.warnings
+			impn, f = parse_file(expr.children[0] + ".n", True)
+			self.errors.append(ImportedError(impn.errors[:], f))
+			self.warnings.append(ImportedError(impn.warnings[:], f))
 			holder = {}
-			for key in val.variables.keys():
-				if val.variables[key].public:
-					holder[key] = val.variables[key].value
+			for key in impn.variables.keys():
+				if impn.variables[key].public:
+					holder[key] = impn.variables[key].value
 			if holder == {}:
 				self.warnings.append(TypeCheckError(expr.children[0], "There was nothing to import from %s" % expr.children[0]))
 			return holder
