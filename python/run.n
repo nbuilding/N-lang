@@ -20,7 +20,7 @@ let pairSingleton = [[a, b] item1:a item2:b] -> list[(a, b)] {
   let pair: (a, b) = (item1, item2)
   return [pair]
 }
-// print <pairSingleton 1 "2">
+print <pairSingleton 1 "2">
 
 let wowowo = {
   ok: (3, (("happy", \r), true))

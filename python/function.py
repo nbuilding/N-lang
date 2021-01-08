@@ -26,4 +26,4 @@ class Function(Variable):
 				return value
 
 	def __str__(self):
-		return display_type(self.arguments, False)
+		return '<function %s>' % display_type(self.arguments, False)

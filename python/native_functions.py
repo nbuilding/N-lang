@@ -2,25 +2,26 @@ import math
 
 from function import Function
 from type_check_error import display_type
+from type import NGenericType
 
-def substr(s, st, en):
+def substr(start, end, string):
 	try:
-		return s[st:en]
+		return string[start:end]
 	except:
 		return ""
 
-def char_at(s, i):
+def char_at(index, string):
 	try:
-		return s[i]
+		return string[index]
 	except:
 		return ""
 
-def length(s):
+def length(string):
 	try:
-		return len(s)
+		return len(string)
 	except:
 		try:
-			return len(str(s))
+			return len(str(string))
 		except:
 			return 0
 
@@ -36,62 +37,62 @@ def add_funcs(global_scope):
 		"intInBase10",
 		[("number", "int")],
 		"str",
-		lambda number: str(number),
+		str,
 	)
 
 	global_scope.add_native_function(
 		"round",
 		[("number", "float")],
 		"int",
-		lambda number: round(number),
+		round,
 	)
 	global_scope.add_native_function(
 		"floor",
 		[("number", "float")],
 		"int",
-		lambda number: math.floor(number),
+		math.floor,
 	)
 	global_scope.add_native_function(
 		"ceil",
 		[("number", "float")],
 		"int",
-		lambda number: math.ceil(number),
+		math.ceil,
 	)
 	global_scope.add_native_function(
 		"charCode",
 		[("character", "char")],
 		"int",
-		lambda character: ord(character),
+		ord,
 	)
 	global_scope.add_native_function(
 		"intCode",
 		[("number", "int")],
 		"char",
-		lambda number: chr(number),
+		chr,
 	)
 	global_scope.add_native_function(
 		"charAt",
 		[("location", "int"), ("string", "str")],
 		"char",
-		lambda string, location: char_at(string, location),
+		char_at,
 	)
 	global_scope.add_native_function(
 		"substring",
 		[("start", "int"), ("end", "int"), ("string", "str")],
 		"char",
-		lambda string, start, end: substr(string, start, end),
+		substr,
 	)
 	global_scope.add_native_function(
 		"len",
-		[("obj", "any")],
+		[("obj", NGenericType("t"))],
 		"int",
-		lambda obj: length(obj),
+		length,
 	)
 	global_scope.add_native_function(
 		"type",
-		[("obj", "any")],
+		[("obj", NGenericType("t"))],
 		"str",
-		lambda obj: type_display(obj),
+		type_display,
 	)
 
 	global_scope.types['str'] = 'str'

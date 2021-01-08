@@ -294,24 +294,27 @@ class Scope:
 			else:
 				arguments, returntype, *codeblock = expr.children
 				codeblock = lark.tree.Tree("codeblock", codeblock)
+			if len(arguments.children) > 0 and arguments.children[0].data == "generic_declaration":
+				_, *arguments = arguments.children
+			else:
+				arguments = arguments.children
 			return Function(
 				self,
-				[self.get_name_type(arg, get_type=False) for arg in arguments.children],
+				[self.get_name_type(arg, get_type=False) for arg in arguments],
 				"return type",
 				codeblock
 			)
-		elif expr.data == "function_callback":
-			function, *arguments = expr.children[0].children
-			return self.eval_expr(function).run([self.eval_expr(arg) for arg in arguments])
-		elif expr.data == "function_callback_quirky":
-			mainarg = expr.children[0]
-			function, *arguments = expr.children[1].children
-			arguments.insert(0, mainarg)
-			return self.eval_expr(function).run([self.eval_expr(arg) for arg in arguments])
-		elif expr.data == "function_callback_quirky_pipe":
-			mainarg = expr.children[0]
-			function, *arguments = expr.children[1].children
-			arguments.insert(0, mainarg)
+		elif expr.data == "function_callback" or expr.data == "function_callback_quirky" or expr.data == "function_callback_quirky_pipe":
+			if expr.data == "function_callback":
+				function, *arguments = expr.children[0].children
+			elif expr.data == "function_callback_quirky":
+				mainarg = expr.children[0]
+				function, *arguments = expr.children[1].children
+				arguments.insert(0, mainarg)
+			else:
+				mainarg = expr.children[0]
+				function, *arguments = expr.children[1].children
+				arguments.append(mainarg)
 			return self.eval_expr(function).run([self.eval_expr(arg) for arg in arguments])
 		elif expr.data == "imported_command":
 			l, c, *args = expr.children
@@ -601,7 +604,7 @@ class Scope:
 			else:
 				mainarg = expr.children[0]
 				function, *arguments = expr.children[1].children
-				arguments.insert(0, mainarg)
+				arguments.append(mainarg)
 			func_type = self.type_check_expr(function)
 			if func_type is None:
 				return None
