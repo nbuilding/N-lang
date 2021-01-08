@@ -10,6 +10,7 @@ from native_function import NativeFunction
 from type_check_error import TypeCheckError, display_type
 from operation_types import binary_operation_types, unary_operation_types, comparable_types, iterable_types
 from file import File
+from imported_error import ImportedError
 import native_functions
 
 def parse_file(file, check=False):
@@ -48,7 +49,7 @@ def parse_file(file, check=False):
 	else:
 		global_scope.variables = {**global_scope.variables, **parse_tree(tree, global_scope).variables}
 
-	return global_scope
+	return global_scope, file
 
 def type_check(file, tree, global_scope):
 	scope = global_scope.new_scope()
@@ -178,7 +179,7 @@ class Scope:
 	"""
 	This method is meant to be usable for both evaluation and type checking.
 	"""
-	def assign_to_pattern(self, pattern_and_src, value_or_type, warn=False, path=None):
+	def assign_to_pattern(self, pattern_and_src, value_or_type, warn=False, path=None, public=False):
 		path_name = path or "the value"
 		pattern, src = pattern_and_src
 		if isinstance(pattern, dict):
@@ -200,7 +201,7 @@ class Scope:
 						self.errors.append(TypeCheckError(parse_src, "I can't get the field %s from %s because %s doesn't have that field." % (key, path_name, display_type(value_or_type))))
 					else:
 						raise TypeError("Given record doesn't have a key %s." % key)
-				self.assign_to_pattern((sub_pattern, parse_src), value, warn, "%s.%s" % (path or "<record>", key))
+				self.assign_to_pattern((sub_pattern, parse_src), value, warn, "%s.%s" % (path or "<record>", key), public)
 		elif isinstance(pattern, tuple):
 			# I believe the interpreter uses actual Python tuples, while the
 			# type checker uses lists for tuple types. We should fix that for
@@ -222,12 +223,12 @@ class Scope:
 					raise TypeError("Number of destructured values from tuple doesn't match tuple length.")
 			for i, (sub_pattern, parse_src) in enumerate(pattern):
 				value = value_or_type[i] if is_tuple and i < len(value_or_type) else None
-				self.assign_to_pattern((sub_pattern, parse_src), value, warn, "%s.%d" % (path or "<tuple>", i))
+				self.assign_to_pattern((sub_pattern, parse_src), value, warn, "%s.%d" % (path or "<tuple>", i), public)
 		elif pattern is not None:
 			name = pattern
 			if warn and name in self.variables:
 				self.errors.append(TypeCheckError(src, "You've already defined `%s`." % name))
-			self.variables[name] = Variable(value_or_type, value_or_type)
+			self.variables[name] = Variable(value_or_type, value_or_type, public)
 
 	def assign_to_cond_pattern(self, cond_pattern_and_src, value_or_type, warn=False, path=None):
 		path_name = path or "the value"
@@ -409,8 +410,15 @@ class Scope:
 				return self.eval_expr(token_or_tree)
 			else:
 				return self.eval_value(token_or_tree)
-		elif expr.data == "imported_value":
-			return self.variables[expr.children[0] + "?" + expr.children[1]].value
+		elif expr.data == "impn":
+			val = parse_file(expr.children[0] + ".n")[0]
+			holder = {}
+			for key in val.variables.keys():
+				if val.variables[key].public:
+					holder[key] = val.variables[key].value
+			return holder
+		elif expr.data == "record_access":
+			return self.variables[expr.children[0]].value[expr.children[1]]
 		elif expr.data == "tupleval":
 			return tuple([self.eval_expr(e) for e in expr.children])
 		elif expr.data == "listval":
@@ -432,11 +440,6 @@ class Scope:
 
 		if command.data == "imp":
 			self.imports.append(importlib.import_module("libraries." + command.children[0]))
-		elif command.data == "impn":
-			val = parse_file(command.children[0] + ".n")
-			for key in val.variables.keys():
-				if not isinstance(val.variables[key], NativeFunction):
-					self.variables[command.children[0] + "?" + key] = val.variables[key]
 		elif command.data == "for":
 			var, iterable, code = command.children
 			pattern, ty = self.get_name_type(var, get_type=False)
@@ -475,9 +478,14 @@ class Scope:
 		elif command.data == "return":
 			return (True, self.eval_expr(command.children[0]))
 		elif command.data == "declare":
-			name_type, value = command.children
-			pattern, ty = self.get_name_type(name_type, get_type=False)
-			self.assign_to_pattern(pattern, self.eval_expr(value))
+			modifier = ""
+			rest = command.children
+			if isinstance(command.children[0], lark.Token):
+				modifier = command.children[0].value
+				rest = rest[1:]
+			name_type, value = rest
+			pattern, ty = get_name_type(name_type, get_type=False)
+			self.assign_to_pattern(pattern, self.eval_expr(value), False, None, modifier)
 		elif command.data == "vary":
 			name, value = command.children
 			self.variables[name].value = self.eval_expr(value)
@@ -648,12 +656,18 @@ class Scope:
 					return self.get_value_type(token_or_tree)
 			else:
 				return self.get_value_type(token_or_tree)
-		elif expr.data == "imported_value":
-			if expr.children[0] + "?" + expr.children[1] in self.variables:
-				return self.variables[expr.children[0] + "?" + expr.children[1]]
-			else:
-				self.errors.append(TypeCheckError(expr, "The imported variable %s does not exist." % (expr.children[0] + "?" + expr.children[1])))
+		elif expr.data == "record_access":
+			var, valu = expr.children
+			if var not in self.variables:
+				self.errors.append(TypeCheckError(var, "Record %s does not exist" % var))
 				return None
+
+			if valu not in self.get_variable(var).value:
+				self.errors.append(TypeCheckError(valu, "Value %s does not exist inside record %s" % (valu, var)))
+				return None
+
+			return self.get_variable(var).value[valu]
+
 		if len(expr.children) == 2 and type(expr.children[0]) is lark.Token:
 			operation, value = expr.children
 			types = unary_operation_types.get(operation.type)
@@ -731,6 +745,17 @@ class Scope:
 					self.errors.append(TypeCheckError(expr.children[i+1], "The list item #%s's type is %s while the first item's type is %s" % (i + 2, e, first)))
 
 			return [lark.Token("LIST", "list"), self.type_check_expr(expr.children[0])]
+		elif expr.data == "impn":
+			impn, f = parse_file(expr.children[0] + ".n", True)
+			self.errors.append(ImportedError(impn.errors[:], f))
+			self.warnings.append(ImportedError(impn.warnings[:], f))
+			holder = {}
+			for key in impn.variables.keys():
+				if impn.variables[key].public:
+					holder[key] = impn.variables[key].value
+			if holder == {}:
+				self.warnings.append(TypeCheckError(expr.children[0], "There was nothing to import from %s" % expr.children[0]))
+			return holder
 		elif expr.data == "recordval":
 			return dict(self.get_record_entry_type(entry) for entry in expr.children)
 		self.errors.append(TypeCheckError(expr, "Internal problem: I don't know the command/expression type %s." % expr.data))
@@ -757,13 +782,6 @@ class Scope:
 					self.errors.append(TypeCheckError(command.children[0], "Library %s not compatable." % command.children[0]))
 			except:
 				self.errors.append(TypeCheckError(command.children[0], "Library %s not found to import." % command.children[0]))
-		elif command.data == "impn":
-			val = parse_file(command.children[0] + ".n", True)
-			self.errors += val.errors
-			self.warnings += val.warnings
-			for key in val.variables.keys():
-				if not isinstance(val.variables[key], NativeFunction):
-					self.variables[command.children[0] + "?" + key] = val.variables[key]
 		elif command.data == "for":
 			var, iterable, code = command.children
 			pattern, ty = self.get_name_type(var, err=False)
@@ -798,7 +816,13 @@ class Scope:
 				self.errors.append(TypeCheckError(command.children[0], "You returned a %s, but the function is supposed to return a %s." % (display_type(return_type), display_type(parent_function.returntype))))
 			return command
 		elif command.data == "declare":
-			name_type, value = command.children
+			modifier = ""
+			maybe_name_type = command.children[0]
+			rest = command.children
+			if isinstance(maybe_name_type, lark.Token):
+				modifier = maybe_name_type.value
+				rest = rest[1:]
+			name_type, value = rest
 			pattern, ty = self.get_name_type(name_type, err=False)
 			name = pattern_to_name(pattern)
 			value_type = self.type_check_expr(value)
@@ -823,7 +847,7 @@ class Scope:
 				else:
 					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
 
-			self.assign_to_pattern(pattern, ty, True)
+			self.assign_to_pattern(pattern, ty, True, None, modifier == "pub")
 		elif command.data == "vary":
 			name, value = command.children
 			if name not in self.variables:

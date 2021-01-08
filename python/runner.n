@@ -1,3 +1,5 @@
 print "test"
-let eeeeee:int = 0
+let pub eeeeee:int = 0
+let e = [\{a}, \n]
+print a
 print eeeeee
