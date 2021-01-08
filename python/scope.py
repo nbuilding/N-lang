@@ -14,8 +14,9 @@ from imported_error import ImportedError
 import native_functions
 
 def parse_file(file, check=False):
-	global_scope = Scope()
-	native_functions.add_funcs(global_scope)
+	import_scope = Scope()
+	native_functions.add_funcs(import_scope)
+
 
 	with open("syntax.lark", "r") as f:
 		parse = f.read()
@@ -25,7 +26,6 @@ def parse_file(file, check=False):
 
 	with open(filename, "r") as f:
 		file = File(f)
-
 
 	try:
 		tree = file.parse(n_parser)
@@ -45,14 +45,16 @@ def parse_file(file, check=False):
 		exit()
 
 	if check:
-		global_scope.variables = {**global_scope.variables, **type_check(file, tree, global_scope).variables}
+		scope = type_check(file, tree, import_scope)
+		import_scope.variables = {**import_scope.variables, **scope.variables}
+		import_scope.errors += scope.errors
+		import_scope.warnings += scope.warnings
 	else:
-		global_scope.variables = {**global_scope.variables, **parse_tree(tree, global_scope).variables}
+		import_scope.variables = {**import_scope.variables, **parse_tree(tree, import_scope).variables}
+	return import_scope, file
 
-	return global_scope, file
-
-def type_check(file, tree, global_scope):
-	scope = global_scope.new_scope()
+def type_check(file, tree, import_scope):
+	scope = import_scope.new_scope()
 	if tree.data == "start":
 		for child in tree.children:
 			scope.type_check_command(child)
@@ -60,9 +62,9 @@ def type_check(file, tree, global_scope):
 		scope.errors.append(TypeCheckError(tree, "Internal issue: I cannot type check from a non-starting branch."))
 	return scope
 
-def parse_tree(tree, global_scope):
+def parse_tree(tree, import_scope):
 	if tree.data == "start":
-		scope = global_scope.new_scope()
+		scope = import_scope.new_scope()
 		for child in tree.children:
 			scope.eval_command(child)
 		return scope
@@ -108,8 +110,8 @@ class Scope:
 		self.imports = imports
 		self.variables = {}
 		self.types = {}
-		self.errors = errors
-		self.warnings = warnings
+		self.errors = errors[:]
+		self.warnings = warnings[:]
 
 	def find_import(self, name):
 		for imp in self.imports:

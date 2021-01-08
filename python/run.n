@@ -1,6 +1,8 @@
 import fek
 import SystemIO
 
+print uau
+
 let runner = imp runner
 
 let main = [test:int test1:str] -> bool {
@@ -119,7 +121,7 @@ print (2 + 3 * (4 + 1) * 4 + 5)
 
 
 
-print runner.e
+// print runner.e runner.e is not public so this throws an error
 print runner.eeeeee
 
 
