@@ -64,7 +64,7 @@ def type_check(file, tree, import_scope):
 
 def parse_tree(tree, import_scope):
 	if tree.data == "start":
-		scope = import_scope.new_scope()
+		scope = import_scope.new_scope(inherit_errors=False)
 		for child in tree.children:
 			scope.eval_command(child)
 		return scope

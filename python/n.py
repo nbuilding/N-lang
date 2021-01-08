@@ -29,7 +29,7 @@ with open(filename, "r") as f:
 	file = File(f)
 
 def type_check(file, tree):
-	scope = global_scope.new_scope()
+	scope = global_scope.new_scope(inherit_errors=False)
 	if tree.data == "start":
 		for child in tree.children:
 			scope.type_check_command(child)
@@ -59,7 +59,7 @@ except lark.exceptions.UnexpectedCharacters as e:
 		if e.get_context(file.get_text(), 99999999999999)[0:-2].strip() == line.strip():
 			break
 
-	
+
 	spaces = " "*(len(str(i+1) + " |") +  1)
 	spaces_arrow = " "*(len(str(i+1) + " |") - 3)
 	print(f"{Fore.RED}{Style.BRIGHT}Error{Style.RESET_ALL}: Invalid syntax")

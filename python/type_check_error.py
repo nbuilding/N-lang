@@ -41,6 +41,9 @@ class TypeCheckError:
 			)
 		return output
 
+	def __repr__(self):
+		return 'TypeCheckError(%s, %s)' % (repr(self.datum), repr(self.message))
+
 def display_type(n_type, color=True):
 	display = ""
 	if isinstance(n_type, str):
