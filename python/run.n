@@ -56,6 +56,12 @@ if false {
 	print "test of a thing"
 }
 
+let thing = {
+	a: 0
+}
+
+print thing.a
+
 let ch:char = \n
 
 let lis = [1, 2, 3, 4]
@@ -79,8 +85,8 @@ print ch
 print (0.1 + 0.2 == 0.3)
 
 <main test1 eee>
-<fek.paer "test">
-print (<fek.paer "test">)
+<fek?paer "test">
+print (<fek?paer "test">)
 print (if true { "hi" } else { "hello" })
 if true {
 	print ("<main test \"hello\"> returned false")
@@ -102,7 +108,7 @@ print (2 + 3 * (4 + 1) * 4 + 5)
 
 
 
-print runner?eeeeee
+print runner.eeeeee
 
 
 // if true {"teste"}
