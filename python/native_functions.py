@@ -23,7 +23,7 @@ def length(s):
 			return len(str(s))
 		except:
 			return 0
-			
+
 def type_display(o):
 	if type(o) == Function:
 		return str(o)
@@ -93,3 +93,9 @@ def add_funcs(global_scope):
 		"str",
 		lambda obj: type_display(obj),
 	)
+
+	global_scope.types['str'] = 'str'
+	global_scope.types['char'] = 'char'
+	global_scope.types['int'] = 'int'
+	global_scope.types['float'] = 'float'
+	global_scope.types['bool'] = 'bool'

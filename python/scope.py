@@ -33,7 +33,7 @@ def parse_file(file, check=False):
 			if e.get_context(file.get_text(), 99999999999999)[0:-2].strip() == line.strip():
 				break
 
-		
+
 		spaces = " "*(len(str(i+1) + " |") +  1)
 		spaces_arrow = " "*(len(str(i+1) + " |") - 3)
 		print(f"{Fore.RED}{Style.BRIGHT}Error{Style.RESET_ALL}: Invalid syntax")
@@ -47,7 +47,7 @@ def parse_file(file, check=False):
 	else:
 		global_scope.variables = {**global_scope.variables, **parse_tree(tree, global_scope).variables}
 
-	return global_scope 
+	return global_scope
 
 def type_check(file, tree, global_scope):
 	scope = global_scope.new_scope()
@@ -92,16 +92,6 @@ def get_conditional_destructure_pattern(tree):
 			return (patterns, tree)
 	return get_destructure_pattern(tree)
 
-def get_name_type(name_type):
-	pattern = get_destructure_pattern(name_type.children[0])
-	if len(name_type.children) == 1:
-		# No type annotation given, so it's implied
-		return pattern, 'infer'
-	else:
-		ty = name_type.children[1]
-		var_type = ty.children if type(ty) == lark.Tree else ty.value
-		return pattern, var_type
-
 def type_is_list(maybe_list_type):
 	if isinstance(maybe_list_type, list) and len(maybe_list_type) > 0 and type(maybe_list_type[0]) == lark.Token and maybe_list_type[0].type == "LIST":
 		if len(maybe_list_type) > 1:
@@ -116,6 +106,7 @@ class Scope:
 		self.parent_function = parent_function
 		self.imports = imports
 		self.variables = {}
+		self.types = {}
 		self.errors = errors
 		self.warnings = warnings
 
@@ -143,6 +134,16 @@ class Scope:
 		else:
 			return variable
 
+	def get_type(self, name, err=True):
+		scope_type = self.types.get(name)
+		if scope_type is None:
+			if self.parent:
+				return self.parent.scope_type(name, err=err)
+			elif err:
+				raise NameError("You tried to get a type `%s`, but it isn't defined." % name)
+		else:
+			return scope_type
+
 	def get_parent_function(self):
 		if self.parent_function is None:
 			if self.parent:
@@ -151,6 +152,16 @@ class Scope:
 				return None
 		else:
 			return self.parent_function
+
+	def get_name_type(name_type):
+		pattern = get_destructure_pattern(name_type.children[0])
+		if len(name_type.children) == 1:
+			# No type annotation given, so it's implied
+			return pattern, 'infer'
+		else:
+			ty = name_type.children[1]
+			var_type = ty.children if type(ty) == lark.Tree else ty.value
+			return pattern, var_type
 
 	"""
 	This method is meant to be usable for both evaluation and type checking.
@@ -273,7 +284,7 @@ class Scope:
 				codeblock = lark.tree.Tree("codeblock", codeblock)
 			return Function(
 				self,
-				[get_name_type(arg) for arg in arguments.children],
+				[self.get_name_type(arg) for arg in arguments.children],
 				returntype.value,
 				codeblock
 			)
@@ -413,7 +424,7 @@ class Scope:
 					self.variables[command.children[0] + "?" + key] = val.variables[key]
 		elif command.data == "for":
 			var, iterable, code = command.children
-			pattern, ty = get_name_type(var)
+			pattern, ty = self.get_name_type(var)
 			for i in range(int(iterable)):
 				scope = self.new_scope()
 
@@ -450,7 +461,7 @@ class Scope:
 			return (True, self.eval_expr(command.children[0]))
 		elif command.data == "declare":
 			name_type, value = command.children
-			pattern, ty = get_name_type(name_type)
+			pattern, ty = self.get_name_type(name_type)
 			self.assign_to_pattern(pattern, self.eval_expr(value))
 		elif command.data == "vary":
 			name, value = command.children
@@ -540,7 +551,7 @@ class Scope:
 			else:
 				arguments, returntype, *cb = expr.children
 				codeblock = lark.tree.Tree("codeblock", cb)
-			arguments = [get_name_type(arg) for arg in arguments.children]
+			arguments = [self.get_name_type(arg) for arg in arguments.children]
 			dummy_function = Function(self, arguments, returntype.value, codeblock)
 			scope = self.new_scope(parent_function=dummy_function)
 			for arg_pattern, arg_type in arguments:
@@ -760,7 +771,7 @@ class Scope:
 					self.variables[command.children[0] + "?" + key] = val.variables[key]
 		elif command.data == "for":
 			var, iterable, code = command.children
-			pattern, ty = get_name_type(var)
+			pattern, ty = self.get_name_type(var)
 			iterable_type = self.type_check_expr(iterable)
 			iterated_type = iterable_types.get(iterable_type)
 			if iterable_type is not None:
@@ -793,7 +804,7 @@ class Scope:
 			return command
 		elif command.data == "declare":
 			name_type, value = command.children
-			pattern, ty = get_name_type(name_type)
+			pattern, ty = self.get_name_type(name_type)
 			value_type = self.type_check_expr(value)
 
 			# Check for empty lists
