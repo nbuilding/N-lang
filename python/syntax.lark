@@ -43,13 +43,14 @@ function_dec_call: NAME (" " [name_type (" " name_type)*])?
 function_call : value (" " value)*
 anonymous_function_call : anonymous_func (" " value)*
 code_block: "{" instruction* "}"
-function_def: arguments ["->" NAME] code_block
-arguments: "[" (name_type (" " name_type)*)? "]"
+function_def: arguments ["->" types] code_block
+arguments: "[" generic_declaration? (name_type (" " name_type)*)? "]"
+generic_declaration: "[" (NAME ",")* NAME "]"
 anonymous_func: "(" arguments "->" NAME ":" (instruction (";" instruction)*) ")"
 char: "\\" ( escape_code | "{" /./ "}")
 escape_code: /[tnr]/
-tupledef: "(" NAME ("," NAME)* ")"
-listdef: LIST "[" NAME "]"
+tupledef: "(" types ("," types)* ")"
+listdef: LIST "[" types "]"
 tupleval: "(" value ("," value)* ")"
 listval: "[" (value ("," value)*)? "]"
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"

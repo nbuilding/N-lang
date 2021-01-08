@@ -11,6 +11,18 @@ let main = [test:int test1:str] -> bool {
 	return false
 }
 
+let singleton = [[t] item: t] -> list[t] {
+  let list: list[t] = [item]
+  return list
+}
+print <singleton \t>
+
+let pairSingleton = [[a, b] item1:a item2:b] -> list[(a, b)] {
+  let pair: (a, b) = (item1, item2)
+  return [pair]
+}
+print <pairSingleton 1 "2">
+
 let wowowo = {
   ok: (3, (("happy", \r), true))
   uwu: "ok"//; extra: 3.4; extra2: 5.4

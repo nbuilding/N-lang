@@ -5,6 +5,7 @@ from colorama import Fore, Style
 
 from variable import Variable
 from function import Function
+from type import NGenericType, type_is_list, apply_generics, apply_generics_to
 from native_function import NativeFunction
 from type_check_error import TypeCheckError, display_type
 from operation_types import binary_operation_types, unary_operation_types, comparable_types, iterable_types
@@ -34,7 +35,7 @@ def parse_file(file, check=False):
 			if e.get_context(file.get_text(), 99999999999999)[0:-2].strip() == line.strip():
 				break
 
-		
+
 		spaces = " "*(len(str(i+1) + " |") +  1)
 		spaces_arrow = " "*(len(str(i+1) + " |") - 3)
 		print(f"{Fore.RED}{Style.BRIGHT}Error{Style.RESET_ALL}: Invalid syntax")
@@ -48,7 +49,7 @@ def parse_file(file, check=False):
 	else:
 		global_scope.variables = {**global_scope.variables, **parse_tree(tree, global_scope).variables}
 
-	return global_scope, file 
+	return global_scope, file
 
 def type_check(file, tree, global_scope):
 	scope = global_scope.new_scope()
@@ -93,23 +94,12 @@ def get_conditional_destructure_pattern(tree):
 			return (patterns, tree)
 	return get_destructure_pattern(tree)
 
-def get_name_type(name_type):
-	pattern = get_destructure_pattern(name_type.children[0])
-	if len(name_type.children) == 1:
-		# No type annotation given, so it's implied
-		return pattern, 'infer'
+def pattern_to_name(pattern_and_src):
+	pattern, _ = pattern_and_src
+	if isinstance(pattern, str):
+		return pattern
 	else:
-		ty = name_type.children[1]
-		var_type = ty.children if type(ty) == lark.Tree else ty.value
-		return pattern, var_type
-
-def type_is_list(maybe_list_type):
-	if isinstance(maybe_list_type, list) and len(maybe_list_type) > 0 and type(maybe_list_type[0]) == lark.Token and maybe_list_type[0].type == "LIST":
-		if len(maybe_list_type) > 1:
-			return maybe_list_type[1]
-		else:
-			return "infer"
-	return False
+		return "<destructuring pattern>"
 
 class Scope:
 	def __init__(self, parent=None, parent_function=None, errors=[], warnings=[], imports=[]):
@@ -117,6 +107,7 @@ class Scope:
 		self.parent_function = parent_function
 		self.imports = imports
 		self.variables = {}
+		self.types = {}
 		self.errors = errors
 		self.warnings = warnings
 
@@ -144,6 +135,16 @@ class Scope:
 		else:
 			return variable
 
+	def get_type(self, name, err=True):
+		scope_type = self.types.get(name)
+		if scope_type is None:
+			if self.parent:
+				return self.parent.get_type(name, err=err)
+			elif err:
+				raise NameError("You tried to get a type `%s`, but it isn't defined." % name)
+		else:
+			return scope_type
+
 	def get_parent_function(self):
 		if self.parent_function is None:
 			if self.parent:
@@ -152,6 +153,28 @@ class Scope:
 				return None
 		else:
 			return self.parent_function
+
+	def parse_type(self, tree_or_token, err=True):
+		if type(tree_or_token) == lark.Tree:
+			if tree_or_token.data == "listdef":
+				list_token, contained_type = tree_or_token.children
+				return [list_token, self.parse_type(contained_type, err=err)]
+			elif tree_or_token.data == "tupledef":
+				return [self.parse_type(child, err=err) for child in tree_or_token.children]
+			elif err:
+				raise NameError("Type annotation of type %s; I am not ready for this." % tree_or_token.data)
+			else:
+				return None
+		else:
+			return self.get_type(tree_or_token.value, err=err)
+
+	def get_name_type(self, name_type, err=True, get_type=True):
+		pattern = get_destructure_pattern(name_type.children[0])
+		if len(name_type.children) == 1:
+			# No type annotation given, so it's implied
+			return pattern, 'infer'
+		else:
+			return pattern, self.parse_type(name_type.children[1], err) if get_type else 'whatever'
 
 	"""
 	This method is meant to be usable for both evaluation and type checking.
@@ -272,24 +295,27 @@ class Scope:
 			else:
 				arguments, returntype, *codeblock = expr.children
 				codeblock = lark.tree.Tree("codeblock", codeblock)
+			if len(arguments.children) > 0 and arguments.children[0].data == "generic_declaration":
+				_, *arguments = arguments.children
+			else:
+				arguments = arguments.children
 			return Function(
 				self,
-				[get_name_type(arg) for arg in arguments.children],
-				returntype.value,
+				[self.get_name_type(arg, get_type=False) for arg in arguments],
+				"return type",
 				codeblock
 			)
-		elif expr.data == "function_callback":
-			function, *arguments = expr.children[0].children
-			return self.eval_expr(function).run([self.eval_expr(arg) for arg in arguments])
-		elif expr.data == "function_callback_quirky":
-			mainarg = expr.children[0]
-			function, *arguments = expr.children[1].children
-			arguments.insert(0, mainarg)
-			return self.eval_expr(function).run([self.eval_expr(arg) for arg in arguments])
-		elif expr.data == "function_callback_quirky_pipe":
-			mainarg = expr.children[0]
-			function, *arguments = expr.children[1].children
-			arguments.insert(0, mainarg)
+		elif expr.data == "function_callback" or expr.data == "function_callback_quirky" or expr.data == "function_callback_quirky_pipe":
+			if expr.data == "function_callback":
+				function, *arguments = expr.children[0].children
+			elif expr.data == "function_callback_quirky":
+				mainarg = expr.children[0]
+				function, *arguments = expr.children[1].children
+				arguments.insert(0, mainarg)
+			else:
+				mainarg = expr.children[0]
+				function, *arguments = expr.children[1].children
+				arguments.append(mainarg)
 			return self.eval_expr(function).run([self.eval_expr(arg) for arg in arguments])
 		elif expr.data == "imported_command":
 			l, c, *args = expr.children
@@ -416,7 +442,7 @@ class Scope:
 			self.imports.append(importlib.import_module("libraries." + command.children[0]))
 		elif command.data == "for":
 			var, iterable, code = command.children
-			pattern, ty = get_name_type(var)
+			pattern, ty = self.get_name_type(var, get_type=False)
 			for i in range(int(iterable)):
 				scope = self.new_scope()
 
@@ -458,7 +484,7 @@ class Scope:
 				modifier = command.children[0].value
 				rest = rest[1:]
 			name_type, value = rest
-			pattern, ty = get_name_type(name_type)
+			pattern, ty = get_name_type(name_type, get_type=False)
 			self.assign_to_pattern(pattern, self.eval_expr(value), False, None, modifier)
 		elif command.data == "vary":
 			name, value = command.children
@@ -548,9 +574,22 @@ class Scope:
 			else:
 				arguments, returntype, *cb = expr.children
 				codeblock = lark.tree.Tree("codeblock", cb)
-			arguments = [get_name_type(arg) for arg in arguments.children]
-			dummy_function = Function(self, arguments, returntype.value, codeblock)
-			scope = self.new_scope(parent_function=dummy_function)
+			generic_types = []
+			if len(arguments.children) > 0 and arguments.children[0].data == "generic_declaration":
+				generics, *arguments = arguments.children
+				wrap_scope = self.new_scope()
+				for generic in generics.children:
+					if generic.value in wrap_scope.types:
+						self.errors.append(TypeCheckError(generic, "You already defined a generic type with this name."))
+					generic_type = NGenericType(generic.value)
+					wrap_scope.types[generic.value] = generic_type
+					generic_types.append(generic_type)
+			else:
+				arguments = arguments.children
+				wrap_scope = self
+			arguments = [wrap_scope.get_name_type(arg, err=False) for arg in arguments]
+			dummy_function = Function(self, arguments, wrap_scope.parse_type(returntype, err=False), codeblock, generic_types)
+			scope = wrap_scope.new_scope(parent_function=dummy_function)
 			for arg_pattern, arg_type in arguments:
 				scope.assign_to_pattern(arg_pattern, arg_type, True)
 			exit_point = None
@@ -563,8 +602,17 @@ class Scope:
 					warned = True
 					self.warnings.append(TypeCheckError(exit_point, "There are commands after this return statement, but I will never run them."))
 			return dummy_function.type
-		elif expr.data == "function_callback":
-			function, *arguments = expr.children[0].children
+		elif expr.data == "function_callback" or expr.data == "function_callback_quirky" or expr.data == "function_callback_quirky_pipe":
+			if expr.data == "function_callback":
+				function, *arguments = expr.children[0].children
+			elif expr.data == "function_callback_quirky":
+				mainarg = expr.children[0]
+				function, *arguments = expr.children[1].children
+				arguments.insert(0, mainarg)
+			else:
+				mainarg = expr.children[0]
+				function, *arguments = expr.children[1].children
+				arguments.append(mainarg)
 			func_type = self.type_check_expr(function)
 			if func_type is None:
 				return None
@@ -572,61 +620,19 @@ class Scope:
 				self.errors.append(TypeCheckError(expr, "You tried to call a %s, which isn't a function." % display_type(func_type)))
 				return None
 			*arg_types, return_type = func_type
+			generics = {}
 			for n, (argument, arg_type) in enumerate(zip(arguments, arg_types), start=1):
 				check_type = self.type_check_expr(argument)
-				if check_type is not None and check_type != arg_type and arg_type != "any":
+				resolved_arg_type = apply_generics(arg_type, check_type, generics)
+				if check_type is not None and check_type != resolved_arg_type:
 					self.errors.append(TypeCheckError(expr, "For a %s's argument #%d, you gave a %s, but you should've given a %s." % (display_type(func_type), n, display_type(check_type), display_type(arg_type))))
 			if len(arguments) > len(arg_types):
 				self.errors.append(TypeCheckError(expr, "A %s has %d argument(s), but you gave %d." % (display_type(func_type), len(arg_types), len(arguments))))
 				return None
 			elif len(arguments) < len(arg_types):
-				return func_type[len(arguments):]
+				return tuple(apply_generics_to(arg_type, generics) for arg_type in func_type[len(arguments):])
 			else:
-				return return_type
-		elif expr.data == "function_callback_quirky":
-			mainarg = expr.children[0]
-			function, *arguments = expr.children[1].children
-			arguments.insert(0, mainarg)
-			func_type = self.type_check_expr(function)
-			if func_type is None:
-				return None
-			if not isinstance(func_type, tuple):
-				self.errors.append(TypeCheckError(expr, "You tried to call a %s, which isn't a function." % display_type(func_type)))
-				return None
-			*arg_types, return_type = func_type
-			for n, (argument, arg_type) in enumerate(zip(arguments, arg_types), start=1):
-				check_type = self.type_check_expr(argument)
-				if check_type is not None and check_type != arg_type and arg_type != "any":
-					self.errors.append(TypeCheckError(expr, "For a %s's argument #%d, you gave a %s, but you should've given a %s." % (display_type(func_type), n, display_type(check_type), display_type(arg_type))))
-			if len(arguments) > len(arg_types):
-				self.errors.append(TypeCheckError(expr, "A %s has %d argument(s), but you gave %d." % (display_type(func_type), len(arg_types), len(arguments))))
-				return None
-			elif len(arguments) < len(arg_types):
-				return func_type[len(arguments):]
-			else:
-				return return_type
-		elif expr.data == "function_callback_quirky_pipe":
-			mainarg = expr.children[0]
-			function, *arguments = expr.children[1].children
-			arguments.append(mainarg)
-			func_type = self.type_check_expr(function)
-			if func_type is None:
-				return None
-			if not isinstance(func_type, tuple):
-				self.errors.append(TypeCheckError(expr, "You tried to call a %s, which isn't a function." % display_type(func_type)))
-				return None
-			*arg_types, return_type = func_type
-			for n, (argument, arg_type) in enumerate(zip(arguments, arg_types), start=1):
-				check_type = self.type_check_expr(argument)
-				if check_type is not None and check_type != arg_type and arg_type != "any":
-					self.errors.append(TypeCheckError(expr, "For a %s's argument #%d, you gave a %s, but you should've given a %s." % (display_type(func_type), n, display_type(check_type), display_type(arg_type))))
-			if len(arguments) > len(arg_types):
-				self.errors.append(TypeCheckError(expr, "A %s has %d argument(s), but you gave %d." % (display_type(func_type), len(arg_types), len(arguments))))
-				return None
-			elif len(arguments) < len(arg_types):
-				return func_type[len(arguments):]
-			else:
-				return return_type
+				return apply_generics_to(return_type, generics)
 		elif expr.data == "imported_command":
 			l, c, *args = expr.children
 			library = self.find_import(l)
@@ -778,7 +784,7 @@ class Scope:
 				self.errors.append(TypeCheckError(command.children[0], "Library %s not found to import." % command.children[0]))
 		elif command.data == "for":
 			var, iterable, code = command.children
-			pattern, ty = get_name_type(var)
+			pattern, ty = self.get_name_type(var, err=False)
 			iterable_type = self.type_check_expr(iterable)
 			iterated_type = iterable_types.get(iterable_type)
 			if iterable_type is not None:
@@ -817,7 +823,8 @@ class Scope:
 				modifier = maybe_name_type.value
 				rest = rest[1:]
 			name_type, value = rest
-			pattern, ty = get_name_type(name_type)
+			pattern, ty = self.get_name_type(name_type, err=False)
+			name = pattern_to_name(pattern)
 			value_type = self.type_check_expr(value)
 
 			# Check for empty lists
