@@ -49,7 +49,6 @@ def parse_tree(tree):
 	else:
 		raise SyntaxError("Unable to run parse_tree on non-starting branch")
 
-
 try:
 	tree = file.parse(n_parser)
 except lark.exceptions.UnexpectedCharacters as e:
