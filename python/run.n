@@ -21,8 +21,10 @@ print <singleton \t>
 
 let pairSingleton = [[a, b] item1:a item2:b] -> list[(a, b)] {
   let pair: (a, b) = (item1, item2)
+  let type_error: int = "wow"
   return [pair]
 }
+let type_error2: int = "wow"
 print <pairSingleton 1 "2">
 
 let wowowo = {
