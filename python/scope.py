@@ -5,7 +5,7 @@ from colorama import Fore, Style
 
 from variable import Variable
 from function import Function
-from type import NGenericType
+from type import NGenericType, type_is_list, apply_generics, apply_generics_to
 from native_function import NativeFunction
 from type_check_error import TypeCheckError, display_type
 from operation_types import binary_operation_types, unary_operation_types, comparable_types, iterable_types
@@ -99,14 +99,6 @@ def pattern_to_name(pattern_and_src):
 		return pattern
 	else:
 		return "<destructuring pattern>"
-
-def type_is_list(maybe_list_type):
-	if isinstance(maybe_list_type, list) and len(maybe_list_type) > 0 and type(maybe_list_type[0]) == lark.Token and maybe_list_type[0].type == "LIST":
-		if len(maybe_list_type) > 1:
-			return maybe_list_type[1]
-		else:
-			return "infer"
-	return False
 
 class Scope:
 	def __init__(self, parent=None, parent_function=None, errors=[], warnings=[], imports=[]):
@@ -617,17 +609,19 @@ class Scope:
 				self.errors.append(TypeCheckError(expr, "You tried to call a %s, which isn't a function." % display_type(func_type)))
 				return None
 			*arg_types, return_type = func_type
+			generics = {}
 			for n, (argument, arg_type) in enumerate(zip(arguments, arg_types), start=1):
 				check_type = self.type_check_expr(argument)
-				if check_type is not None and check_type != arg_type and arg_type != "any":
+				resolved_arg_type = apply_generics(arg_type, check_type, generics)
+				if check_type is not None and check_type != resolved_arg_type:
 					self.errors.append(TypeCheckError(expr, "For a %s's argument #%d, you gave a %s, but you should've given a %s." % (display_type(func_type), n, display_type(check_type), display_type(arg_type))))
 			if len(arguments) > len(arg_types):
 				self.errors.append(TypeCheckError(expr, "A %s has %d argument(s), but you gave %d." % (display_type(func_type), len(arg_types), len(arguments))))
 				return None
 			elif len(arguments) < len(arg_types):
-				return func_type[len(arguments):]
+				return tuple(apply_generics_to(arg_type, generics) for arg_type in func_type[len(arguments):])
 			else:
-				return return_type
+				return apply_generics_to(return_type, generics)
 		elif expr.data == "imported_command":
 			l, c, *args = expr.children
 			library = self.find_import(l)
