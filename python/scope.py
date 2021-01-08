@@ -159,7 +159,7 @@ class Scope:
 				list_token, contained_type = tree_or_token.children
 				return [list_token, self.parse_type(contained_type, err=err)]
 			elif tree_or_token.data == "tupledef":
-				return [self.parse_type(child) for child in tree_or_token.children]
+				return [self.parse_type(child, err=err) for child in tree_or_token.children]
 			elif err:
 				raise NameError("Type annotation of type %s; I am not ready for this." % tree_or_token.data)
 			else:
