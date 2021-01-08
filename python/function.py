@@ -2,7 +2,7 @@ from variable import Variable
 from type_check_error import display_type
 
 class Function(Variable):
-	def __init__(self, scope, arguments, returntype, codeblock):
+	def __init__(self, scope, arguments, returntype, codeblock, generics=[]):
 		# Tuples represent function types. (a, b, c) represents a -> b -> c.
 		types = tuple([ty for _, ty in arguments] + [returntype])
 		super(Function, self).__init__(types, self)
@@ -11,6 +11,7 @@ class Function(Variable):
 		self.arguments = arguments
 		self.returntype = returntype
 		self.codeblock = codeblock
+		self.generics = generics
 
 	def run(self, arguments):
 		scope = self.scope.new_scope(parent_function=self)

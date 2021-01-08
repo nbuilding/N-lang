@@ -1,5 +1,6 @@
 import lark
 from colorama import Fore, Style
+from type import NType
 
 class TypeCheckError:
 	def __init__(self, token_or_tree, message):
@@ -21,7 +22,7 @@ class TypeCheckError:
 		output += ": %s\n" % self.message
 		spaces = " "*(len(str(file.line_num_width + 1) + " |") - 1)
 		if type(self.datum) is lark.Token:
-			
+
 			output += f"{Fore.CYAN}{spaces}--> {Fore.BLUE}{file.name}:{self.datum.line}:{self.datum.column}{Style.RESET_ALL}\n"
 			output += file.display(
 				self.datum.line,
@@ -57,7 +58,9 @@ def display_type(n_type, color=True):
 			display = '(' + ', '.join(display_type(type, False) for type in n_type) + ')'
 	elif isinstance(n_type, dict):
 		display = "{ %s }" % "; ".join('%s: %s' % (key, display_type(value, False)) for key, value in n_type.items())
+	elif isinstance(n_type, NType):
+		display = n_type.name
 	else:
-		print('display_type was given a value that is neither a string nor a tuple nor a list nor a dictionary.', n_type)
+		print('display_type was given a value that is neither a string nor a tuple nor a list nor a dictionary nor an NType.', n_type)
 		return Fore.RED + '???' + Style.RESET_ALL if color else "???"
 	return Fore.YELLOW + display + Style.RESET_ALL if color else display
