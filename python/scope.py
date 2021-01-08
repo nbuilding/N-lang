@@ -652,11 +652,11 @@ class Scope:
 		elif expr.data == "record_access":
 			var, valu = expr.children
 			if var not in self.variables:
-				self.errors.append(var, "Record %s does not exist" % var)
+				self.errors.append(TypeCheckError(var, "Record %s does not exist" % var))
 				return None
 
 			if valu not in self.get_variable(var).value:
-				self.errors.append(value, "Value %s does not exist inside record %s" % (valu, var))
+				self.errors.append(TypeCheckError(valu, "Value %s does not exist inside record %s" % (valu, var)))
 				return None
 
 			return self.get_variable(var).value[valu]
@@ -747,7 +747,7 @@ class Scope:
 				if val.variables[key].public:
 					holder[key] = val.variables[key].value
 			if holder == {}:
-				self.warnings.append(expr.children[0], "There was nothing to import from %s" % expr.children[0])
+				self.warnings.append(TypeCheckError(expr.children[0], "There was nothing to import from %s" % expr.children[0]))
 			return holder
 		elif expr.data == "recordval":
 			return dict(self.get_record_entry_type(entry) for entry in expr.children)

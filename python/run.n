@@ -107,7 +107,7 @@ print (2 + 3 * (4 + 1) * 4 + 5)
 
 
 
-
+print runner.e
 print runner.eeeeee
 
 
