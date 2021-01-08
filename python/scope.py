@@ -749,8 +749,10 @@ class Scope:
 			return [lark.Token("LIST", "list"), self.type_check_expr(expr.children[0])]
 		elif expr.data == "impn":
 			impn, f = parse_file(expr.children[0] + ".n", True)
-			self.errors.append(ImportedError(impn.errors[:], f))
-			self.warnings.append(ImportedError(impn.warnings[:], f))
+			if len(impn.errors) != 0:
+				self.errors.append(ImportedError(impn.errors[:], f))
+			if len(impn.warnings) != 0:
+				self.warnings.append(ImportedError(impn.warnings[:], f))
 			holder = {}
 			for key in impn.variables.keys():
 				if impn.variables[key].public:
