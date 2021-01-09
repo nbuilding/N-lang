@@ -12,6 +12,7 @@ instruction: declare (";")?
            | if (";")?
            | ifelse (";")?
            | vary (";")?
+           | enum_definition (";")?
 
 non_infix_boolval: value
                  | function_callback
@@ -21,6 +22,7 @@ non_infix_boolval: value
 // functions
 vary: "var " NAME "=" (expression | function_def | anonymous_func)
 declare: "let " modifier? name_type "=" (expression | function_def | anonymous_func)
+enum_definition: "type" NAME "=" enum_constructors
 print: "print" value
 function_callback: "<" (function_call | anonymous_function_call) ">"
 function_callback_quirky: value ".<" (function_call | anonymous_function_call) ">"
@@ -55,6 +57,8 @@ tupleval: "(" value ("," value)* ")"
 listval: "[" (value ("," value)*)? "]"
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
 record_access: NAME "." NAME
+enum_constructors: enum_constructor ("|" enum_constructor)*
+enum_constructor: NAME types*
 
 ?modifier: PUBLIC
 

@@ -1,6 +1,11 @@
 import fek
 import SystemIO
 
+type state = alive float
+  | dead int str
+  | unborn
+print <dead 1 "1">
+
 print "uau"
 
 let runner = imp runner

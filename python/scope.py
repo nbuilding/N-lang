@@ -5,7 +5,7 @@ from colorama import Fore, Style
 
 from variable import Variable
 from function import Function
-from type import NGenericType, type_is_list, apply_generics, apply_generics_to
+from type import NType, NGenericType, type_is_list, apply_generics, apply_generics_to
 from native_function import NativeFunction
 from type_check_error import TypeCheckError, display_type
 from operation_types import binary_operation_types, unary_operation_types, comparable_types, iterable_types
@@ -905,6 +905,22 @@ class Scope:
 			exit_if_false = self.type_check_command(if_true)
 			if exit_if_true and exit_if_false:
 				return command
+		elif command.data == "enum_definition":
+			type_name, constructors = command.children
+			type_name = type_name.value
+			if type_name in self.types:
+				self.errors.append(TypeCheckError(src, "You've already defined the type `%s`." % type_name))
+			enum_type = NType(type_name)
+			self.types[type_name] = enum_type
+			for constructor in constructors.children:
+				constructor_name, *types = constructor.children
+				types = [self.parse_type(type_token, err=False) for type_token in types]
+				if type_name in self.variables:
+					self.errors.append(TypeCheckError(src, "You've already defined `%s` in this scope." % constructor_name))
+				if len(types) > 1:
+					self.variables[constructor_name] = Function(self, [("idk", arg_type) for arg_type in types], enum_type, "unused I believe")
+				else:
+					self.variables[constructor_name] = Variable(enum_type, "I don't think this is used")
 		else:
 			self.type_check_expr(command)
 
