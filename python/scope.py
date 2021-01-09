@@ -436,10 +436,12 @@ class Scope:
 	"""
 	def eval_command(self, tree):
 		if tree.data == "code_block":
+			exit, value = (False, None)
 			for instruction in tree.children:
 				exit, value = self.eval_command(instruction)
 				if exit:
 					return exit, value
+			return exit, value
 		elif tree.data != "instruction":
 			raise SyntaxError("Command %s not implemented" % (tree.data))
 
@@ -490,7 +492,7 @@ class Scope:
 				modifier = command.children[0].value
 				rest = rest[1:]
 			name_type, value = rest
-			pattern, ty = get_name_type(name_type, get_type=False)
+			pattern, ty = self.get_name_type(name_type, get_type=False)
 			self.assign_to_pattern(pattern, self.eval_expr(value), False, None, modifier)
 		elif command.data == "vary":
 			name, value = command.children
