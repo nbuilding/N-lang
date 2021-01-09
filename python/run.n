@@ -1,6 +1,10 @@
 import fek
 import SystemIO
 
+print "uau"
+
+let runner = imp runner
+
 let main = [test:int test1:str] -> bool {
 	print "# Main"
 	print test
@@ -8,6 +12,27 @@ let main = [test:int test1:str] -> bool {
 	// if test1 == hi {return true}
 	return false
 }
+
+let singleton = [[t] item: t] -> list[t] {
+  let list: list[t] = [item]
+  return list
+}
+print <singleton \t>
+
+let pairSingleton = [[a, b] item1:a item2:b] -> list[(a, b)] {
+  let pair: (a, b) = (item1, item2)
+  //let type_error: int = "wow"
+  return [pair]
+}
+//let type_error2: int = "wow"
+print <pairSingleton 1 "2">
+
+let wowowo = {
+  ok: (3, (("happy", \r), true))
+  uwu: "ok"//; extra: 3.4; extra2: 5.4
+}
+let { uwu; ok: aaa, ((caa, _), (((baa)))) } = wowowo
+print { uwu; aaa; caa; baa }
 
 for i 15 {
 	let n:int = i + 1
@@ -22,8 +47,6 @@ for i 15 {
 			<intInBase10 n>
 		})
 }
-
-
 
 let test:int = if ! 1 == 1 || 2 > 3 1 else 3
 let test1:int = 1 + 1
@@ -41,11 +64,33 @@ print c
 
 print <round 10.1>
 
+print "a"
+        |> <charAt 0>
+        |> <charCode>
+
 if false {
 	print "test of a thing"
 }
 
+let thing = {
+	a: 0
+}
+
+print thing.a
+
 let ch:char = \n
+
+let lis = [1, 2, 3, 4]
+
+if let [a, b, c, d] = lis {
+  print { a; b; c; d }
+}
+
+// let list:list[func] = [main]
+
+print main.<type>
+
+// var list = [1]
 
 let tup:(int, str) = (1, eee)
 
@@ -56,11 +101,12 @@ print ch
 print (0.1 + 0.2 == 0.3)
 
 <main test1 eee>
-<fek.paer "test">
-print (<fek.paer "test">)
+<fek?paer "test">
+print (<fek?paer "test">)
 print (if true { "hi" } else { "hello" })
 if true {
-	print ("<main test " + \{"} + "hello" + \{"} + "> returned false")
+	print ("<main test \"hello\"> returned false")
+	// print eererjekrjelkr; this is still repeated twice for some reason
 } else {
 	print "test"
 }
@@ -71,3 +117,15 @@ if <main test eee> {
 }
 
 print (2 + 3 * (4 + 1) * 4 + 5)
+
+
+
+
+
+
+
+// print runner.e runner.e is not public so this throws an error
+print runner.eeeeee
+
+
+// if true {"teste"}

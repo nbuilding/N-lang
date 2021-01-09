@@ -5,7 +5,7 @@ A programming language by N Building with stuff like modular imports.
 
 ## Python instructions
 
-In `python/`, put all of the code into `run.n` then run `n.py`
+In `python/`, run `n.py`
 
 ```sh
 # Command line argument parsing
@@ -17,8 +17,15 @@ pip install lark
 # Coloured console text
 pip install colorama
 
-# Parses and interprets code in run.n
+# Parses and interprets code
+# If there are no arguments then it will interpret run.n
+# If there is a --file [file name] flag then it will run the file in the filename
+# If there is a --check flag then it will only do compile-time and show warnings
 python n.py
+
+# OPTIONAL: Check the code for accidental errors
+# https://stackoverflow.com/a/31908039
+pylint --disable=C,R,W *.py **/*.py
 ```
 
 ### Features to add:

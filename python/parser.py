@@ -1,5 +1,6 @@
 from lark import Lark
 import sys
+import lark
 
 file = "run.n"
 if len(sys.argv) > 1:
@@ -14,6 +15,8 @@ with open(file, "r") as f:
 
 n_parser = Lark(parse, start='start')
 
-print(n_parser.parse(text).pretty())
-print(n_parser.parse(text))
-print(type(n_parser.parse(text)))
+try:
+	print(n_parser.parse(text).pretty())
+	print(n_parser.parse(text))
+except lark.exceptions.UnexpectedCharacters as e:
+	print(e.get_context(text)[0:-2])

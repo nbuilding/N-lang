@@ -1,0 +1,4 @@
+print "test"
+let pub eeeeee:int = 0
+let e = [\{a}, \n]
+print eeeeee
