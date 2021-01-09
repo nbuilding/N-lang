@@ -4,7 +4,8 @@ import SystemIO
 type state = alive float
   | dead int str
   | unborn
-print <dead 1 "1">
+let billy: state = <dead 2020 "Died due to Covid">
+print billy
 
 print "uau"
 

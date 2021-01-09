@@ -5,7 +5,9 @@ from colorama import Fore, Style
 
 from variable import Variable
 from function import Function
+from native_function import NativeFunction
 from type import NType, NGenericType, type_is_list, apply_generics, apply_generics_to
+from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
 from type_check_error import TypeCheckError, display_type
 from operation_types import binary_operation_types, unary_operation_types, comparable_types, iterable_types
@@ -94,6 +96,12 @@ def get_conditional_destructure_pattern(tree):
 			for pattern in tree.children:
 				patterns.append(get_conditional_destructure_pattern(pattern))
 			return (patterns, tree)
+		elif tree.data == "enum_pattern":
+			enum_name, *pattern_trees = tree.children
+			patterns = []
+			for pattern in pattern_trees:
+				patterns.append(get_conditional_destructure_pattern(pattern))
+			return (EnumPattern(enum_name, patterns), tree)
 	return get_destructure_pattern(tree)
 
 def pattern_to_name(pattern_and_src):
@@ -232,9 +240,39 @@ class Scope:
 				self.errors.append(TypeCheckError(src, "You've already defined `%s`." % name))
 			self.variables[name] = Variable(value_or_type, value_or_type, public)
 
+	"""
+	Sets variables from a pattern given a value or a type and returns whether
+	the entire pattern matched.
+
+	This is used by both type-checking (with warn=True) and interpreting
+	(warn=False). During type-checking, `value_or_type` is the type (notably,
+	tuples are lists), so it must determine whether it's even reasonable to
+	destructure the type (for example, it doesn't make sense to destructure a
+	record as a list), and error accordingly. During interpreting,
+	`value_or_type` is the actual value, and thanks to the type-checker, the
+	value should be guaranteed to fit the pattern.
+
+	Note that this sets variables while checking the pattern, so it's possible
+	that variables are assigned even if the entire pattern doesn't match.
+	Fortunately, this is only used in cases where the conditional let would
+	create a new scope (such as in an if statement), so the extra variables can
+	be discarded if the pattern ends up not matching.
+	"""
 	def assign_to_cond_pattern(self, cond_pattern_and_src, value_or_type, warn=False, path=None):
 		path_name = path or "the value"
 		pattern, src = cond_pattern_and_src
+		if isinstance(pattern, EnumPattern):
+			if warn:
+				if not isinstance(value_or_type, EnumType):
+					# TODO: Shouldn't this give the path? (also for list)
+					self.errors.append(TypeCheckError(src, "I cannot destructure a %s as an enum." % display_type(value_or_type)))
+				elif pattern.variant not in value_or_type.variants:
+					self.errors.append(TypeCheckError(src, "%s has no variant %s." % (display_type(value_or_type), pattern.variant)))
+			else:
+				if not isinstance(value_or_type, EnumValue):
+					raise TypeError("Destructuring non-enum as enum.")
+			for i, (sub_pattern, parse_src) in enumerate(pattern.patterns):
+				pass # TODO
 		if isinstance(pattern, list):
 			if warn:
 				contained_type = type_is_list(value_or_type)
@@ -517,6 +555,18 @@ class Scope:
 				exit, value = self.new_scope().eval_command(if_false)
 			if exit:
 				return (True, value)
+		elif command.data == "enum_definition":
+			type_name, constructors = command.children
+			type_name = type_name.value
+			enum_type = NType(type_name)
+			self.types[type_name] = enum_type
+			for constructor in constructors.children:
+				constructor_name, *types = constructor.children
+				types = [self.parse_type(type_token) for type_token in types]
+				if len(types) > 1:
+					self.variables[constructor_name] = NativeFunction(self, [("idk", arg_type) for arg_type in types], enum_type, EnumValue.construct(constructor_name))
+				else:
+					self.variables[constructor_name] = Variable(enum_type, EnumValue(constructor_name))
 		else:
 			self.eval_expr(command)
 
@@ -910,15 +960,17 @@ class Scope:
 			type_name = type_name.value
 			if type_name in self.types:
 				self.errors.append(TypeCheckError(src, "You've already defined the type `%s`." % type_name))
-			enum_type = NType(type_name)
+			variant_names = []
+			enum_type = EnumType(type_name, variant_names)
 			self.types[type_name] = enum_type
 			for constructor in constructors.children:
 				constructor_name, *types = constructor.children
+				variant_names.append(constructor_name)
 				types = [self.parse_type(type_token, err=False) for type_token in types]
-				if type_name in self.variables:
+				if constructor_name in self.variables:
 					self.errors.append(TypeCheckError(src, "You've already defined `%s` in this scope." % constructor_name))
 				if len(types) > 1:
-					self.variables[constructor_name] = Function(self, [("idk", arg_type) for arg_type in types], enum_type, "unused I believe")
+					self.variables[constructor_name] = NativeFunction(self, [("idk", arg_type) for arg_type in types], enum_type, id)
 				else:
 					self.variables[constructor_name] = Variable(enum_type, "I don't think this is used")
 		else:
