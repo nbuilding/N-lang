@@ -20,10 +20,8 @@ class Function(Variable):
 		if len(arguments) < len(self.arguments):
 			# Curry :o
 			return Function(scope, self.arguments[len(arguments):], self.returntype, self.codeblock)
-		for instruction in self.codeblock.children:
-			exit, value = scope.eval_command(instruction)
-			if exit:
-				return value
+		_, value = scope.eval_command(self.codeblock)
+		return value
 
 	def __str__(self):
 		return '<function %s>' % display_type(self.arguments, False)

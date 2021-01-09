@@ -296,7 +296,7 @@ class Scope:
 				arguments, returntype, codeblock = expr.children
 			else:
 				arguments, returntype, *codeblock = expr.children
-				codeblock = lark.tree.Tree("codeblock", codeblock)
+				codeblock = lark.tree.Tree("code_block", codeblock)
 			if len(arguments.children) > 0 and arguments.children[0].data == "generic_declaration":
 				_, *arguments = arguments.children
 			else:
@@ -435,7 +435,12 @@ class Scope:
 	Evaluates a command given parsed Trees and Tokens from Lark.
 	"""
 	def eval_command(self, tree):
-		if tree.data != "instruction":
+		if tree.data == "code_block":
+			for instruction in tree.children:
+				exit, value = self.eval_command(instruction)
+				if exit:
+					return exit, value
+		elif tree.data != "instruction":
 			raise SyntaxError("Command %s not implemented" % (tree.data))
 
 		command = tree.children[0]
@@ -449,10 +454,9 @@ class Scope:
 				scope = self.new_scope()
 
 				scope.assign_to_pattern(pattern, i)
-				for child in code.children:
-					exit, value = scope.eval_command(child)
-					if exit:
-						return (True, value)
+				exit, value = scope.eval_command(code)
+				if exit:
+					return True, value
 		elif command.data == "print":
 			val = self.eval_expr(command.children[0])
 
@@ -575,7 +579,7 @@ class Scope:
 				arguments, returntype, codeblock = expr.children
 			else:
 				arguments, returntype, *cb = expr.children
-				codeblock = lark.tree.Tree("codeblock", cb)
+				codeblock = lark.tree.Tree("code_block", cb)
 			generic_types = []
 			if len(arguments.children) > 0 and arguments.children[0].data == "generic_declaration":
 				generics, *arguments = arguments.children
@@ -594,15 +598,7 @@ class Scope:
 			scope = wrap_scope.new_scope(parent_function=dummy_function)
 			for arg_pattern, arg_type in arguments:
 				scope.assign_to_pattern(arg_pattern, arg_type, True)
-			exit_point = None
-			warned = False
-			for instruction in codeblock.children:
-				exit = scope.type_check_command(instruction)
-				if exit and exit_point is None:
-					exit_point = exit
-				elif exit_point and not warned:
-					warned = True
-					self.warnings.append(TypeCheckError(exit_point, "There are commands after this return statement, but I will never run them."))
+			scope.type_check_command(codeblock)
 			return dummy_function.type
 		elif expr.data == "function_callback" or expr.data == "function_callback_quirky" or expr.data == "function_callback_quirky_pipe":
 			if expr.data == "function_callback":
@@ -770,7 +766,18 @@ class Scope:
 	to determine if any code is unreachable.
 	"""
 	def type_check_command(self, tree):
-		if tree.data != "instruction":
+		if tree.data == "code_block":
+			exit_point = None
+			warned = False
+			for instruction in tree.children:
+			    exit = self.type_check_command(instruction)
+			    if exit and exit_point is None:
+			        exit_point = exit
+			    elif exit_point and not warned:
+			        warned = True
+			        self.warnings.append(TypeCheckError(exit_point, "There are commands after this return statement, but I will never run them."))
+			return exit_point
+		elif tree.data != "instruction":
 			self.errors.append(TypeCheckError(tree, "Internal problem: I only deal with instructions, not %s." % tree.data))
 			return False
 
@@ -800,13 +807,7 @@ class Scope:
 					self.errors.append(TypeCheckError(ty, "Looping over a %s produces %s values, not %s." % (display_type(iterable_type), display_type(iterated_type), display_type(ty))))
 			scope = self.new_scope()
 			scope.assign_to_pattern(pattern, ty, True)
-			exit_point = False
-			for child in code.children:
-				exit = scope.type_check_command(child)
-				if not exit_point:
-					exit_point = exit
-			if exit_point:
-				return exit_point
+			return scope.type_check_command(code)
 		elif command.data == "print":
 			# NOTE: In JS, `print` will be an indentity function, but since it's
 			# a command in Python, it won't return anything.
