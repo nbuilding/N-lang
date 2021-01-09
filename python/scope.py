@@ -252,11 +252,17 @@ class Scope:
 	`value_or_type` is the actual value, and thanks to the type-checker, the
 	value should be guaranteed to fit the pattern.
 
+	- warn=True - Is the pattern valid?
+	- warn=False - Does the pattern match?
+
 	Note that this sets variables while checking the pattern, so it's possible
 	that variables are assigned even if the entire pattern doesn't match.
 	Fortunately, this is only used in cases where the conditional let would
 	create a new scope (such as in an if statement), so the extra variables can
 	be discarded if the pattern ends up not matching.
+
+	NOTE: This must return True if warn=True. (In other words, don't short
+	circuit if a pattern fails to match.)
 	"""
 	def assign_to_cond_pattern(self, cond_pattern_and_src, value_or_type, warn=False, path=None):
 		path_name = path or "the value"
@@ -264,27 +270,44 @@ class Scope:
 		if isinstance(pattern, EnumPattern):
 			if warn:
 				if not isinstance(value_or_type, EnumType):
-					# TODO: Shouldn't this give the path? (also for list)
-					self.errors.append(TypeCheckError(src, "I cannot destructure a %s as an enum." % display_type(value_or_type)))
-				elif pattern.variant not in value_or_type.variants:
-					self.errors.append(TypeCheckError(src, "%s has no variant %s." % (display_type(value_or_type), pattern.variant)))
+					self.errors.append(TypeCheckError(src, "I cannot destructure %s as an enum because it's a %s." % (path_name, display_type(value_or_type))))
+					return True
+				else:
+					variant_types = value_or_type.get_types(pattern.variant)
+					if variant_types is None:
+						self.errors.append(TypeCheckError(src, "%s has no variant %s because it's a %s." % (path_name, pattern.variant, display_type(value_or_type))))
+						return True
+					elif len(pattern.patterns) < len(variant_types):
+						self.errors.append(TypeCheckError(src, "Variant %s has %d fields, but you only destructure %d of them." % (pattern.variant, len(variant_types), len(pattern.patterns))))
+						return True
+					elif len(pattern.patterns) > len(variant_types):
+						self.errors.append(TypeCheckError(pattern.patterns[len(variant_types)][1], "Variant %s only has %d fields." % (pattern.variant, len(variant_types))))
+						return True
 			else:
 				if not isinstance(value_or_type, EnumValue):
 					raise TypeError("Destructuring non-enum as enum.")
+				elif pattern.variant != value_or_type.variant:
+					return False
 			for i, (sub_pattern, parse_src) in enumerate(pattern.patterns):
-				pass # TODO
+				if warn:
+					value = variant_types[i]
+				else:
+					value = value_or_type.values[i]
+				valid = self.assign_to_cond_pattern((sub_pattern, parse_src), value, warn, "%s.%s#%d" % (path or "<enum>", pattern.variant, i + 1))
+				if not valid:
+					return False
 		if isinstance(pattern, list):
 			if warn:
 				contained_type = type_is_list(value_or_type)
-				if contained_type is None:
-					self.errors.append(TypeCheckError(src, "I cannot destructure a %s as a list." % display_type(value_or_type)))
+				if not contained_type:
+					self.errors.append(TypeCheckError(src, "I cannot destructure %s as a list because it's a %s." % (path_name, display_type(value_or_type))))
 			else:
 				if not isinstance(value_or_type, list):
 					raise TypeError("Destructuring non-list as list.")
 			if not warn and len(value_or_type) != len(pattern):
 				return False
 			for i, (sub_pattern, parse_src) in enumerate(pattern):
-				valid = self.assign_to_cond_pattern((sub_pattern, parse_src), contained_type if warn else value_or_type[i], warn, "%s[%d]" % (path or "<list>", i))
+				valid = self.assign_to_cond_pattern((sub_pattern, parse_src), contained_type if warn else value_or_type[i], warn, "%s[%d]" % (path or "<enum variant>", i))
 				if not valid:
 					return False
 		else:
@@ -960,13 +983,13 @@ class Scope:
 			type_name = type_name.value
 			if type_name in self.types:
 				self.errors.append(TypeCheckError(src, "You've already defined the type `%s`." % type_name))
-			variant_names = []
-			enum_type = EnumType(type_name, variant_names)
+			variants = []
+			enum_type = EnumType(type_name, variants)
 			self.types[type_name] = enum_type
 			for constructor in constructors.children:
 				constructor_name, *types = constructor.children
-				variant_names.append(constructor_name)
 				types = [self.parse_type(type_token, err=False) for type_token in types]
+				variants.append((constructor_name, types))
 				if constructor_name in self.variables:
 					self.errors.append(TypeCheckError(src, "You've already defined `%s` in this scope." % constructor_name))
 				if len(types) > 1:

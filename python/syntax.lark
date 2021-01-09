@@ -66,7 +66,7 @@ enum_constructor: NAME types*
              | NAME
 
 ?any_pattern: definite_pattern_value
-            | cond_pattern
+            | cond_pattern_value
 
 ?definite_pattern: definite_pattern_value
                  | tuple_pattern
@@ -79,8 +79,10 @@ record_pattern: "{" (record_entry_pattern (";" | "\n"))* record_entry_pattern "}
 ?record_entry_pattern: NAME
                      | NAME ":" definite_pattern
 
-?cond_pattern: list_pattern
-  | enum_pattern
+?cond_pattern: enum_pattern
+             | cond_pattern_value
+?cond_pattern_value: "(" cond_pattern_value ")"
+                   | list_pattern
 list_pattern: "[" (any_pattern ("," any_pattern)*)? "]"
 enum_pattern: NAME any_pattern*
 
