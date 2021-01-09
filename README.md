@@ -24,7 +24,8 @@ pip install colorama
 python n.py
 
 # OPTIONAL: Check the code for accidental errors
-pylint **/*.py --disable=all --enable=E*,F*
+# https://stackoverflow.com/a/31908039
+pylint --disable=C,R,W *.py **/*.py
 ```
 
 ### Features to add:
