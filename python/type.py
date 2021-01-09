@@ -8,13 +8,37 @@ class NGenericType(NType):
 	def __init__(self, name):
 		super(NGenericType, self).__init__(name)
 
-def type_is_list(maybe_list_type):
-	if isinstance(maybe_list_type, list) and len(maybe_list_type) > 0 and type(maybe_list_type[0]) == lark.Token and maybe_list_type[0].type == "LIST":
-		if len(maybe_list_type) > 1:
-			return maybe_list_type[1]
-		else:
-			return "infer"
-	return False
+	def __repr__(self):
+		return 'NGenericType(%s)' % repr(self.name)
+
+class NTypeVars(NType):
+	def __init__(self, name, typevars=[], original=None):
+		super(NTypeVars, self).__init__(name)
+		self.typevars = typevars
+		# Keep a reference to the original NTypeVars so that types can be
+		# compared by reference
+		self.base_type = original
+
+	def with_typevars(self, typevars):
+		return type(self)(self.name, typevars, self)
+
+	def __eq__(self, other):
+		return isinstance(other, NTypeVars) and self.base_type == other.base_type and self.typevars == other.typevars
+
+	def __repr__(self):
+		return 'NTypeVars(%s, %s)' % (repr(self.name), repr(self.typevars))
+
+class NListType(NTypeVars):
+	generic = NGenericType("t")
+
+	def __init__(self, *args, **kwargs):
+		super(NListType, self).__init__(*args, **kwargs)
+
+	def is_inferred(self):
+		return self.typevars[0] == NListType.generic
+
+n_list_type = NListType("list", [NListType.generic])
+
 
 """
 `expected` is the type of the function's argument.
@@ -28,6 +52,9 @@ def apply_generics(expected, actual, generics):
 			return actual
 		else:
 			return generic
+	elif isinstance(expected, NTypeVars) and isinstance(actual, NTypeVars):
+		if expected.base_type == actual.base_type:
+			return expected.with_typevars([apply_generics(expected_type, actual_type, generics) for expected_type, actual_type in zip(expected.typevars, actual.typevars)])
 	elif isinstance(expected, tuple) and isinstance(actual, tuple):
 		return tuple(apply_generics(expected_arg, actual_arg, generics) for expected_arg, actual_arg in zip(expected, actual))
 	elif isinstance(expected, list) and isinstance(actual, list):
@@ -48,14 +75,12 @@ def apply_generics_to(return_type, generics):
 			return return_type
 		else:
 			return generic
+	if isinstance(return_type, NTypeVars):
+		return return_type.with_typevars([apply_generics_to(typevar, generics) for typevar in return_type.typevars])
 	elif isinstance(return_type, tuple):
 		return tuple(apply_generics_to(arg_type, generics) for arg_type in return_type)
 	elif isinstance(return_type, list):
-		contained_type = type_is_list(return_type)
-		if contained_type is None:
-			return [apply_generics_to(item_type, generics) for item_type in return_type]
-		else:
-			return [lark.Token("LIST", "list"), apply_generics_to(contained_type, generics)]
+		return [apply_generics_to(item_type, generics) for item_type in return_type]
 	elif isinstance(return_type, dict):
 		return {key: apply_generics_to(field_type, generics) for key, field_type in return_type.items()}
 	else:

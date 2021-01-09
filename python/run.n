@@ -11,6 +11,9 @@ if let dead wow ok = billy {
   print (wow, ok)
 }
 
+alias pair[t] = (t, t)
+alias strPair = pair[str]
+
 print "uau"
 
 let runner = imp runner
@@ -23,8 +26,8 @@ let main = [test:int test1:str] -> bool {
 	return false
 }
 
-let singleton = [[t] item: t] -> list[t] {
-  let list: list[t] = [item]
+let singleton = [[a] item: a] -> list[a] {
+  let list: list[a] = [item]
   return list
 }
 print <singleton \t>

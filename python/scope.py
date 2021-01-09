@@ -6,7 +6,7 @@ from colorama import Fore, Style
 from variable import Variable
 from function import Function
 from native_function import NativeFunction
-from type import NType, NGenericType, type_is_list, apply_generics, apply_generics_to
+from type import NType, NGenericType, NTypeVars, NListType, n_list_type, apply_generics, apply_generics_to
 from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
 from type_check_error import TypeCheckError, display_type
@@ -166,17 +166,37 @@ class Scope:
 
 	def parse_type(self, tree_or_token, err=True):
 		if type(tree_or_token) == lark.Tree:
-			if tree_or_token.data == "listdef":
-				list_token, contained_type = tree_or_token.children
-				return [list_token, self.parse_type(contained_type, err=err)]
+			if tree_or_token.data == "with_typevar":
+				name, *typevars = tree_or_token.children
+				typevar_type = self.get_type(name.value, err=err)
+				parsed_typevars = [self.parse_type(typevar, err=err) for typevar in typevars]
+				if typevar_type is None:
+					return None
+				elif not isinstance(typevar_type, NTypeVars):
+					self.errors.append(TypeCheckError(tree_or_token, "%s doesn't take any type variables." % name.value))
+					return None
+				else:
+					if len(typevars) < len(typevar_type.typevars):
+						self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variables." % (name.value, len(typevar_type.typevars))))
+						return None
+					elif len(typevars) > len(typevar_type.typevars):
+						self.errors.append(TypeCheckError(tree_or_token, "%s only expects %d type variables." % (name.value, len(typevar_type.typevars))))
+						return None
+					return typevar_type.with_typevars(parsed_typevars)
 			elif tree_or_token.data == "tupledef":
 				return [self.parse_type(child, err=err) for child in tree_or_token.children]
 			elif err:
 				raise NameError("Type annotation of type %s; I am not ready for this." % tree_or_token.data)
 			else:
+				self.errors.append(TypeCheckError(tree_or_token, "Internal problem: encountered a type %s." % tree_or_token.data))
 				return None
 		else:
-			return self.get_type(tree_or_token.value, err=err)
+			n_type = self.get_type(tree_or_token.value, err=err)
+			if n_type is not None:
+				if isinstance(n_type, NTypeVars) and len(n_type.typevars) > 0:
+					self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variables." % (tree_or_token.value, len(typevar_type.typevars))))
+					return None
+			return n_type
 
 	def get_name_type(self, name_type, err=True, get_type=True):
 		pattern = get_destructure_pattern(name_type.children[0])
@@ -298,9 +318,10 @@ class Scope:
 					return False
 		if isinstance(pattern, list):
 			if warn:
-				contained_type = type_is_list(value_or_type)
-				if not contained_type:
+				if not isinstance(value_or_type, NListType):
 					self.errors.append(TypeCheckError(src, "I cannot destructure %s as a list because it's a %s." % (path_name, display_type(value_or_type))))
+					return True
+				contained_type = value_or_type.typevars[0]
 			else:
 				if not isinstance(value_or_type, list):
 					raise TypeError("Destructuring non-list as list.")
@@ -809,7 +830,7 @@ class Scope:
 			return [self.type_check_expr(e) for e in expr.children]
 		elif expr.data == "listval":
 			if (len(expr.children) == 0):
-				return [lark.Token("LIST", "list")]
+				return n_list_type
 
 			first, *rest = [self.type_check_expr(e) for e in expr.children]
 
@@ -817,7 +838,7 @@ class Scope:
 				if e != first:
 					self.errors.append(TypeCheckError(expr.children[i+1], "The list item #%s's type is %s while the first item's type is %s" % (i + 2, e, first)))
 
-			return [lark.Token("LIST", "list"), self.type_check_expr(expr.children[0])]
+			return n_list_type.with_typevars([self.type_check_expr(expr.children[0])])
 		elif expr.data == "impn":
 			impn, f = parse_file(expr.children[0] + ".n", True)
 			if len(impn.errors) != 0:
@@ -908,22 +929,13 @@ class Scope:
 			value_type = self.type_check_expr(value)
 
 			# Check for empty lists
-			maybe_list_type = type_is_list(value_type)
-			if maybe_list_type == "infer":
+			if isinstance(value_type, NListType) and value_type.is_inferred():
 				if ty == "infer":
 					self.errors.append(TypeCheckError(name_type, "Unable to infer type of empty list"))
 				value_type = ty
 			if value_type is not None and value_type != ty:
 				if ty == 'infer':
 					ty = value_type
-				elif type_is_list(ty):
-					typ = []
-					for t in ty:
-						if type(t) is lark.Token:
-							typ.append(t.value)
-						else:
-							typ.append(t)
-					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(typ), display_type(value_type))))
 				else:
 					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
 
@@ -938,12 +950,10 @@ class Scope:
 
 
 				#Check for empty lists
-				if type(value_type) == list and len(value_type) == 1:
-					if type(value_type[0]) == lark.Token:
-						if value_type[0].type == "LIST":
-							if ty == "infer":
-								self.errors.append(TypeCheckError(name_type, "Unable to infer type of empty list"))
-							value_type = ty
+				if isinstance(value_type, NListType) and value_type.is_inferred():
+					if ty == "infer":
+						self.errors.append(TypeCheckError(name_type, "Unable to infer type of empty list"))
+					value_type = ty
 
 				if value_type != ty:
 					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))

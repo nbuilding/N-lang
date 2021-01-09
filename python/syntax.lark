@@ -13,6 +13,7 @@ instruction: declare (";")?
            | ifelse (";")?
            | vary (";")?
            | enum_definition (";")?
+           | alias_definition (";")?
 
 non_infix_boolval: value
                  | function_callback
@@ -23,6 +24,7 @@ non_infix_boolval: value
 vary: "var " NAME "=" (expression | function_def | anonymous_func)
 declare: "let " modifier? name_type "=" (expression | function_def | anonymous_func)
 enum_definition: "type" NAME "=" enum_constructors
+alias_definition: "alias" alias_name "=" types
 print: "print" value
 function_callback: "<" (function_call | anonymous_function_call) ">"
 function_callback_quirky: value ".<" (function_call | anonymous_function_call) ">"
@@ -52,7 +54,8 @@ anonymous_func: "(" arguments "->" NAME ":" (instruction (";" instruction)*) ")"
 char: "\\" ( escape_code | "{" /./ "}")
 escape_code: /[tnr]/
 tupledef: "(" types ("," types)* ")"
-listdef: LIST "[" types "]"
+with_typevar: NAME "[" types ("," types)* "]"
+alias_name: NAME ("[" types ("," types)* "]")?
 tupleval: "(" value ("," value)* ")"
 listval: "[" (value ("," value)*)? "]"
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
@@ -94,7 +97,7 @@ enum_pattern: NAME any_pattern*
 
 ?types: NAME
       | tupledef
-      | listdef
+      | with_typevar
 
 ?expression: ifelse_expr
            | boolean_expression
@@ -154,7 +157,6 @@ DIVIDE: "/"
 ROUNDDIV: "//"
 MODULO: "%"
 EXPONENT: "^"
-LIST: "list"
 PUBLIC: "pub"
 %import common.ESCAPED_STRING -> STRING
 %import common.SIGNED_NUMBER  -> NUMBER
