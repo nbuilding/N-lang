@@ -1,4 +1,5 @@
 import math
+import lark
 
 from function import Function
 from type_check_error import display_type
@@ -102,7 +103,7 @@ def add_funcs(global_scope):
 	)
 	global_scope.add_native_function(
 		"itemAt",
-		[("index", "int"), ("lis", NGenericType("list[t]"))],
+		[("index", "int"), ("list", [lark.Token("LIST", "list"), NGenericType("t")])],
 		"t",
 		item_at
 	)
