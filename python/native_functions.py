@@ -16,6 +16,12 @@ def char_at(index, string):
 	except:
 		return ""
 
+def item_at(index, lis):
+	try:
+		return lis[index]
+	except:
+		raise SyntaxError("index %s not in list %s" % (index, lis))
+
 def length(string):
 	try:
 		return len(string)
@@ -93,6 +99,12 @@ def add_funcs(global_scope):
 		[("obj", NGenericType("t"))],
 		"str",
 		type_display,
+	)
+	global_scope.add_native_function(
+		"itemAt",
+		[("index", "int"), ("lis", NGenericType("list[t]"))],
+		"t",
+		item_at
 	)
 
 	global_scope.types['str'] = 'str'
