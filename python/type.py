@@ -20,9 +20,12 @@ class NTypeVars(NType):
 		self.base_type = original
 
 	def with_typevars(self, typevars):
-		return type(self)(self.name, typevars, self)
+		return type(self)(self.name, typevars, original=self)
 
 	def __eq__(self, other):
+		if isinstance(other, NTypeVars):
+			print(self, other)
+			print(id(self.typevars[0]), id(other.typevars[0]))
 		return isinstance(other, NTypeVars) and self.base_type == other.base_type and self.typevars == other.typevars
 
 	def __repr__(self):
@@ -31,8 +34,8 @@ class NTypeVars(NType):
 class NListType(NTypeVars):
 	generic = NGenericType("t")
 
-	def __init__(self, *args, **kwargs):
-		super(NListType, self).__init__(*args, **kwargs)
+	def __init__(self, name, typevars, original=None):
+		super(NListType, self).__init__(name, typevars, original=original)
 
 	def is_inferred(self):
 		return self.typevars[0] == NListType.generic
