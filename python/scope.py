@@ -10,6 +10,7 @@ from type import NType, NGenericType, NAliasType, NTypeVars, NListType, n_list_t
 from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
 from type_check_error import TypeCheckError, display_type
+from display import display_value
 from operation_types import binary_operation_types, unary_operation_types, comparable_types, iterable_types
 from file import File
 from imported_error import ImportedError
@@ -553,28 +554,10 @@ class Scope:
 					return True, value
 		elif command.data == "print":
 			val = self.eval_expr(command.children[0])
-
-			if type(val) == dict:
-				print("{", end="")
-				for key in list(val.keys())[0:-1]:
-					print(key + ": ", end="")
-
-					if type(val[key]) == str:
-						print("\"" + str(val[key].encode('unicode_escape'))[2:-1].replace("\\\\", "\\") + "\", ", end="")
-					else:
-						print(str(val[key]) + ", ", end="")
-
-				key = list(val.keys())[-1]
-
-				print(key + ": ", end="")
-				if type(val[key]) == str:
-					print("\"" + str(val[key].encode('unicode_escape'))[2:-1].replace("\\\\", "\\") + "\"", end="")
-				else:
-					print(str(val[key]), end="")
-
-				print("}")
-			else:
+			if isinstance(val, str):
 				print(val)
+			else:
+				print(display_value(val, indent="  "))
 		elif command.data == "return":
 			return (True, self.eval_expr(command.children[0]))
 		elif command.data == "declare":

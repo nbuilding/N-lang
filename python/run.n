@@ -46,7 +46,7 @@ let pairSingleton = [[a, b] item1:a item2:b] -> list[(a, b)] {
 print <pairSingleton 1 "2">
 
 let wowowo = {
-  ok: (3, (("happy", \r), true))
+  ok: (3, (("hap\npy", \r), true))
   uwu: "ok"//; extra: 3.4; extra2: 5.4
 }
 let { uwu; ok: aaa, ((caa, _), (((baa)))) } = wowowo
@@ -108,7 +108,7 @@ print <itemAt 0 lis> // please take a look at this
 
 // let list:list[func] = [main]
 
-print main.<type>
+// print main.<type>
 
 // var list = [1]
 
@@ -122,7 +122,7 @@ print (0.1 + 0.2 == 0.3)
 
 <main test1 eee>
 <fek?paer "test">
-print (<fek?paer "test">)
+// print (<fek?paer "test">)
 print (if true { "hi" } else { "hello" })
 if true {
 	print ("<main test \"hello\"> returned false")
