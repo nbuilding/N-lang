@@ -610,14 +610,14 @@ class Scope:
 			if exit:
 				return (True, value)
 		elif command.data == "enum_definition":
-			type_name, constructors = command.children
-			type_name = type_name.value
-			enum_type = NType(type_name)
-			self.types[type_name] = enum_type
+			type_def, constructors = command.children
+			type_name, *type_typevars = type_def.children
+			enum_type = NType(type_name.value)
+			self.types[type_name.value] = enum_type
 			for constructor in constructors.children:
 				constructor_name, *types = constructor.children
-				types = [self.parse_type(type_token) for type_token in types]
-				if len(types) > 1:
+				# types = [self.parse_type(type_token) for type_token in types]
+				if len(types) >= 1:
 					self.variables[constructor_name] = NativeFunction(self, [("idk", arg_type) for arg_type in types], enum_type, EnumValue.construct(constructor_name))
 				else:
 					self.variables[constructor_name] = Variable(enum_type, EnumValue(constructor_name))
@@ -629,6 +629,25 @@ class Scope:
 
 		# No return
 		return (False, None)
+
+	"""
+	A helper function to generalize getting a type name and its type variables,
+	used by enum and type alias definitions. It also puts the type variables in
+	a temporary scope so that the type definition can use them.
+	"""
+	def get_name_typevars(self, type_def):
+		type_name, *type_typevars = type_def.children
+		if type_name.value in self.types:
+			self.errors.append(TypeCheckError(type_name, "You've already defined the type `%s`." % type_name.value))
+		scope = self.new_scope()
+		typevars = []
+		for typevar_name in type_typevars:
+			typevar = NGenericType(typevar_name.value)
+			if typevar_name.value in scope.types:
+				self.errors.append(TypeCheckError(typevar_name, "You've already used the generic type `%s`." % typevar_name.value))
+			scope.types[typevar_name.value] = typevar
+			typevars.append(typevar)
+		return type_name, scope, typevars
 
 	def get_record_entry_type(self, entry):
 		if type(entry) is lark.Tree:
@@ -1002,39 +1021,29 @@ class Scope:
 			if exit_if_true and exit_if_false:
 				return command
 		elif command.data == "enum_definition":
-			type_name, constructors = command.children
-			type_name = type_name.value
-			if type_name in self.types:
-				self.errors.append(TypeCheckError(src, "You've already defined the type `%s`." % type_name))
+			type_def, constructors = command.children
+			type_name, scope, typevars = self.get_name_typevars(type_def)
 			variants = []
-			enum_type = EnumType(type_name, variants)
+			enum_type = EnumType(type_name, variants, typevars)
 			self.types[type_name] = enum_type
 			for constructor in constructors.children:
 				constructor_name, *types = constructor.children
-				types = [self.parse_type(type_token, err=False) for type_token in types]
-				variants.append((constructor_name, types))
-				if constructor_name in self.variables:
-					self.errors.append(TypeCheckError(src, "You've already defined `%s` in this scope." % constructor_name))
-				if len(types) > 1:
-					self.variables[constructor_name] = NativeFunction(self, [("idk", arg_type) for arg_type in types], enum_type, id)
+				types = [scope.parse_type(type_token, err=False) for type_token in types]
+				variants.append((constructor_name.value, types))
+				if constructor_name.value in self.variables:
+					self.errors.append(TypeCheckError(constructor_name, "You've already defined `%s` in this scope." % constructor_name.value))
+				if len(types) >= 1:
+					self.variables[constructor_name.value] = NativeFunction(self, [("idk", arg_type) for arg_type in types], enum_type, id)
 				else:
-					self.variables[constructor_name] = Variable(enum_type, "I don't think this is used")
+					self.variables[constructor_name.value] = Variable(enum_type, "I don't think this is used")
 		elif command.data == "alias_definition":
-			alias_name, alias_type = command.children
-			alias_name, *alias_typevars = alias_name.children
-			scope = self.new_scope()
-			typevars = []
-			for typevar_name in alias_typevars:
-				typevar = NGenericType(typevar_name.value)
-				if typevar_name.value in scope.types:
-					self.errors.append(TypeCheckError(typevar_name, "You've already used the generic type `%s`." % typevar_name.value))
-				scope.types[typevar_name.value] = typevar
-				typevars.append(typevar)
+			alias_def, alias_type = command.children
+			alias_name, scope, typevars = self.get_name_typevars(alias_def)
 			alias_type = scope.parse_type(alias_type, err=False)
 			if alias_type is None:
-				self.types[alias_name.value] = "invalid"
+				self.types[alias_name] = "invalid"
 			else:
-				self.types[alias_name.value] = NAliasType(alias_name.value, alias_type, typevars)
+				self.types[alias_name] = NAliasType(alias_name.value, alias_type, typevars)
 		else:
 			self.type_check_expr(command)
 

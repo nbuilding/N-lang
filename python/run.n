@@ -11,6 +11,11 @@ if let dead wow ok = billy {
   print (wow, ok)
 }
 
+type maybe[t] = yes t
+  | nothing
+// TODO: Syntactic ambiguity
+print (<yes 3>, nothing)
+
 alias pair[t] = (t, t)
 alias strPair = pair[str]
 let hmm: strPair = ("ok", "lol")

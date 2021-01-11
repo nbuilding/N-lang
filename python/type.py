@@ -67,12 +67,7 @@ def apply_generics(expected, actual, generics):
 	elif isinstance(expected, tuple) and isinstance(actual, tuple):
 		return tuple(apply_generics(expected_arg, actual_arg, generics) for expected_arg, actual_arg in zip(expected, actual))
 	elif isinstance(expected, list) and isinstance(actual, list):
-		expected_contained_type = type_is_list(expected)
-		actual_contained_type = type_is_list(actual)
-		if expected_contained_type and actual_contained_type:
-			return [lark.Token("LIST", "list"), apply_generics(expected_contained_type, actual_contained_type, generics)]
-		elif not expected_contained_type and not actual_contained_type:
-			return [apply_generics(expected_item, actual_item, generics) for expected_item, actual_item in zip(expected, actual)]
+		return [apply_generics(expected_item, actual_item, generics) for expected_item, actual_item in zip(expected, actual)]
 	elif isinstance(expected, dict):
 		return {key: apply_generics(expected_type, actual[key], generics) if key in actual else expected_type for key, expected_type in expected.items()}
 	return expected

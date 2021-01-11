@@ -1,8 +1,8 @@
-from type import NType
+from type import NTypeVars
 
-class EnumType(NType):
-	def __init__(self, name, variants=[]):
-		super(EnumType, self).__init__(name)
+class EnumType(NTypeVars):
+	def __init__(self, name, variants, typevars=[], original=None):
+		super(EnumType, self).__init__(name, typevars, original=original)
 		self.variants = variants
 
 	def get_types(self, variant_name):
@@ -17,7 +17,7 @@ class EnumValue:
 		self.values = values
 
 	def __repr__(self):
-		return '<%s %s>' % (self.variant, ' '.join(repr(value) for value in self.values))
+		return '<' + self.variant + ''.join(' ' + repr(value) for value in self.values) + '>'
 
 	@classmethod
 	def construct(cls, variant):
