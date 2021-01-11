@@ -101,10 +101,11 @@ def add_funcs(global_scope):
 		"str",
 		type_display,
 	)
+	generic = NGenericType("t")
 	global_scope.add_native_function(
 		"itemAt",
-		[("index", "int"), ("list", [lark.Token("LIST", "list"), NGenericType("t")])],
-		"t",
+		[("index", "int"), ("list", n_list_type.with_typevars([generic]))],
+		generic,
 		item_at
 	)
 

@@ -17,16 +17,13 @@ class NTypeVars(NType):
 		self.typevars = typevars
 		# Keep a reference to the original NTypeVars so that types can be
 		# compared by reference
-		self.base_type = original
+		self.base_type = original or self
 
 	def with_typevars(self, typevars):
-		return type(self)(self.name, typevars, original=self)
+		return type(self)(self.name, typevars, original=self.base_type)
 
 	def __eq__(self, other):
-		if isinstance(other, NTypeVars):
-			print(self, other)
-			print(id(self.typevars[0]), id(other.typevars[0]))
-		return isinstance(other, NTypeVars) and self.base_type == other.base_type and self.typevars == other.typevars
+		return isinstance(other, NTypeVars) and self.base_type is other.base_type and self.typevars == other.typevars
 
 	def __repr__(self):
 		return 'NTypeVars(%s, %s)' % (repr(self.name), repr(self.typevars))
