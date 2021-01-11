@@ -99,6 +99,8 @@ if let [a, b, c, d] = lis {
   print { a; b; c; d }
 }
 
+print <itemAt 0 lis> // please take a look at this
+
 // let list:list[func] = [main]
 
 print main.<type>
@@ -119,7 +121,6 @@ print (<fek?paer "test">)
 print (if true { "hi" } else { "hello" })
 if true {
 	print ("<main test \"hello\"> returned false")
-	// print eererjekrjelkr; this is still repeated twice for some reason
 } else {
 	print "test"
 }

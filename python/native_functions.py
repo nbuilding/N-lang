@@ -1,4 +1,5 @@
 import math
+import lark
 
 from function import Function
 from type_check_error import display_type
@@ -15,6 +16,12 @@ def char_at(index, string):
 		return string[index]
 	except:
 		return ""
+
+def item_at(index, lis):
+	try:
+		return lis[index]
+	except:
+		raise SyntaxError("index %s not in list %s" % (index, lis))
 
 def length(string):
 	try:
@@ -93,6 +100,12 @@ def add_funcs(global_scope):
 		[("obj", NGenericType("t"))],
 		"str",
 		type_display,
+	)
+	global_scope.add_native_function(
+		"itemAt",
+		[("index", "int"), ("list", [lark.Token("LIST", "list"), NGenericType("t")])],
+		"t",
+		item_at
 	)
 
 	global_scope.types['str'] = 'str'
