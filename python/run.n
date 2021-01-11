@@ -13,8 +13,8 @@ if let dead wow ok = billy {
 
 alias pair[t] = (t, t)
 alias strPair = pair[str]
-
-print "uau"
+let hmm: strPair = ("ok", "lol")
+print hmm
 
 let runner = imp runner
 

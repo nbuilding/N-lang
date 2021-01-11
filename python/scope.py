@@ -6,7 +6,7 @@ from colorama import Fore, Style
 from variable import Variable
 from function import Function
 from native_function import NativeFunction
-from type import NType, NGenericType, NTypeVars, NListType, n_list_type, apply_generics, apply_generics_to
+from type import NType, NGenericType, NAliasType, NTypeVars, NListType, n_list_type, apply_generics, apply_generics_to
 from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
 from type_check_error import TypeCheckError, display_type
@@ -172,10 +172,8 @@ class Scope:
 				parsed_typevars = [self.parse_type(typevar, err=err) for typevar in typevars]
 				if typevar_type is None:
 					return None
-				elif not isinstance(typevar_type, NTypeVars):
-					self.errors.append(TypeCheckError(tree_or_token, "%s doesn't take any type variables." % name.value))
-					return None
-				else:
+				elif isinstance(typevar_type, NAliasType) or isinstance(typevar_type, NTypeVars):
+					# Duck typing :sunglasses:
 					if len(typevars) < len(typevar_type.typevars):
 						self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variables." % (name.value, len(typevar_type.typevars))))
 						return None
@@ -183,6 +181,9 @@ class Scope:
 						self.errors.append(TypeCheckError(tree_or_token, "%s only expects %d type variables." % (name.value, len(typevar_type.typevars))))
 						return None
 					return typevar_type.with_typevars(parsed_typevars)
+				else:
+					self.errors.append(TypeCheckError(tree_or_token, "%s doesn't take any type variables." % name.value))
+					return None
 			elif tree_or_token.data == "tupledef":
 				return [self.parse_type(child, err=err) for child in tree_or_token.children]
 			elif err:
@@ -192,10 +193,19 @@ class Scope:
 				return None
 		else:
 			n_type = self.get_type(tree_or_token.value, err=err)
-			if n_type is not None:
-				if isinstance(n_type, NTypeVars) and len(n_type.typevars) > 0:
+			if n_type is None:
+				self.errors.append(TypeCheckError(tree_or_token, "I don't know what type you're referring to by `%s`." % tree_or_token.value))
+				return None
+			elif n_type == "invalid":
+				return None
+			elif isinstance(n_type, NAliasType):
+				if len(n_type.typevars) > 0:
 					self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variables." % (tree_or_token.value, len(typevar_type.typevars))))
 					return None
+				return n_type.with_typevars()
+			elif isinstance(n_type, NTypeVars) and len(n_type.typevars) > 0:
+				self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variables." % (tree_or_token.value, len(typevar_type.typevars))))
+				return None
 			return n_type
 
 	def get_name_type(self, name_type, err=True, get_type=True):
@@ -611,6 +621,9 @@ class Scope:
 					self.variables[constructor_name] = NativeFunction(self, [("idk", arg_type) for arg_type in types], enum_type, EnumValue.construct(constructor_name))
 				else:
 					self.variables[constructor_name] = Variable(enum_type, EnumValue(constructor_name))
+		elif command.data == "alias_definition":
+			# Type aliases are purely for type checking so they do nothing at runtime
+			pass
 		else:
 			self.eval_expr(command)
 
@@ -933,7 +946,7 @@ class Scope:
 				if ty == "infer":
 					self.errors.append(TypeCheckError(name_type, "Unable to infer type of empty list"))
 				value_type = ty
-			if value_type is not None and value_type != ty:
+			if value_type is not None and ty is not None and value_type != ty:
 				if ty == 'infer':
 					ty = value_type
 				else:
@@ -1006,6 +1019,22 @@ class Scope:
 					self.variables[constructor_name] = NativeFunction(self, [("idk", arg_type) for arg_type in types], enum_type, id)
 				else:
 					self.variables[constructor_name] = Variable(enum_type, "I don't think this is used")
+		elif command.data == "alias_definition":
+			alias_name, alias_type = command.children
+			alias_name, *alias_typevars = alias_name.children
+			scope = self.new_scope()
+			typevars = []
+			for typevar_name in alias_typevars:
+				typevar = NGenericType(typevar_name.value)
+				if typevar_name.value in scope.types:
+					self.errors.append(TypeCheckError(typevar_name, "You've already used the generic type `%s`." % typevar_name.value))
+				scope.types[typevar_name.value] = typevar
+				typevars.append(typevar)
+			alias_type = scope.parse_type(alias_type, err=False)
+			if alias_type is None:
+				self.types[alias_name.value] = "invalid"
+			else:
+				self.types[alias_name.value] = NAliasType(alias_name.value, alias_type, typevars)
 		else:
 			self.type_check_expr(command)
 

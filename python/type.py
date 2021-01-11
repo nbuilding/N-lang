@@ -11,6 +11,15 @@ class NGenericType(NType):
 	def __repr__(self):
 		return 'NGenericType(%s)' % repr(self.name)
 
+class NAliasType(NType):
+	def __init__(self, name, alias_type, typevars=[]):
+		super(NAliasType, self).__init__(name)
+		self.typevars = typevars
+		self.type = alias_type
+
+	def with_typevars(self, typevar_defs=[]):
+		return apply_generics_to(self.type, {typevar: typevar_def for typevar, typevar_def in zip(self.typevars, typevar_defs)})
+
 class NTypeVars(NType):
 	def __init__(self, name, typevars=[], original=None):
 		super(NTypeVars, self).__init__(name)
