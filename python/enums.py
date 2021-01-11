@@ -11,6 +11,9 @@ class EnumType(NTypeVars):
 				return types
 		return None
 
+	def new_child(self, typevars):
+		return type(self)(self.name, self.variants, typevars, original=self.base_type)
+
 class EnumValue:
 	def __init__(self, variant, values=[]):
 		self.variant = variant
@@ -18,6 +21,9 @@ class EnumValue:
 
 	def __repr__(self):
 		return '<' + self.variant + ''.join(' ' + repr(value) for value in self.values) + '>'
+
+	def __eq__(self, other):
+		return self.variant == other.variant and self.values == other.values
 
 	@classmethod
 	def construct(cls, variant):

@@ -4,6 +4,12 @@ class NType:
 	def __init__(self, name):
 		self.name = name
 
+	def __hash__(self):
+		return hash(id(self))
+
+	def __eq__(self, other):
+		return self is other
+
 class NGenericType(NType):
 	def __init__(self, name):
 		super(NGenericType, self).__init__(name)
@@ -18,6 +24,8 @@ class NAliasType(NType):
 		self.type = alias_type
 
 	def with_typevars(self, typevar_defs=[]):
+		if len(self.typevars) != len(typevar_defs):
+			raise TypeError("Expected %d typevars, not %d." % (len(self.typevars), len(typevar_defs)))
 		return apply_generics_to(self.type, {typevar: typevar_def for typevar, typevar_def in zip(self.typevars, typevar_defs)})
 
 class NTypeVars(NType):
@@ -29,7 +37,18 @@ class NTypeVars(NType):
 		self.base_type = original or self
 
 	def with_typevars(self, typevars):
+		if len(self.typevars) != len(typevars):
+			raise TypeError("Expected %d typevars, not %d." % (len(self.typevars), len(typevars)))
+		return self.new_child(typevars)
+
+	def new_child(self, typevars):
 		return type(self)(self.name, typevars, original=self.base_type)
+
+	def __hash__(self):
+		if self.base_type is self:
+			return hash(id(self))
+		else:
+			return hash(self.base_type)
 
 	def __eq__(self, other):
 		return isinstance(other, NTypeVars) and self.base_type is other.base_type and self.typevars == other.typevars
