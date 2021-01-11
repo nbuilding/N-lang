@@ -853,7 +853,7 @@ class Scope:
 				if e != first:
 					self.errors.append(TypeCheckError(expr.children[i+1], "The list item #%s's type is %s while the first item's type is %s" % (i + 2, e, first)))
 
-			return n_list_type.with_typevars([self.type_check_expr(expr.children[0])])
+			return n_list_type.with_typevars([self.type_check_expr(expr.children[0])]) # TODO
 		elif expr.data == "impn":
 			impn, f = parse_file(expr.children[0] + ".n", True)
 			if len(impn.errors) != 0:
@@ -941,16 +941,15 @@ class Scope:
 			name_type, value = rest
 			pattern, ty = self.get_name_type(name_type, err=False)
 			name = pattern_to_name(pattern)
-			value_type = self.type_check_expr(value)
 
-			# Check for empty lists
-			if isinstance(value_type, NListType) and value_type.is_inferred():
-				if ty == "infer":
-					self.errors.append(TypeCheckError(name_type, "Unable to infer type of empty list"))
-				value_type = ty
-			if value_type is not None and ty is not None and value_type != ty:
+			value_type = self.type_check_expr(value)
+			resolved_value_type = apply_generics(value_type, ty)
+			if ty is not None and resolved_value_type is not None and ty != resolved_value_type:
 				if ty == 'infer':
-					ty = value_type
+					# If there is an unresolved generic (like list[t] from an
+					# empty list), this might cause problems. Should there be an
+					# error about "Type annotations needed"?
+					ty = resolved_value_type
 				else:
 					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
 

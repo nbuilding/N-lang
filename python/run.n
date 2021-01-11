@@ -13,9 +13,8 @@ if let dead wow ok = billy {
 
 type maybe[t] = yes t
   | nothing
-let ok: maybe[str] = <yes "3">
-print (ok, nothing)
-print (ok = <yes "3">)
+let ok: maybe[str] = nothing
+print (ok = nothing)
 
 alias pair[t] = (t, t)
 alias strPair = pair[str]

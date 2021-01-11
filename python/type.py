@@ -69,10 +69,17 @@ n_list_type = NListType("list", [NListType.generic])
 
 
 """
-`expected` is the type of the function's argument.
-`actual` is the type of the expression being passed in.
+`expected` is the type of the function's argument, the type with the
+generics/type variables.
+`actual` is the type of the expression being passed in, the type with the
+generics known.
+Pass in `generics` to keep track of the generics across different matches.
+
+Returns a type with the generics swapped out to best fit the actual type. For
+example, `apply_generics(list[t], list[str])` (psuedocode) will return
+`list[str]`. This can then be compared with actual separately.
 """
-def apply_generics(expected, actual, generics):
+def apply_generics(expected, actual, generics={}):
 	if isinstance(expected, NGenericType):
 		generic = generics.get(expected)
 		if generic is None:
@@ -91,6 +98,15 @@ def apply_generics(expected, actual, generics):
 		return {key: apply_generics(expected_type, actual[key], generics) if key in actual else expected_type for key, expected_type in expected.items()}
 	return expected
 
+"""
+Given generic mappings (eg `t` -> `str`) from `apply_generics`, it'll transform
+the given type by replacing the generic types according to the mapping. For
+example, `apply_generics_to(list[t], { t: str })` (psuedocode) will return
+`list[str]`.
+
+Note that this currently probably should fail for functions that only use a
+generic in its return type, but I'm not sure how that would work.
+"""
 def apply_generics_to(return_type, generics):
 	if isinstance(return_type, NGenericType):
 		generic = generics.get(return_type)
