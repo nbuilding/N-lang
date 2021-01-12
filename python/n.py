@@ -35,12 +35,25 @@ def type_check(file, tree):
 			scope.type_check_command(child)
 	else:
 		scope.errors.append(TypeCheckError(tree, "Internal issue: I cannot type check from a non-starting branch."))
+	errors = []
+	warnings = []
 	if len(scope.errors) > 0 or args.check:
+		# remove duplicate errors and warnings
+		errors = [scope.errors[0]]
+		for i in range(1, len(scope.errors)):
+			if not scope.errors[i-1].compare(scope.errors[i]):
+				errors.append(scope.errors[i])
+
+		warnings = [scope.warnings[0]]
+		for i in range(1, len(scope.warnings)):
+			if not scope.warnings[i-1].compare(scope.warnings[i]):
+				warnings.append(scope.warnings[i])
+
 		print('\n'.join(
-			[warning.display('warning', file) for warning in scope.warnings] +
-			[error.display('error', file) for error in scope.errors]
+			[warning.display('warning', file) for warning in warnings] +
+			[error.display('error', file) for error in errors]
 		))
-	return (len(scope.errors), len(scope.warnings))
+	return (len(errors), len(warnings))
 
 def parse_tree(tree):
 	if tree.data == "start":
