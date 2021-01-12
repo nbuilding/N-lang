@@ -88,7 +88,7 @@ def apply_generics(expected, actual, generics={}):
 		else:
 			return generic
 	elif isinstance(expected, NTypeVars) and isinstance(actual, NTypeVars):
-		if expected.base_type == actual.base_type:
+		if expected.base_type is actual.base_type:
 			return expected.with_typevars([apply_generics(expected_type, actual_type, generics) for expected_type, actual_type in zip(expected.typevars, actual.typevars)])
 	elif isinstance(expected, tuple) and isinstance(actual, tuple):
 		return tuple(apply_generics(expected_arg, actual_arg, generics) for expected_arg, actual_arg in zip(expected, actual))
@@ -124,3 +124,65 @@ def apply_generics_to(return_type, generics):
 		return {key: apply_generics_to(field_type, generics) for key, field_type in return_type.items()}
 	else:
 		return return_type
+
+"""
+Given two types that should be equal, this function will try to match them and
+resolve generics, then return a pair containing the resolved type and whether
+there is a problem.
+
+Examples:
+- resolve_equal_types((str, int, bool), (str, int, bool)) -> (str, int, bool), False
+- resolve_equal_types(list[t], list[str]) -> list[str], False
+- resolve_equal_types(list[t], str) -> None, True
+- resolve_equal_types(list[t], list[b]) -> list[b], False if t is from the base type
+- resolve_equal_types(list[t], list[t]) -> list[t], False
+- resolve_equal_types(list[a], list[b]) -> None, True if neither a nor b are from the base type
+If a type is None (error), the function will return None, False to avoid
+compounding errors.
+- resolve_equal_types(None, int) -> None, False
+"""
+def resolve_equal_types(type_a, type_b):
+	if type_a is None or type_b is None:
+		return None, False
+	if isinstance(type_a, NGenericType):
+		if isinstance(type_b, NGenericType):
+			# TODO: Ambiguous case
+			return None, True
+		else:
+			return type_b, False
+	elif isinstance(type_b, NGenericType):
+		return type_a, False
+	elif isinstance(type_a, NTypeVars):
+		if not isinstance(return_type, NTypeVars) or expected.base_type is not actual.base_type:
+			return None, True
+		resolved_typevars = []
+		for typevar_a, typevar_b in zip(type_a.typevars, type_b.typevars):
+			resolved, problem = resolve_equal_types(typevar_a, typevar_b)
+			if problem:
+				return None, True
+			resolved_typevars.append(resolved)
+		return return_type.with_typevars(resolved_typevars)
+	elif isinstance(type_a, list):
+		if not isinstance(type_b, list) or len(type_a) != len(type_b):
+			return None, True
+		resolved_types = []
+		for item_a, item_b in zip(type_a, type_b):
+			resolved, problem = resolve_equal_types(item_a, item_b)
+			if problem:
+				return None, True
+			resolved_types.append(resolved)
+		return resolved_types, False
+	elif isinstance(type_a, dict):
+		if not isinstance(type_b, dict) or type_a.keys() != type_b.keys():
+			return None, True
+		resolved_types = {}
+		for key in type_a.keys():
+			resolved, problem = resolve_equal_types(type_a[key], type_b[key], generics)
+			if problem:
+				return None, True
+			resolved_types[key] = resolved
+		return resolved_types, False
+	elif type_a == type_b:
+		return type_a, False
+	else:
+		return None, True
