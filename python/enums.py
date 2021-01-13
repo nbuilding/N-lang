@@ -1,4 +1,4 @@
-from type import NTypeVars
+from type import NTypeVars, apply_generics_to
 
 class EnumType(NTypeVars):
 	def __init__(self, name, variants, typevars=[], original=None):
@@ -8,7 +8,7 @@ class EnumType(NTypeVars):
 	def get_types(self, variant_name):
 		for variant, types in self.variants:
 			if variant == variant_name:
-				return types
+				return apply_generics_to(types, dict(zip(self.base_type.typevars, self.typevars)))
 		return None
 
 	def new_child(self, typevars):
