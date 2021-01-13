@@ -3,7 +3,7 @@ import lark
 
 from function import Function
 from type_check_error import display_type
-from type import NGenericType
+from type import NGenericType, NListType, n_list_type
 
 def substr(start, end, string):
 	try:
@@ -101,10 +101,11 @@ def add_funcs(global_scope):
 		"str",
 		type_display,
 	)
+	generic = NGenericType("t")
 	global_scope.add_native_function(
 		"itemAt",
-		[("index", "int"), ("list", [lark.Token("LIST", "list"), NGenericType("t")])],
-		"t",
+		[("index", "int"), ("list", n_list_type.with_typevars([generic]))],
+		generic,
 		item_at
 	)
 
@@ -113,3 +114,4 @@ def add_funcs(global_scope):
 	global_scope.types['int'] = 'int'
 	global_scope.types['float'] = 'float'
 	global_scope.types['bool'] = 'bool'
+	global_scope.types['list'] = n_list_type

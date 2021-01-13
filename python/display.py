@@ -1,5 +1,6 @@
 from colorama import Fore, Style
 from function import Function
+from enums import EnumValue
 
 unescape = {
 	"\\": "\\",
@@ -51,13 +52,24 @@ def display_value(value, color=True, indent="\t", indent_state=""):
 		output = "\"%s\"" % output
 		if color:
 			output = Fore.GREEN + output + Style.RESET_ALL
+	elif isinstance(value, EnumValue):
+		if len(value.values) == 0:
+			output = Fore.MAGENTA + value.variant + Style.RESET_ALL if color else value.variant
+		else:
+			output = '<' + value.variant + '\n'
+			if color:
+				output = Fore.MAGENTA + output + Style.RESET_ALL
+			inner_indent = indent_state + indent
+			for value in value.values:
+				output += inner_indent + display_value(value, color=color, indent=indent, indent_state=inner_indent) + '\n'
+			output += indent_state + (Fore.MAGENTA + '>' + Style.RESET_ALL if color else '>')
 	elif isinstance(value, Function):
-		output = "<function>"
+		output = "[function]"
 		if color:
 			output = Fore.MAGENTA + output + Style.RESET_ALL
 	else:
 		print("???", value)
-		output = "<unprintable value>"
+		output = "[unprintable value]"
 		if color:
 			output = Fore.RED + output + Style.RESET_ALL
 	return output

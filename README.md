@@ -25,7 +25,8 @@ python n.py
 
 # OPTIONAL: Check the code for accidental errors
 # https://stackoverflow.com/a/31908039
-pylint --disable=C,R,W *.py **/*.py
+# https://stackoverflow.com/a/54488818
+pylint --disable=all --enable=F,E,unreachable,duplicate-key,unnecessary-semicolon,global-variable-not-assigned,unused-variable,binary-op-exception,bad-format-string,anomalous-backslash-in-string,bad-open-mode *.py **/*.py
 ```
 
 ### Features to add:

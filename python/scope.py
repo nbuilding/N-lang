@@ -5,7 +5,9 @@ from colorama import Fore, Style
 
 from variable import Variable
 from function import Function
-from type import NGenericType, type_is_list, apply_generics, apply_generics_to
+from native_function import NativeFunction
+from type import NType, NGenericType, NAliasType, NTypeVars, NListType, n_list_type, apply_generics, apply_generics_to, resolve_equal_types
+from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
 from type_check_error import TypeCheckError, display_type
 from display import display_value
@@ -95,6 +97,12 @@ def get_conditional_destructure_pattern(tree):
 			for pattern in tree.children:
 				patterns.append(get_conditional_destructure_pattern(pattern))
 			return (patterns, tree)
+		elif tree.data == "enum_pattern":
+			enum_name, *pattern_trees = tree.children
+			patterns = []
+			for pattern in pattern_trees:
+				patterns.append(get_conditional_destructure_pattern(pattern))
+			return (EnumPattern(enum_name, patterns), tree)
 	return get_destructure_pattern(tree)
 
 def pattern_to_name(pattern_and_src):
@@ -159,17 +167,47 @@ class Scope:
 
 	def parse_type(self, tree_or_token, err=True):
 		if type(tree_or_token) == lark.Tree:
-			if tree_or_token.data == "listdef":
-				list_token, contained_type = tree_or_token.children
-				return [list_token, self.parse_type(contained_type, err=err)]
+			if tree_or_token.data == "with_typevar":
+				name, *typevars = tree_or_token.children
+				typevar_type = self.get_type(name.value, err=err)
+				parsed_typevars = [self.parse_type(typevar, err=err) for typevar in typevars]
+				if typevar_type is None:
+					return None
+				elif isinstance(typevar_type, NAliasType) or isinstance(typevar_type, NTypeVars):
+					# Duck typing :sunglasses:
+					if len(typevars) < len(typevar_type.typevars):
+						self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variables." % (name.value, len(typevar_type.typevars))))
+						return None
+					elif len(typevars) > len(typevar_type.typevars):
+						self.errors.append(TypeCheckError(tree_or_token, "%s only expects %d type variables." % (name.value, len(typevar_type.typevars))))
+						return None
+					return typevar_type.with_typevars(parsed_typevars)
+				else:
+					self.errors.append(TypeCheckError(tree_or_token, "%s doesn't take any type variables." % name.value))
+					return None
 			elif tree_or_token.data == "tupledef":
 				return [self.parse_type(child, err=err) for child in tree_or_token.children]
 			elif err:
 				raise NameError("Type annotation of type %s; I am not ready for this." % tree_or_token.data)
 			else:
+				self.errors.append(TypeCheckError(tree_or_token, "Internal problem: encountered a type %s." % tree_or_token.data))
 				return None
 		else:
-			return self.get_type(tree_or_token.value, err=err)
+			n_type = self.get_type(tree_or_token.value, err=err)
+			if n_type is None:
+				self.errors.append(TypeCheckError(tree_or_token, "I don't know what type you're referring to by `%s`." % tree_or_token.value))
+				return None
+			elif n_type == "invalid":
+				return None
+			elif isinstance(n_type, NAliasType):
+				if len(n_type.typevars) > 0:
+					self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variables." % (tree_or_token.value, len(typevar_type.typevars))))
+					return None
+				return n_type.with_typevars()
+			elif isinstance(n_type, NTypeVars) and len(n_type.typevars) > 0:
+				self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variables." % (tree_or_token.value, len(typevar_type.typevars))))
+				return None
+			return n_type
 
 	def get_name_type(self, name_type, err=True, get_type=True):
 		pattern = get_destructure_pattern(name_type.children[0])
@@ -233,21 +271,75 @@ class Scope:
 				self.errors.append(TypeCheckError(src, "You've already defined `%s`." % name))
 			self.variables[name] = Variable(value_or_type, value_or_type, public)
 
+	"""
+	Sets variables from a pattern given a value or a type and returns whether
+	the entire pattern matched.
+
+	This is used by both type-checking (with warn=True) and interpreting
+	(warn=False). During type-checking, `value_or_type` is the type (notably,
+	tuples are lists), so it must determine whether it's even reasonable to
+	destructure the type (for example, it doesn't make sense to destructure a
+	record as a list), and error accordingly. During interpreting,
+	`value_or_type` is the actual value, and thanks to the type-checker, the
+	value should be guaranteed to fit the pattern.
+
+	- warn=True - Is the pattern valid?
+	- warn=False - Does the pattern match?
+
+	Note that this sets variables while checking the pattern, so it's possible
+	that variables are assigned even if the entire pattern doesn't match.
+	Fortunately, this is only used in cases where the conditional let would
+	create a new scope (such as in an if statement), so the extra variables can
+	be discarded if the pattern ends up not matching.
+
+	NOTE: This must return True if warn=True. (In other words, don't short
+	circuit if a pattern fails to match.)
+	"""
 	def assign_to_cond_pattern(self, cond_pattern_and_src, value_or_type, warn=False, path=None):
 		path_name = path or "the value"
 		pattern, src = cond_pattern_and_src
+		if isinstance(pattern, EnumPattern):
+			if warn:
+				if not isinstance(value_or_type, EnumType):
+					self.errors.append(TypeCheckError(src, "I cannot destructure %s as an enum because it's a %s." % (path_name, display_type(value_or_type))))
+					return True
+				else:
+					variant_types = value_or_type.get_types(pattern.variant)
+					if variant_types is None:
+						self.errors.append(TypeCheckError(src, "%s has no variant %s because it's a %s." % (path_name, pattern.variant, display_type(value_or_type))))
+						return True
+					elif len(pattern.patterns) < len(variant_types):
+						self.errors.append(TypeCheckError(src, "Variant %s has %d fields, but you only destructure %d of them." % (pattern.variant, len(variant_types), len(pattern.patterns))))
+						return True
+					elif len(pattern.patterns) > len(variant_types):
+						self.errors.append(TypeCheckError(pattern.patterns[len(variant_types)][1], "Variant %s only has %d fields." % (pattern.variant, len(variant_types))))
+						return True
+			else:
+				if not isinstance(value_or_type, EnumValue):
+					raise TypeError("Destructuring non-enum as enum.")
+				elif pattern.variant != value_or_type.variant:
+					return False
+			for i, (sub_pattern, parse_src) in enumerate(pattern.patterns):
+				if warn:
+					value = variant_types[i]
+				else:
+					value = value_or_type.values[i]
+				valid = self.assign_to_cond_pattern((sub_pattern, parse_src), value, warn, "%s.%s#%d" % (path or "<enum>", pattern.variant, i + 1))
+				if not valid:
+					return False
 		if isinstance(pattern, list):
 			if warn:
-				contained_type = type_is_list(value_or_type)
-				if contained_type is None:
-					self.errors.append(TypeCheckError(src, "I cannot destructure a %s as a list." % display_type(value_or_type)))
+				if not isinstance(value_or_type, NListType):
+					self.errors.append(TypeCheckError(src, "I cannot destructure %s as a list because it's a %s." % (path_name, display_type(value_or_type))))
+					return True
+				contained_type = value_or_type.typevars[0]
 			else:
 				if not isinstance(value_or_type, list):
 					raise TypeError("Destructuring non-list as list.")
 			if not warn and len(value_or_type) != len(pattern):
 				return False
 			for i, (sub_pattern, parse_src) in enumerate(pattern):
-				valid = self.assign_to_cond_pattern((sub_pattern, parse_src), contained_type if warn else value_or_type[i], warn, "%s[%d]" % (path or "<list>", i))
+				valid = self.assign_to_cond_pattern((sub_pattern, parse_src), contained_type if warn else value_or_type[i], warn, "%s[%d]" % (path or "<enum variant>", i))
 				if not valid:
 					return False
 		else:
@@ -305,7 +397,7 @@ class Scope:
 			return Function(
 				self,
 				[self.get_name_type(arg, get_type=False) for arg in arguments],
-				"return type",
+				returntype,
 				codeblock
 			)
 		elif expr.data == "function_callback" or expr.data == "function_callback_quirky" or expr.data == "function_callback_quirky_pipe":
@@ -457,7 +549,7 @@ class Scope:
 				pass
 		elif command.data == "for":
 			var, iterable, code = command.children
-			pattern, ty = self.get_name_type(var, get_type=False)
+			pattern, _ = self.get_name_type(var, get_type=False)
 			for i in range(int(iterable)):
 				scope = self.new_scope()
 
@@ -480,7 +572,7 @@ class Scope:
 				modifier = command.children[0].value
 				rest = rest[1:]
 			name_type, value = rest
-			pattern, ty = self.get_name_type(name_type, get_type=False)
+			pattern, _ = self.get_name_type(name_type, get_type=False)
 			self.assign_to_pattern(pattern, self.eval_expr(value), False, None, modifier)
 		elif command.data == "vary":
 			name, value = command.children
@@ -505,11 +597,45 @@ class Scope:
 				exit, value = self.new_scope().eval_command(if_false)
 			if exit:
 				return (True, value)
+		elif command.data == "enum_definition":
+			type_def, constructors = command.children
+			type_name, *_ = type_def.children
+			enum_type = NType(type_name.value)
+			self.types[type_name.value] = enum_type
+			for constructor in constructors.children:
+				constructor_name, *types = constructor.children
+				# types = [self.parse_type(type_token) for type_token in types]
+				if len(types) >= 1:
+					self.variables[constructor_name] = NativeFunction(self, [("idk", arg_type) for arg_type in types], enum_type, EnumValue.construct(constructor_name))
+				else:
+					self.variables[constructor_name] = Variable(enum_type, EnumValue(constructor_name))
+		elif command.data == "alias_definition":
+			# Type aliases are purely for type checking so they do nothing at runtime
+			pass
 		else:
 			self.eval_expr(command)
 
 		# No return
 		return (False, None)
+
+	"""
+	A helper function to generalize getting a type name and its type variables,
+	used by enum and type alias definitions. It also puts the type variables in
+	a temporary scope so that the type definition can use them.
+	"""
+	def get_name_typevars(self, type_def):
+		type_name, *type_typevars = type_def.children
+		if type_name.value in self.types:
+			self.errors.append(TypeCheckError(type_name, "You've already defined the type `%s`." % type_name.value))
+		scope = self.new_scope()
+		typevars = []
+		for typevar_name in type_typevars:
+			typevar = NGenericType(typevar_name.value)
+			if typevar_name.value in scope.types:
+				self.errors.append(TypeCheckError(typevar_name, "You've already used the generic type `%s`." % typevar_name.value))
+			scope.types[typevar_name.value] = typevar
+			typevars.append(typevar)
+		return type_name, scope, typevars
 
 	def get_record_entry_type(self, entry):
 		if type(entry) is lark.Tree:
@@ -555,7 +681,8 @@ class Scope:
 				self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
 			if if_true_type is None or if_false_type is None:
 				return None
-			if if_true_type != if_false_type:
+			return_type, incompatible = resolve_equal_types(if_true_type, if_false_type)
+			if incompatible:
 				self.errors.append(TypeCheckError(expr, "The branches of the if-else expression should have the same type, but the true branch has type %s while the false branch has type %s." % (display_type(if_true_type), display_type(if_false_type))))
 				return None
 			if type(condition.children[0]) is lark.Token:
@@ -563,7 +690,7 @@ class Scope:
 					self.warnings.append(TypeCheckError(condition, "The else statement of the expression will never run."))
 				if condition.children[0].value == "false":
 					self.warnings.append(TypeCheckError(condition, "The if statement of the expression will never run."))
-			return if_true_type
+			return return_type
 		elif expr.data == "function_def" or expr.data == "anonymous_func":
 			if expr.data == "function_def":
 				arguments, returntype, codeblock = expr.children
@@ -612,7 +739,8 @@ class Scope:
 			for n, (argument, arg_type) in enumerate(zip(arguments, arg_types), start=1):
 				check_type = self.type_check_expr(argument)
 				resolved_arg_type = apply_generics(arg_type, check_type, generics)
-				if check_type is not None and check_type != resolved_arg_type:
+				_, incompatible = resolve_equal_types(check_type, resolved_arg_type)
+				if incompatible:
 					self.errors.append(TypeCheckError(expr, "For a %s's argument #%d, you gave a %s, but you should've given a %s." % (display_type(func_type), n, display_type(check_type), display_type(arg_type))))
 			if len(arguments) > len(arg_types):
 				self.errors.append(TypeCheckError(expr, "A %s has %d argument(s), but you gave %d." % (display_type(func_type), len(arg_types), len(arguments))))
@@ -622,6 +750,7 @@ class Scope:
 			else:
 				return apply_generics_to(return_type, generics)
 		elif expr.data == "imported_command":
+			# TODO?: Type check arguments
 			l, c, *args = expr.children
 			library = self.find_import(l)
 			if library == None:
@@ -634,6 +763,7 @@ class Scope:
 						return library._values[c]
 				except:
 					pass
+			# TODO?
 			return None
 		elif expr.data == "value":
 			token_or_tree = expr.children[0]
@@ -710,12 +840,12 @@ class Scope:
 				else:
 					left_type = self.type_check_expr(left)
 				right_type = self.type_check_expr(right)
-				if left_type is not None:
-					if right_type is not None and left_type != right_type:
-						self.errors.append(TypeCheckError(comparison, "I can't compare %s and %s because they aren't the same type. You know they won't ever be equal." % (display_type(left_type), display_type(right_type))))
-					if comparison.type != "EQUALS" and comparison.type != "NEQUALS" and comparison.type != "NEQUALS_QUIRKY":
-						if left_type not in comparable_types:
-							self.errors.append(TypeCheckError(comparison, "I don't know how to compare %s." % display_type(left_type)))
+				resolved_type, incompatible = resolve_equal_types(left_type, right_type)
+				if incompatible:
+					self.errors.append(TypeCheckError(comparison, "I can't compare %s and %s because they aren't the same type. You know they won't ever be equal." % (display_type(left_type), display_type(right_type))))
+				if comparison.type != "EQUALS" and comparison.type != "NEQUALS" and comparison.type != "NEQUALS_QUIRKY":
+					if resolved_type is not None and resolved_type not in comparable_types:
+						self.errors.append(TypeCheckError(comparison, "I don't know how to compare %s." % display_type(resolved_type)))
 				# We don't return None even if there are errors because we know
 				# for sure that comparison operators return a boolean.
 				return 'bool'
@@ -724,15 +854,20 @@ class Scope:
 			return [self.type_check_expr(e) for e in expr.children]
 		elif expr.data == "listval":
 			if (len(expr.children) == 0):
-				return [lark.Token("LIST", "list")]
+				return n_list_type
 
 			first, *rest = [self.type_check_expr(e) for e in expr.children]
+			contained_type = first
 
-			for i, e in enumerate(rest):
-				if e != first:
-					self.errors.append(TypeCheckError(expr.children[i+1], "The list item #%s's type is %s while the first item's type is %s" % (i + 2, e, first)))
+			for i, item_type in enumerate(rest):
+				resolved_contained_type, incompatible = resolve_equal_types(contained_type, item_type)
+				if incompatible:
+					self.errors.append(TypeCheckError(expr.children[i+1], "The list item #%s's type is %s while the first item's type is %s" % (i + 2, item_type, first)))
+				elif resolved_contained_type is not None:
+					# To deal with cases like [[], [3]] as list[int]
+					contained_type = resolved_contained_type
 
-			return [lark.Token("LIST", "list"), self.type_check_expr(expr.children[0])]
+			return n_list_type.with_typevars([contained_type])
 		elif expr.data == "impn":
 			impn, f = parse_file(expr.children[0] + ".n", True)
 			if len(impn.errors) != 0:
@@ -807,8 +942,11 @@ class Scope:
 			parent_function = self.get_parent_function()
 			if parent_function is None:
 				self.errors.append(TypeCheckError(command, "You can't return outside a function."))
-			elif return_type is not None and parent_function.returntype != return_type:
-				self.errors.append(TypeCheckError(command.children[0], "You returned a %s, but the function is supposed to return a %s." % (display_type(return_type), display_type(parent_function.returntype))))
+			else:
+				# e.g. return []
+				_, incompatible = resolve_equal_types(parent_function.returntype, return_type)
+				if incompatible:
+					self.errors.append(TypeCheckError(command.children[0], "You returned a %s, but the function is supposed to return a %s." % (display_type(return_type), display_type(parent_function.returntype))))
 			return command
 		elif command.data == "declare":
 			modifier = ""
@@ -820,26 +958,14 @@ class Scope:
 			name_type, value = rest
 			pattern, ty = self.get_name_type(name_type, err=False)
 			name = pattern_to_name(pattern)
-			value_type = self.type_check_expr(value)
 
-			# Check for empty lists
-			maybe_list_type = type_is_list(value_type)
-			if maybe_list_type == "infer":
-				if ty == "infer":
-					self.errors.append(TypeCheckError(name_type, "Unable to infer type of empty list"))
-				value_type = ty
-			if value_type is not None and value_type != ty:
-				if ty == 'infer':
-					ty = value_type
-				elif type_is_list(ty):
-					typ = []
-					for t in ty:
-						if type(t) is lark.Token:
-							typ.append(t.value)
-						else:
-							typ.append(t)
-					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(typ), display_type(value_type))))
-				else:
+			value_type = self.type_check_expr(value)
+			resolved_value_type = apply_generics(value_type, ty)
+			if ty == 'infer':
+				ty = resolved_value_type
+			else:
+				_, incompatible = resolve_equal_types(ty, resolved_value_type)
+				if incompatible:
 					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
 
 			self.assign_to_pattern(pattern, ty, True, None, modifier == "pub")
@@ -851,17 +977,15 @@ class Scope:
 				ty = self.variables[name].type
 				value_type = self.type_check_expr(value)
 
-
-				#Check for empty lists
-				if type(value_type) == list and len(value_type) == 1:
-					if type(value_type[0]) == lark.Token:
-						if value_type[0].type == "LIST":
-							if ty == "infer":
-								self.errors.append(TypeCheckError(name_type, "Unable to infer type of empty list"))
-							value_type = ty
-
-				if value_type != ty:
+				# Allow for cases like
+				# let empty = [] // empty has type list[t]
+				# NOTE: At this point, `empty` can be used, for example, as an
+				# argument that expects list[int]. This might be a bug.
+				# var empty = ["wow"] // empty now is known to have type list[str]
+				resolved_type, incompatible = resolve_equal_types(ty, value_type)
+				if incompatible:
 					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
+				self.variables[name].type = resolved_type
 		elif command.data == "if":
 			condition, body = command.children
 			scope = self.new_scope()
@@ -890,9 +1014,33 @@ class Scope:
 			if cond_type is not None and cond_type != "bool":
 				self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
 			exit_if_true = self.type_check_command(if_true)
-			exit_if_false = self.type_check_command(if_true)
+			exit_if_false = self.type_check_command(if_false)
 			if exit_if_true and exit_if_false:
 				return command
+		elif command.data == "enum_definition":
+			type_def, constructors = command.children
+			type_name, scope, typevars = self.get_name_typevars(type_def)
+			variants = []
+			enum_type = EnumType(type_name, variants, typevars)
+			self.types[type_name] = enum_type
+			for constructor in constructors.children:
+				constructor_name, *types = constructor.children
+				types = [scope.parse_type(type_token, err=False) for type_token in types]
+				variants.append((constructor_name.value, types))
+				if constructor_name.value in self.variables:
+					self.errors.append(TypeCheckError(constructor_name, "You've already defined `%s` in this scope." % constructor_name.value))
+				if len(types) >= 1:
+					self.variables[constructor_name.value] = NativeFunction(self, [("idk", arg_type) for arg_type in types], enum_type, id)
+				else:
+					self.variables[constructor_name.value] = Variable(enum_type, "I don't think this is used")
+		elif command.data == "alias_definition":
+			alias_def, alias_type = command.children
+			alias_name, scope, typevars = self.get_name_typevars(alias_def)
+			alias_type = scope.parse_type(alias_type, err=False)
+			if alias_type is None:
+				self.types[alias_name] = "invalid"
+			else:
+				self.types[alias_name] = NAliasType(alias_name.value, alias_type, typevars)
 		else:
 			self.type_check_expr(command)
 
