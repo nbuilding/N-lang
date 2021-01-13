@@ -61,7 +61,8 @@ listval: "[" (value ("," value)*)? "]"
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
 record_access: NAME "." NAME
 enum_constructors: enum_constructor ("|" enum_constructor)*
-enum_constructor: NAME types*
+enum_constructor: "<" NAME types* ">"
+                | NAME
 
 ?modifier: PUBLIC
 
@@ -82,12 +83,12 @@ record_pattern: "{" (record_entry_pattern (";" | "\n"))* record_entry_pattern "}
 ?record_entry_pattern: NAME
                      | NAME ":" definite_pattern
 
-?cond_pattern: enum_pattern
-             | cond_pattern_value
+?cond_pattern: cond_pattern_value
 ?cond_pattern_value: "(" cond_pattern_value ")"
                    | list_pattern
+                   | enum_pattern
 list_pattern: "[" (any_pattern ("," any_pattern)*)? "]"
-enum_pattern: NAME any_pattern*
+enum_pattern: "<" NAME any_pattern* ">"
 
 // Boolean and number expressions, with order of operations.
 // Question mark "inlines" the branch, so we don't get nested

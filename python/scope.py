@@ -6,7 +6,7 @@ from colorama import Fore, Style
 from variable import Variable
 from function import Function
 from native_function import NativeFunction
-from type import NType, NGenericType, NAliasType, NTypeVars, NListType, n_list_type, apply_generics, apply_generics_to
+from type import NType, NGenericType, NAliasType, NTypeVars, NListType, n_list_type, apply_generics, apply_generics_to, resolve_equal_types
 from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
 from type_check_error import TypeCheckError, display_type
@@ -397,7 +397,7 @@ class Scope:
 			return Function(
 				self,
 				[self.get_name_type(arg, get_type=False) for arg in arguments],
-				"return type",
+				returntype,
 				codeblock
 			)
 		elif expr.data == "function_callback" or expr.data == "function_callback_quirky" or expr.data == "function_callback_quirky_pipe":
@@ -544,7 +544,7 @@ class Scope:
 			self.imports.append(importlib.import_module("libraries." + command.children[0]))
 		elif command.data == "for":
 			var, iterable, code = command.children
-			pattern, ty = self.get_name_type(var, get_type=False)
+			pattern, _ = self.get_name_type(var, get_type=False)
 			for i in range(int(iterable)):
 				scope = self.new_scope()
 
@@ -567,7 +567,7 @@ class Scope:
 				modifier = command.children[0].value
 				rest = rest[1:]
 			name_type, value = rest
-			pattern, ty = self.get_name_type(name_type, get_type=False)
+			pattern, _ = self.get_name_type(name_type, get_type=False)
 			self.assign_to_pattern(pattern, self.eval_expr(value), False, None, modifier)
 		elif command.data == "vary":
 			name, value = command.children
@@ -594,7 +594,7 @@ class Scope:
 				return (True, value)
 		elif command.data == "enum_definition":
 			type_def, constructors = command.children
-			type_name, *type_typevars = type_def.children
+			type_name, *_ = type_def.children
 			enum_type = NType(type_name.value)
 			self.types[type_name.value] = enum_type
 			for constructor in constructors.children:
@@ -676,7 +676,8 @@ class Scope:
 				self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
 			if if_true_type is None or if_false_type is None:
 				return None
-			if if_true_type != if_false_type:
+			return_type, incompatible = resolve_equal_types(if_true_type, if_false_type)
+			if incompatible:
 				self.errors.append(TypeCheckError(expr, "The branches of the if-else expression should have the same type, but the true branch has type %s while the false branch has type %s." % (display_type(if_true_type), display_type(if_false_type))))
 				return None
 			if type(condition.children[0]) is lark.Token:
@@ -684,7 +685,7 @@ class Scope:
 					self.warnings.append(TypeCheckError(condition, "The else statement of the expression will never run."))
 				if condition.children[0].value == "false":
 					self.warnings.append(TypeCheckError(condition, "The if statement of the expression will never run."))
-			return if_true_type
+			return return_type
 		elif expr.data == "function_def" or expr.data == "anonymous_func":
 			if expr.data == "function_def":
 				arguments, returntype, codeblock = expr.children
@@ -733,7 +734,8 @@ class Scope:
 			for n, (argument, arg_type) in enumerate(zip(arguments, arg_types), start=1):
 				check_type = self.type_check_expr(argument)
 				resolved_arg_type = apply_generics(arg_type, check_type, generics)
-				if check_type is not None and check_type != resolved_arg_type:
+				_, incompatible = resolve_equal_types(check_type, resolved_arg_type)
+				if incompatible:
 					self.errors.append(TypeCheckError(expr, "For a %s's argument #%d, you gave a %s, but you should've given a %s." % (display_type(func_type), n, display_type(check_type), display_type(arg_type))))
 			if len(arguments) > len(arg_types):
 				self.errors.append(TypeCheckError(expr, "A %s has %d argument(s), but you gave %d." % (display_type(func_type), len(arg_types), len(arguments))))
@@ -743,6 +745,7 @@ class Scope:
 			else:
 				return apply_generics_to(return_type, generics)
 		elif expr.data == "imported_command":
+			# TODO?: Type check arguments
 			l, c, *args = expr.children
 			library = self.find_import(l)
 			if library == None:
@@ -755,6 +758,7 @@ class Scope:
 						return library._values[c]
 				except:
 					pass
+			# TODO?
 			return None
 		elif expr.data == "value":
 			token_or_tree = expr.children[0]
@@ -831,12 +835,12 @@ class Scope:
 				else:
 					left_type = self.type_check_expr(left)
 				right_type = self.type_check_expr(right)
-				if left_type is not None:
-					if right_type is not None and left_type != right_type:
-						self.errors.append(TypeCheckError(comparison, "I can't compare %s and %s because they aren't the same type. You know they won't ever be equal." % (display_type(left_type), display_type(right_type))))
-					if comparison.type != "EQUALS" and comparison.type != "NEQUALS" and comparison.type != "NEQUALS_QUIRKY":
-						if left_type not in comparable_types:
-							self.errors.append(TypeCheckError(comparison, "I don't know how to compare %s." % display_type(left_type)))
+				resolved_type, incompatible = resolve_equal_types(left_type, right_type)
+				if incompatible:
+					self.errors.append(TypeCheckError(comparison, "I can't compare %s and %s because they aren't the same type. You know they won't ever be equal." % (display_type(left_type), display_type(right_type))))
+				if comparison.type != "EQUALS" and comparison.type != "NEQUALS" and comparison.type != "NEQUALS_QUIRKY":
+					if resolved_type is not None and resolved_type not in comparable_types:
+						self.errors.append(TypeCheckError(comparison, "I don't know how to compare %s." % display_type(resolved_type)))
 				# We don't return None even if there are errors because we know
 				# for sure that comparison operators return a boolean.
 				return 'bool'
@@ -848,12 +852,17 @@ class Scope:
 				return n_list_type
 
 			first, *rest = [self.type_check_expr(e) for e in expr.children]
+			contained_type = first
 
-			for i, e in enumerate(rest):
-				if e != first:
-					self.errors.append(TypeCheckError(expr.children[i+1], "The list item #%s's type is %s while the first item's type is %s" % (i + 2, e, first)))
+			for i, item_type in enumerate(rest):
+				resolved_contained_type, incompatible = resolve_equal_types(contained_type, item_type)
+				if incompatible:
+					self.errors.append(TypeCheckError(expr.children[i+1], "The list item #%s's type is %s while the first item's type is %s" % (i + 2, item_type, first)))
+				elif resolved_contained_type is not None:
+					# To deal with cases like [[], [3]] as list[int]
+					contained_type = resolved_contained_type
 
-			return n_list_type.with_typevars([self.type_check_expr(expr.children[0])]) # TODO
+			return n_list_type.with_typevars([contained_type])
 		elif expr.data == "impn":
 			impn, f = parse_file(expr.children[0] + ".n", True)
 			if len(impn.errors) != 0:
@@ -928,8 +937,11 @@ class Scope:
 			parent_function = self.get_parent_function()
 			if parent_function is None:
 				self.errors.append(TypeCheckError(command, "You can't return outside a function."))
-			elif return_type is not None and parent_function.returntype != return_type:
-				self.errors.append(TypeCheckError(command.children[0], "You returned a %s, but the function is supposed to return a %s." % (display_type(return_type), display_type(parent_function.returntype))))
+			else:
+				# e.g. return []
+				_, incompatible = resolve_equal_types(parent_function.returntype, return_type)
+				if incompatible:
+					self.errors.append(TypeCheckError(command.children[0], "You returned a %s, but the function is supposed to return a %s." % (display_type(return_type), display_type(parent_function.returntype))))
 			return command
 		elif command.data == "declare":
 			modifier = ""
@@ -944,13 +956,11 @@ class Scope:
 
 			value_type = self.type_check_expr(value)
 			resolved_value_type = apply_generics(value_type, ty)
-			if ty is not None and resolved_value_type is not None and ty != resolved_value_type:
-				if ty == 'infer':
-					# If there is an unresolved generic (like list[t] from an
-					# empty list), this might cause problems. Should there be an
-					# error about "Type annotations needed"?
-					ty = resolved_value_type
-				else:
+			if ty == 'infer':
+				ty = resolved_value_type
+			else:
+				_, incompatible = resolve_equal_types(ty, resolved_value_type)
+				if incompatible:
 					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
 
 			self.assign_to_pattern(pattern, ty, True, None, modifier == "pub")
@@ -962,15 +972,15 @@ class Scope:
 				ty = self.variables[name].type
 				value_type = self.type_check_expr(value)
 
-
-				#Check for empty lists
-				if isinstance(value_type, NListType) and value_type.is_inferred():
-					if ty == "infer":
-						self.errors.append(TypeCheckError(name_type, "Unable to infer type of empty list"))
-					value_type = ty
-
-				if value_type != ty:
+				# Allow for cases like
+				# let empty = [] // empty has type list[t]
+				# NOTE: At this point, `empty` can be used, for example, as an
+				# argument that expects list[int]. This might be a bug.
+				# var empty = ["wow"] // empty now is known to have type list[str]
+				resolved_type, incompatible = resolve_equal_types(ty, value_type)
+				if incompatible:
 					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
+				self.variables[name].type = resolved_type
 		elif command.data == "if":
 			condition, body = command.children
 			scope = self.new_scope()
@@ -999,7 +1009,7 @@ class Scope:
 			if cond_type is not None and cond_type != "bool":
 				self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
 			exit_if_true = self.type_check_command(if_true)
-			exit_if_false = self.type_check_command(if_true)
+			exit_if_false = self.type_check_command(if_false)
 			if exit_if_true and exit_if_false:
 				return command
 		elif command.data == "enum_definition":

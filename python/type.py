@@ -144,24 +144,21 @@ compounding errors.
 def resolve_equal_types(type_a, type_b):
 	if type_a is None or type_b is None:
 		return None, False
-	if isinstance(type_a, NGenericType):
-		if isinstance(type_b, NGenericType):
-			# TODO: Ambiguous case
-			return None, True
-		else:
-			return type_b, False
-	elif isinstance(type_b, NGenericType):
-		return type_a, False
 	elif isinstance(type_a, NTypeVars):
-		if not isinstance(return_type, NTypeVars) or expected.base_type is not actual.base_type:
+		if not isinstance(type_b, NTypeVars) or type_a.base_type is not type_b.base_type:
 			return None, True
 		resolved_typevars = []
 		for typevar_a, typevar_b in zip(type_a.typevars, type_b.typevars):
-			resolved, problem = resolve_equal_types(typevar_a, typevar_b)
-			if problem:
-				return None, True
-			resolved_typevars.append(resolved)
-		return return_type.with_typevars(resolved_typevars)
+			if isinstance(typevar_a, NGenericType) and typevar_a in type_a.base_type.typevars:
+				resolved_typevars.append(typevar_b)
+			elif isinstance(typevar_b, NGenericType) and typevar_b in type_a.base_type.typevars:
+				resolved_typevars.append(typevar_a)
+			else:
+				resolved, problem = resolve_equal_types(typevar_a, typevar_b)
+				if problem:
+					return None, True
+				resolved_typevars.append(resolved)
+		return type_a.with_typevars(resolved_typevars), False
 	elif isinstance(type_a, list):
 		if not isinstance(type_b, list) or len(type_a) != len(type_b):
 			return None, True
@@ -177,7 +174,7 @@ def resolve_equal_types(type_a, type_b):
 			return None, True
 		resolved_types = {}
 		for key in type_a.keys():
-			resolved, problem = resolve_equal_types(type_a[key], type_b[key], generics)
+			resolved, problem = resolve_equal_types(type_a[key], type_b[key])
 			if problem:
 				return None, True
 			resolved_types[key] = resolved

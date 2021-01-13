@@ -1,17 +1,17 @@
 import fek
 import SystemIO
 
-type state = alive float
-  | dead int list[str]
+type state = <alive float>
+  | <dead int list[str]>
   | unborn
 let billy: state = <dead 2020 ["Died due to Covid", "ok"]>
 print billy
 
-if let dead wow ok = billy {
+if let <dead wow ok> = billy {
   print (wow, ok)
 }
 
-type maybe[t] = yes t
+type maybe[t] = <yes t>
   | nothing
 let ok: maybe[str] = nothing
 print (ok = nothing)
