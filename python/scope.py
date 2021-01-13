@@ -544,7 +544,7 @@ class Scope:
 			lib = importlib.import_module("libraries." + command.children[0])
 			self.imports.append(lib)
 			try:
-				lib.prepare(self)
+				lib._prepare(self)
 			except:
 				pass
 		elif command.data == "for":

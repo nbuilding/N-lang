@@ -1,5 +1,11 @@
 import requests
 
+#for gateways
+scope = None
+
+def _prepare(sc):
+	scope = sc
+
 def post(args):
 	url, content, *rest = args
 	headers = {}
