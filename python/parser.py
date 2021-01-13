@@ -15,8 +15,5 @@ with open(file, "r") as f:
 
 n_parser = Lark(parse, start='start')
 
-try:
-	print(n_parser.parse(text).pretty())
-	print(n_parser.parse(text))
-except lark.exceptions.UnexpectedCharacters as e:
-	print(e.get_context(text)[0:-2])
+print(n_parser.parse(text).pretty())
+print(n_parser.parse(text))

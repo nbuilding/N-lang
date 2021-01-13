@@ -1,5 +1,10 @@
 import fek
 import SystemIO
+import discordn
+
+<discordn?setId "you thought">
+let messageout = <discordn?sendMessage "710936824121655396" "uau">
+print messageout
 
 print "uau"
 

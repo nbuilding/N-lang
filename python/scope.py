@@ -449,7 +449,12 @@ class Scope:
 		command = tree.children[0]
 
 		if command.data == "imp":
-			self.imports.append(importlib.import_module("libraries." + command.children[0]))
+			lib = importlib.import_module("libraries." + command.children[0])
+			self.imports.append(lib)
+			try:
+				lib.prepare(self)
+			except:
+				pass
 		elif command.data == "for":
 			var, iterable, code = command.children
 			pattern, ty = self.get_name_type(var, get_type=False)
