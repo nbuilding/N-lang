@@ -16,10 +16,10 @@ if let <dead wow ok> = billy {
   print (wow, ok)
 }
 
-type maybe[t] = <yes t>
-  | nothing
-let ok: maybe[str] = nothing
-print (ok = nothing)
+type myMaybe[t] = <myYes t>
+  | myNothing
+let ok: myMaybe[str] = myNothing
+print (ok = myNothing)
 
 alias pair[t] = (t, t)
 alias strPair = pair[str]
@@ -88,8 +88,15 @@ print c
 print <round 10.1>
 
 print "a"
-        |> <charAt 0>
-        |> <charCode>
+  |> <charAt 1>
+  |> <default <intCode 0>>
+  |> <charCode>
+
+if let <yes char> = ("a"
+  |> <charAt 0>) {
+  print char
+    |> <charCode>
+}
 
 if false {
 	print "test of a thing"
