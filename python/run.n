@@ -6,7 +6,25 @@ import discordn
 let messageout = <discordn?sendMessage "710936824121655396" "uau">
 print messageout
 
-print "uau"
+type state = <alive float>
+  | <dead int list[str]>
+  | unborn
+let billy: state = <dead 2020 ["Died due to Covid", "ok"]>
+print billy
+
+if let <dead wow ok> = billy {
+  print (wow, ok)
+}
+
+type maybe[t] = <yes t>
+  | nothing
+let ok: maybe[str] = nothing
+print (ok = nothing)
+
+alias pair[t] = (t, t)
+alias strPair = pair[str]
+let hmm: strPair = ("ok", "lol")
+print hmm
 
 let runner = imp runner
 
@@ -18,8 +36,8 @@ let main = [test:int test1:str] -> bool {
 	return false
 }
 
-let singleton = [[t] item: t] -> list[t] {
-  let list: list[t] = [item]
+let singleton = [[a] item: a] -> list[a] {
+  let list: list[a] = [item]
   return list
 }
 print <singleton \t>
