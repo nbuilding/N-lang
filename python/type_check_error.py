@@ -52,7 +52,7 @@ def display_type(n_type, color=True):
 	if isinstance(n_type, str):
 		display = n_type
 	elif isinstance(n_type, tuple):
-		display = ' -> '.join(display_type(type, False) for type in n_type)
+		display = ' -> '.join(('(%s)' if isinstance(type, tuple) else '%s') % display_type(type, False) for type in n_type)
 	elif isinstance(n_type, list):
 		if(type(n_type[0]) == lark.Token):
 			if (n_type[0].type == "LIST"):

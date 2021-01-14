@@ -187,6 +187,8 @@ class Scope:
 				self.errors.append(TypeCheckError(tree_or_token, "Internal problem: encountered a type %s." % tree_or_token.data))
 				return None
 		else:
+			if tree_or_token.type == "UNIT":
+				return "unit"
 			n_type = self.get_type(tree_or_token.value, err=err)
 			if n_type is None:
 				self.errors.append(TypeCheckError(tree_or_token, "I don't know what type you're referring to by `%s`." % tree_or_token.value))
