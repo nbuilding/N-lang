@@ -1,14 +1,20 @@
-def write(args):
-	with open(str(args[0])[1:-1], "w+") as f:
-		f.write(''.join(args[1:])[1:-1])
+from native_types import n_cmd_type
 
-def append(args):
-	with open(str(args[0])[1:-1], "a+") as f:
-		f.write(''.join(args[1:])[1:-1])
+def write(path, content):
+	with open(path, "w+") as f:
+		f.write(content)
 
-def read(args):
-	with open(str(args[0])[1:-1], "r", encoding="utf-8") as f:
+def append(path, content):
+	with open(path, "a+") as f:
+		f.write(content)
+
+def read(path):
+	with open(path, "r", encoding="utf-8") as f:
 		return f.read()
 
 def _values():
-	return {"write": None, "append": None, "read": None}
+	return {
+		"write": ("str", "str", n_cmd_type.with_typevars(["unit"])),
+		"append": ("str", "str", n_cmd_type.with_typevars(["unit"])),
+		"read": ("str", n_cmd_type.with_typevars(["str"])),
+	}

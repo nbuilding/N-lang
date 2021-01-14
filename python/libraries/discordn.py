@@ -3,12 +3,11 @@ import json
 
 botid = ""
 
-def setId(args):
+def setId(id):
 	global botid
-	botid = args[0]
+	botid = id
 
-def sendMessage(args):
-	channel, message, *rest = args
+def sendMessage(channel, message, tts):
 	tts = False
 	if len(rest) == 1:
 		tts = rest[0]
@@ -16,4 +15,8 @@ def sendMessage(args):
 	return {"code": r.status_code, "response": r.reason, "text": r.text}
 
 def _values():
-	return {"setId": None, "sendMessage": {"code": "int", "response": "str", "text": "str"}}
+	return {
+		"setId": ("str", n_cmd_type.with_typevars(["unit"])),
+		# TODO: Should Discord snowflakes be ints or strings?
+		"sendMessage": ("str", "str", "bool", n_cmd_type.with_typevars([{"code": "int", "response": "str", "text": "str"}])),
+	}

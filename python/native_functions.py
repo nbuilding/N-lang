@@ -4,17 +4,9 @@ import lark
 from variable import Variable
 from function import Function
 from type_check_error import display_type
-from type import NGenericType, NListType, n_list_type
+from type import NGenericType
 from enums import EnumType, EnumValue
-
-maybe_generic = NGenericType("t")
-n_maybe_type = EnumType("maybe", [
-	("yes", [maybe_generic]),
-	("none", []),
-], [maybe_generic])
-none = EnumValue("none")
-def yes(value):
-	return EnumValue("yes", [value])
+from native_types import n_list_type, n_cmd_type, n_maybe_type, maybe_generic, none, yes
 
 def substr(start, end, string):
 	try:
@@ -145,4 +137,5 @@ def add_funcs(global_scope):
 	global_scope.types['float'] = 'float'
 	global_scope.types['bool'] = 'bool'
 	global_scope.types['list'] = n_list_type
+	global_scope.types['cmd'] = n_cmd_type
 	global_scope.types['maybe'] = n_maybe_type

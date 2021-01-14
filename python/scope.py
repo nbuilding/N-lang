@@ -6,9 +6,10 @@ from colorama import Fore, Style
 from variable import Variable
 from function import Function
 from native_function import NativeFunction
-from type import NType, NGenericType, NAliasType, NTypeVars, NListType, n_list_type, apply_generics, apply_generics_to, resolve_equal_types
+from type import NType, NGenericType, NAliasType, NTypeVars, apply_generics, apply_generics_to, resolve_equal_types
 from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
+from native_types import n_list_type
 from type_check_error import TypeCheckError, display_type
 from display import display_value
 from operation_types import binary_operation_types, unary_operation_types, comparable_types, iterable_types
@@ -329,7 +330,7 @@ class Scope:
 					return False
 		if isinstance(pattern, list):
 			if warn:
-				if not isinstance(value_or_type, NListType):
+				if not isinstance(value_or_type, NTypeVars) or value_or_type.base_type is not n_list_type:
 					self.errors.append(TypeCheckError(src, "I cannot destructure %s as a list because it's a %s." % (path_name, display_type(value_or_type))))
 					return True
 				contained_type = value_or_type.typevars[0]

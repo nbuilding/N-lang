@@ -56,18 +56,6 @@ class NTypeVars(NType):
 	def __repr__(self):
 		return 'NTypeVars(%s, %s)' % (repr(self.name), repr(self.typevars))
 
-class NListType(NTypeVars):
-	generic = NGenericType("t")
-
-	def __init__(self, name, typevars, original=None):
-		super(NListType, self).__init__(name, typevars, original=original)
-
-	def is_inferred(self):
-		return self.typevars[0] == NListType.generic
-
-n_list_type = NListType("list", [NListType.generic])
-
-
 """
 `expected` is the type of the function's argument, the type with the
 generics/type variables.

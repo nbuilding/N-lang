@@ -54,7 +54,7 @@ anonymous_func: "(" arguments "->" NAME ":" (instruction (";" instruction)*) ")"
 char: "\\" ( escape_code | "{" /./ "}")
 escape_code: /[tnr]/
 tupledef: "(" types ("," types)* ")"
-with_typevar: NAME "[" types ("," types)* "]"
+with_typevars: NAME "[" types ("," types)* "]"
 declaration_with_typevar: NAME ("[" types ("," types)* "]")?
 tupleval: "(" value ("," value)* ")"
 listval: "[" (value ("," value)*)? "]"
@@ -98,7 +98,7 @@ enum_pattern: "<" NAME any_pattern* ">"
 
 ?types: NAME
       | tupledef
-      | with_typevar
+      | with_typevars
 
 ?expression: ifelse_expr
            | boolean_expression
