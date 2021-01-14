@@ -82,6 +82,9 @@ def apply_generics(expected, actual, generics={}):
 		if generic is None:
 			generics[expected] = actual
 			return actual
+		elif isinstance(generic, NGenericType) and not isinstance(actual, NGenericType):
+			generics[expected] = actual
+			return actual
 		else:
 			return generic
 	elif isinstance(expected, NTypeVars) and isinstance(actual, NTypeVars):

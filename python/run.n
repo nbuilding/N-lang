@@ -158,14 +158,12 @@ let printResult = [[t] result:t] -> cmd[()] {
   print result
   return <fek.paer "done">
 }
-let pub temp = <SystemIO.inp "What's your name? ">
+let pub main2 = <SystemIO.inp "What's your name? ">
   |> <then fek.paer>
   |> <then <thenHelper <SystemIO.inp "Discord bot token: ">>>
   |> <then discordn.setId>
   |> <then <thenHelper <discordn.sendMessage "710936824121655396" "uau" false>>>
-
-// let pub main2 = temp
-//   |> <then printResult>
+  |> <then printResult>
 
 // print runner.e runner.e is not public so this throws an error
 print runner.eeeeee
