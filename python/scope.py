@@ -9,7 +9,7 @@ from native_function import NativeFunction
 from type import NType, NGenericType, NAliasType, NTypeVars, NModule, apply_generics, apply_generics_to, resolve_equal_types
 from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
-from native_types import n_list_type
+from native_types import n_list_type, n_cmd_type
 from type_check_error import TypeCheckError, display_type
 from display import display_value
 from operation_types import binary_operation_types, unary_operation_types, comparable_types, iterable_types
@@ -515,6 +515,10 @@ class Scope:
 			return [self.eval_expr(e) for e in expr.children]
 		elif expr.data == "recordval":
 			return dict(self.eval_record_entry(entry) for entry in expr.children)
+		elif expr.data == "await_expression":
+			value, _ = expr.children
+			command = self.eval_expr(value)
+			# TODO
 		else:
 			print('(parse tree):', expr)
 			raise SyntaxError("Unexpected command/expression type %s" % expr.data)
@@ -773,6 +777,20 @@ class Scope:
 				return None
 			else:
 				return value_type[field.value]
+		elif expr.data == "await_expression":
+			value, _ = expr.children
+			value_type = self.type_check_expr(value)
+			contained_type = None
+			if n_cmd_type.is_type(value_type):
+				contained_type = value_type.typevars[0]
+			else:
+				self.errors.append(TypeCheckError(expr, "You can only use the await operator on cmds, not %s." % display_type(value_type)))
+			parent_function = self.get_parent_function()
+			if parent_function is None:
+				self.errors.append(TypeCheckError(expr, "You can't use the await operator outside a function."))
+			elif not n_cmd_type.is_type(parent_function.returntype):
+				self.errors.append(TypeCheckError(expr, "You can only use the await operator in a function that returns a cmd, but this function returns a %s." % display_type(parent_function.returntype)))
+			return contained_type
 
 		if len(expr.children) == 2 and type(expr.children[0]) is lark.Token:
 			operation, value = expr.children
@@ -939,7 +957,12 @@ class Scope:
 			else:
 				# e.g. return []
 				_, incompatible = resolve_equal_types(parent_function.returntype, return_type)
-				if incompatible:
+				if n_cmd_type.is_type(parent_function.returntype):
+					if incompatible:
+						_, incompatible = resolve_equal_types(parent_function.returntype.typevars[0], return_type)
+					if incompatible:
+						self.errors.append(TypeCheckError(command.children[0], "You returned a %s, but the function is supposed to return a %s or a %s." % (display_type(return_type), display_type(parent_function.returntype), display_type(parent_function.returntype.typevars[0]))))
+				elif incompatible:
 					self.errors.append(TypeCheckError(command.children[0], "You returned a %s, but the function is supposed to return a %s." % (display_type(return_type), display_type(parent_function.returntype))))
 			return command
 		elif command.data == "declare":
