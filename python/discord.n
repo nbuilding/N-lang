@@ -6,5 +6,5 @@ let key:str = ""
 // functions
 let pub start = [k:str] -> null{
 	key = k
-	// other important functions
+	// other important functions idk what is going to happen here
 }

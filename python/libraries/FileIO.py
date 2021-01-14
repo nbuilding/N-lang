@@ -1,14 +1,21 @@
-def write(args):
-	with open(str(args[0])[1:-1], "w+") as f:
-		f.write(''.join(args[1:])[1:-1])
+from aiofile import async_open
+from native_types import n_cmd_type
 
-def append(args):
-	with open(str(args[0])[1:-1], "a+") as f:
-		f.write(''.join(args[1:])[1:-1])
+async def write(path, content):
+	async with async_open(path, "w+") as f:
+		await f.write(content)
 
-def read(args):
-	with open(str(args[0])[1:-1], "r", encoding="utf-8") as f:
-		return f.read()
+async def append(path, content):
+	async with async_open(path, "a+") as f:
+		await f.write(content)
+
+async def read(path):
+	async with async_open(path, "r", encoding="utf-8") as f:
+		return await f.read()
 
 def _values():
-	return {"write": None, "append": None, "read": None}
+	return {
+		"write": ("str", "str", n_cmd_type.with_typevars(["unit"])),
+		"append": ("str", "str", n_cmd_type.with_typevars(["unit"])),
+		"read": ("str", n_cmd_type.with_typevars(["str"])),
+	}

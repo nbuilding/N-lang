@@ -1,6 +1,8 @@
 from colorama import Fore, Style
 from function import Function
+from type import NModule
 from enums import EnumValue
+from cmd import Cmd
 
 unescape = {
 	"\\": "\\",
@@ -11,7 +13,11 @@ unescape = {
 }
 
 def display_value(value, color=True, indent="\t", indent_state=""):
-	if isinstance(value, dict):
+	if isinstance(value, NModule):
+		output = "[module %s]" % value.mod_name
+		if color:
+			output = Fore.MAGENTA + output + Style.RESET_ALL
+	elif isinstance(value, dict):
 		if len(value) == 0:
 			output = "{}"
 		else:
@@ -63,6 +69,10 @@ def display_value(value, color=True, indent="\t", indent_state=""):
 			for value in value.values:
 				output += inner_indent + display_value(value, color=color, indent=indent, indent_state=inner_indent) + '\n'
 			output += indent_state + (Fore.MAGENTA + '>' + Style.RESET_ALL if color else '>')
+	elif isinstance(value, Cmd):
+		output = "[cmd]"
+		if color:
+			output = Fore.MAGENTA + output + Style.RESET_ALL
 	elif isinstance(value, Function):
 		output = "[function]"
 		if color:

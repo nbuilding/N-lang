@@ -17,6 +17,9 @@ pip install lark
 # Coloured console text
 pip install colorama
 
+# Async requests
+pip install aiohttp
+
 # Parses and interprets code
 # If there are no arguments then it will interpret run.n
 # If there is a --file [file name] flag then it will run the file in the filename

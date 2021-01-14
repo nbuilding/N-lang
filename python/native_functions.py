@@ -4,17 +4,9 @@ import lark
 from variable import Variable
 from function import Function
 from type_check_error import display_type
-from type import NGenericType, NListType, n_list_type
+from type import NGenericType
 from enums import EnumType, EnumValue
-
-maybe_generic = NGenericType("t")
-n_maybe_type = EnumType("maybe", [
-	("yes", [maybe_generic]),
-	("none", []),
-], [maybe_generic])
-none = EnumValue("none")
-def yes(value):
-	return EnumValue("yes", [value])
+from native_types import n_list_type, n_cmd_type, n_maybe_type, maybe_generic, none, yes
 
 def substr(start, end, string):
 	try:
@@ -53,6 +45,9 @@ def with_default(default_value, maybe_value):
 		return maybe_value.values[0]
 	else:
 		return default_value
+
+def cmd_then(n_function, cmd):
+	return cmd.then(lambda result: n_function.run([result]).eval)
 
 # Define global functions/variables
 def add_funcs(global_scope):
@@ -119,24 +114,34 @@ def add_funcs(global_scope):
 		"str",
 		type_display,
 	)
-	generic = NGenericType("t")
+	item_at_generic = NGenericType("t")
 	global_scope.add_native_function(
 		"itemAt",
-		[("index", "int"), ("list", n_list_type.with_typevars([generic]))],
-		n_maybe_type.with_typevars([generic]),
+		[("index", "int"), ("list", n_list_type.with_typevars([item_at_generic]))],
+		n_maybe_type.with_typevars([item_at_generic]),
 		item_at
 	)
+	yes_generic = NGenericType("t")
 	global_scope.add_native_function(
 		"yes",
-		[("value", maybe_generic)],
-		n_maybe_type,
+		[("value", n_maybe_type.with_typevars([yes_generic]))],
+		yes_generic,
 		yes,
 	)
+	default_generic = NGenericType("t")
 	global_scope.add_native_function(
 		"default",
-		[("default", maybe_generic), ("maybeValue", n_maybe_type)],
-		maybe_generic,
+		[("default", default_generic), ("maybeValue", n_maybe_type.with_typevars([default_generic]))],
+		default_generic,
 		with_default,
+	)
+	map_generic_in = NGenericType("a")
+	map_generic_out = NGenericType("b")
+	global_scope.add_native_function(
+		"then",
+		[("thenFunction", (map_generic_in, n_cmd_type.with_typevars([map_generic_out]))), ("cmd", n_cmd_type.with_typevars([map_generic_in]))],
+		n_cmd_type.with_typevars([map_generic_out]),
+		cmd_then,
 	)
 
 	global_scope.types['str'] = 'str'
@@ -145,4 +150,5 @@ def add_funcs(global_scope):
 	global_scope.types['float'] = 'float'
 	global_scope.types['bool'] = 'bool'
 	global_scope.types['list'] = n_list_type
+	global_scope.types['cmd'] = n_cmd_type
 	global_scope.types['maybe'] = n_maybe_type
