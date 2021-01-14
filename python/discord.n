@@ -1,0 +1,10 @@
+import request
+
+// important variables
+let key:str = ""
+
+// functions
+let pub start = [k:str] -> null{
+	key = k
+	// other important functions
+}
