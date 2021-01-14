@@ -1,6 +1,6 @@
 import lark
 from colorama import Fore, Style
-from type import NType, NTypeVars
+from type import NType, NTypeVars, NModule
 
 class TypeCheckError:
 	def __init__(self, token_or_tree, message):
@@ -62,6 +62,8 @@ def display_type(n_type, color=True):
 					display = 'list[]'
 		if display == "":
 			display = '(' + ', '.join(display_type(type, False) for type in n_type) + ')'
+	elif isinstance(n_type, NModule):
+		display = "module %s" % n_type.mod_name
 	elif isinstance(n_type, dict):
 		display = "{ %s }" % "; ".join('%s: %s' % (key, display_type(value, False)) for key, value in n_type.items())
 	elif isinstance(n_type, NTypeVars):

@@ -2,9 +2,12 @@ import fek
 import SystemIO
 import discordn
 
-<discordn?setId "you thought">
-let messageout = <discordn?sendMessage "710936824121655396" "uau">
+print fek
+
+<discordn.setId "you thought">
+let messageout = <discordn.sendMessage "710936824121655396" "uau" false>
 print messageout
+print discordn.sendMessage
 
 type state = <alive float>
   | <dead int list[str]>
@@ -133,8 +136,8 @@ print ch
 print (0.1 + 0.2 == 0.3)
 
 <main test1 eee>
-<fek?paer "test">
-// print (<fek?paer "test">)
+<fek.paer "test">
+// print (<fek.paer "test">)
 print (if true { "hi" } else { "hello" })
 if true {
 	print ("<main test \"hello\"> returned false")

@@ -1,5 +1,6 @@
 import requests
 import json
+from native_types import n_cmd_type
 
 botid = ""
 
@@ -8,9 +9,6 @@ def setId(id):
 	botid = id
 
 def sendMessage(channel, message, tts):
-	tts = False
-	if len(rest) == 1:
-		tts = rest[0]
 	r = requests.post(f"https://discord.com/api/channels/{channel}/messages", data=json.dumps({"content": message, "tts": tts}), headers={'Content-Type': "application/json", "Authorization": f"Bot {botid}"})
 	return {"code": r.status_code, "response": r.reason, "text": r.text}
 

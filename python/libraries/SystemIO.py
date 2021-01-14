@@ -1,9 +1,9 @@
 from native_types import n_cmd_type
 
-def inp(args):
-	return input(str(args[0]))
+def inp(question):
+	return input(question)
 
 def _values():
 	return {
-		"inp": n_cmd_type.with_typevars(["str"])
+		"inp": ("str", n_cmd_type.with_typevars(["str"]))
 	}

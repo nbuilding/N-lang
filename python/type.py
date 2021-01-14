@@ -56,6 +56,15 @@ class NTypeVars(NType):
 	def __repr__(self):
 		return 'NTypeVars(%s, %s)' % (repr(self.name), repr(self.typevars))
 
+# N modules are kind of like records but different
+class NModule(dict):
+	def __init__(self, name, *args, **kw):
+		super(NModule, self).__init__(*args, **kw)
+		self.mod_name = name
+		# Prevent destructuring modules completely. This hidden internal field
+		# should never be shown to the casual N programmer.
+		self['not exhaustive'] = True
+
 """
 `expected` is the type of the function's argument, the type with the
 generics/type variables.
