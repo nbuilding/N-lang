@@ -158,7 +158,7 @@ let printResult = [[t] result:t] -> cmd[()] {
   print result
   return <fek.paer "done">
 }
-let pub main2 = <SystemIO.inp "What's your name? ">
+let pub main2: cmd[()] = <SystemIO.inp "What's your name? ">
   |> <then fek.paer>
   |> <then <thenHelper <SystemIO.inp "Discord bot token: ">>>
   |> <then discordn.setId>

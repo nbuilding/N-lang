@@ -69,6 +69,7 @@ def parse_tree(tree):
 		for variable in reversed(scope.variables.values()):
 			if variable.public and isinstance(variable.value, Cmd):
 				asyncio.run(variable.value.eval())
+				break
 	else:
 		raise SyntaxError("Unable to run parse_tree on non-starting branch")
 
