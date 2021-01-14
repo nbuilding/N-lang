@@ -6,9 +6,10 @@ from colorama import Fore, Style
 from variable import Variable
 from function import Function
 from native_function import NativeFunction
-from type import NType, NGenericType, NAliasType, NTypeVars, NListType, n_list_type, apply_generics, apply_generics_to, resolve_equal_types
+from type import NType, NGenericType, NAliasType, NTypeVars, NModule, apply_generics, apply_generics_to, resolve_equal_types
 from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
+from native_types import n_list_type
 from type_check_error import TypeCheckError, display_type
 from display import display_value
 from operation_types import binary_operation_types, unary_operation_types, comparable_types, iterable_types
@@ -113,19 +114,13 @@ def pattern_to_name(pattern_and_src):
 		return "<destructuring pattern>"
 
 class Scope:
-	def __init__(self, parent=None, parent_function=None, errors=[], warnings=[], imports=[]):
+	def __init__(self, parent=None, parent_function=None, errors=[], warnings=[]):
 		self.parent = parent
 		self.parent_function = parent_function
-		self.imports = imports
 		self.variables = {}
 		self.types = {}
 		self.errors = errors
 		self.warnings = warnings
-
-	def find_import(self, name):
-		for imp in self.imports:
-			if imp.__name__ == "libraries." + name:
-				return imp
 
 	def new_scope(self, parent_function=None, inherit_errors=True):
 		return Scope(
@@ -133,7 +128,6 @@ class Scope:
 			parent_function=parent_function or self.parent_function,
 			errors=self.errors if inherit_errors else [],
 			warnings=self.warnings if inherit_errors else [],
-			imports=self.imports,
 		)
 
 	def get_variable(self, name, err=True):
@@ -167,7 +161,7 @@ class Scope:
 
 	def parse_type(self, tree_or_token, err=True):
 		if type(tree_or_token) == lark.Tree:
-			if tree_or_token.data == "with_typevar":
+			if tree_or_token.data == "with_typevars":
 				name, *typevars = tree_or_token.children
 				typevar_type = self.get_type(name.value, err=err)
 				parsed_typevars = [self.parse_type(typevar, err=err) for typevar in typevars]
@@ -193,6 +187,8 @@ class Scope:
 				self.errors.append(TypeCheckError(tree_or_token, "Internal problem: encountered a type %s." % tree_or_token.data))
 				return None
 		else:
+			if tree_or_token.type == "UNIT":
+				return "unit"
 			n_type = self.get_type(tree_or_token.value, err=err)
 			if n_type is None:
 				self.errors.append(TypeCheckError(tree_or_token, "I don't know what type you're referring to by `%s`." % tree_or_token.value))
@@ -329,7 +325,7 @@ class Scope:
 					return False
 		if isinstance(pattern, list):
 			if warn:
-				if not isinstance(value_or_type, NListType):
+				if not isinstance(value_or_type, NTypeVars) or value_or_type.base_type is not n_list_type:
 					self.errors.append(TypeCheckError(src, "I cannot destructure %s as a list because it's a %s." % (path_name, display_type(value_or_type))))
 					return True
 				contained_type = value_or_type.typevars[0]
@@ -368,6 +364,8 @@ class Scope:
 				raise SyntaxError("Unexpected boolean value %s" % value.value)
 		elif value.type == "NAME":
 			return self.get_variable(value.value).value
+		elif value.type == "UNIT":
+			return ()
 		else:
 			raise SyntaxError("Unexpected value type %s value %s" % (value.type, value.value))
 
@@ -412,11 +410,6 @@ class Scope:
 				function, *arguments = expr.children[1].children
 				arguments.append(mainarg)
 			return self.eval_expr(function).run([self.eval_expr(arg) for arg in arguments])
-		elif expr.data == "imported_command":
-			l, c, *args = expr.children
-			library = self.find_import(l)
-			com = getattr(library, c)
-			return com([self.eval_expr(a.children[0]) for a in args])
 		elif expr.data == "or_expression":
 			left, _, right = expr.children
 			return self.eval_expr(left) or self.eval_expr(right)
@@ -483,6 +476,8 @@ class Scope:
 			operation, value = expr.children
 			if operation.type == "NEGATE":
 				return -self.eval_expr(value)
+			elif operation.type == "NOT":
+				return not self.eval_expr(value)
 			else:
 				raise SyntaxError("Unexpected operation for unary_expression: %s" % operation)
 		elif expr.data == "char":
@@ -513,7 +508,7 @@ class Scope:
 					holder[key] = val.variables[key].value
 			return holder
 		elif expr.data == "record_access":
-			return self.variables[expr.children[0]].value[expr.children[1]]
+			return self.eval_expr(expr.children[0])[expr.children[1].value]
 		elif expr.data == "tupleval":
 			return tuple([self.eval_expr(e) for e in expr.children])
 		elif expr.data == "listval":
@@ -541,11 +536,16 @@ class Scope:
 		command = tree.children[0]
 
 		if command.data == "imp":
-			lib = importlib.import_module("libraries." + command.children[0])
-			self.imports.append(lib)
+			import_name = command.children[0].value
+			lib = importlib.import_module("libraries." + import_name)
+			self.variables[import_name] = Variable(None, NModule(import_name, {
+				key: NativeFunction.from_imported(self, types, getattr(lib, key))
+				for key, types in lib._values().items()
+			}))
 			try:
 				lib.prepare(self)
-			except:
+			except AttributeError:
+				# Apparently it's more Pythonic to use try/except than hasattr
 				pass
 		elif command.data == "for":
 			var, iterable, code = command.children
@@ -662,6 +662,8 @@ class Scope:
 				return None
 			else:
 				return variable.type
+		elif value.type == "UNIT":
+			return "unit"
 
 		self.errors.append(TypeCheckError(value, "Internal problem: I don't know the value type %s." % value.type))
 
@@ -749,22 +751,6 @@ class Scope:
 				return tuple(apply_generics_to(arg_type, generics) for arg_type in func_type[len(arguments):])
 			else:
 				return apply_generics_to(return_type, generics)
-		elif expr.data == "imported_command":
-			# TODO?: Type check arguments
-			l, c, *args = expr.children
-			library = self.find_import(l)
-			if library == None:
-				self.errors.append(TypeCheckError(l, "Library %s not found." % l))
-			else:
-				try:
-					if c not in library._values():
-						self.errors.append(TypeCheckError(c, "Command %s in %s not found." % (c, l)))
-					else:
-						return library._values[c]
-				except:
-					pass
-			# TODO?
-			return None
 		elif expr.data == "value":
 			token_or_tree = expr.children[0]
 			if type(token_or_tree) is lark.Tree:
@@ -775,20 +761,25 @@ class Scope:
 			else:
 				return self.get_value_type(token_or_tree)
 		elif expr.data == "record_access":
-			var, valu = expr.children
-			if var not in self.variables:
-				self.errors.append(TypeCheckError(var, "Record %s does not exist" % var))
+			value, field = expr.children
+			value_type = self.type_check_expr(value)
+			if value_type is None:
 				return None
-
-			if valu not in self.get_variable(var).value:
-				self.errors.append(TypeCheckError(valu, "Value %s does not exist inside record %s" % (valu, var)))
+			elif not isinstance(value_type, dict):
+				self.errors.append(TypeCheckError(value, "You can only get fields from records, not %s." % display_type(value_type)))
 				return None
-
-			return self.get_variable(var).value[valu]
+			elif field.value not in value_type:
+				self.errors.append(TypeCheckError(expr, "%s doesn't have a field `%s`." % (display_type(value_type), field.value)))
+				return None
+			else:
+				return value_type[field.value]
 
 		if len(expr.children) == 2 and type(expr.children[0]) is lark.Token:
 			operation, value = expr.children
-			types = unary_operation_types.get(operation.type)
+			operation_type = operation.type
+			if operation_type == "NOT_KW":
+				operation_type = "NOT"
+			types = unary_operation_types.get(operation_type)
 			if types:
 				value_type = self.type_check_expr(value)
 				if value_type is None:
@@ -909,15 +900,18 @@ class Scope:
 		command = tree.children[0]
 
 		if command.data == "imp":
+			import_name = command.children[0].value
+			import_type = None
+			if import_name in self.variables:
+				self.errors.append(TypeCheckError(command.children[0], "You've already used the name `%s`." % import_name))
 			try:
 				imp = importlib.import_module("libraries." + command.children[0])
-				self.imports.append(imp)
-				try:
-					getattr(imp, "_values")
-				except:
-					self.errors.append(TypeCheckError(command.children[0], "Library %s not compatable." % command.children[0]))
-			except:
-				self.errors.append(TypeCheckError(command.children[0], "Library %s not found to import." % command.children[0]))
+				import_type = NModule(import_name, imp._values())
+			except AttributeError:
+				self.errors.append(TypeCheckError(command.children[0], "`%s` isn't a compatible native library." % command.children[0]))
+			except ModuleNotFoundError:
+				self.errors.append(TypeCheckError(command.children[0], "I can't find the native library `%s`." % command.children[0]))
+			self.variables[import_name] = Variable(import_type, import_type)
 		elif command.data == "for":
 			var, iterable, code = command.children
 			pattern, ty = self.get_name_type(var, err=False)

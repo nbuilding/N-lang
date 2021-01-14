@@ -2,9 +2,12 @@ import fek
 import SystemIO
 import discordn
 
-<discordn?setId "you thought">
-let messageout = <discordn?sendMessage "710936824121655396" "uau">
+print fek
+
+<discordn.setId "you thought">
+let messageout = <discordn.sendMessage "710936824121655396" "uau" false>
 print messageout
+print discordn.sendMessage
 
 type state = <alive float>
   | <dead int list[str]>
@@ -71,7 +74,7 @@ for i 15 {
 		})
 }
 
-let test:int = if ! 1 == 1 || 2 > 3 1 else 3
+let test:int = if not 1 == 1 || 2 > 3 1 else 3
 let test1:int = 1 + 1
 let eee:str = "hi"
 
@@ -133,8 +136,7 @@ print ch
 print (0.1 + 0.2 == 0.3)
 
 <main test1 eee>
-<fek?paer "test">
-// print (<fek?paer "test">)
+// print (<fek.paer "test">)
 print (if true { "hi" } else { "hello" })
 if true {
 	print ("<main test \"hello\"> returned false")
@@ -149,11 +151,19 @@ if <main test eee> {
 
 print (2 + 3 * (4 + 1) * 4 + 5)
 
-
-
-
-
-
+let thenHelper = [[t] command:cmd[t] _:()] -> cmd[t] {
+  return command
+}
+let printResult = [[t] result:t] -> cmd[()] {
+  print result
+  return <fek.paer "done">
+}
+let pub main2: cmd[()] = <SystemIO.inp "What's your name? ">
+  |> <then fek.paer>
+  |> <then <thenHelper <SystemIO.inp "Discord bot token: ">>>
+  |> <then discordn.setId>
+  |> <then <thenHelper <discordn.sendMessage "710936824121655396" "uau" false>>>
+  |> <then printResult>
 
 // print runner.e runner.e is not public so this throws an error
 print runner.eeeeee

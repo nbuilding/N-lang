@@ -5,3 +5,6 @@ class Variable:
 		self.type = t
 		self.value = value
 		self.public = public
+
+	def __repr__(self):
+		return 'Variable(%s, %s, %s)' % (repr(self.type), repr(self.value), repr(self.public))
