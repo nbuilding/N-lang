@@ -474,6 +474,8 @@ class Scope:
 			operation, value = expr.children
 			if operation.type == "NEGATE":
 				return -self.eval_expr(value)
+			elif operation.type == "NOT":
+				return not self.eval_expr(value)
 			else:
 				raise SyntaxError("Unexpected operation for unary_expression: %s" % operation)
 		elif expr.data == "char":
@@ -772,7 +774,10 @@ class Scope:
 
 		if len(expr.children) == 2 and type(expr.children[0]) is lark.Token:
 			operation, value = expr.children
-			types = unary_operation_types.get(operation.type)
+			operation_type = operation.type
+			if operation_type == "NOT_KW":
+				operation_type = "NOT"
+			types = unary_operation_types.get(operation_type)
 			if types:
 				value_type = self.type_check_expr(value)
 				if value_type is None:

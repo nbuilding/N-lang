@@ -2,7 +2,7 @@ from colorama import Fore, Style
 from function import Function
 from type import NModule
 from enums import EnumValue
-from native_types import Cmd
+from cmd import Cmd
 
 unescape = {
 	"\\": "\\",

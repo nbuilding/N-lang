@@ -1,6 +1,7 @@
 from function import Function
 from type_check_error import display_type
-from native_types import n_cmd_type, Cmd
+from native_types import n_cmd_type
+from cmd import Cmd
 
 class NativeFunction(Function):
 	def __init__(self, scope, arguments, return_type, function, argument_cache=[]):
@@ -21,5 +22,7 @@ class NativeFunction(Function):
 	def from_imported(cls, scope, types, function):
 		*arg_types, return_type = types
 		if return_type.base_type is n_cmd_type:
-			function = lambda *args: Cmd(lambda: function(*args))
-		return cls(scope, [("whatever", typ) for typ in arg_types], return_type, function)
+			run_function = lambda *args: Cmd(lambda _: lambda: function(*args))
+		else:
+			run_function = function
+		return cls(scope, [("whatever", typ) for typ in arg_types], return_type, run_function)

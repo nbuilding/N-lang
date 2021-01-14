@@ -46,6 +46,9 @@ def with_default(default_value, maybe_value):
 	else:
 		return default_value
 
+def cmd_then(n_function, cmd):
+	return cmd.then(lambda result: n_function.run([result]).eval)
+
 # Define global functions/variables
 def add_funcs(global_scope):
 	global_scope.variables["none"] = Variable(n_maybe_type, none)
@@ -111,24 +114,34 @@ def add_funcs(global_scope):
 		"str",
 		type_display,
 	)
-	generic = NGenericType("t")
+	item_at_generic = NGenericType("t")
 	global_scope.add_native_function(
 		"itemAt",
-		[("index", "int"), ("list", n_list_type.with_typevars([generic]))],
-		n_maybe_type.with_typevars([generic]),
+		[("index", "int"), ("list", n_list_type.with_typevars([item_at_generic]))],
+		n_maybe_type.with_typevars([item_at_generic]),
 		item_at
 	)
+	yes_generic = NGenericType("t")
 	global_scope.add_native_function(
 		"yes",
-		[("value", maybe_generic)],
-		n_maybe_type,
+		[("value", n_maybe_type.with_typevars([yes_generic]))],
+		yes_generic,
 		yes,
 	)
+	default_generic = NGenericType("t")
 	global_scope.add_native_function(
 		"default",
-		[("default", maybe_generic), ("maybeValue", n_maybe_type)],
-		maybe_generic,
+		[("default", default_generic), ("maybeValue", n_maybe_type.with_typevars([default_generic]))],
+		default_generic,
 		with_default,
+	)
+	map_generic_in = NGenericType("a")
+	map_generic_out = NGenericType("b")
+	global_scope.add_native_function(
+		"then",
+		[("thenFunction", (map_generic_in, n_cmd_type.with_typevars([map_generic_out]))), ("cmd", n_cmd_type.with_typevars([map_generic_in]))],
+		n_cmd_type.with_typevars([map_generic_out]),
+		cmd_then,
 	)
 
 	global_scope.types['str'] = 'str'

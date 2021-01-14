@@ -101,7 +101,7 @@ enum_pattern: "<" NAME any_pattern* ">"
 ?or_expression: [or_expression OR] and_expression
 ?and_expression: [and_expression AND] not_expression
 ?not_expression: compare_expression
-               | NOT not_expression
+               | NOT_KW not_expression
 ?compare_expression: [compare_expression compare_operator] number_expression
 ?compare_operator: EQUALS
                  | GORE
@@ -116,6 +116,7 @@ enum_pattern: "<" NAME any_pattern* ">"
 // Exponentiation right to left associative
 ?exponent_expression: unary_expression [EXPONENT exponent_expression]
 ?unary_expression: record_access
+                 | NOT unary_expression
                  | SUBTRACT unary_expression
 ?record_access: value
               | record_access "." NAME
@@ -152,7 +153,8 @@ LORE: "<="
 LESS: "<"
 GREATER: ">"
 NEQUALS: ("/=" | "!=")
-NOT: ("~" | "!")
+NOT_KW: "not"
+NOT: "~"
 ADD: "+"
 SUBTRACT: "-"
 MULTIPLY: "*"

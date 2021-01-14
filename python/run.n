@@ -74,7 +74,7 @@ for i 15 {
 		})
 }
 
-let test:int = if ! 1 == 1 || 2 > 3 1 else 3
+let test:int = if not 1 == 1 || 2 > 3 1 else 3
 let test1:int = 1 + 1
 let eee:str = "hi"
 
@@ -136,7 +136,6 @@ print ch
 print (0.1 + 0.2 == 0.3)
 
 <main test1 eee>
-<fek.paer "test">
 // print (<fek.paer "test">)
 print (if true { "hi" } else { "hello" })
 if true {
@@ -152,11 +151,7 @@ if <main test eee> {
 
 print (2 + 3 * (4 + 1) * 4 + 5)
 
-
-
-
-
-
+let pub main2 = <fek.paer "test">
 
 // print runner.e runner.e is not public so this throws an error
 print runner.eeeeee

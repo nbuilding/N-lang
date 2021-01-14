@@ -1,5 +1,6 @@
 from lark import Lark
 import lark
+import asyncio
 import argparse
 from colorama import init, Fore, Style
 init()
@@ -9,6 +10,7 @@ from native_functions import add_funcs
 from type_check_error import TypeCheckError
 from scope import Scope
 from imported_error import ImportedError
+from cmd import Cmd
 
 global_scope = Scope()
 add_funcs(global_scope)
@@ -60,6 +62,9 @@ def parse_tree(tree):
 		scope = global_scope.new_scope()
 		for child in tree.children:
 			scope.eval_command(child)
+		for variable in reversed(scope.variables.values()):
+			if variable.public and isinstance(variable.value, Cmd):
+				asyncio.run(variable.value.eval())
 	else:
 		raise SyntaxError("Unable to run parse_tree on non-starting branch")
 

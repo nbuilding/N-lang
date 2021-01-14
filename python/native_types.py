@@ -7,10 +7,6 @@ n_list_type = NTypeVars("list", [list_generic])
 cmd_generic = NGenericType("t")
 n_cmd_type = NTypeVars("cmd", [cmd_generic])
 
-class Cmd:
-	def __init__(self, function):
-		self.function = function
-
 maybe_generic = NGenericType("t")
 n_maybe_type = EnumType("maybe", [
 	("yes", [maybe_generic]),
