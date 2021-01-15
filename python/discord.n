@@ -5,6 +5,10 @@ let key:str = ""
 
 // functions
 let pub start = [k:str] -> null{
-	key = k
+	var key = k
 	// other important functions idk what is going to happen here
+}
+
+let pub getKey = [] -> str{
+	return key
 }

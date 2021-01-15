@@ -1,16 +1,32 @@
 from colorama import Fore, Style
 
 class File:
-	def __init__(self, file, tab_length=4):
-		self.lines = [line.rstrip().replace('\t', ' ' * tab_length) for line in file]
-		self.name = file.name
-		self.line_num_width = len(str(len(self.lines)))
+	def __init__(self, file=None, tab_length=4):
+		#if the file is none then that means it was duplicated
+		self.lines = []
+		self.name = ""
+		self.line_num_width = 0
+		if file != None:
+			self.lines = [line.rstrip().replace('\t', ' ' * tab_length) for line in file]
+			self.name = file.name
+			self.line_num_width = len(str(len(self.lines)))
+
+	def duplicate(self):
+		dup = File()
+		dup.lines = self.lines[:]
+		dup.name = self.name
+		dup.line_num_width = self.line_num_width
+		return dup
 
 	def parse(self, parser):
 		return parser.parse('\n'.join(self.lines))
 
 	def get_line(self, line):
-		return self.lines[line - 1]
+		print(len(self.lines), line)
+		try:
+			return self.lines[line - 1]
+		except:
+			return "err"
 
 	def get_lines(self, start, end):
 		return self.lines[start - 1:end]
