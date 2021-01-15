@@ -4,7 +4,7 @@ import request
 let key:str = ""
 
 // functions
-let pub start = [k:str] -> null{
+let pub start = [k:str] -> () {
 	var key = k
 	// other important functions idk what is going to happen here
 }

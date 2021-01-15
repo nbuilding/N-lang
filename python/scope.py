@@ -114,13 +114,13 @@ def pattern_to_name(pattern_and_src):
 		return "<destructuring pattern>"
 
 class Scope:
-	def __init__(self, parent=None, parent_function=None, errors=[], warnings=[]):
+	def __init__(self, parent=None, parent_function=None, errors=None, warnings=None):
 		self.parent = parent
 		self.parent_function = parent_function
 		self.variables = {}
 		self.types = {}
-		self.errors = errors
-		self.warnings = warnings
+		self.errors = errors or []
+		self.warnings = warnings or []
 
 	def new_scope(self, parent_function=None, inherit_errors=True):
 		return Scope(
@@ -880,7 +880,6 @@ class Scope:
 			return n_list_type.with_typevars([contained_type])
 		elif expr.data == "impn":
 			impn, f = parse_file(expr.children[0] + ".n", True)
-			print(expr.children[0], impn.errors)
 			if len(impn.errors) != 0:
 				self.errors.append(ImportedError(impn.errors[:], f))
 			if len(impn.warnings) != 0:
