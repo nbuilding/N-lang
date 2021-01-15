@@ -50,10 +50,12 @@ def type_check(file, tree):
 			if not scope.errors[i-1].compare(scope.errors[i]):
 				errors.append(scope.errors[i])
 
-		warnings = [scope.warnings[0]]
-		for i in range(1, len(scope.warnings)):
-			if not scope.warnings[i-1].compare(scope.warnings[i]):
-				warnings.append(scope.warnings[i])
+		warnings = []
+		if len(scope.warnings) > 0:
+			warnings = [scope.warnings[0]]
+			for i in range(1, len(scope.warnings)):
+				if not scope.warnings[i-1].compare(scope.warnings[i]):
+					warnings.append(scope.warnings[i])
 
 		print('\n'.join(
 			[warning.display('warning', file) for warning in warnings] +

@@ -1,13 +1,9 @@
 import fek
 import SystemIO
-import discordn
 
 print fek
 
-<discordn.setId "you thought">
-let messageout = <discordn.sendMessage "710936824121655396" "uau" false>
-print messageout
-print discordn.sendMessage
+
 
 type state = <alive float>
   | <dead int list[str]>
@@ -53,104 +49,6 @@ let pairSingleton = [[a, b] item1:a item2:b] -> list[(a, b)] {
 //let type_error2: int = "wow"
 print <pairSingleton 1 "2">
 
-let wowowo = {
-  ok: (3, (("hap\npy", \r), true))
-  uwu: "ok"//; extra: 3.4; extra2: 5.4
-}
-let { uwu; ok: aaa, ((caa, _), (((baa)))) } = wowowo
-print { uwu; aaa; caa; baa }
-
-for i 15 {
-	let n:int = i + 1
-	print
-		(if n % 3 == 0 && n % 5 == 0 {
-			"Fizzbuzz"
-		} else if n % 3 == 0 {
-			"Fizz"
-		} else if n % 5 = 0 {
-			"Buzz"
-		} else {
-			<intInBase10 n>
-		})
-}
-
-let test:int = if not 1 == 1 || 2 > 3 1 else 3
-let test1:int = 1 + 1
-let eee:str = "hi"
-
-let a:int = 1
-let b:int = 3
-let c:int = 2
-print (a < c < b)
-
-var c = 4 + 3
-print "-------------"
-
-print c
-
-print <round 10.1>
-
-print "a"
-  |> <charAt 1>
-  |> <default <intCode 0>>
-  |> <charCode>
-
-if let <yes char> = ("a"
-  |> <charAt 0>) {
-  print char
-    |> <charCode>
-}
-
-if false {
-	print "test of a thing"
-}
-
-let thing = {
-	a: 0
-}
-
-print thing.a
-
-let ch:char = \n
-
-let lis = [1, 2, 3, 4]
-
-if let [a, b, c, d] = lis {
-  print { a; b; c; d }
-}
-
-print <itemAt 0 lis> // please take a look at this
-
-// let list:list[func] = [main]
-
-// print main.<type>
-
-// var list = [1]
-
-let tup:(int, str) = (1, eee)
-
-print tup
-
-print ch
-
-print (0.1 + 0.2 == 0.3)
-
-<main test1 eee>
-// print (<fek.paer "test">)
-print (if true { "hi" } else { "hello" })
-if true {
-	print ("<main test \"hello\"> returned false")
-} else {
-	print "test"
-}
-if <main test eee> {
-	print "{main test eee} returned true"
-} else {
-	print "{main test eee} returned false"
-}
-
-print (2 + 3 * (4 + 1) * 4 + 5)
-
 let thenHelper = [[t] command:cmd[t] _:()] -> cmd[t] {
   return command
 }
@@ -158,12 +56,12 @@ let printResult = [[t] result:t] -> cmd[()] {
   print result
   return <fek.paer "done">
 }
-let pub main2: cmd[()] = <SystemIO.inp "What's your name? ">
-  |> <then fek.paer>
-  |> <then <thenHelper <SystemIO.inp "Discord bot token: ">>>
-  |> <then discordn.setId>
-  |> <then <thenHelper <discordn.sendMessage "710936824121655396" "uau" false>>>
-  |> <then printResult>
+//let pub main2: cmd[()] = <SystemIO.inp "What's your name? ">
+//  |> <then fek.paer>
+//  |> <then <thenHelper <SystemIO.inp "Discord bot token: ">>>
+//  |> <then discordn.setId>
+//  |> <then <thenHelper <discordn.sendMessage "710936824121655396" "uau" false>>>
+//  |> <then printResult>
 
 // print runner.e runner.e is not public so this throws an error
 print runner.eeeeee
