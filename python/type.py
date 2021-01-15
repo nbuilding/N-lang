@@ -80,9 +80,11 @@ def apply_generics(expected, actual, generics={}):
 	if isinstance(expected, NGenericType):
 		generic = generics.get(expected)
 		if generic is None:
-			generics[expected] = actual
+			generics[expected] = "none" if actual is None else actual
 			return actual
-		elif isinstance(generic, NGenericType) and not isinstance(actual, NGenericType):
+		elif generic == "none":
+			generic = None
+		if isinstance(generic, NGenericType) and not isinstance(actual, NGenericType):
 			generics[expected] = actual
 			return actual
 		else:

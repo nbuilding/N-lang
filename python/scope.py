@@ -544,7 +544,8 @@ class Scope:
 			}))
 			try:
 				lib._prepare(self)
-			except:
+			except AttributeError:
+				# Apparently it's more Pythonic to use try/except than hasattr
 				pass
 		elif command.data == "for":
 			var, iterable, code = command.children
@@ -737,17 +738,36 @@ class Scope:
 				return None
 			*arg_types, return_type = func_type
 			generics = {}
+			parameters_have_none = False
 			for n, (argument, arg_type) in enumerate(zip(arguments, arg_types), start=1):
 				check_type = self.type_check_expr(argument)
+				if check_type is None:
+					parameters_have_none = True
 				resolved_arg_type = apply_generics(arg_type, check_type, generics)
 				_, incompatible = resolve_equal_types(check_type, resolved_arg_type)
 				if incompatible:
-					self.errors.append(TypeCheckError(expr, "For a %s's argument #%d, you gave a %s, but you should've given a %s." % (display_type(func_type), n, display_type(check_type), display_type(arg_type))))
+					if expr.data == "function_callback":
+						self.errors.append(TypeCheckError(argument, "%s's argument #%d should be a %s, but you gave a %s." % (display_type(func_type), n, display_type(arg_type), display_type(check_type))))
+					elif expr.data == "function_callback_quirky":
+						if n == 1:
+							self.errors.append(TypeCheckError(argument, "This left operand of .<, which I use as the first argument of %s, should be a %s, but you gave a %s." % (display_type(func_type), display_type(arg_type), display_type(check_type))))
+						else:
+							self.errors.append(TypeCheckError(argument, "The argument #%d here should be a %s because the function is a %s, but you gave a %s." % (n - 1, display_type(arg_type), display_type(func_type), display_type(check_type))))
+					else:
+						if n == len(arguments):
+							self.errors.append(TypeCheckError(argument, "This left operand of |>, which I pass as the last argument to %s, should be a %s, but you gave a %s." % (display_type(func_type), display_type(arg_type), display_type(check_type))))
+						else:
+							self.errors.append(TypeCheckError(argument, "The argument #%d here should be a %s because the function is a %s, but you gave a %s." % (n, display_type(arg_type), display_type(func_type), display_type(check_type))))
 			if len(arguments) > len(arg_types):
 				self.errors.append(TypeCheckError(expr, "A %s has %d argument(s), but you gave %d." % (display_type(func_type), len(arg_types), len(arguments))))
 				return None
 			elif len(arguments) < len(arg_types):
 				return tuple(apply_generics_to(arg_type, generics) for arg_type in func_type[len(arguments):])
+			elif parameters_have_none and len(generics) > 0:
+				# If one of the parameters is none, the generics likely did not
+				# get assigned correctly, so the function's return type is
+				# unknown.
+				return None
 			else:
 				return apply_generics_to(return_type, generics)
 		elif expr.data == "value":
