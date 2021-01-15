@@ -44,6 +44,9 @@ class NTypeVars(NType):
 	def new_child(self, typevars):
 		return type(self)(self.name, typevars, original=self.base_type)
 
+	def is_type(self, other):
+		return isinstance(other, NTypeVars) and self.base_type is other.base_type
+
 	def __hash__(self):
 		if self.base_type is self:
 			return hash(id(self))

@@ -576,7 +576,7 @@ class Scope:
 			self.assign_to_pattern(pattern, self.eval_expr(value), False, None, modifier)
 		elif command.data == "vary":
 			name, value = command.children
-			self.variables[name].value = self.eval_expr(value)
+			self.get_variable(name.value).value = self.eval_expr(value)
 		elif command.data == "if":
 			condition, body = command.children
 			scope = self.new_scope()
@@ -985,10 +985,11 @@ class Scope:
 			self.assign_to_pattern(pattern, ty, True, None, modifier == "pub")
 		elif command.data == "vary":
 			name, value = command.children
-			if name not in self.variables:
-				self.errors.append(TypeCheckError(value, "The variable %s does not exist." % (name)))
+			variable = self.get_variable(name.value)
+			if variable is None:
+				self.errors.append(TypeCheckError(name, "The variable `%s` does not exist." % (name.value)))
 			else:
-				ty = self.variables[name].type
+				ty = variable.type
 				value_type = self.type_check_expr(value)
 
 				# Allow for cases like
@@ -999,7 +1000,7 @@ class Scope:
 				resolved_type, incompatible = resolve_equal_types(ty, value_type)
 				if incompatible:
 					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
-				self.variables[name].type = resolved_type
+				variable.type = resolved_type
 		elif command.data == "if":
 			condition, body = command.children
 			scope = self.new_scope()

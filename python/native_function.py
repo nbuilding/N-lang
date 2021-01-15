@@ -21,7 +21,7 @@ class NativeFunction(Function):
 	@classmethod
 	def from_imported(cls, scope, types, function):
 		*arg_types, return_type = types
-		if return_type.base_type is n_cmd_type:
+		if n_cmd_type.is_type(return_type):
 			run_function = lambda *args: Cmd(lambda _: lambda: function(*args))
 		else:
 			run_function = function
