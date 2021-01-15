@@ -52,7 +52,7 @@ class TypeCheckError:
 def display_type(n_type, color=True):
 	display = ""
 	if isinstance(n_type, str):
-		display = n_type
+		display = "()" if n_type == "unit" else n_type
 	elif isinstance(n_type, tuple):
 		display = ' -> '.join(('(%s)' if isinstance(type, tuple) else '%s') % display_type(type, False) for type in n_type)
 	elif isinstance(n_type, list):
