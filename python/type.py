@@ -103,7 +103,7 @@ def apply_generics(expected, actual, generics=None):
 		return tuple(apply_generics(expected_arg, actual_arg, generics) for expected_arg, actual_arg in zip(expected, actual))
 	elif isinstance(expected, list) and isinstance(actual, list):
 		return [apply_generics(expected_item, actual_item, generics) for expected_item, actual_item in zip(expected, actual)]
-	elif isinstance(expected, dict):
+	elif isinstance(expected, dict) and isinstance(actual, dict):
 		return {key: apply_generics(expected_type, actual[key], generics) if key in actual else expected_type for key, expected_type in expected.items()}
 	return expected
 

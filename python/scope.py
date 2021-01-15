@@ -181,6 +181,8 @@ class Scope:
 					return None
 			elif tree_or_token.data == "tupledef":
 				return [self.parse_type(child, err=err) for child in tree_or_token.children]
+			elif tree_or_token.data == "recorddef":
+				return {entry.children[0].value: self.parse_type(entry.children[1], err=err) for entry in tree_or_token.children}
 			elif err:
 				raise NameError("Type annotation of type %s; I am not ready for this." % tree_or_token.data)
 			else:
