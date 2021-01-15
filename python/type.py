@@ -18,20 +18,22 @@ class NGenericType(NType):
 		return 'NGenericType(%s)' % repr(self.name)
 
 class NAliasType(NType):
-	def __init__(self, name, alias_type, typevars=[]):
+	def __init__(self, name, alias_type, typevars=None):
 		super(NAliasType, self).__init__(name)
-		self.typevars = typevars
+		self.typevars = typevars or []
 		self.type = alias_type
 
-	def with_typevars(self, typevar_defs=[]):
+	def with_typevars(self, typevar_defs=None):
+		if typevar_defs is None:
+			typevar_defs = []
 		if len(self.typevars) != len(typevar_defs):
 			raise TypeError("Expected %d typevars, not %d." % (len(self.typevars), len(typevar_defs)))
 		return apply_generics_to(self.type, {typevar: typevar_def for typevar, typevar_def in zip(self.typevars, typevar_defs)})
 
 class NTypeVars(NType):
-	def __init__(self, name, typevars=[], original=None):
+	def __init__(self, name, typevars=None, original=None):
 		super(NTypeVars, self).__init__(name)
-		self.typevars = typevars
+		self.typevars = typevars or []
 		# Keep a reference to the original NTypeVars so that types can be
 		# compared by reference
 		self.base_type = original or self
@@ -43,6 +45,9 @@ class NTypeVars(NType):
 
 	def new_child(self, typevars):
 		return type(self)(self.name, typevars, original=self.base_type)
+
+	def is_type(self, other):
+		return isinstance(other, NTypeVars) and self.base_type is other.base_type
 
 	def __hash__(self):
 		if self.base_type is self:
@@ -76,13 +81,17 @@ Returns a type with the generics swapped out to best fit the actual type. For
 example, `apply_generics(list[t], list[str])` (psuedocode) will return
 `list[str]`. This can then be compared with actual separately.
 """
-def apply_generics(expected, actual, generics={}):
+def apply_generics(expected, actual, generics=None):
+	if generics is None:
+		generics = {}
 	if isinstance(expected, NGenericType):
 		generic = generics.get(expected)
 		if generic is None:
-			generics[expected] = actual
+			generics[expected] = "none" if actual is None else actual
 			return actual
-		elif isinstance(generic, NGenericType) and not isinstance(actual, NGenericType):
+		elif generic == "none":
+			generic = None
+		if isinstance(generic, NGenericType) and not isinstance(actual, NGenericType):
 			generics[expected] = actual
 			return actual
 		else:

@@ -114,13 +114,13 @@ def pattern_to_name(pattern_and_src):
 		return "<destructuring pattern>"
 
 class Scope:
-	def __init__(self, parent=None, parent_function=None, errors=[], warnings=[]):
+	def __init__(self, parent=None, parent_function=None, errors=None, warnings=None):
 		self.parent = parent
 		self.parent_function = parent_function
 		self.variables = {}
 		self.types = {}
-		self.errors = errors
-		self.warnings = warnings
+		self.errors = errors or []
+		self.warnings = warnings or []
 
 	def new_scope(self, parent_function=None, inherit_errors=True):
 		return Scope(
@@ -544,7 +544,8 @@ class Scope:
 			}))
 			try:
 				lib._prepare(self)
-			except:
+			except AttributeError:
+				# Apparently it's more Pythonic to use try/except than hasattr
 				pass
 		elif command.data == "for":
 			var, iterable, code = command.children
@@ -575,7 +576,7 @@ class Scope:
 			self.assign_to_pattern(pattern, self.eval_expr(value), False, None, modifier)
 		elif command.data == "vary":
 			name, value = command.children
-			self.variables[name].value = self.eval_expr(value)
+			self.get_variable(name.value).value = self.eval_expr(value)
 		elif command.data == "if":
 			condition, body = command.children
 			scope = self.new_scope()
@@ -737,17 +738,36 @@ class Scope:
 				return None
 			*arg_types, return_type = func_type
 			generics = {}
+			parameters_have_none = False
 			for n, (argument, arg_type) in enumerate(zip(arguments, arg_types), start=1):
 				check_type = self.type_check_expr(argument)
+				if check_type is None:
+					parameters_have_none = True
 				resolved_arg_type = apply_generics(arg_type, check_type, generics)
 				_, incompatible = resolve_equal_types(check_type, resolved_arg_type)
 				if incompatible:
-					self.errors.append(TypeCheckError(expr, "For a %s's argument #%d, you gave a %s, but you should've given a %s." % (display_type(func_type), n, display_type(check_type), display_type(arg_type))))
+					if expr.data == "function_callback":
+						self.errors.append(TypeCheckError(argument, "%s's argument #%d should be a %s, but you gave a %s." % (display_type(func_type), n, display_type(arg_type), display_type(check_type))))
+					elif expr.data == "function_callback_quirky":
+						if n == 1:
+							self.errors.append(TypeCheckError(argument, "This left operand of .<, which I use as the first argument of %s, should be a %s, but you gave a %s." % (display_type(func_type), display_type(arg_type), display_type(check_type))))
+						else:
+							self.errors.append(TypeCheckError(argument, "The argument #%d here should be a %s because the function is a %s, but you gave a %s." % (n - 1, display_type(arg_type), display_type(func_type), display_type(check_type))))
+					else:
+						if n == len(arguments):
+							self.errors.append(TypeCheckError(argument, "This left operand of |>, which I pass as the last argument to %s, should be a %s, but you gave a %s." % (display_type(func_type), display_type(arg_type), display_type(check_type))))
+						else:
+							self.errors.append(TypeCheckError(argument, "The argument #%d here should be a %s because the function is a %s, but you gave a %s." % (n, display_type(arg_type), display_type(func_type), display_type(check_type))))
 			if len(arguments) > len(arg_types):
 				self.errors.append(TypeCheckError(expr, "A %s has %d argument(s), but you gave %d." % (display_type(func_type), len(arg_types), len(arguments))))
 				return None
 			elif len(arguments) < len(arg_types):
 				return tuple(apply_generics_to(arg_type, generics) for arg_type in func_type[len(arguments):])
+			elif parameters_have_none and len(generics) > 0:
+				# If one of the parameters is none, the generics likely did not
+				# get assigned correctly, so the function's return type is
+				# unknown.
+				return None
 			else:
 				return apply_generics_to(return_type, generics)
 		elif expr.data == "value":
@@ -860,7 +880,6 @@ class Scope:
 			return n_list_type.with_typevars([contained_type])
 		elif expr.data == "impn":
 			impn, f = parse_file(expr.children[0] + ".n", True)
-			print(expr.children[0], impn.errors)
 			if len(impn.errors) != 0:
 				self.errors.append(ImportedError(impn.errors[:], f))
 			if len(impn.warnings) != 0:
@@ -965,10 +984,11 @@ class Scope:
 			self.assign_to_pattern(pattern, ty, True, None, modifier == "pub")
 		elif command.data == "vary":
 			name, value = command.children
-			if name not in self.variables:
-				self.errors.append(TypeCheckError(value, "The variable %s does not exist." % (name)))
+			variable = self.get_variable(name.value)
+			if variable is None:
+				self.errors.append(TypeCheckError(name, "The variable `%s` does not exist." % (name.value)))
 			else:
-				ty = self.variables[name].type
+				ty = variable.type
 				value_type = self.type_check_expr(value)
 
 				# Allow for cases like
@@ -979,7 +999,7 @@ class Scope:
 				resolved_type, incompatible = resolve_equal_types(ty, value_type)
 				if incompatible:
 					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
-				self.variables[name].type = resolved_type
+				variable.type = resolved_type
 		elif command.data == "if":
 			condition, body = command.children
 			scope = self.new_scope()

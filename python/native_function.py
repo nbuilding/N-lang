@@ -4,10 +4,10 @@ from native_types import n_cmd_type
 from cmd import Cmd
 
 class NativeFunction(Function):
-	def __init__(self, scope, arguments, return_type, function, argument_cache=[]):
+	def __init__(self, scope, arguments, return_type, function, argument_cache=None):
 		super(NativeFunction, self).__init__(scope, arguments, return_type, None)
 		self.function = function
-		self.argument_cache = argument_cache
+		self.argument_cache = argument_cache or []
 
 	def run(self, arguments):
 		arguments = self.argument_cache + arguments
@@ -21,7 +21,7 @@ class NativeFunction(Function):
 	@classmethod
 	def from_imported(cls, scope, types, function):
 		*arg_types, return_type = types
-		if return_type.base_type is n_cmd_type:
+		if n_cmd_type.is_type(return_type):
 			run_function = lambda *args: Cmd(lambda _: lambda: function(*args))
 		else:
 			run_function = function

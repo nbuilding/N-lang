@@ -5,13 +5,13 @@ An immutable class representing a command, which is anything that has a side
 effect or is asynchronous.
 """
 class Cmd:
-	def __init__(self, performer_getter, map_functions=[], dependent=None):
+	def __init__(self, performer_getter, map_functions=None, dependent=None):
 		# A function that returns a function that performs the side effect,
 		# given the result from `dependent`. This ideally should be pure.
 		self.performer_getter = performer_getter
 
 		# Transform functions to perform on the resulting value
-		self.map_functions = []
+		self.map_functions = map_functions or []
 
 		# A Cmd that should be performed first before performing this command.
 		# The result from this Cmd will be passed to `performer_getter` for this

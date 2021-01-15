@@ -112,7 +112,7 @@ enum_pattern: "<" NAME any_pattern* ">"
 
 ?number_expression: sum_expression
 ?sum_expression: [sum_expression (ADD | SUBTRACT)] product_expression
-?product_expression: [product_expression (MULTIPLY | DIVIDE | ROUNDDIV | MODULO)] exponent_expression
+?product_expression: [product_expression (MULTIPLY | DIVIDE | MODULO)] exponent_expression
 // Exponentiation right to left associative
 ?exponent_expression: unary_expression [EXPONENT exponent_expression]
 ?unary_expression: record_access
@@ -159,7 +159,6 @@ ADD: "+"
 SUBTRACT: "-"
 MULTIPLY: "*"
 DIVIDE: "/"
-ROUNDDIV: "//"
 MODULO: "%"
 EXPONENT: "^"
 PUBLIC: "pub"

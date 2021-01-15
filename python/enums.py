@@ -1,7 +1,7 @@
 from type import NTypeVars, apply_generics_to
 
 class EnumType(NTypeVars):
-	def __init__(self, name, variants, typevars=[], original=None):
+	def __init__(self, name, variants, typevars=None, original=None):
 		super(EnumType, self).__init__(name, typevars, original=original)
 		self.variants = variants
 
@@ -15,9 +15,9 @@ class EnumType(NTypeVars):
 		return type(self)(self.name, self.variants, typevars, original=self.base_type)
 
 class EnumValue:
-	def __init__(self, variant, values=[]):
+	def __init__(self, variant, values=None):
 		self.variant = variant
-		self.values = values
+		self.values = values or []
 
 	def __repr__(self):
 		return '<' + self.variant + ''.join(' ' + repr(value) for value in self.values) + '>'
@@ -30,6 +30,6 @@ class EnumValue:
 		return lambda *values: cls(variant, values)
 
 class EnumPattern:
-	def __init__(self, variant, patterns=[]):
+	def __init__(self, variant, patterns=None):
 		self.variant = variant
-		self.patterns = patterns
+		self.patterns = patterns or []

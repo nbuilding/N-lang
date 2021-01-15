@@ -1,57 +1,13 @@
 import fek
 import SystemIO
 
-print fek
-
 let discord = imp discord
 
 <discord.start "uau">
 
 print <discord.getKey>
 
-type state = <alive float>
-  | <dead int list[str]>
-  | unborn
-let billy: state = <dead 2020 ["Died due to Covid", "ok"]>
-print billy
-
-if let <dead wow ok> = billy {
-  print (wow, ok)
-}
-
-type myMaybe[t] = <myYes t>
-  | myNothing
-let ok: myMaybe[str] = myNothing
-print (ok = myNothing)
-
-alias pair[t] = (t, t)
-alias strPair = pair[str]
-let hmm: strPair = ("ok", "lol")
-print hmm
-
 let runner = imp runner
-
-let main = [test:int test1:str] -> bool {
-	print "# Main"
-	print test
-	print test1
-	// if test1 == hi {return true}
-	return false
-}
-
-let singleton = [[a] item: a] -> list[a] {
-  let list: list[a] = [item]
-  return list
-}
-print <singleton \t>
-
-let pairSingleton = [[a, b] item1:a item2:b] -> list[(a, b)] {
-  let pair: (a, b) = (item1, item2)
-  //let type_error: int = "wow"
-  return [pair]
-}
-//let type_error2: int = "wow"
-print <pairSingleton 1 "2">
 
 let thenHelper = [[t] command:cmd[t] _:()] -> cmd[t] {
   return command
