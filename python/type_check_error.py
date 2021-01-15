@@ -45,6 +45,8 @@ class TypeCheckError:
 		return 'TypeCheckError(%s, %s)' % (repr(self.datum), repr(self.message))
 
 	def compare(self, other):
+		if type(other) != TypeCheckError:
+			return False
 		return other.datum == self.datum and other.message == self.message
 
 def display_type(n_type, color=True):

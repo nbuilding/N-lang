@@ -7,7 +7,7 @@ def _prepare(sc):
 	scope = sc
 
 def get(args):
-	url, *rest:
+	url, *rest = args
 	params = None
 	headers = None
 	try:

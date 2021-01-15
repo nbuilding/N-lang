@@ -51,8 +51,8 @@ def parse_file(file, check=False):
 	if check:
 		scope = type_check(file, tree, import_scope)
 		import_scope.variables = {**import_scope.variables, **scope.variables}
-		import_scope.errors += scope.errors
-		import_scope.warnings += scope.warnings
+		import_scope.errors += scope.errors[:]
+		import_scope.warnings += scope.warnings[:]
 	else:
 		import_scope.variables = {**import_scope.variables, **parse_tree(tree, import_scope).variables}
 	return import_scope, file
@@ -880,6 +880,7 @@ class Scope:
 			return n_list_type.with_typevars([contained_type])
 		elif expr.data == "impn":
 			impn, f = parse_file(expr.children[0] + ".n", True)
+			print(expr.children[0], impn.errors)
 			if len(impn.errors) != 0:
 				self.errors.append(ImportedError(impn.errors[:], f))
 			if len(impn.warnings) != 0:

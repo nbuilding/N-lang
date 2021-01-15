@@ -3,7 +3,11 @@ import SystemIO
 
 print fek
 
+let discord = imp discord
 
+<discord.start "uau">
+
+print <discord.getKey>
 
 type state = <alive float>
   | <dead int list[str]>
