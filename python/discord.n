@@ -3,6 +3,58 @@ import request
 // important variables
 let key:str = ""
 
+// custom types
+
+type status = online
+            | away
+            | offline
+
+alias role = {
+	color:color
+	name:str
+	rank:int
+}
+
+alias member = {
+	id:str
+	name:str
+	nickname:str
+	icon:str
+	roles:[role]
+	bot:bool
+	status:status
+	customStatus:maybe[str]
+}
+
+alias guild = {
+	id:str
+	name:str
+	emojis:[str]
+	icon:str // link maybe idk
+	members:[member]
+	banlist:[member]
+}
+
+alias channel = {
+	id:str
+	name:str
+	guild:guild
+	membersAllowed:[member]
+}
+
+alias message = {
+	id:str
+	content:str
+	sender:member
+	textChannel:bool
+}
+
+alias reaction = {
+	emoji:str
+	message:message
+	sender:member
+}
+
 // functions
 let pub start = [k:str] -> () {
 	var key = k

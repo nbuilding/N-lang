@@ -46,6 +46,7 @@ anonymous_func: arguments "->" NAME ":" (instruction (";" instruction)*)
 char: "\\" ( escape_code | "{" /./ "}")
 escape_code: /[tnr]/
 tupledef: "(" types ("," types)* ")"
+recorddef: "{" (name_type (";" | "\n"))* name_type (";" | "\n")? "}"
 with_typevars: NAME "[" types ("," types)* "]"
 declaration_with_typevars: NAME ("[" types ("," types)* "]")?
 tupleval: "(" expression ("," expression)* ")"
