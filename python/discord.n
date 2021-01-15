@@ -20,7 +20,7 @@ alias member = {
 	name:str
 	nickname:str
 	icon:str
-	roles:[role]
+	roles:list[role]
 	bot:bool
 	status:status
 	customStatus:maybe[str]
@@ -29,17 +29,17 @@ alias member = {
 alias guild = {
 	id:str
 	name:str
-	emojis:[str]
+	emojis:list[str]
 	icon:str // link maybe idk
-	members:[member]
-	banlist:[member]
+	members:list[member]
+	banlist:list[member]
 }
 
 alias channel = {
 	id:str
 	name:str
 	guild:guild
-	membersAllowed:[member]
+	membersAllowed:list[member]
 }
 
 alias message = {
@@ -53,6 +53,10 @@ alias reaction = {
 	emoji:str
 	message:message
 	sender:member
+}
+
+alias uauauau = {
+	id:str
 }
 
 // functions

@@ -90,6 +90,7 @@ enum_pattern: "<" NAME any_pattern* ">"
 
 ?types: NAME
       | tupledef
+      | recorddef
       | with_typevars
       | UNIT
 
