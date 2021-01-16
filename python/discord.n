@@ -11,6 +11,12 @@ type status = online
             | away
             | offline
 
+alias color = {
+	r:int
+	g:int
+	b:int
+}
+
 alias role = {
 	color:color
 	name:str
@@ -59,27 +65,35 @@ alias reaction = {
 let parseUserData = [data:str] -> member{
 	let parsed = data
 	               |> <split \{,}>
+	   
 	return {
-		id: data
-			  |> <itemAt 0>
-			  |> <split \{:}>
-			  |> <itemAt 1>
-			  |> <substring 1 -1>
-		name: data
-				|> <itemAt 1>
+		id: parsed
+				|> <itemAt 0>
+				|> <default "">
 				|> <split \{:}>
 				|> <itemAt 1>
+				|> <default "">
 				|> <substring 1 -1>
-		icon: data
-				|> <itemAt 2>
-				|> <split \{:}>
-				|> <itemAt 1>
-				|> <substring 1 -1>
-		bot: data
-			   |> <itemAt 6>
-			   |> <split \{:}>
-			   |> <itemAt 1>
-			   |> <strip> == "true"
+		name: parsed
+				  |> <itemAt 1>
+				  |> <default "">
+				  |> <split \{:}>
+				  |> <itemAt 1>
+				  |> <default "">
+				  |> <substring 1 -1>
+				  |> <itemAt 2>
+				  |> <default "">
+				  |> <split \{:}>
+				  |> <itemAt 1>
+				  |> <default "">
+				  |> <substring 1 -1>
+		bot: (parsed
+			      |> <itemAt 6>
+				  |> <default "">
+			      |> <split \{:}>
+			      |> <itemAt 1>
+				  |> <default "">
+			      |> <strip>) == "true"
 
 	}
 }
@@ -96,8 +110,8 @@ let pub getKey = [] -> str{
 }
 
 let pub getSelf = [] -> (bool, member) {
-	let r = request.<get "https://discord.com/api/users/@me">
-	if r.code != 200{
+	let r = <request.get "https://discord.com/api/users/@me">
+	if r.code /= 200{
 		return (false, {
 			id:""
 			name:""
