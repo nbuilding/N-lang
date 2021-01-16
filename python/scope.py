@@ -10,6 +10,7 @@ from type import NType, NGenericType, NAliasType, NTypeVars, NModule, apply_gene
 from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
 from native_types import n_list_type, n_cmd_type
+from cmd import Cmd
 from type_check_error import TypeCheckError, display_type
 from display import display_value
 from operation_types import binary_operation_types, unary_operation_types, comparable_types, iterable_types
@@ -539,7 +540,13 @@ class Scope:
 			if not using_await_future.done():
 				using_await_future.set_result((True, None))
 				await cmd_resume_future
-			return await command.eval()
+			if isinstance(command, Cmd):
+				return await command.eval()
+			else:
+				# Sometimes cmd functions will return the contained value if
+				# they don't use await. That's fine because type checking will
+				# allow it, but the interpreter doesn't know that.
+				return command
 		else:
 			print('(parse tree):', expr)
 			raise SyntaxError("Unexpected command/expression type %s" % expr.data)
