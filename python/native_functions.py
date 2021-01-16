@@ -9,10 +9,7 @@ from enums import EnumType, EnumValue
 from native_types import n_list_type, n_cmd_type, n_maybe_type, maybe_generic, none, yes
 
 def substr(start, end, string):
-	try:
-		return string[start:end]
-	except:
-		return ""
+	return string[start:end]
 
 def char_at(index, string):
 	if index < 0 or index >= len(string):
@@ -29,11 +26,8 @@ def item_at(index, lis):
 def length(string):
 	try:
 		return len(string)
-	except:
-		try:
-			return len(str(string))
-		except:
-			return 0
+	except TypeError:
+		return len(str(string))
 
 def type_display(o):
 	if type(o) == Function:
@@ -47,7 +41,9 @@ def with_default(default_value, maybe_value):
 		return default_value
 
 def cmd_then(n_function, cmd):
-	return cmd.then(lambda result: n_function.run([result]).eval)
+	async def then(result):
+		return (await n_function.run([result])).eval
+	return cmd.then(then)
 
 # Define global functions/variables
 def add_funcs(global_scope):
@@ -111,7 +107,7 @@ def add_funcs(global_scope):
 	global_scope.add_native_function(
 		"split",
 		[("splitter", "char"), ("string", "str")],
-		(lark.Token("LIST", "list"), "str"),
+		n_list_type.with_typevars(["str"]),
 		lambda string, splitter: string.split(splitter)
 	)
 	global_scope.add_native_function(

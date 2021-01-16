@@ -63,14 +63,14 @@ def type_check(file, tree):
 		))
 	return (len(errors), len(warnings))
 
-def parse_tree(tree):
+async def parse_tree(tree):
 	if tree.data == "start":
 		scope = global_scope.new_scope()
 		for child in tree.children:
-			scope.eval_command(child)
+			await scope.eval_command(child)
 		for variable in reversed(scope.variables.values()):
 			if variable.public and isinstance(variable.value, Cmd):
-				asyncio.run(variable.value.eval())
+				await variable.value.eval()
 				break
 	else:
 		raise SyntaxError("Unable to run parse_tree on non-starting branch")
@@ -104,4 +104,4 @@ if error_count > 0 or args.check:
 	print(f"{Fore.BLUE}Ran with {Fore.RED}{error_count} error{error_s}{Fore.BLUE} and {Fore.YELLOW}{warning_count} warning{warning_s}{Fore.BLUE}.{Style.RESET_ALL}")
 	exit()
 
-parse_tree(tree)
+asyncio.run(parse_tree(tree))

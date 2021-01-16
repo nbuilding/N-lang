@@ -6,8 +6,9 @@ effect or is asynchronous.
 """
 class Cmd:
 	def __init__(self, performer_getter, map_functions=None, dependent=None):
-		# A function that returns a function that performs the side effect,
-		# given the result from `dependent`. This ideally should be pure.
+		# A non-async function that, when given the result from `dependent`,
+		# returns a function (can be async or not) that performs the side
+		# effect. The function-returning function should ideally should be pure.
 		self.performer_getter = performer_getter
 
 		# Transform functions to perform on the resulting value
