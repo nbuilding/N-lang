@@ -65,7 +65,7 @@ alias reaction = {
 let parseUserData = [data:str] -> member{
 	let parsed = data
 	               |> <split \{,}>
-	   
+
 	return {
 		id: parsed
 				|> <itemAt 0>
@@ -81,6 +81,7 @@ let parseUserData = [data:str] -> member{
 				  |> <itemAt 1>
 				  |> <default "">
 				  |> <substring 1 -1>
+		icon: parsed
 				  |> <itemAt 2>
 				  |> <default "">
 				  |> <split \{:}>

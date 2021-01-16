@@ -45,10 +45,12 @@ def type_check(file, tree):
 	warnings = []
 	if len(scope.errors) > 0 or args.check:
 		# remove duplicate errors and warnings
-		errors = [scope.errors[0]]
-		for i in range(1, len(scope.errors)):
-			if not scope.errors[i-1].compare(scope.errors[i]):
-				errors.append(scope.errors[i])
+		errors = []
+		if len(scope.errors) > 0:
+			errors = [scope.errors[0]]
+			for i in range(1, len(scope.errors)):
+				if not scope.errors[i-1].compare(scope.errors[i]):
+					errors.append(scope.errors[i])
 
 		warnings = []
 		if len(scope.warnings) > 0:

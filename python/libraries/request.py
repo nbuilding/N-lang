@@ -28,4 +28,4 @@ def post(args):
 
 
 def _values():
-	return {"post": {"code": "int", "reason": "str", "text": "str"}, "get": {"code": "int", "reason": "str", "text": "str"}}
+	return {"post": ("str", {"code": "int", "reason": "str", "text": "str"}), "get": ("str", {"code": "int", "reason": "str", "text": "str"})}

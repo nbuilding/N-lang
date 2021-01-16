@@ -22,7 +22,6 @@ class File:
 		return parser.parse('\n'.join(self.lines))
 
 	def get_line(self, line):
-		print(len(self.lines), line)
 		try:
 			return self.lines[line - 1]
 		except:
