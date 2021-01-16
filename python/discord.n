@@ -3,6 +3,8 @@ import request
 // important variables
 let key:str = ""
 
+let header = {Authorization: "Bot " + key}
+
 // custom types
 
 type status = online
@@ -18,19 +20,17 @@ alias role = {
 alias member = {
 	id:str
 	name:str
-	nickname:str
 	icon:str
-	roles:list[role]
 	bot:bool
-	status:status
-	customStatus:maybe[str]
+//	status:status this needs a gateway
+//	customStatus:maybe[str] this needs a gateway
 }
 
 alias guild = {
 	id:str
 	name:str
 	emojis:list[str]
-	icon:str // link maybe idk
+	icon:str
 	members:list[member]
 	banlist:list[member]
 }
@@ -55,16 +55,60 @@ alias reaction = {
 	sender:member
 }
 
-alias uauauau = {
-	id:str
+// internal functions
+let parseUserData = [data:str] -> member{
+	let parsed = data
+	               |> <split \{,}>
+	return {
+		id: data
+			  |> <itemAt 0>
+			  |> <split \{:}>
+			  |> <itemAt 1>
+			  |> <substring 1 -1>
+		name: data
+				|> <itemAt 1>
+				|> <split \{:}>
+				|> <itemAt 1>
+				|> <substring 1 -1>
+		icon: data
+				|> <itemAt 2>
+				|> <split \{:}>
+				|> <itemAt 1>
+				|> <substring 1 -1>
+		bot: data
+			   |> <itemAt 6>
+			   |> <split \{:}>
+			   |> <itemAt 1>
+			   |> <strip> == "true"
+
+	}
 }
 
-// functions
+// public functions
 let pub start = [k:str] -> () {
 	var key = k
+	var header = {Authorization: "Bot " + key}
 	// other important functions idk what is going to happen here
 }
 
 let pub getKey = [] -> str{
 	return key
+}
+
+let pub getSelf = [] -> (bool, member) {
+	let r = request.<get "https://discord.com/api/users/@me">
+	if r.code != 200{
+		return (false, {
+			id:""
+			name:""
+			icon:""
+			bot:false
+//			status:offline
+//			customStatus:null
+		})
+	}
+
+	return (true, <parseUserData r.text>)
+
+
 }

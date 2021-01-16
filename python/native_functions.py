@@ -109,6 +109,18 @@ def add_funcs(global_scope):
 		length,
 	)
 	global_scope.add_native_function(
+		"split",
+		[("splitter", "char"), ("string", "str")],
+		(lark.Token("LIST", "list"), "str"),
+		lambda string, splitter: string.split(splitter)
+	)
+	global_scope.add_native_function(
+		"strip",
+		[("string", "str")],
+		"str",
+		lambda string: string.strip()
+	)
+	global_scope.add_native_function(
 		"type",
 		[("obj", NGenericType("t"))],
 		"str",

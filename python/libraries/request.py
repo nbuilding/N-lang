@@ -9,15 +9,13 @@ def _prepare(sc):
 
 def get(args):
 	url, *rest = args
-	params = None
 	headers = None
 	try:
-		params = rest[0]
 		headers = rest[1]
 	except:
 		pass
 
-	r = requests.post(url, prams=params, headers=headers)
+	r = requests.post(url, headers=headers)
 	return {"code": r.status_code, "response": r.reason, "text": r.text}
 
 def post(args):

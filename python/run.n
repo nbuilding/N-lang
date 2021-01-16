@@ -3,7 +3,9 @@ import SystemIO
 
 let discord = imp discord
 
-<discord.start "uau">
+<discord.start "put the token here">
+
+print <discord.getSelf>
 
 print <discord.getKey>
 
