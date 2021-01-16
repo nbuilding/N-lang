@@ -47,7 +47,9 @@ def with_default(default_value, maybe_value):
 		return default_value
 
 def cmd_then(n_function, cmd):
-	return cmd.then(lambda result: n_function.run([result]).eval)
+	async def then(result):
+		return (await n_function.run([result])).eval
+	return cmd.then(then)
 
 # Define global functions/variables
 def add_funcs(global_scope):

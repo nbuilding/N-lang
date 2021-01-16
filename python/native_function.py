@@ -9,7 +9,7 @@ class NativeFunction(Function):
 		self.function = function
 		self.argument_cache = argument_cache
 
-	def run(self, arguments):
+	async def run(self, arguments):
 		arguments = self.argument_cache + arguments
 		if len(arguments) < len(self.arguments):
 			return NativeFunction(self.scope, self.arguments, self.returntype, self.function, argument_cache=self.argument_cache + arguments)
