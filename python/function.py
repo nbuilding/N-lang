@@ -1,4 +1,6 @@
+import asyncio
 from variable import Variable
+from cmd import Cmd
 from type_check_error import display_type
 
 class Function(Variable):
@@ -28,7 +30,8 @@ class Function(Variable):
 
 		async def run_command():
 			_, value = await scope.eval_command(self.codeblock)
-			using_await_future.set((False, value))
+			if not using_await_future.done():
+				using_await_future.set_result((False, value))
 			return value
 		# Run eval_command in a parallel Task because the await operator might
 		# block it.

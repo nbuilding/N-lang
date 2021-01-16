@@ -414,7 +414,10 @@ class Scope:
 				mainarg = expr.children[0]
 				function, *arguments = expr.children[1].children
 				arguments.append(mainarg)
-			return await (await self.eval_expr(function)).run([await self.eval_expr(arg) for arg in arguments])
+			arg_values = []
+			for arg in arguments:
+				arg_values.append(await self.eval_expr(arg))
+			return await (await self.eval_expr(function)).run(arg_values)
 		elif expr.data == "or_expression":
 			left, _, right = expr.children
 			return await self.eval_expr(left) or await self.eval_expr(right)
@@ -515,11 +518,20 @@ class Scope:
 		elif expr.data == "record_access":
 			return (await self.eval_expr(expr.children[0]))[expr.children[1].value]
 		elif expr.data == "tupleval":
-			return tuple([await self.eval_expr(e) for e in expr.children])
+			values = []
+			for e in expr.children:
+				values.append(await self.eval_expr(e))
+			return tuple(values)
 		elif expr.data == "listval":
-			return [await self.eval_expr(e) for e in expr.children]
+			values = []
+			for e in expr.children:
+				values.append(await self.eval_expr(e))
+			return values
 		elif expr.data == "recordval":
-			return dict(await self.eval_record_entry(entry) for entry in expr.children)
+			entries = []
+			for entry in expr.children:
+				entries.append(await self.eval_record_entry(entry))
+			return dict(entries)
 		elif expr.data == "await_expression":
 			value, _ = expr.children
 			command = await self.eval_expr(value)
