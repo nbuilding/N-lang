@@ -118,9 +118,11 @@ enum_pattern: "<" NAME any_pattern* ">"
 ?product_expression: [product_expression (MULTIPLY | DIVIDE | MODULO)] exponent_expression
 // Exponentiation right to left associative
 ?exponent_expression: unary_expression [EXPONENT exponent_expression]
-?unary_expression: record_access
+?unary_expression: await_expression
                  | NOT unary_expression
                  | SUBTRACT unary_expression
+?await_expression: record_access
+                 | await_expression AWAIT
 ?record_access: value
               | record_access "." NAME
 value: NUMBER
@@ -164,6 +166,7 @@ MULTIPLY: "*"
 DIVIDE: "/"
 MODULO: "%"
 EXPONENT: "^"
+AWAIT: "!"
 PUBLIC: "pub"
 UNIT: "()"
 %import common.ESCAPED_STRING -> STRING
