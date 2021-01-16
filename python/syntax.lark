@@ -157,7 +157,7 @@ GORE: ">="
 LORE: "<="
 LESS: "<"
 GREATER: ">"
-NEQUALS: ("/=" | "!=")
+NEQUALS: "/="
 NOT_KW: "not"
 NOT: "~"
 ADD: "+"

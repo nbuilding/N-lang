@@ -46,22 +46,22 @@ def parse_file(file):
 		print(f"{spaces}{Fore.RED}{Style.BRIGHT}^{Style.RESET_ALL}")
 		exit()
 
-	return import_scope, tree
+	return import_scope, tree, file
 
 async def eval_file(file):
-	import_scope, tree = parse_file(file)
+	import_scope, tree, _ = parse_file(file)
 
 	import_scope.variables = {**import_scope.variables, **(await parse_tree(tree, import_scope)).variables}
 	return import_scope
 
 def type_check_file(file):
-	import_scope, tree = parse_file(file)
+	import_scope, tree, text_file = parse_file(file)
 
 	scope = type_check(file, tree, import_scope)
 	import_scope.variables = {**import_scope.variables, **scope.variables}
 	import_scope.errors += scope.errors[:]
 	import_scope.warnings += scope.warnings[:]
-	return import_scope, file
+	return import_scope, text_file
 
 def type_check(file, tree, import_scope):
 	scope = import_scope.new_scope(inherit_errors=False)
@@ -692,7 +692,6 @@ class Scope:
 		elif value.type == "NAME":
 			variable = self.get_variable(value.value, err=False)
 			if variable is None:
-				print("warning!", id(self.errors))
 				self.errors.append(TypeCheckError(value, "You haven't yet defined %s." % value.value))
 				return None
 			else:
@@ -833,7 +832,7 @@ class Scope:
 			contained_type = None
 			if n_cmd_type.is_type(value_type):
 				contained_type = value_type.typevars[0]
-			else:
+			elif value_type is not None:
 				self.errors.append(TypeCheckError(expr, "You can only use the await operator on cmds, not %s." % display_type(value_type)))
 			parent_function = self.get_parent_function()
 			if parent_function is None:

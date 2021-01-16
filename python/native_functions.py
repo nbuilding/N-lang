@@ -107,7 +107,7 @@ def add_funcs(global_scope):
 	global_scope.add_native_function(
 		"split",
 		[("splitter", "char"), ("string", "str")],
-		(lark.Token("LIST", "list"), "str"),
+		n_list_type.with_typevars(["str"]),
 		lambda string, splitter: string.split(splitter)
 	)
 	global_scope.add_native_function(
