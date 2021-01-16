@@ -9,7 +9,8 @@ from native_function import NativeFunction
 from type import NType, NGenericType, NAliasType, NTypeVars, NModule, apply_generics, apply_generics_to, resolve_equal_types
 from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
-from native_types import n_list_type
+from native_types import n_list_type, n_cmd_type
+from cmd import Cmd
 from type_check_error import TypeCheckError, display_type
 from display import display_value
 from operation_types import binary_operation_types, unary_operation_types, comparable_types, iterable_types
@@ -17,10 +18,9 @@ from file import File
 from imported_error import ImportedError
 import native_functions
 
-def parse_file(file, check=False):
+def parse_file(file):
 	import_scope = Scope()
 	native_functions.add_funcs(import_scope)
-
 
 	with open("syntax.lark", "r") as f:
 		parse = f.read()
@@ -34,11 +34,9 @@ def parse_file(file, check=False):
 	try:
 		tree = file.parse(n_parser)
 	except lark.exceptions.UnexpectedCharacters as e:
-
 		for i,line in enumerate(file.lines):
 			if e.get_context(file.get_text(), 99999999999999)[0:-2].strip() == line.strip():
 				break
-
 
 		spaces = " "*(len(str(i+1) + " |") +  1)
 		spaces_arrow = " "*(len(str(i+1) + " |") - 3)
@@ -48,13 +46,21 @@ def parse_file(file, check=False):
 		print(f"{spaces}{Fore.RED}{Style.BRIGHT}^{Style.RESET_ALL}")
 		exit()
 
-	if check:
-		scope = type_check(file, tree, import_scope)
-		import_scope.variables = {**import_scope.variables, **scope.variables}
-		import_scope.errors += scope.errors
-		import_scope.warnings += scope.warnings
-	else:
-		import_scope.variables = {**import_scope.variables, **parse_tree(tree, import_scope).variables}
+	return import_scope, tree
+
+async def eval_file(file):
+	import_scope, tree = parse_file(file)
+
+	import_scope.variables = {**import_scope.variables, **(await parse_tree(tree, import_scope)).variables}
+	return import_scope
+
+def type_check_file(file):
+	import_scope, tree = parse_file(file)
+
+	scope = type_check(file, tree, import_scope)
+	import_scope.variables = {**import_scope.variables, **scope.variables}
+	import_scope.errors += scope.errors
+	import_scope.warnings += scope.warnings
 	return import_scope, file
 
 def type_check(file, tree, import_scope):
@@ -66,11 +72,11 @@ def type_check(file, tree, import_scope):
 		scope.errors.append(TypeCheckError(tree, "Internal issue: I cannot type check from a non-starting branch."))
 	return scope
 
-def parse_tree(tree, import_scope):
+async def parse_tree(tree, import_scope):
 	if tree.data == "start":
 		scope = import_scope.new_scope(inherit_errors=False)
 		for child in tree.children:
-			scope.eval_command(child)
+			await scope.eval_command(child)
 		return scope
 	else:
 		raise SyntaxError("Unable to run parse_tree on non-starting branch")
@@ -342,9 +348,9 @@ class Scope:
 			self.assign_to_pattern(cond_pattern_and_src, value_or_type, warn, path)
 		return True
 
-	def eval_record_entry(self, entry):
+	async def eval_record_entry(self, entry):
 		if type(entry) is lark.Tree:
-			return entry.children[0].value, self.eval_expr(entry.children[1].children[0])
+			return entry.children[0].value, await self.eval_expr(entry.children[1].children[0])
 		else:
 			return entry.value, self.eval_value(entry)
 
@@ -372,16 +378,16 @@ class Scope:
 	"""
 	Evaluate a parsed expression with Trees and Tokens from Lark.
 	"""
-	def eval_expr(self, expr):
+	async def eval_expr(self, expr):
 		if type(expr) is lark.Token:
 			return self.eval_value(expr)
 
 		if expr.data == "ifelse_expr":
 			condition, if_true, if_false = expr.children
-			if self.eval_expr(condition):
-				return self.eval_expr(if_true)
+			if await self.eval_expr(condition):
+				return await self.eval_expr(if_true)
 			else:
-				return self.eval_expr(if_false)
+				return await self.eval_expr(if_false)
 		elif expr.data == "function_def" or expr.data == "anonymous_func":
 			if expr.data == "function_def":
 				arguments, returntype, codeblock = expr.children
@@ -409,16 +415,19 @@ class Scope:
 				mainarg = expr.children[0]
 				function, *arguments = expr.children[1].children
 				arguments.append(mainarg)
-			return self.eval_expr(function).run([self.eval_expr(arg) for arg in arguments])
+			arg_values = []
+			for arg in arguments:
+				arg_values.append(await self.eval_expr(arg))
+			return await (await self.eval_expr(function)).run(arg_values)
 		elif expr.data == "or_expression":
 			left, _, right = expr.children
-			return self.eval_expr(left) or self.eval_expr(right)
+			return await self.eval_expr(left) or await self.eval_expr(right)
 		elif expr.data == "and_expression":
 			left, _, right = expr.children
-			return self.eval_expr(left) and self.eval_expr(right)
+			return await self.eval_expr(left) and await self.eval_expr(right)
 		elif expr.data == "not_expression":
 			_, value = expr.children
-			return not self.eval_expr(value)
+			return not await self.eval_expr(value)
 		elif expr.data == "compare_expression":
 			# compare_expression chains leftwards. It's rather complex because it
 			# chains but doesn't accumulate a value unlike addition. Also, there's a
@@ -428,7 +437,7 @@ class Scope:
 			if left.data == "compare_expression":
 				# If left side is a comparison, it also needs to be true for the
 				# entire expression to be true.
-				if not self.eval_expr(left):
+				if not await self.eval_expr(left):
 					return False
 				# Use the left side's right value as the comparison value for this
 				# comparison. For example, for `1 = 2 = 3`, where `1 = 2` is `left`,
@@ -436,48 +445,48 @@ class Scope:
 				left = left.children[2]
 			comparison = comparison.type
 			if comparison == "EQUALS":
-				return self.eval_expr(left) == self.eval_expr(right)
+				return await self.eval_expr(left) == await self.eval_expr(right)
 			elif comparison == "GORE":
-				return self.eval_expr(left) >= self.eval_expr(right)
+				return await self.eval_expr(left) >= await self.eval_expr(right)
 			elif comparison == "LORE":
-				return self.eval_expr(left) <= self.eval_expr(right)
+				return await self.eval_expr(left) <= await self.eval_expr(right)
 			elif comparison == "LESS":
-				return self.eval_expr(left) < self.eval_expr(right)
+				return await self.eval_expr(left) < await self.eval_expr(right)
 			elif comparison == "GREATER":
-				return self.eval_expr(left) > self.eval_expr(right)
+				return await self.eval_expr(left) > await self.eval_expr(right)
 			elif comparison == "NEQUALS":
-				return self.eval_expr(left) != self.eval_expr(right)
+				return await self.eval_expr(left) != await self.eval_expr(right)
 			else:
 				raise SyntaxError("Unexpected operation for compare_expression: %s" % comparison)
 		elif expr.data == "sum_expression":
 			left, operation, right = expr.children
 			if operation.type == "ADD":
-				return self.eval_expr(left) + self.eval_expr(right)
+				return await self.eval_expr(left) + await self.eval_expr(right)
 			elif operation.type == "SUBTRACT":
-				return self.eval_expr(left) - self.eval_expr(right)
+				return await self.eval_expr(left) - await self.eval_expr(right)
 			else:
 				raise SyntaxError("Unexpected operation for sum_expression: %s" % operation)
 		elif expr.data == "product_expression":
 			left, operation, right = expr.children
 			if operation.type == "MULTIPLY":
-				return self.eval_expr(left) * self.eval_expr(right)
+				return await self.eval_expr(left) * await self.eval_expr(right)
 			elif operation.type == "DIVIDE":
-				return self.eval_expr(left) / self.eval_expr(right)
+				return await self.eval_expr(left) / await self.eval_expr(right)
 			elif operation.type == "ROUNDDIV":
-				return self.eval_expr(left) // self.eval_expr(right)
+				return await self.eval_expr(left) // await self.eval_expr(right)
 			elif operation.type == "MODULO":
-				return self.eval_expr(left) % self.eval_expr(right)
+				return await self.eval_expr(left) % await self.eval_expr(right)
 			else:
 				raise SyntaxError("Unexpected operation for product_expression: %s" % operation)
 		elif expr.data == "exponent_expression":
 			left, _, right = expr.children
-			return self.eval_expr(left) ** self.eval_expr(right)
+			return await self.eval_expr(left) ** await self.eval_expr(right)
 		elif expr.data == "unary_expression":
 			operation, value = expr.children
 			if operation.type == "NEGATE":
-				return -self.eval_expr(value)
+				return -await self.eval_expr(value)
 			elif operation.type == "NOT":
-				return not self.eval_expr(value)
+				return not await self.eval_expr(value)
 			else:
 				raise SyntaxError("Unexpected operation for unary_expression: %s" % operation)
 		elif expr.data == "char":
@@ -497,24 +506,47 @@ class Scope:
 		elif expr.data == "value":
 			token_or_tree = expr.children[0]
 			if type(token_or_tree) is lark.Tree:
-				return self.eval_expr(token_or_tree)
+				return await self.eval_expr(token_or_tree)
 			else:
 				return self.eval_value(token_or_tree)
 		elif expr.data == "impn":
-			val = parse_file(expr.children[0] + ".n")[0]
+			val = await eval_file(expr.children[0] + ".n")
 			holder = {}
 			for key in val.variables.keys():
 				if val.variables[key].public:
 					holder[key] = val.variables[key].value
 			return holder
 		elif expr.data == "record_access":
-			return self.eval_expr(expr.children[0])[expr.children[1].value]
+			return (await self.eval_expr(expr.children[0]))[expr.children[1].value]
 		elif expr.data == "tupleval":
-			return tuple([self.eval_expr(e) for e in expr.children])
+			values = []
+			for e in expr.children:
+				values.append(await self.eval_expr(e))
+			return tuple(values)
 		elif expr.data == "listval":
-			return [self.eval_expr(e) for e in expr.children]
+			values = []
+			for e in expr.children:
+				values.append(await self.eval_expr(e))
+			return values
 		elif expr.data == "recordval":
-			return dict(self.eval_record_entry(entry) for entry in expr.children)
+			entries = []
+			for entry in expr.children:
+				entries.append(await self.eval_record_entry(entry))
+			return dict(entries)
+		elif expr.data == "await_expression":
+			value, _ = expr.children
+			command = await self.eval_expr(value)
+			_, using_await_future, cmd_resume_future = self.get_parent_function()
+			if not using_await_future.done():
+				using_await_future.set_result((True, None))
+				await cmd_resume_future
+			if isinstance(command, Cmd):
+				return await command.eval()
+			else:
+				# Sometimes cmd functions will return the contained value if
+				# they don't use await. That's fine because type checking will
+				# allow it, but the interpreter doesn't know that.
+				return command
 		else:
 			print('(parse tree):', expr)
 			raise SyntaxError("Unexpected command/expression type %s" % expr.data)
@@ -522,11 +554,11 @@ class Scope:
 	"""
 	Evaluates a command given parsed Trees and Tokens from Lark.
 	"""
-	def eval_command(self, tree):
+	async def eval_command(self, tree):
 		if tree.data == "code_block":
 			exit, value = (False, None)
 			for instruction in tree.children:
-				exit, value = self.eval_command(instruction)
+				exit, value = await self.eval_command(instruction)
 				if exit:
 					return exit, value
 			return exit, value
@@ -554,17 +586,17 @@ class Scope:
 				scope = self.new_scope()
 
 				scope.assign_to_pattern(pattern, i)
-				exit, value = scope.eval_command(code)
+				exit, value = await scope.eval_command(code)
 				if exit:
 					return True, value
 		elif command.data == "print":
-			val = self.eval_expr(command.children[0])
+			val = await self.eval_expr(command.children[0])
 			if isinstance(val, str):
 				print(val)
 			else:
 				print(display_value(val, indent="  "))
 		elif command.data == "return":
-			return (True, self.eval_expr(command.children[0]))
+			return (True, await self.eval_expr(command.children[0]))
 		elif command.data == "declare":
 			modifier = ""
 			rest = command.children
@@ -573,28 +605,28 @@ class Scope:
 				rest = rest[1:]
 			name_type, value = rest
 			pattern, _ = self.get_name_type(name_type, get_type=False)
-			self.assign_to_pattern(pattern, self.eval_expr(value), False, None, modifier)
+			self.assign_to_pattern(pattern, await self.eval_expr(value), False, None, modifier)
 		elif command.data == "vary":
 			name, value = command.children
-			self.variables[name].value = self.eval_expr(value)
+			self.variables[name].value = await self.eval_expr(value)
 		elif command.data == "if":
 			condition, body = command.children
 			scope = self.new_scope()
 			if condition.data == "conditional_let":
 				pattern, value = condition.children
-				yes = scope.assign_to_cond_pattern(get_conditional_destructure_pattern(pattern), self.eval_expr(value))
+				yes = scope.assign_to_cond_pattern(get_conditional_destructure_pattern(pattern), await self.eval_expr(value))
 			else:
-				yes = self.eval_expr(condition)
+				yes = await self.eval_expr(condition)
 			if yes:
-				exit, value = scope.eval_command(body)
+				exit, value = await scope.eval_command(body)
 				if exit:
 					return (True, value)
 		elif command.data == "ifelse":
 			condition, if_true, if_false = command.children
-			if self.eval_expr(condition):
-				exit, value = self.new_scope().eval_command(if_true)
+			if await self.eval_expr(condition):
+				exit, value = await self.new_scope().eval_command(if_true)
 			else:
-				exit, value = self.new_scope().eval_command(if_false)
+				exit, value = await self.new_scope().eval_command(if_false)
 			if exit:
 				return (True, value)
 		elif command.data == "enum_definition":
@@ -613,7 +645,7 @@ class Scope:
 			# Type aliases are purely for type checking so they do nothing at runtime
 			pass
 		else:
-			self.eval_expr(command)
+			await self.eval_expr(command)
 
 		# No return
 		return (False, None)
@@ -773,6 +805,20 @@ class Scope:
 				return None
 			else:
 				return value_type[field.value]
+		elif expr.data == "await_expression":
+			value, _ = expr.children
+			value_type = self.type_check_expr(value)
+			contained_type = None
+			if n_cmd_type.is_type(value_type):
+				contained_type = value_type.typevars[0]
+			else:
+				self.errors.append(TypeCheckError(expr, "You can only use the await operator on cmds, not %s." % display_type(value_type)))
+			parent_function = self.get_parent_function()
+			if parent_function is None:
+				self.errors.append(TypeCheckError(expr, "You can't use the await operator outside a function."))
+			elif not n_cmd_type.is_type(parent_function.returntype):
+				self.errors.append(TypeCheckError(expr, "You can only use the await operator in a function that returns a cmd, but this function returns a %s." % display_type(parent_function.returntype)))
+			return contained_type
 
 		if len(expr.children) == 2 and type(expr.children[0]) is lark.Token:
 			operation, value = expr.children
@@ -860,7 +906,7 @@ class Scope:
 
 			return n_list_type.with_typevars([contained_type])
 		elif expr.data == "impn":
-			impn, f = parse_file(expr.children[0] + ".n", True)
+			impn, f = type_check_file(expr.children[0] + ".n")
 			if len(impn.errors) != 0:
 				self.errors.append(ImportedError(impn.errors[:], f))
 			if len(impn.warnings) != 0:
@@ -939,7 +985,12 @@ class Scope:
 			else:
 				# e.g. return []
 				_, incompatible = resolve_equal_types(parent_function.returntype, return_type)
-				if incompatible:
+				if n_cmd_type.is_type(parent_function.returntype):
+					if incompatible:
+						_, incompatible = resolve_equal_types(parent_function.returntype.typevars[0], return_type)
+					if incompatible:
+						self.errors.append(TypeCheckError(command.children[0], "You returned a %s, but the function is supposed to return a %s or a %s." % (display_type(return_type), display_type(parent_function.returntype), display_type(parent_function.returntype.typevars[0]))))
+				elif incompatible:
 					self.errors.append(TypeCheckError(command.children[0], "You returned a %s, but the function is supposed to return a %s." % (display_type(return_type), display_type(parent_function.returntype))))
 			return command
 		elif command.data == "declare":
