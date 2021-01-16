@@ -119,8 +119,8 @@ class Scope:
 		self.parent_function = parent_function
 		self.variables = {}
 		self.types = {}
-		self.errors = errors or []
-		self.warnings = warnings or []
+		self.errors = errors if errors is not None else []
+		self.warnings = warnings if warnings is not None else []
 
 	def new_scope(self, parent_function=None, inherit_errors=True):
 		return Scope(
@@ -660,6 +660,7 @@ class Scope:
 		elif value.type == "NAME":
 			variable = self.get_variable(value.value, err=False)
 			if variable is None:
+				print("warning!", id(self.errors))
 				self.errors.append(TypeCheckError(value, "You haven't yet defined %s." % value.value))
 				return None
 			else:
