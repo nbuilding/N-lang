@@ -3,7 +3,9 @@ import SystemIO
 
 let discord = imp discord
 
-<discord.start "put the token here">
+<discord.start "eee">
+
+print "uauauau"
 
 print <discord.getSelf>
 

@@ -8,14 +8,9 @@ def _prepare(sc):
 	scope = sc
 
 def get(args):
-	url, *rest = args
-	headers = None
-	try:
-		headers = rest[1]
-	except:
-		pass
+	url = args[0]
 
-	r = requests.post(url, headers=headers)
+	r = requests.get(url)
 	return {"code": r.status_code, "response": r.reason, "text": r.text}
 
 def post(args):

@@ -767,7 +767,7 @@ class Scope:
 			func_type = self.type_check_expr(function)
 			if func_type is None:
 				return None
-			if not isinstance(func_type, tuple) and not isinstance(func_type, NModule):
+			if not isinstance(func_type, tuple):
 				self.errors.append(TypeCheckError(expr, "You tried to call a %s, which isn't a function." % display_type(func_type)))
 				return None
 			*arg_types, return_type = func_type
