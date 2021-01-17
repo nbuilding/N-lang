@@ -6,7 +6,7 @@ from function import Function
 from type_check_error import display_type
 from type import NGenericType
 from enums import EnumType, EnumValue
-from native_types import n_list_type, n_cmd_type, n_maybe_type, maybe_generic, none, yes
+from native_types import n_list_type, n_map_type, NMap, n_cmd_type, n_maybe_type, maybe_generic, none, yes
 
 def substr(start, end, string):
 	return string[start:end]
@@ -44,6 +44,18 @@ def cmd_then(n_function, cmd):
 	async def then(result):
 		return (await n_function.run([result])).eval
 	return cmd.then(then)
+
+def map_from(entries):
+	# NMap extends dict so it's basically a dict, but this way we can
+	# distinguish between a record and a map.
+	return NMap(entries)
+
+def map_get(key, map):
+	item = map.get(key)
+	if item is None:
+		return none
+	else:
+		return yes(item)
 
 # Define global functions/variables
 def add_funcs(global_scope):
@@ -120,8 +132,8 @@ def add_funcs(global_scope):
 	yes_generic = NGenericType("t")
 	global_scope.add_native_function(
 		"yes",
-		[("value", n_maybe_type.with_typevars([yes_generic]))],
-		yes_generic,
+		[("value", yes_generic)],
+		n_maybe_type.with_typevars([yes_generic]),
 		yes,
 	)
 	default_generic = NGenericType("t")
@@ -131,13 +143,29 @@ def add_funcs(global_scope):
 		default_generic,
 		with_default,
 	)
-	map_generic_in = NGenericType("a")
-	map_generic_out = NGenericType("b")
+	then_generic_in = NGenericType("a")
+	then_generic_out = NGenericType("b")
 	global_scope.add_native_function(
 		"then",
-		[("thenFunction", (map_generic_in, n_cmd_type.with_typevars([map_generic_out]))), ("cmd", n_cmd_type.with_typevars([map_generic_in]))],
-		n_cmd_type.with_typevars([map_generic_out]),
+		[("thenFunction", (then_generic_in, n_cmd_type.with_typevars([then_generic_out]))), ("cmd", n_cmd_type.with_typevars([then_generic_in]))],
+		n_cmd_type.with_typevars([then_generic_out]),
 		cmd_then,
+	)
+	map_from_generic_key = NGenericType("k")
+	map_from_generic_value = NGenericType("v")
+	global_scope.add_native_function(
+		"mapFrom",
+		[("entries", n_list_type.with_typevars([[map_from_generic_key, map_from_generic_value]]))],
+		n_map_type.with_typevars([map_from_generic_key, map_from_generic_value]),
+		map_from,
+	)
+	map_get_generic_key = NGenericType("k")
+	map_get_generic_value = NGenericType("v")
+	global_scope.add_native_function(
+		"getValue",
+		[("key", map_get_generic_key), ("map", n_map_type.with_typevars([map_get_generic_key, map_get_generic_value]))],
+		n_maybe_type.with_typevars([map_get_generic_value]),
+		map_get,
 	)
 
 	global_scope.types['str'] = 'str'
@@ -146,5 +174,6 @@ def add_funcs(global_scope):
 	global_scope.types['float'] = 'float'
 	global_scope.types['bool'] = 'bool'
 	global_scope.types['list'] = n_list_type
+	global_scope.types['map'] = n_map_type
 	global_scope.types['cmd'] = n_cmd_type
 	global_scope.types['maybe'] = n_maybe_type
