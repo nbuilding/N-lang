@@ -236,7 +236,8 @@ class Scope:
 					self.errors.append(TypeCheckError(src, "%s (%s) has field(s) %s, but you haven't destructured them. (Hint: use `_` to denote unused fields.)" % (display_type(value_or_type), path_name, ", ".join(unused_keys))))
 			else:
 				if warn:
-					self.errors.append(TypeCheckError(src, "I can't destructure %s as a record because %s is not a record." % (path_name, display_type(value_or_type))))
+					if value_or_type is not None:
+						self.errors.append(TypeCheckError(src, "I can't destructure %s as a record because %s is not a record." % (path_name, display_type(value_or_type))))
 				else:
 					raise TypeError("Destructuring non-record as record.")
 			for key, (sub_pattern, parse_src) in pattern.items():
@@ -254,7 +255,8 @@ class Scope:
 			is_tuple = isinstance(value_or_type, list) if warn else isinstance(value_or_type, tuple)
 			if not is_tuple:
 				if warn:
-					self.errors.append(TypeCheckError(src, "I can't destructure %s as a tuple because %s is not a tuple." % (path_name, display_type(value_or_type))))
+					if value_or_type is not None:
+						self.errors.append(TypeCheckError(src, "I can't destructure %s as a tuple because %s is not a tuple." % (path_name, display_type(value_or_type))))
 				else:
 					raise TypeError("Destructuring non-record as record.")
 			if is_tuple and len(pattern) != len(value_or_type):
@@ -305,7 +307,8 @@ class Scope:
 		if isinstance(pattern, EnumPattern):
 			if warn:
 				if not isinstance(value_or_type, EnumType):
-					self.errors.append(TypeCheckError(src, "I cannot destructure %s as an enum because it's a %s." % (path_name, display_type(value_or_type))))
+					if value_or_type is not None:
+						elf.errors.append(TypeCheckError(src, "I cannot destructure %s as an enum because it's a %s." % (path_name, display_type(value_or_type))))
 					return True
 				else:
 					variant_types = value_or_type.get_types(pattern.variant)
@@ -334,7 +337,8 @@ class Scope:
 		if isinstance(pattern, list):
 			if warn:
 				if not isinstance(value_or_type, NTypeVars) or value_or_type.base_type is not n_list_type:
-					self.errors.append(TypeCheckError(src, "I cannot destructure %s as a list because it's a %s." % (path_name, display_type(value_or_type))))
+					if value_or_type is not None:
+						self.errors.append(TypeCheckError(src, "I cannot destructure %s as a list because it's a %s." % (path_name, display_type(value_or_type))))
 					return True
 				contained_type = value_or_type.typevars[0]
 			else:
