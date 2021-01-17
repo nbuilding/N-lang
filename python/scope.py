@@ -596,7 +596,8 @@ class Scope:
 			if isinstance(val, str):
 				print(val)
 			else:
-				print(display_value(val, indent="  "))
+				display, _ = display_value(val, indent="  ")
+				print(display)
 		elif command.data == "return":
 			return (True, await self.eval_expr(command.children[0]))
 		elif command.data == "declare":
