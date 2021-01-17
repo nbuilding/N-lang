@@ -3,7 +3,10 @@ import request
 // important variables
 let key:str = ""
 
-let header = {Authorization: "Bot " + key}
+let header: map[str, str] = <mapFrom [
+	("Content-Type", "application/json"),
+	("Authorization", "Bot " + key)
+]>
 
 // custom types
 
@@ -62,39 +65,21 @@ alias reaction = {
 }
 
 // internal functions
-let parseUserData = [data:str] -> member{
-	let parsed = data
-	               |> <split \{,}>
+let parseUserData = [data:map[str, str]] -> member{
 
 	return {
-		id: parsed
-				|> <itemAt 0>
+		id: data
+		      |> <getValue "id">
+		      |> <default "">
+		name: data
+				|> <getValue "username">
 				|> <default "">
-				|> <split \{:}>
-				|> <itemAt 1>
+		icon: data
+				|> <getValue "avatar">
 				|> <default "">
-				|> <substring 1 -1>
-		name: parsed
-				  |> <itemAt 1>
-				  |> <default "">
-				  |> <split \{:}>
-				  |> <itemAt 1>
-				  |> <default "">
-				  |> <substring 1 -1>
-		icon: parsed
-				  |> <itemAt 2>
-				  |> <default "">
-				  |> <split \{:}>
-				  |> <itemAt 1>
-				  |> <default "">
-				  |> <substring 1 -1>
-		bot: (parsed
-			      |> <itemAt 6>
-				  |> <default "">
-			      |> <split \{:}>
-			      |> <itemAt 1>
-				  |> <default "">
-			      |> <strip>) == "true"
+		bot: (data
+			    |> <getValue "bot">
+				|> <default "false">) == "true"
 
 	}
 }
@@ -102,7 +87,10 @@ let parseUserData = [data:str] -> member{
 // public functions
 let pub start = [k:str] -> () {
 	var key = k
-	var header = {Authorization: "Bot " + key}
+	let header: map[str, str] = <mapFrom [
+		("Content-Type", "application/json"),
+		("Authorization", "Bot " + key)
+	]>
 	// other important functions idk what is going to happen here
 }
 
@@ -112,7 +100,7 @@ let pub getKey = [] -> str{
 
 let pub getSelf = [] -> (bool, member) {
 	print "uauauau"
-	let r = <request.get "https://discord.com/api/users/@me">
+	let r = <request.get "https://discord.com/api/users/@me" header>
 	print "uauauau"
 	if r.code /= 200{
 		return (false, {
@@ -125,7 +113,7 @@ let pub getSelf = [] -> (bool, member) {
 		})
 	}
 
-	return (true, <parseUserData r.text>)
+	return (true, <parseUserData r.return>)
 
 
 }

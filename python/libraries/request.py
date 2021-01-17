@@ -1,5 +1,7 @@
 import requests
 import json
+import native_types
+import ast
 
 #for gateways
 scope = None
@@ -11,7 +13,11 @@ def get(args):
 	url = args[0]
 
 	r = requests.get(url)
-	return {"code": r.status_code, "response": r.reason, "text": r.text}
+	out = ast.literal_eval(r.text)
+	for key in out.keys():
+		out[key] = str(out[key])
+
+	return {"code": r.status_code, "response": r.reason, "out": native_types.NMap(out)}
 
 def post(args):
 	url, content, *rest = args
@@ -23,4 +29,4 @@ def post(args):
 
 
 def _values():
-	return {"post": ("str", {"code": "int", "reason": "str", "text": "str"}), "get": ("str", {"code": "int", "reason": "str", "text": "str"})}
+	return {"post": ("str", native_types.n_map_type.with_typevars(["str", "str"]), {"code": "int", "reason": "str", "text": "str"}), "get": ("str", native_types.n_map_type.with_typevars(["str", "str"]), {"code": "int", "reason": "str", "return": native_types.n_map_type.with_typevars(["str", "str"])})}

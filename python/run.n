@@ -7,6 +7,8 @@ let discord = imp discord
 
 print <discord.getKey>
 
+print <discord.getSelf>
+
 let runner = imp runner
 
 let thenHelper = [[t] command:cmd[t] _:()] -> cmd[t] {
