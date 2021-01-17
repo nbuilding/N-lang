@@ -19,6 +19,17 @@ if let <dead wow ok> = billy {
   print (wow, ok)
 }
 
+let years: map[str, int] = <mapFrom [
+  ("sean", 2021),
+  ("bucketpotato", 2022),
+  ("kevin", 2023),
+  ("asra", 2024)
+]>
+print years
+if let <yes year> = <getValue "kevin" years> {
+  print year
+}
+
 type myMaybe[t] = <myYes t>
   | myNothing
 let ok: myMaybe[str] = myNothing
@@ -173,7 +184,7 @@ let main3 = [_: ()] -> cmd[()] {
   let wow: int = <cmdId <main2 "What's your name? ">!>!
   print wow
 }
-let pub exec = <main3 ()>
+// let pub exec = <main3 ()>
 
 // print runner.e runner.e is not public so this throws an error
 print runner.eeeeee

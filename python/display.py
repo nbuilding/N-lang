@@ -3,6 +3,7 @@ from function import Function
 from type import NModule
 from enums import EnumValue
 from cmd import Cmd
+from native_types import NMap
 
 unescape = {
 	"\\": "\\",
@@ -17,6 +18,15 @@ def display_value(value, color=True, indent="\t", indent_state=""):
 		output = "[module %s]" % value.mod_name
 		if color:
 			output = Fore.MAGENTA + output + Style.RESET_ALL
+	elif isinstance(value, NMap):
+		# There's currently no special syntax for maps, so this mimics its
+		# constructor.
+		start = "<mapFrom"
+		end = ">"
+		if color:
+			start = Fore.MAGENTA + start + Style.RESET_ALL
+			end = Fore.MAGENTA + end + Style.RESET_ALL
+		output = start + " " + display_value(list(value.items()), color=color, indent=indent, indent_state=indent_state) + end
 	elif isinstance(value, dict):
 		if len(value) == 0:
 			output = "{}"
