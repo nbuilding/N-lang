@@ -132,8 +132,8 @@ def add_funcs(global_scope):
 	yes_generic = NGenericType("t")
 	global_scope.add_native_function(
 		"yes",
-		[("value", n_maybe_type.with_typevars([yes_generic]))],
-		yes_generic,
+		[("value", yes_generic)],
+		n_maybe_type.with_typevars([yes_generic]),
 		yes,
 	)
 	default_generic = NGenericType("t")
