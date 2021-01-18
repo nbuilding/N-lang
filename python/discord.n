@@ -98,17 +98,17 @@ let pub getKey = [] -> str{
 }
 
 let pub getSelf = [] -> cmd[maybe[member]] {
+	// Sends a request to the url
 	let r = <request.get "https://discord.com/api/users/@me" header>!
 	if r.code /= 200{
 		return none
 	}
 
 	return <parseUserData r.return>.<yes>
-
-
 }
 
 let pub getUser = [id:str] -> cmd[maybe[member]] {
+	// Uses the id to get the url to send the request to
 	let url:str = "https://discord.com/api/users/" + id
 	let r = <request.get url header>!
 	if r.code /= 200{
@@ -116,4 +116,10 @@ let pub getUser = [id:str] -> cmd[maybe[member]] {
 	}
 
 	return <parseUserData r.return>.<yes>
+}
+
+let pub sendMessage = [c:str m:str] -> cmd[int] {
+	let url:str = "https://discord.com/api/channels/" + c + "/messages"
+	let r = <request.post url <mapFrom [("content", m)]> header>
+	return r.code
 }
