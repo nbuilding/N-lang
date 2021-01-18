@@ -10,7 +10,7 @@ print <discord.getKey>
 let self = [] -> cmd[maybe[str]]{
 	print <discord.getSelf>!
 	print <discord.getUser "384499090865782785">!
-	print <discord.sendMessage "711793617529995297" "uau">!
+	print <discord.sendMessage "710936824121655396" "I have been released">!
 }
 
 let pub main = <self>

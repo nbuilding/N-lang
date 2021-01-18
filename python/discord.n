@@ -120,6 +120,9 @@ let pub getUser = [id:str] -> cmd[maybe[member]] {
 
 let pub sendMessage = [c:str m:str] -> cmd[int] {
 	let url:str = "https://discord.com/api/channels/" + c + "/messages"
-	let r = <request.post url <mapFrom [("content", m)]> header>
+	print <mapFrom [("content", m)]>
+	let r = <request.post url <mapFrom [("content", m)]> header>!
+	print r.response
+	print r.text
 	return r.code
 }

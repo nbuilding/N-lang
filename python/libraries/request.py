@@ -20,10 +20,9 @@ async def get(url, headers):
 			return {"code": r.status, "response": r.reason, "return": NMap(out)}
 
 async def post(url, content, headers):
+	print(json.dumps(content))
 	async with aiohttp.ClientSession() as session:
 		async with session.post(url, data=json.dumps(content), headers=headers) as r:
-			for key in out.keys():
-				out[key] = str(out[key])
 
 			return {"code": r.status, "response": r.reason, "text": await r.text()}
 
@@ -33,7 +32,7 @@ def _values():
 			"str",
 			n_map_type.with_typevars(["str", "str"]),
 			n_map_type.with_typevars(["str", "str"]),
-			{"code": "int", "response": "str", "text": "str"}
+			n_cmd_type.with_typevars([{"code": "int", "response": "str", "text": "str"}])
 		),
 		"get": (
 			"str",
