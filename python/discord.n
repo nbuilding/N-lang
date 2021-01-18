@@ -97,20 +97,13 @@ let pub getKey = [] -> str{
 	return key
 }
 
-let pub getSelf = [] -> cmd[(int, member)] {
+let pub getSelf = [] -> cmd[maybe[member]] {
 	let r = <request.get "https://discord.com/api/users/@me" header>!
 	if r.code /= 200{
-		return (r.code, {
-			id:""
-			name:""
-			icon:""
-			bot:false
-//			status:offline
-//			customStatus:null
-		})
+		return none
 	}
 
-	return (r.code, <parseUserData r.return>)
+	return <parseUserData r.return>
 
 
 }
@@ -119,7 +112,7 @@ let pub getUser = [id:str] -> cmd[maybe[member]] {
 	let url:str = "https://discord.com/api/users/" + id
 	let r = <request.get url header>!
 	if r.code /= 200{
-		return null
+		return none
 	}
 
 	return <parseUserData r.return>

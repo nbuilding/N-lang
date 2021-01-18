@@ -15,6 +15,7 @@ from type_check_error import TypeCheckError
 from scope import Scope
 from imported_error import ImportedError
 from cmd import Cmd
+from syntax_error import format_error
 
 global_scope = Scope()
 add_funcs(global_scope)
@@ -93,23 +94,10 @@ async def parse_tree(tree):
 	else:
 		raise SyntaxError("Unable to run parse_tree on non-starting branch")
 
-
 try:
 	tree = file.parse(n_parser)
 except lark.exceptions.UnexpectedCharacters as e:
-
-	for i,line in enumerate(file.lines):
-		if e.get_context(file.get_text(), 99999999999999)[0:-2].strip() == line.strip():
-			break
-
-
-	spaces = " "*(len(str(i+1) + " |") +  1)
-	spaces_arrow = " "*(len(str(i+1) + " |") - 3)
-	print(f"{Fore.RED}{Style.BRIGHT}Error{Style.RESET_ALL}: Invalid syntax")
-	print(f"{Fore.CYAN}{spaces_arrow}--> {Fore.BLUE}{file.name}:{i+1}")
-	print(f"{Fore.CYAN}{i + 1} |{Style.RESET_ALL} {e.get_context(file.get_text(), 99999999999999)[0:-2].strip()}")
-	print(f"{spaces}{Fore.RED}{Style.BRIGHT}^{Style.RESET_ALL}")
-	exit()
+	format_error(e, file)
 
 error_count, warning_count = type_check(file, tree)
 if error_count > 0 or args.check:
