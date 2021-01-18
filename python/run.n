@@ -3,7 +3,7 @@ import SystemIO
 
 let discord = imp discord
 
-<discord.start "eee">
+<discord.start "key">
 
 print <discord.getKey>
 
@@ -11,7 +11,7 @@ let self = [] -> cmd[maybe[str]]{
 	print <discord.getSelf>!
 }
 
-<self>
+let pub main = <self>
 
 let runner = imp runner
 

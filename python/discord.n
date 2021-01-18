@@ -66,7 +66,6 @@ alias reaction = {
 
 // internal functions
 let parseUserData = [data:map[str, str]] -> member{
-
 	return {
 		id: data
 		      |> <getValue "id">
@@ -79,7 +78,7 @@ let parseUserData = [data:map[str, str]] -> member{
 				|> <default "">
 		bot: (data
 			    |> <getValue "bot">
-				|> <default "false">) == "true"
+				|> <default "false">) == "True"
 
 	}
 }
@@ -87,7 +86,7 @@ let parseUserData = [data:map[str, str]] -> member{
 // public functions
 let pub start = [k:str] -> () {
 	var key = k
-	let header: map[str, str] = <mapFrom [
+	var header = <mapFrom [
 		("Content-Type", "application/json"),
 		("Authorization", "Bot " + key)
 	]>
@@ -98,12 +97,10 @@ let pub getKey = [] -> str{
 	return key
 }
 
-let pub getSelf = [] -> cmd[(bool, member)] {
-	print "uauauau"
+let pub getSelf = [] -> cmd[(int, member)] {
 	let r = <request.get "https://discord.com/api/users/@me" header>!
-	print "uauauau"
 	if r.code /= 200{
-		return (false, {
+		return (r.code, {
 			id:""
 			name:""
 			icon:""
@@ -113,7 +110,7 @@ let pub getSelf = [] -> cmd[(bool, member)] {
 		})
 	}
 
-	return (true, <parseUserData r.return>)
+	return (r.code, <parseUserData r.return>)
 
 
 }
