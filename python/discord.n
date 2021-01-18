@@ -103,7 +103,7 @@ let pub getSelf = [] -> cmd[maybe[member]] {
 		return none
 	}
 
-	return <parseUserData r.return>
+	return <parseUserData r.return>.<yes>
 
 
 }
@@ -115,5 +115,5 @@ let pub getUser = [id:str] -> cmd[maybe[member]] {
 		return none
 	}
 
-	return <parseUserData r.return>
+	return <parseUserData r.return>.<yes>
 }
