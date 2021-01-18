@@ -7,7 +7,11 @@ let discord = imp discord
 
 print <discord.getKey>
 
-print <discord.getSelf>
+let self = [] -> cmd[maybe[str]]{
+	print <discord.getSelf>!
+}
+
+<self>
 
 let runner = imp runner
 
