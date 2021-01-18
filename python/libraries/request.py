@@ -5,25 +5,6 @@ import aiohttp
 import asyncio
 from native_types import n_cmd_type, NMap, n_map_type
 
-botid = ""
-
-def setId(id):
-	global botid
-	botid = id
-
-async def sendMessage(channel, message, tts):
-	async with aiohttp.ClientSession() as session:
-		async with session.get(
-			f"https://discord.com/api/channels/{channel}/messages",
-			data=json.dumps({"content": message, "tts": tts}),
-			headers={'Content-Type': "application/json", "Authorization": f"Bot {botid}"},
-		) as response:
-			return {
-				"code": response.status,
-				"response": response.reason,
-				"text": await response.text(),
-			}
-
 #for gateways
 scope = None
 
