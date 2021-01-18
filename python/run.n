@@ -3,7 +3,7 @@ import SystemIO
 
 let discord = imp discord
 
-<discord.start "Nzk5NzE1MzE5MTI3NzM2Mzky.YAHm7g.1CjRDQTAS7PZYZsistysJxb8aZQ">
+<discord.start "bruh">
 
 print <discord.getKey>
 
