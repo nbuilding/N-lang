@@ -953,7 +953,12 @@ class Scope:
 				self.errors.append(TypeCheckError(command.children[0], "You've already used the name `%s`." % import_name))
 			try:
 				imp = importlib.import_module("libraries." + command.children[0])
-				import_type = NModule(import_name, imp._values())
+				types = {}
+				try:
+					types = imp._types()
+				except AttributeError:
+					pass
+				import_type = NModule(import_name, imp._values(), types=types)
 			except AttributeError:
 				self.errors.append(TypeCheckError(command.children[0], "`%s` isn't a compatible native library." % command.children[0]))
 			except ModuleNotFoundError:
