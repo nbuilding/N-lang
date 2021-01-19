@@ -16,9 +16,9 @@ instruction: declare (";")?
 
 // functions
 vary: "var " NAME "=" expression
-declare: "let " modifier? name_type "=" expression
-enum_definition: "type" declaration_with_typevars "=" enum_constructors
-alias_definition: "alias" declaration_with_typevars "=" types
+declare: "let " modifier name_type "=" expression
+enum_definition: "type" modifier declaration_with_typevars "=" enum_constructors
+alias_definition: "alias" modifier declaration_with_typevars "=" types
 print: "print" expression
 function_callback: "<" function_call ">"
 function_callback_quirky: value ".<" function_call ">"
@@ -55,7 +55,7 @@ enum_constructors: enum_constructor ("|" enum_constructor)*
 enum_constructor: "<" NAME types* ">"
                 | NAME
 
-?modifier: PUBLIC
+modifier: PUBLIC?
 
 ?record_entry: NAME ":" expression
              | NAME

@@ -98,7 +98,7 @@ def apply_generics(expected, actual, generics={}):
 		return tuple(apply_generics(expected_arg, actual_arg, generics) for expected_arg, actual_arg in zip(expected, actual))
 	elif isinstance(expected, list) and isinstance(actual, list):
 		return [apply_generics(expected_item, actual_item, generics) for expected_item, actual_item in zip(expected, actual)]
-	elif isinstance(expected, dict):
+	elif isinstance(expected, dict) and not isinstance(expected, NModule) and isinstance(actual, dict) and not isinstance(actual, NModule):
 		return {key: apply_generics(expected_type, actual[key], generics) if key in actual else expected_type for key, expected_type in expected.items()}
 	return expected
 
@@ -124,7 +124,7 @@ def apply_generics_to(return_type, generics):
 		return tuple(apply_generics_to(arg_type, generics) for arg_type in return_type)
 	elif isinstance(return_type, list):
 		return [apply_generics_to(item_type, generics) for item_type in return_type]
-	elif isinstance(return_type, dict):
+	elif isinstance(return_type, dict) and not isinstance(return_type, NModule):
 		return {key: apply_generics_to(field_type, generics) for key, field_type in return_type.items()}
 	else:
 		return return_type
@@ -173,8 +173,8 @@ def resolve_equal_types(type_a, type_b):
 				return None, True
 			resolved_types.append(resolved)
 		return resolved_types, False
-	elif isinstance(type_a, dict):
-		if not isinstance(type_b, dict) or type_a.keys() != type_b.keys():
+	elif isinstance(type_a, dict) and not isinstance(type_a, NModule):
+		if not isinstance(type_b, dict) or isinstance(type_b, NModule) or type_a.keys() != type_b.keys():
 			return None, True
 		resolved_types = {}
 		for key in type_a.keys():

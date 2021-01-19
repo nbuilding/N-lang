@@ -9,10 +9,9 @@ let messageout = <discordn.sendMessage "710936824121655396" "uau" false>
 print messageout
 print discordn.sendMessage
 
-type state = <alive float>
-  | <dead int list[str]>
-  | unborn
-let billy: state = <dead 2020 ["Died due to Covid", "ok"]>
+let runner = imp runner
+
+let billy: runner.state = <runner.dead 2020 ["Died due to Covid", "ok"]>
 print billy
 
 if let <dead wow ok> = billy {
@@ -35,12 +34,8 @@ type myMaybe[t] = <myYes t>
 let ok: myMaybe[str] = myNothing
 print (ok = myNothing)
 
-alias pair[t] = (t, t)
-alias strPair = pair[str]
-let hmm: strPair = ("ok", "lol")
+let hmm: runner.strPair = ("ok", "lol")
 print hmm
-
-let runner = imp runner
 
 let main = [test:int test1:str] -> bool {
 	print "# Main"

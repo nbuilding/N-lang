@@ -2,3 +2,10 @@ print "test"
 let pub eeeeee:int = 0
 let e = [\{a}, \n]
 print eeeeee
+
+type pub state = <alive float>
+  | <dead int list[str]>
+  | unborn
+
+alias pub pair[t] = (t, t)
+alias pub strPair = pair[str]
