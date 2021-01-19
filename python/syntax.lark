@@ -52,8 +52,8 @@ tupleval: "(" expression ("," expression)* ")"
 listval: "[" (expression ("," expression)*)? "]"
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
 enum_constructors: enum_constructor ("|" enum_constructor)*
-enum_constructor: "<" NAME types* ">"
-                | NAME
+enum_constructor: modifier "<" NAME types* ">"
+                | modifier NAME
 
 modifier: PUBLIC?
 

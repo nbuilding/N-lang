@@ -4,8 +4,8 @@ from native_types import n_cmd_type
 from cmd import Cmd
 
 class NativeFunction(Function):
-	def __init__(self, scope, arguments, return_type, function, argument_cache=[]):
-		super(NativeFunction, self).__init__(scope, arguments, return_type, None)
+	def __init__(self, scope, arguments, return_type, function, argument_cache=[], public=False):
+		super(NativeFunction, self).__init__(scope, arguments, return_type, None, public=public)
 		self.function = function
 		self.argument_cache = argument_cache
 

@@ -13,9 +13,16 @@ let runner = imp runner
 
 let billy: runner.state = <runner.dead 2020 ["Died due to Covid", "ok"]>
 print billy
+// print <runner.alive 3.4>
 
 if let <dead wow ok> = billy {
+  print "billy is dead!"
   print (wow, ok)
+}
+// TODO: Allow destructuring non-exported variants?
+if let <alive wow> = runner.secret {
+  print "runner.secret is alive!"
+  print wow
 }
 
 let years: map[str, int] = <mapFrom [

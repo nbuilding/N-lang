@@ -4,8 +4,10 @@ let e = [\{a}, \n]
 print eeeeee
 
 type pub state = <alive float>
-  | <dead int list[str]>
-  | unborn
+  | pub <dead int list[str]>
+  | pub unborn
 
 alias pub pair[t] = (t, t)
 alias pub strPair = pair[str]
+
+let pub secret = <alive 3.4>

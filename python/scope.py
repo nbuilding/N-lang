@@ -654,17 +654,17 @@ class Scope:
 			if exit:
 				return (True, value)
 		elif command.data == "enum_definition":
-			type_def, constructors = command.children
+			_, type_def, constructors = command.children
 			type_name, *_ = type_def.children
 			enum_type = NType(type_name.value)
 			self.types[type_name.value] = enum_type
 			for constructor in constructors.children:
-				constructor_name, *types = constructor.children
-				# types = [self.parse_type(type_token) for type_token in types]
+				modifiers, constructor_name, *types = constructor.children
+				public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
 				if len(types) >= 1:
-					self.variables[constructor_name] = NativeFunction(self, [("idk", arg_type) for arg_type in types], enum_type, EnumValue.construct(constructor_name))
+					self.variables[constructor_name] = NativeFunction(self, [("idk", arg_type) for arg_type in types], enum_type, EnumValue.construct(constructor_name), public=public)
 				else:
-					self.variables[constructor_name] = Variable(enum_type, EnumValue(constructor_name))
+					self.variables[constructor_name] = Variable(enum_type, EnumValue(constructor_name), public=public)
 		elif command.data == "alias_definition":
 			# Type aliases are purely for type checking so they do nothing at runtime
 			pass
@@ -938,7 +938,7 @@ class Scope:
 			holder = {}
 			for key in impn.variables.keys():
 				if impn.variables[key].public:
-					holder[key] = impn.variables[key].value
+					holder[key] = impn.variables[key].type
 			if holder == {}:
 				self.warnings.append(TypeCheckError(expr.children[0], "There was nothing to import from %s" % expr.children[0]))
 			return NModule(expr.children[0] + ".n", holder, types=impn.public_types)
@@ -1090,20 +1090,21 @@ class Scope:
 			modifiers, type_def, constructors = command.children
 			type_name, scope, typevars = self.get_name_typevars(type_def)
 			variants = []
-			enum_type = EnumType(type_name, variants, typevars)
+			enum_type = EnumType(type_name.value, variants, typevars)
 			self.types[type_name] = enum_type
+			if any(modifier.type == "PUBLIC" for modifier in modifiers.children):
+				self.public_types[type_name] = self.types[type_name]
 			for constructor in constructors.children:
-				constructor_name, *types = constructor.children
+				modifiers, constructor_name, *types = constructor.children
+				public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
 				types = [scope.parse_type(type_token, err=False) for type_token in types]
 				variants.append((constructor_name.value, types))
 				if constructor_name.value in self.variables:
 					self.errors.append(TypeCheckError(constructor_name, "You've already defined `%s` in this scope." % constructor_name.value))
 				if len(types) >= 1:
-					self.variables[constructor_name.value] = NativeFunction(self, [("idk", arg_type) for arg_type in types], enum_type, id)
+					self.variables[constructor_name.value] = NativeFunction(self, [("idk", arg_type) for arg_type in types], enum_type, id, public=public)
 				else:
-					self.variables[constructor_name.value] = Variable(enum_type, "I don't think this is used")
-			if any(modifier.type == "PUBLIC" for modifier in modifiers.children):
-				self.public_types[type_name] = self.types[type_name]
+					self.variables[constructor_name.value] = Variable(enum_type, "I don't think this is used", public=public)
 		elif command.data == "alias_definition":
 			modifiers, alias_def, alias_type = command.children
 			alias_name, scope, typevars = self.get_name_typevars(alias_def)
