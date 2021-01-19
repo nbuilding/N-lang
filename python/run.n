@@ -3,13 +3,14 @@ import SystemIO
 
 let discord = imp discord
 
-<discord.start "bruh">
+<discord.start "brub">
 
 print <discord.getKey>
 
 let self = [] -> cmd[maybe[str]]{
 	print <discord.getSelf>!
 	print <discord.getUser "384499090865782785">!
+	print <discord.getMessages "710936824121655396">!
 	print <discord.sendMessage "710936824121655396" "I have been released">!
 }
 

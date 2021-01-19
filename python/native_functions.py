@@ -141,6 +141,20 @@ def add_funcs(global_scope):
 		n_maybe_type.with_typevars([item_at_generic]),
 		item_at
 	)
+	append_generic = NGenericType("t")
+	global_scope.add_native_function(
+		"append",
+		[("item", append_generic), ("list", n_list_type.with_typevars([item_at_generic]))],
+		n_list_type.with_typevars([item_at_generic]),
+		lambda item, l: l.__add__([item])
+	)
+	item_at_generic = NGenericType("t")
+	global_scope.add_native_function(
+		"itemAt",
+		[("index", "int"), ("list", n_list_type.with_typevars([item_at_generic]))],
+		n_maybe_type.with_typevars([item_at_generic]),
+		item_at
+	)
 	yes_generic = NGenericType("t")
 	global_scope.add_native_function(
 		"yes",

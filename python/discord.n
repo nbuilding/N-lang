@@ -47,14 +47,15 @@ alias guild = {
 alias channel = {
 	id:str
 	name:str
-	guild:guild
+	guild:maybe[str]
 	membersAllowed:list[member]
 }
 
 alias message = {
+	channel:str
 	id:str
 	content:str
-	sender:member
+	sender:str
 	textChannel:bool
 }
 
@@ -120,9 +121,23 @@ let pub getUser = [id:str] -> cmd[maybe[member]] {
 
 let pub sendMessage = [c:str m:str] -> cmd[int] {
 	let url:str = "https://discord.com/api/channels/" + c + "/messages"
-	print <mapFrom [("content", m)]>
 	let r = <request.post url <mapFrom [("content", m)]> header>!
-	print r.response
-	print r.text
 	return r.code
+}
+
+let pub getMessages = [c:str] -> cmd[maybe[list[message]]] {
+	let url:str = "https://discord.com/api/channels/" + c + "/messages"
+	let r = <request.get url header>!
+
+	if r.code /= 200{
+		return none
+	}
+
+	//let messages:list[message] = []
+
+	print r.return
+
+	return none
+
+	//return <parseUserData r.return>.<yes>
 }
