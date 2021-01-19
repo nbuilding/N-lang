@@ -165,21 +165,46 @@ class Scope:
 		else:
 			return self.parent_function
 
+	def get_module_type(self, module_type, err=True):
+		*modules, type_name = module_type.children
+		if len(modules) > 0:
+			current_module = self.variables
+			for module in modules:
+				current_module = current_module.get(module.value)
+				if isinstance(current_module, Variable):
+					current_module = current_module.type
+				if not isinstance(current_module, NModule):
+					self.errors.append(TypeCheckError(module, "%s is not a module." % module.value))
+					return None
+			n_type = current_module.types.get(type_name.value)
+			if n_type is None:
+				self.errors.append(TypeCheckError(type_name, "The module doesn't export a type `%s`." % type_name.value))
+				return None
+		else:
+			n_type = self.get_type(type_name.value, err=err)
+			if n_type is None:
+				self.errors.append(TypeCheckError(module_type, "I don't know what type you're referring to by `%s`." % type_name.value))
+				return None
+		if n_type == "invalid":
+			return None
+		else:
+			return n_type
+
 	def parse_type(self, tree_or_token, err=True):
 		if type(tree_or_token) == lark.Tree:
 			if tree_or_token.data == "with_typevars":
-				name, *typevars = tree_or_token.children
-				typevar_type = self.get_type(name.value, err=err)
+				module_type, *typevars = tree_or_token.children
+				typevar_type = self.get_module_type(module_type, err=err)
 				parsed_typevars = [self.parse_type(typevar, err=err) for typevar in typevars]
 				if typevar_type is None:
 					return None
 				elif isinstance(typevar_type, NAliasType) or isinstance(typevar_type, NTypeVars):
 					# Duck typing :sunglasses:
 					if len(typevars) < len(typevar_type.typevars):
-						self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variables." % (name.value, len(typevar_type.typevars))))
+						self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variable(s)." % (name.value, len(typevar_type.typevars))))
 						return None
 					elif len(typevars) > len(typevar_type.typevars):
-						self.errors.append(TypeCheckError(tree_or_token, "%s only expects %d type variables." % (name.value, len(typevar_type.typevars))))
+						self.errors.append(TypeCheckError(tree_or_token, "%s only expects %d type variable(s)." % (name.value, len(typevar_type.typevars))))
 						return None
 					return typevar_type.with_typevars(parsed_typevars)
 				else:
@@ -187,29 +212,28 @@ class Scope:
 					return None
 			elif tree_or_token.data == "tupledef":
 				return [self.parse_type(child, err=err) for child in tree_or_token.children]
+			elif tree_or_token.data == "module_type":
+				n_type = self.get_module_type(tree_or_token, err=err)
+				if n_type is None:
+					return None
+				elif (isinstance(n_type, NAliasType) or isinstance(n_type, NTypeVars)) and len(n_type.typevars) > 0:
+					self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variables." % (type_name.value, len(n_type.typevars))))
+					return None
+				elif isinstance(n_type, NAliasType):
+					return n_type.with_typevars()
+				return n_type
 			elif err:
 				raise NameError("Type annotation of type %s; I am not ready for this." % tree_or_token.data)
 			else:
-				self.errors.append(TypeCheckError(tree_or_token, "Internal problem: encountered a type %s." % tree_or_token.data))
+				self.errors.append(TypeCheckError(tree_or_token, "Internal problem: encountered a type annotation type %s." % tree_or_token.data))
 				return None
+		elif tree_or_token.type == "UNIT":
+			return "unit"
+		elif err:
+			raise NameError("Type annotation token of type %s; I am not ready for this." % tree_or_token.data)
 		else:
-			if tree_or_token.type == "UNIT":
-				return "unit"
-			n_type = self.get_type(tree_or_token.value, err=err)
-			if n_type is None:
-				self.errors.append(TypeCheckError(tree_or_token, "I don't know what type you're referring to by `%s`." % tree_or_token.value))
-				return None
-			elif n_type == "invalid":
-				return None
-			elif isinstance(n_type, NAliasType):
-				if len(n_type.typevars) > 0:
-					self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variables." % (tree_or_token.value, len(typevar_type.typevars))))
-					return None
-				return n_type.with_typevars()
-			elif isinstance(n_type, NTypeVars) and len(n_type.typevars) > 0:
-				self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variables." % (tree_or_token.value, len(typevar_type.typevars))))
-				return None
-			return n_type
+			self.errors.append(TypeCheckError(tree_or_token, "Internal problem: encountered a type annotation token type %s." % tree_or_token.data))
+			return None
 
 	def get_name_type(self, name_type, err=True, get_type=True):
 		pattern = get_destructure_pattern(name_type.children[0])
@@ -812,12 +836,12 @@ class Scope:
 			contained_type = None
 			if n_cmd_type.is_type(value_type):
 				contained_type = value_type.typevars[0]
-			else:
+			elif value_type is not None:
 				self.errors.append(TypeCheckError(expr, "You can only use the await operator on cmds, not %s." % display_type(value_type)))
 			parent_function = self.get_parent_function()
 			if parent_function is None:
 				self.errors.append(TypeCheckError(expr, "You can't use the await operator outside a function."))
-			elif not n_cmd_type.is_type(parent_function.returntype):
+			elif parent_function.returntype is not None and not n_cmd_type.is_type(parent_function.returntype):
 				self.errors.append(TypeCheckError(expr, "You can only use the await operator in a function that returns a cmd, but this function returns a %s." % display_type(parent_function.returntype)))
 			return contained_type
 

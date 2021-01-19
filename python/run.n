@@ -202,4 +202,5 @@ print <mapFrom [
 ]>
   |> <json.object>
   |> <json.stringify>
-print <json.parse "[\"heterogeneous\", 1, { \"array\": [true, null] }]">
+let cool: json.value = <json.parse "[\"heterogeneous\", 1, { \"array\": [true, null] }]">
+print cool

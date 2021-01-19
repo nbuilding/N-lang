@@ -46,8 +46,8 @@ anonymous_func: arguments "->" NAME ":" (instruction (";" instruction)*)
 char: "\\" ( escape_code | "{" /./ "}")
 escape_code: /[tnr]/
 tupledef: "(" types ("," types)* ")"
-with_typevars: NAME "[" types ("," types)* "]"
-declaration_with_typevars: NAME ("[" types ("," types)* "]")?
+with_typevars: module_type "[" types ("," types)* "]"
+declaration_with_typevars: NAME ("[" NAME ("," NAME)* "]")?
 tupleval: "(" expression ("," expression)* ")"
 listval: "[" (expression ("," expression)*)? "]"
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
@@ -87,10 +87,11 @@ enum_pattern: "<" NAME any_pattern* ">"
 // Square brackets mean that the stuff inside it can appear 0 or 1 time. Same as
 // (whatever)?
 
-?types: NAME
+?types: module_type
       | tupledef
       | with_typevars
       | UNIT
+module_type: [NAME "."]* NAME
 
 ?expression: ifelse_expr
            | boolean_expression
