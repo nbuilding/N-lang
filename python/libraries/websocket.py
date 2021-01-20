@@ -25,11 +25,16 @@ async def connect(options, url):
 			await websocket.send(message)
 		# Why is this so complicated
 		send = NativeFunction(None, [], None, lambda message: Cmd(lambda _: lambda: send_msg(message)))
-		close = await (await options['onOpen'].run([send])).eval()
-		async for message in websocket:
-			if close:
-				return
-			close = await (await options['onMessage'].run([send, message])).eval()
+		close = await options['onOpen'].run([send])
+		if isinstance(close, Cmd):
+			close = await close.eval()
+		if not close:
+			async for message in websocket:
+				close = await options['onMessage'].run([send, message])
+				if isinstance(close, Cmd):
+					close = await close.eval()
+				if close:
+					break
 		# await options['onClose'].eval()
 
 def _values():

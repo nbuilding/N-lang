@@ -211,13 +211,12 @@ import websocket
 // https://www.websocket.org/echo.html
 let pub websocketTest = <websocket.connect {
   onOpen: [send: websocket.send] -> cmd[bool] {
-    print "Open!"
-    let _ = <send "hi">!
+    print "Connected to Discord gateway!"
     return false
   }
   onMessage: [send: websocket.send message: str] -> cmd[bool] {
-    print message
-    let _ = <send "hello">!
-    return message == "hello"
+    print <json.parse message>
+    print "ok that's enough, closing connection"
+    return true
   }
-} "wss://echo.websocket.org">
+} "wss://gateway.discord.gg/?v=8&encoding=json">
