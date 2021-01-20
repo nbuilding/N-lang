@@ -1,0 +1,143 @@
+import request
+
+// important variables
+let key:str = ""
+
+let header: map[str, str] = <mapFrom [
+	("Content-Type", "application/json"),
+	("Authorization", "Bot " + key)
+]>
+
+// custom types
+
+type status = online
+			| away
+			| offline
+
+alias color = {
+	r:int
+	g:int
+	b:int
+}
+
+alias role = {
+	color:color
+	name:str
+	rank:int
+}
+
+alias member = {
+	id:str
+	name:str
+	icon:str
+	bot:bool
+//	status:status this needs a gateway
+//	customStatus:maybe[str] this needs a gateway
+}
+
+alias guild = {
+	id:str
+	name:str
+	emojis:list[str]
+	icon:str
+	members:list[member]
+	banlist:list[member]
+}
+
+alias channel = {
+	id:str
+	name:str
+	guild:maybe[str]
+	membersAllowed:list[member]
+}
+
+alias message = {
+	channel:str
+	id:str
+	content:str
+	sender:str
+	textChannel:bool
+}
+
+alias reaction = {
+	emoji:str
+	message:message
+	sender:member
+}
+
+// internal functions
+let parseUserData = [data:map[str, str]] -> member{
+	return {
+		id: data
+			  |> <getValue "id">
+			  |> <default "">
+		name: data
+				|> <getValue "username">
+				|> <default "">
+		icon: data
+				|> <getValue "avatar">
+				|> <default "">
+		bot: (data
+				|> <getValue "bot">
+				|> <default "false">) == "True"
+
+	}
+}
+
+// public functions
+let pub start = [k:str] -> () {
+	var key = k
+	var header = <mapFrom [
+		("Content-Type", "application/json"),
+		("Authorization", "Bot " + key)
+	]>
+	// other important functions idk what is going to happen here
+}
+
+let pub getKey = [] -> str{
+	return key
+}
+
+let pub getSelf = [] -> cmd[maybe[member]] {
+	// Sends a request to the url
+	let r = <request.get "https://discord.com/api/users/@me" header>!
+	if r.code /= 200{
+		return none
+	}
+
+	return <parseUserData r.return>.<yes>
+}
+
+let pub getUser = [id:str] -> cmd[maybe[member]] {
+	// Uses the id to get the url to send the request to
+	let url:str = "https://discord.com/api/users/" + id
+	let r = <request.get url header>!
+	if r.code /= 200{
+		return none
+	}
+
+	return <parseUserData r.return>.<yes>
+}
+
+let pub sendMessage = [c:str m:str] -> cmd[int] {
+	let url:str = "https://discord.com/api/channels/" + c + "/messages"
+	let r = <request.post url <mapFrom [("content", m)]> header>!
+	return r.code
+}
+
+let pub getMessages = [c:str] -> cmd[maybe[list[message]]] {
+	let url:str = "https://discord.com/api/channels/" + c + "/messages"
+	let r = <request.get url header>!
+
+	if r.code /= 200{
+		return none
+	}
+
+	//let messages:list[message] = []
+
+	print r.return
+
+	return none
+
+	//return <parseUserData r.return>.<yes>
+}

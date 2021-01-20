@@ -4,7 +4,7 @@ from cmd import Cmd
 from type_check_error import display_type
 
 class Function(Variable):
-	def __init__(self, scope, arguments, returntype, codeblock, generics=[], public=False):
+	def __init__(self, scope, arguments, returntype, codeblock, generics=None, public=False):
 		# Tuples represent function types. (a, b, c) represents a -> b -> c.
 		types = tuple([ty for _, ty in arguments] + [returntype])
 		super(Function, self).__init__(types, self, public)
@@ -13,7 +13,7 @@ class Function(Variable):
 		self.arguments = arguments
 		self.returntype = returntype
 		self.codeblock = codeblock
-		self.generics = generics
+		self.generics = generics or []
 
 	async def run(self, arguments):
 		# This function suddenly got so complicated because of async.

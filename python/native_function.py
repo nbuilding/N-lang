@@ -4,10 +4,10 @@ from native_types import n_cmd_type
 from cmd import Cmd
 
 class NativeFunction(Function):
-	def __init__(self, scope, arguments, return_type, function, argument_cache=[], public=False):
+	def __init__(self, scope, arguments, return_type, function, argument_cache=None, public=False):
 		super(NativeFunction, self).__init__(scope, arguments, return_type, None, public=public)
 		self.function = function
-		self.argument_cache = argument_cache
+		self.argument_cache = argument_cache or []
 
 	async def run(self, arguments):
 		arguments = self.argument_cache + arguments

@@ -17,6 +17,7 @@ from operation_types import binary_operation_types, unary_operation_types, compa
 from file import File
 from imported_error import ImportedError
 import native_functions
+from syntax_error import format_error
 
 def parse_file(file):
 	import_scope = Scope()
@@ -34,35 +35,25 @@ def parse_file(file):
 	try:
 		tree = file.parse(n_parser)
 	except lark.exceptions.UnexpectedCharacters as e:
-		for i,line in enumerate(file.lines):
-			if e.get_context(file.get_text(), 99999999999999)[0:-2].strip() == line.strip():
-				break
+		format_error(e, file)
 
-		spaces = " "*(len(str(i+1) + " |") +  1)
-		spaces_arrow = " "*(len(str(i+1) + " |") - 3)
-		print(f"{Fore.RED}{Style.BRIGHT}Error{Style.RESET_ALL}: Invalid syntax")
-		print(f"{Fore.CYAN}{spaces_arrow}--> {Fore.BLUE}{file.name}:{i+1}")
-		print(f"{Fore.CYAN}{i + 1} |{Style.RESET_ALL} {e.get_context(file.get_text(), 99999999999999)[0:-2].strip()}")
-		print(f"{spaces}{Fore.RED}{Style.BRIGHT}^{Style.RESET_ALL}")
-		exit()
-
-	return import_scope, tree
+	return import_scope, tree, file
 
 async def eval_file(file):
-	import_scope, tree = parse_file(file)
+	import_scope, tree, _ = parse_file(file)
 
 	import_scope.variables = {**import_scope.variables, **(await parse_tree(tree, import_scope)).variables}
 	return import_scope
 
 def type_check_file(file):
-	import_scope, tree = parse_file(file)
+	import_scope, tree, text_file = parse_file(file)
 
 	scope = type_check(file, tree, import_scope)
 	import_scope.variables = {**import_scope.variables, **scope.variables}
 	import_scope.public_types = {**import_scope.public_types, **scope.public_types}
-	import_scope.errors += scope.errors
-	import_scope.warnings += scope.warnings
-	return import_scope, file
+	import_scope.errors += scope.errors[:]
+	import_scope.warnings += scope.warnings[:]
+	return import_scope, text_file
 
 def type_check(file, tree, import_scope):
 	scope = import_scope.new_scope(inherit_errors=False)
@@ -121,14 +112,14 @@ def pattern_to_name(pattern_and_src):
 		return "<destructuring pattern>"
 
 class Scope:
-	def __init__(self, parent=None, parent_function=None, errors=[], warnings=[]):
+	def __init__(self, parent=None, parent_function=None, errors=None, warnings=None):
 		self.parent = parent
 		self.parent_function = parent_function
 		self.variables = {}
 		self.types = {}
 		self.public_types = {}
-		self.errors = errors
-		self.warnings = warnings
+		self.errors = errors if errors is not None else []
+		self.warnings = warnings if warnings is not None else []
 
 	def new_scope(self, parent_function=None, inherit_errors=True):
 		return Scope(
@@ -214,6 +205,8 @@ class Scope:
 					return None
 			elif tree_or_token.data == "tupledef":
 				return [self.parse_type(child, err=err) for child in tree_or_token.children]
+			elif tree_or_token.data == "recorddef":
+				return {entry.children[0].value: self.parse_type(entry.children[1], err=err) for entry in tree_or_token.children}
 			elif tree_or_token.data == "module_type":
 				n_type = self.get_module_type(tree_or_token, err=err)
 				if n_type is None:
@@ -260,7 +253,8 @@ class Scope:
 					self.errors.append(TypeCheckError(src, "%s (%s) has field(s) %s, but you haven't destructured them. (Hint: use `_` to denote unused fields.)" % (display_type(value_or_type), path_name, ", ".join(unused_keys))))
 			else:
 				if warn:
-					self.errors.append(TypeCheckError(src, "I can't destructure %s as a record because %s is not a record." % (path_name, display_type(value_or_type))))
+					if value_or_type is not None:
+						self.errors.append(TypeCheckError(src, "I can't destructure %s as a record because %s is not a record." % (path_name, display_type(value_or_type))))
 				else:
 					raise TypeError("Destructuring non-record as record.")
 			for key, (sub_pattern, parse_src) in pattern.items():
@@ -278,7 +272,8 @@ class Scope:
 			is_tuple = isinstance(value_or_type, list) if warn else isinstance(value_or_type, tuple)
 			if not is_tuple:
 				if warn:
-					self.errors.append(TypeCheckError(src, "I can't destructure %s as a tuple because %s is not a tuple." % (path_name, display_type(value_or_type))))
+					if value_or_type is not None:
+						self.errors.append(TypeCheckError(src, "I can't destructure %s as a tuple because %s is not a tuple." % (path_name, display_type(value_or_type))))
 				else:
 					raise TypeError("Destructuring non-record as record.")
 			if is_tuple and len(pattern) != len(value_or_type):
@@ -359,7 +354,8 @@ class Scope:
 		if isinstance(pattern, list):
 			if warn:
 				if not isinstance(value_or_type, NTypeVars) or value_or_type.base_type is not n_list_type:
-					self.errors.append(TypeCheckError(src, "I cannot destructure %s as a list because it's a %s." % (path_name, display_type(value_or_type))))
+					if value_or_type is not None:
+						self.errors.append(TypeCheckError(src, "I cannot destructure %s as a list because it's a %s." % (path_name, display_type(value_or_type))))
 					return True
 				contained_type = value_or_type.typevars[0]
 			else:
@@ -602,7 +598,7 @@ class Scope:
 				for key, types in lib._values().items()
 			}))
 			try:
-				lib.prepare(self)
+				lib._prepare(self)
 			except AttributeError:
 				# Apparently it's more Pythonic to use try/except than hasattr
 				pass
@@ -632,7 +628,7 @@ class Scope:
 			self.assign_to_pattern(pattern, await self.eval_expr(value), False, None, public)
 		elif command.data == "vary":
 			name, value = command.children
-			self.variables[name].value = await self.eval_expr(value)
+			self.get_variable(name.value).value = await self.eval_expr(value)
 		elif command.data == "if":
 			condition, body = command.children
 			scope = self.new_scope()
@@ -794,17 +790,36 @@ class Scope:
 				return None
 			*arg_types, return_type = func_type
 			generics = {}
+			parameters_have_none = False
 			for n, (argument, arg_type) in enumerate(zip(arguments, arg_types), start=1):
 				check_type = self.type_check_expr(argument)
+				if check_type is None:
+					parameters_have_none = True
 				resolved_arg_type = apply_generics(arg_type, check_type, generics)
 				_, incompatible = resolve_equal_types(check_type, resolved_arg_type)
 				if incompatible:
-					self.errors.append(TypeCheckError(expr, "For a %s's argument #%d, you gave a %s, but you should've given a %s." % (display_type(func_type), n, display_type(check_type), display_type(arg_type))))
+					if expr.data == "function_callback":
+						self.errors.append(TypeCheckError(argument, "%s's argument #%d should be a %s, but you gave a %s." % (display_type(func_type), n, display_type(resolved_arg_type), display_type(check_type))))
+					elif expr.data == "function_callback_quirky":
+						if n == 1:
+							self.errors.append(TypeCheckError(argument, "This left operand of .<, which I use as the first argument of %s, should be a %s, but you gave a %s." % (display_type(func_type), display_type(resolved_arg_type), display_type(check_type))))
+						else:
+							self.errors.append(TypeCheckError(argument, "The argument #%d here should be a %s because the function is a %s, but you gave a %s." % (n - 1, display_type(resolved_arg_type), display_type(func_type), display_type(check_type))))
+					else:
+						if n == len(arguments):
+							self.errors.append(TypeCheckError(argument, "This left operand of |>, which I pass as the last argument to %s, should be a %s, but you gave a %s." % (display_type(func_type), display_type(resolved_arg_type), display_type(check_type))))
+						else:
+							self.errors.append(TypeCheckError(argument, "The argument #%d here should be a %s because the function is a %s, but you gave a %s." % (n, display_type(resolved_arg_type), display_type(func_type), display_type(check_type))))
 			if len(arguments) > len(arg_types):
 				self.errors.append(TypeCheckError(expr, "A %s has %d argument(s), but you gave %d." % (display_type(func_type), len(arg_types), len(arguments))))
 				return None
 			elif len(arguments) < len(arg_types):
 				return tuple(apply_generics_to(arg_type, generics) for arg_type in func_type[len(arguments):])
+			elif parameters_have_none and len(generics) > 0:
+				# If one of the parameters is none, the generics likely did not
+				# get assigned correctly, so the function's return type is
+				# unknown.
+				return None
 			else:
 				return apply_generics_to(return_type, generics)
 		elif expr.data == "value":
@@ -1044,10 +1059,11 @@ class Scope:
 			self.assign_to_pattern(pattern, ty, True, None, public)
 		elif command.data == "vary":
 			name, value = command.children
-			if name not in self.variables:
-				self.errors.append(TypeCheckError(value, "The variable %s does not exist." % (name)))
+			variable = self.get_variable(name.value)
+			if variable is None:
+				self.errors.append(TypeCheckError(name, "The variable `%s` does not exist." % (name.value)))
 			else:
-				ty = self.variables[name].type
+				ty = variable.type
 				value_type = self.type_check_expr(value)
 
 				# Allow for cases like
@@ -1058,7 +1074,7 @@ class Scope:
 				resolved_type, incompatible = resolve_equal_types(ty, value_type)
 				if incompatible:
 					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
-				self.variables[name].type = resolved_type
+				variable.type = resolved_type
 		elif command.data == "if":
 			condition, body = command.children
 			scope = self.new_scope()

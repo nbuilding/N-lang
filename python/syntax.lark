@@ -46,6 +46,8 @@ anonymous_func: arguments "->" NAME ":" (instruction (";" instruction)*)
 char: "\\" ( escape_code | "{" /./ "}")
 escape_code: /[tnr]/
 tupledef: "(" types ("," types)* ")"
+recorddef: "{" (record_entry_def (";" | "\n"))* record_entry_def (";" | "\n")? "}"
+record_entry_def: NAME ":" types
 with_typevars: module_type "[" types ("," types)* "]"
 declaration_with_typevars: NAME ("[" NAME ("," NAME)* "]")?
 tupleval: "(" expression ("," expression)* ")"
@@ -89,6 +91,7 @@ enum_pattern: "<" NAME any_pattern* ">"
 
 ?types: module_type
       | tupledef
+      | recorddef
       | with_typevars
       | UNIT
 module_type: [NAME "."]* NAME
@@ -113,7 +116,7 @@ module_type: [NAME "."]* NAME
 
 ?number_expression: sum_expression
 ?sum_expression: [sum_expression (ADD | SUBTRACT)] product_expression
-?product_expression: [product_expression (MULTIPLY | DIVIDE | ROUNDDIV | MODULO)] exponent_expression
+?product_expression: [product_expression (MULTIPLY | DIVIDE | MODULO)] exponent_expression
 // Exponentiation right to left associative
 ?exponent_expression: unary_expression [EXPONENT exponent_expression]
 ?unary_expression: await_expression
@@ -155,14 +158,13 @@ GORE: ">="
 LORE: "<="
 LESS: "<"
 GREATER: ">"
-NEQUALS: ("/=" | "!=")
+NEQUALS: "/="
 NOT_KW: "not"
 NOT: "~"
 ADD: "+"
 SUBTRACT: "-"
 MULTIPLY: "*"
 DIVIDE: "/"
-ROUNDDIV: "//"
 MODULO: "%"
 EXPONENT: "^"
 AWAIT: "!"
