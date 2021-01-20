@@ -16,9 +16,9 @@ instruction: declare (";")?
 
 // functions
 vary: "var " NAME "=" expression
-declare: "let " modifier? name_type "=" expression
-enum_definition: "type" declaration_with_typevars "=" enum_constructors
-alias_definition: "alias" declaration_with_typevars "=" types
+declare: "let " modifier name_type "=" expression
+enum_definition: "type" modifier declaration_with_typevars "=" enum_constructors
+alias_definition: "alias" modifier declaration_with_typevars "=" types
 print: "print" expression
 function_callback: "<" function_call ">"
 function_callback_quirky: value ".<" function_call ">"
@@ -48,16 +48,16 @@ escape_code: /[tnr]/
 tupledef: "(" types ("," types)* ")"
 recorddef: "{" (record_entry_def (";" | "\n"))* record_entry_def (";" | "\n")? "}"
 record_entry_def: NAME ":" types
-with_typevars: NAME "[" types ("," types)* "]"
-declaration_with_typevars: NAME ("[" types ("," types)* "]")?
+with_typevars: module_type "[" types ("," types)* "]"
+declaration_with_typevars: NAME ("[" NAME ("," NAME)* "]")?
 tupleval: "(" expression ("," expression)* ")"
 listval: "[" (expression ("," expression)*)? "]"
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
 enum_constructors: enum_constructor ("|" enum_constructor)*
-enum_constructor: "<" NAME types* ">"
-                | NAME
+enum_constructor: modifier "<" NAME types* ">"
+                | modifier NAME
 
-?modifier: PUBLIC
+modifier: PUBLIC?
 
 ?record_entry: NAME ":" expression
              | NAME
@@ -89,11 +89,12 @@ enum_pattern: "<" NAME any_pattern* ">"
 // Square brackets mean that the stuff inside it can appear 0 or 1 time. Same as
 // (whatever)?
 
-?types: NAME
+?types: module_type
       | tupledef
       | recorddef
       | with_typevars
       | UNIT
+module_type: [NAME "."]* NAME
 
 ?expression: ifelse_expr
            | boolean_expression

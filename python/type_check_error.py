@@ -68,6 +68,8 @@ def display_type(n_type, color=True):
 		display = "module %s" % n_type.mod_name
 	elif isinstance(n_type, dict):
 		display = "{ %s }" % "; ".join('%s: %s' % (key, display_type(value, False)) for key, value in n_type.items())
+		if len(n_type) == 0:
+			display = "{}"
 	elif isinstance(n_type, NTypeVars):
 		display = n_type.name
 		if len(n_type.typevars) > 0:
