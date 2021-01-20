@@ -4,8 +4,8 @@ from native_types import n_cmd_type
 from cmd import Cmd
 
 class NativeFunction(Function):
-	def __init__(self, scope, arguments, return_type, function, argument_cache=[]):
-		super(NativeFunction, self).__init__(scope, arguments, return_type, None)
+	def __init__(self, scope, arguments, return_type, function, argument_cache=[], public=False):
+		super(NativeFunction, self).__init__(scope, arguments, return_type, None, public=public)
 		self.function = function
 		self.argument_cache = argument_cache
 
@@ -20,8 +20,11 @@ class NativeFunction(Function):
 
 	@classmethod
 	def from_imported(cls, scope, types, function):
+		if not isinstance(types, tuple):
+			# Exported value is not a function
+			return function
 		*arg_types, return_type = types
-		if return_type.base_type is n_cmd_type:
+		if n_cmd_type.is_type(return_type):
 			run_function = lambda *args: Cmd(lambda _: lambda: function(*args))
 		else:
 			run_function = function

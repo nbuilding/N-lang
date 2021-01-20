@@ -59,6 +59,7 @@ def type_check_file(file):
 
 	scope = type_check(file, tree, import_scope)
 	import_scope.variables = {**import_scope.variables, **scope.variables}
+	import_scope.public_types = {**import_scope.public_types, **scope.public_types}
 	import_scope.errors += scope.errors
 	import_scope.warnings += scope.warnings
 	return import_scope, file
@@ -125,6 +126,7 @@ class Scope:
 		self.parent_function = parent_function
 		self.variables = {}
 		self.types = {}
+		self.public_types = {}
 		self.errors = errors
 		self.warnings = warnings
 
@@ -165,21 +167,46 @@ class Scope:
 		else:
 			return self.parent_function
 
+	def get_module_type(self, module_type, err=True):
+		*modules, type_name = module_type.children
+		if len(modules) > 0:
+			current_module = self.variables
+			for module in modules:
+				current_module = current_module.get(module.value)
+				if isinstance(current_module, Variable):
+					current_module = current_module.type
+				if not isinstance(current_module, NModule):
+					self.errors.append(TypeCheckError(module, "%s is not a module." % module.value))
+					return None
+			n_type = current_module.types.get(type_name.value)
+			if n_type is None:
+				self.errors.append(TypeCheckError(type_name, "The module doesn't export a type `%s`." % type_name.value))
+				return None
+		else:
+			n_type = self.get_type(type_name.value, err=err)
+			if n_type is None:
+				self.errors.append(TypeCheckError(module_type, "I don't know what type you're referring to by `%s`." % type_name.value))
+				return None
+		if n_type == "invalid":
+			return None
+		else:
+			return n_type
+
 	def parse_type(self, tree_or_token, err=True):
 		if type(tree_or_token) == lark.Tree:
 			if tree_or_token.data == "with_typevars":
-				name, *typevars = tree_or_token.children
-				typevar_type = self.get_type(name.value, err=err)
+				module_type, *typevars = tree_or_token.children
+				typevar_type = self.get_module_type(module_type, err=err)
 				parsed_typevars = [self.parse_type(typevar, err=err) for typevar in typevars]
 				if typevar_type is None:
 					return None
 				elif isinstance(typevar_type, NAliasType) or isinstance(typevar_type, NTypeVars):
 					# Duck typing :sunglasses:
 					if len(typevars) < len(typevar_type.typevars):
-						self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variables." % (name.value, len(typevar_type.typevars))))
+						self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variable(s)." % (name.value, len(typevar_type.typevars))))
 						return None
 					elif len(typevars) > len(typevar_type.typevars):
-						self.errors.append(TypeCheckError(tree_or_token, "%s only expects %d type variables." % (name.value, len(typevar_type.typevars))))
+						self.errors.append(TypeCheckError(tree_or_token, "%s only expects %d type variable(s)." % (name.value, len(typevar_type.typevars))))
 						return None
 					return typevar_type.with_typevars(parsed_typevars)
 				else:
@@ -187,29 +214,28 @@ class Scope:
 					return None
 			elif tree_or_token.data == "tupledef":
 				return [self.parse_type(child, err=err) for child in tree_or_token.children]
+			elif tree_or_token.data == "module_type":
+				n_type = self.get_module_type(tree_or_token, err=err)
+				if n_type is None:
+					return None
+				elif (isinstance(n_type, NAliasType) or isinstance(n_type, NTypeVars)) and len(n_type.typevars) > 0:
+					self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variables." % (type_name.value, len(n_type.typevars))))
+					return None
+				elif isinstance(n_type, NAliasType):
+					return n_type.with_typevars()
+				return n_type
 			elif err:
 				raise NameError("Type annotation of type %s; I am not ready for this." % tree_or_token.data)
 			else:
-				self.errors.append(TypeCheckError(tree_or_token, "Internal problem: encountered a type %s." % tree_or_token.data))
+				self.errors.append(TypeCheckError(tree_or_token, "Internal problem: encountered a type annotation type %s." % tree_or_token.data))
 				return None
+		elif tree_or_token.type == "UNIT":
+			return "unit"
+		elif err:
+			raise NameError("Type annotation token of type %s; I am not ready for this." % tree_or_token.data)
 		else:
-			if tree_or_token.type == "UNIT":
-				return "unit"
-			n_type = self.get_type(tree_or_token.value, err=err)
-			if n_type is None:
-				self.errors.append(TypeCheckError(tree_or_token, "I don't know what type you're referring to by `%s`." % tree_or_token.value))
-				return None
-			elif n_type == "invalid":
-				return None
-			elif isinstance(n_type, NAliasType):
-				if len(n_type.typevars) > 0:
-					self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variables." % (tree_or_token.value, len(typevar_type.typevars))))
-					return None
-				return n_type.with_typevars()
-			elif isinstance(n_type, NTypeVars) and len(n_type.typevars) > 0:
-				self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variables." % (tree_or_token.value, len(typevar_type.typevars))))
-				return None
-			return n_type
+			self.errors.append(TypeCheckError(tree_or_token, "Internal problem: encountered a type annotation token type %s." % tree_or_token.data))
+			return None
 
 	def get_name_type(self, name_type, err=True, get_type=True):
 		pattern = get_destructure_pattern(name_type.children[0])
@@ -303,7 +329,8 @@ class Scope:
 		if isinstance(pattern, EnumPattern):
 			if warn:
 				if not isinstance(value_or_type, EnumType):
-					self.errors.append(TypeCheckError(src, "I cannot destructure %s as an enum because it's a %s." % (path_name, display_type(value_or_type))))
+					if value_or_type is not None:
+						self.errors.append(TypeCheckError(src, "I cannot destructure %s as an enum because it's a %s." % (path_name, display_type(value_or_type))))
 					return True
 				else:
 					variant_types = value_or_type.get_types(pattern.variant)
@@ -515,7 +542,7 @@ class Scope:
 			for key in val.variables.keys():
 				if val.variables[key].public:
 					holder[key] = val.variables[key].value
-			return holder
+			return NModule(expr.children[0] + ".n", holder)
 		elif expr.data == "record_access":
 			return (await self.eval_expr(expr.children[0]))[expr.children[1].value]
 		elif expr.data == "tupleval":
@@ -599,14 +626,10 @@ class Scope:
 		elif command.data == "return":
 			return (True, await self.eval_expr(command.children[0]))
 		elif command.data == "declare":
-			modifier = ""
-			rest = command.children
-			if isinstance(command.children[0], lark.Token):
-				modifier = command.children[0].value
-				rest = rest[1:]
-			name_type, value = rest
+			modifiers, name_type, value = command.children
 			pattern, _ = self.get_name_type(name_type, get_type=False)
-			self.assign_to_pattern(pattern, await self.eval_expr(value), False, None, modifier)
+			public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
+			self.assign_to_pattern(pattern, await self.eval_expr(value), False, None, public)
 		elif command.data == "vary":
 			name, value = command.children
 			self.variables[name].value = await self.eval_expr(value)
@@ -631,17 +654,17 @@ class Scope:
 			if exit:
 				return (True, value)
 		elif command.data == "enum_definition":
-			type_def, constructors = command.children
+			_, type_def, constructors = command.children
 			type_name, *_ = type_def.children
 			enum_type = NType(type_name.value)
 			self.types[type_name.value] = enum_type
 			for constructor in constructors.children:
-				constructor_name, *types = constructor.children
-				# types = [self.parse_type(type_token) for type_token in types]
+				modifiers, constructor_name, *types = constructor.children
+				public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
 				if len(types) >= 1:
-					self.variables[constructor_name] = NativeFunction(self, [("idk", arg_type) for arg_type in types], enum_type, EnumValue.construct(constructor_name))
+					self.variables[constructor_name] = NativeFunction(self, [("idk", arg_type) for arg_type in types], enum_type, EnumValue.construct(constructor_name), public=public)
 				else:
-					self.variables[constructor_name] = Variable(enum_type, EnumValue(constructor_name))
+					self.variables[constructor_name] = Variable(enum_type, EnumValue(constructor_name), public=public)
 		elif command.data == "alias_definition":
 			# Type aliases are purely for type checking so they do nothing at runtime
 			pass
@@ -812,12 +835,12 @@ class Scope:
 			contained_type = None
 			if n_cmd_type.is_type(value_type):
 				contained_type = value_type.typevars[0]
-			else:
+			elif value_type is not None:
 				self.errors.append(TypeCheckError(expr, "You can only use the await operator on cmds, not %s." % display_type(value_type)))
 			parent_function = self.get_parent_function()
 			if parent_function is None:
 				self.errors.append(TypeCheckError(expr, "You can't use the await operator outside a function."))
-			elif not n_cmd_type.is_type(parent_function.returntype):
+			elif parent_function.returntype is not None and not n_cmd_type.is_type(parent_function.returntype):
 				self.errors.append(TypeCheckError(expr, "You can only use the await operator in a function that returns a cmd, but this function returns a %s." % display_type(parent_function.returntype)))
 			return contained_type
 
@@ -915,10 +938,10 @@ class Scope:
 			holder = {}
 			for key in impn.variables.keys():
 				if impn.variables[key].public:
-					holder[key] = impn.variables[key].value
+					holder[key] = impn.variables[key].type
 			if holder == {}:
 				self.warnings.append(TypeCheckError(expr.children[0], "There was nothing to import from %s" % expr.children[0]))
-			return holder
+			return NModule(expr.children[0] + ".n", holder, types=impn.public_types)
 		elif expr.data == "recordval":
 			return dict(self.get_record_entry_type(entry) for entry in expr.children)
 		self.errors.append(TypeCheckError(expr, "Internal problem: I don't know the command/expression type %s." % expr.data))
@@ -953,7 +976,12 @@ class Scope:
 				self.errors.append(TypeCheckError(command.children[0], "You've already used the name `%s`." % import_name))
 			try:
 				imp = importlib.import_module("libraries." + command.children[0])
-				import_type = NModule(import_name, imp._values())
+				types = {}
+				try:
+					types = imp._types()
+				except AttributeError:
+					pass
+				import_type = NModule(import_name, imp._values(), types=types)
 			except AttributeError:
 				self.errors.append(TypeCheckError(command.children[0], "`%s` isn't a compatible native library." % command.children[0]))
 			except ModuleNotFoundError:
@@ -995,13 +1023,7 @@ class Scope:
 					self.errors.append(TypeCheckError(command.children[0], "You returned a %s, but the function is supposed to return a %s." % (display_type(return_type), display_type(parent_function.returntype))))
 			return command
 		elif command.data == "declare":
-			modifier = ""
-			maybe_name_type = command.children[0]
-			rest = command.children
-			if isinstance(maybe_name_type, lark.Token):
-				modifier = maybe_name_type.value
-				rest = rest[1:]
-			name_type, value = rest
+			modifiers, name_type, value = command.children
 			pattern, ty = self.get_name_type(name_type, err=False)
 			name = pattern_to_name(pattern)
 
@@ -1014,7 +1036,8 @@ class Scope:
 				if incompatible:
 					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
 
-			self.assign_to_pattern(pattern, ty, True, None, modifier == "pub")
+			public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
+			self.assign_to_pattern(pattern, ty, True, None, public)
 		elif command.data == "vary":
 			name, value = command.children
 			if name not in self.variables:
@@ -1064,29 +1087,34 @@ class Scope:
 			if exit_if_true and exit_if_false:
 				return command
 		elif command.data == "enum_definition":
-			type_def, constructors = command.children
+			modifiers, type_def, constructors = command.children
 			type_name, scope, typevars = self.get_name_typevars(type_def)
 			variants = []
-			enum_type = EnumType(type_name, variants, typevars)
+			enum_type = EnumType(type_name.value, variants, typevars)
 			self.types[type_name] = enum_type
+			if any(modifier.type == "PUBLIC" for modifier in modifiers.children):
+				self.public_types[type_name] = self.types[type_name]
 			for constructor in constructors.children:
-				constructor_name, *types = constructor.children
+				modifiers, constructor_name, *types = constructor.children
+				public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
 				types = [scope.parse_type(type_token, err=False) for type_token in types]
 				variants.append((constructor_name.value, types))
 				if constructor_name.value in self.variables:
 					self.errors.append(TypeCheckError(constructor_name, "You've already defined `%s` in this scope." % constructor_name.value))
 				if len(types) >= 1:
-					self.variables[constructor_name.value] = NativeFunction(self, [("idk", arg_type) for arg_type in types], enum_type, id)
+					self.variables[constructor_name.value] = NativeFunction(self, [("idk", arg_type) for arg_type in types], enum_type, id, public=public)
 				else:
-					self.variables[constructor_name.value] = Variable(enum_type, "I don't think this is used")
+					self.variables[constructor_name.value] = Variable(enum_type, "I don't think this is used", public=public)
 		elif command.data == "alias_definition":
-			alias_def, alias_type = command.children
+			modifiers, alias_def, alias_type = command.children
 			alias_name, scope, typevars = self.get_name_typevars(alias_def)
 			alias_type = scope.parse_type(alias_type, err=False)
 			if alias_type is None:
 				self.types[alias_name] = "invalid"
 			else:
 				self.types[alias_name] = NAliasType(alias_name.value, alias_type, typevars)
+			if any(modifier.type == "PUBLIC" for modifier in modifiers.children):
+				self.public_types[alias_name] = self.types[alias_name]
 		else:
 			self.type_check_expr(command)
 
