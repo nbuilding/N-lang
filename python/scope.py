@@ -377,7 +377,7 @@ class Scope:
 
 	async def eval_record_entry(self, entry):
 		if type(entry) is lark.Tree:
-			return entry.children[0].value, await self.eval_expr(entry.children[1].children[0])
+			return entry.children[0].value, await self.eval_expr(entry.children[1])
 		else:
 			return entry.value, self.eval_value(entry)
 
@@ -695,7 +695,7 @@ class Scope:
 
 	def get_record_entry_type(self, entry):
 		if type(entry) is lark.Tree:
-			return entry.children[0].value, self.type_check_expr(entry.children[1].children[0])
+			return entry.children[0].value, self.type_check_expr(entry.children[1])
 		else:
 			return entry.value, self.get_value_type(entry)
 
@@ -943,7 +943,11 @@ class Scope:
 				self.warnings.append(TypeCheckError(expr.children[0], "There was nothing to import from %s" % expr.children[0]))
 			return NModule(expr.children[0] + ".n", holder, types=impn.public_types)
 		elif expr.data == "recordval":
-			return dict(self.get_record_entry_type(entry) for entry in expr.children)
+			record_type = dict(self.get_record_entry_type(entry) for entry in expr.children)
+			if None in record_type.values():
+				return None
+			else:
+				return record_type
 		self.errors.append(TypeCheckError(expr, "Internal problem: I don't know the command/expression type %s." % expr.data))
 		return None
 

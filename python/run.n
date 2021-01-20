@@ -206,3 +206,18 @@ print <mapFrom [
   |> <json.stringify>
 let cool: json.value = <json.parse "[\"heterogeneous\", 1, { \"array\": [true, null] }]">
 print cool
+
+import websocket
+// https://www.websocket.org/echo.html
+let pub websocketTest = <websocket.connect {
+  onOpen: [send: websocket.send] -> cmd[bool] {
+    print "Open!"
+    let _ = <send "hi">!
+    return false
+  }
+  onMessage: [send: websocket.send message: str] -> cmd[bool] {
+    print message
+    let _ = <send "hello">!
+    return message == "hello"
+  }
+} "wss://echo.websocket.org">
