@@ -206,3 +206,17 @@ print <mapFrom [
   |> <json.stringify>
 let cool: json.value = <json.parse "[\"heterogeneous\", 1, { \"array\": [true, null] }]">
 print cool
+
+import websocket
+// https://www.websocket.org/echo.html
+let pub websocketTest = <websocket.connect {
+  onOpen: [send: websocket.send] -> cmd[bool] {
+    print "Connected to Discord gateway!"
+    return false
+  }
+  onMessage: [send: websocket.send message: str] -> cmd[bool] {
+    print <json.parse message>
+    print "ok that's enough, closing connection"
+    return true
+  }
+} "wss://gateway.discord.gg/?v=8&encoding=json">

@@ -7,4 +7,8 @@ class Variable:
 		self.public = public
 
 	def __repr__(self):
-		return 'Variable(%s, %s, %s)' % (repr(self.type), repr(self.value), repr(self.public))
+		return 'Variable(%s, %s, %s)' % (
+			repr(self.type),
+			'self' if self.value is self else repr(self.value),
+			repr(self.public)
+		)
