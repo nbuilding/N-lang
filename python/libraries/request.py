@@ -3,6 +3,7 @@ import json
 import aiohttp
 import asyncio
 from native_types import n_cmd_type, NMap, n_map_type
+from libraries.json import json_value_type, python_to_json
 
 #for gateways
 scope = None
@@ -17,7 +18,7 @@ async def get(url, headers):
 			for key in out.keys():
 				out[key] = str(out[key])
 
-			return {"code": r.status, "response": r.reason, "return": NMap(out)}
+			return {"code": r.status, "response": r.reason, "return": python_to_json(out)}
 
 async def post(url, content, headers):
 	print(json.dumps(content))
@@ -37,6 +38,6 @@ def _values():
 		"get": (
 			"str",
 			n_map_type.with_typevars(["str", "str"]),
-			n_cmd_type.with_typevars([{"code": "int", "response": "str", "return": n_map_type.with_typevars(["str", "str"])}])
+			n_cmd_type.with_typevars([{"code": "int", "response": "str", "return": json_value_type}])
 		)
 	}
