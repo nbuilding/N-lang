@@ -958,7 +958,11 @@ class Scope:
 				self.warnings.append(TypeCheckError(expr.children[0], "There was nothing to import from %s" % expr.children[0]))
 			return NModule(expr.children[0] + ".n", holder, types=impn.public_types)
 		elif expr.data == "recordval":
-			return dict(self.get_record_entry_type(entry) for entry in expr.children)
+			record_type = dict(self.get_record_entry_type(entry) for entry in expr.children)
+			if None in record_type.values():
+				return None
+			else:
+				return record_type
 		self.errors.append(TypeCheckError(expr, "Internal problem: I don't know the command/expression type %s." % expr.data))
 		return None
 

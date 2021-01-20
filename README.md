@@ -21,6 +21,9 @@ pip install colorama
 pip install aiohttp
 pip install aiofile
 
+# Websockets
+pip install websockets
+
 # Parses and interprets code
 # If there are no arguments then it will interpret run.n
 # If there is a --file [file name] flag then it will run the file in the filename
