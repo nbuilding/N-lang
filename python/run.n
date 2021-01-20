@@ -1,5 +1,7 @@
 import fek
 import SystemIO
+import json
+import request
 
 let discord = imp discord
 
@@ -7,7 +9,7 @@ let discord = imp discord
 
 print <discord.getKey>
 
-let self = [] -> cmd[maybe[str]]{
+let self = [] -> cmd[()]{
 	print <discord.getSelf>!
 	print <discord.getUser "384499090865782785">!
 	print <discord.getMessages "710936824121655396">!
@@ -22,7 +24,7 @@ let thenHelper = [[t] command:cmd[t] _:()] -> cmd[t] {
   return command
 }
 let printResult = [[t] result:t] -> cmd[()] {
-  print result
+  //print result
   return <fek.paer "done">
 }
 let cmdId = [[v] value: v] -> cmd[v] {
@@ -38,9 +40,10 @@ let main2 = [question: str] -> cmd[int] {
 }
 let main3 = [_: ()] -> cmd[()] {
   let wow: int = <cmdId <main2 "What's your name? ">!>!
-  print wow
+  //print wow
 }
 // let pub exec = <main3 ()>
 
 // print runner.e runner.e is not public so this throws an error
-print runner.eeeeee
+//print runner.eeeeee
+

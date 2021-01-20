@@ -85,13 +85,18 @@ let parseUserData = [data:map[str, str]] -> member{
 }
 
 // public functions
-let pub start = [k:str] -> () {
+let pub start = [k:str] -> bool {
 	var key = k
 	var header = <mapFrom [
 		("Content-Type", "application/json"),
 		("Authorization", "Bot " + key)
 	]>
+	let r = <request.get "https://discord.com/api/gateway/bot" header>!
+	if r.code /= 200{
+		return false
+	}
 	// other important functions idk what is going to happen here
+	return true
 }
 
 let pub getKey = [] -> str{
