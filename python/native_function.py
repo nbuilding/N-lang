@@ -1,3 +1,5 @@
+import inspect
+
 from function import Function
 from type_check_error import display_type
 from native_types import n_cmd_type
@@ -13,7 +15,11 @@ class NativeFunction(Function):
 		arguments = self.argument_cache + arguments
 		if len(arguments) < len(self.arguments):
 			return NativeFunction(self.scope, self.arguments, self.returntype, self.function, argument_cache=self.argument_cache + arguments)
-		return self.function(*arguments)
+		maybe_awaitable = self.function(*arguments)
+		if inspect.isawaitable(maybe_awaitable):
+			return await maybe_awaitable
+		else:
+			return maybe_awaitable
 
 	def __str__(self):
 		return display_type(self.arguments, False)
