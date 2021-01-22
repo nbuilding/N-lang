@@ -161,11 +161,16 @@ class Scope:
 	def get_module_type(self, module_type, err=True):
 		*modules, type_name = module_type.children
 		if len(modules) > 0:
-			current_module = self.variables
-			for module in modules:
+			current_module = self.get_variable(modules[0].value, err=err)
+			if current_module is None:
+				self.errors.append(TypeCheckError(module, "I can't find `%s` from this scope." % module.value))
+				return None
+			current_module = current_module.type
+			if not isinstance(current_module, NModule):
+				self.errors.append(TypeCheckError(module, "%s is not a module." % module.value))
+				return None
+			for module in modules[1:]:
 				current_module = current_module.get(module.value)
-				if isinstance(current_module, Variable):
-					current_module = current_module.type
 				if not isinstance(current_module, NModule):
 					self.errors.append(TypeCheckError(module, "%s is not a module." % module.value))
 					return None
@@ -199,14 +204,16 @@ class Scope:
 					elif len(typevars) > len(typevar_type.typevars):
 						self.errors.append(TypeCheckError(tree_or_token, "%s only expects %d type variable(s)." % (name.value, len(typevar_type.typevars))))
 						return None
-					return typevar_type.with_typevars(parsed_typevars)
+					return typevar_type.with_typevars(parsed_typevars) if None not in parsed_typevars else None
 				else:
 					self.errors.append(TypeCheckError(tree_or_token, "%s doesn't take any type variables." % name.value))
 					return None
 			elif tree_or_token.data == "tupledef":
-				return [self.parse_type(child, err=err) for child in tree_or_token.children]
+				tuple_type = [self.parse_type(child, err=err) for child in tree_or_token.children]
+				return tuple_type if None not in tuple_type else None
 			elif tree_or_token.data == "recorddef":
-				return {entry.children[0].value: self.parse_type(entry.children[1], err=err) for entry in tree_or_token.children}
+				record_type = {entry.children[0].value: self.parse_type(entry.children[1], err=err) for entry in tree_or_token.children}
+				return record_type if None not in record_type.values() else None
 			elif tree_or_token.data == "module_type":
 				n_type = self.get_module_type(tree_or_token, err=err)
 				if n_type is None:
@@ -643,7 +650,12 @@ class Scope:
 					return (True, value)
 		elif command.data == "ifelse":
 			condition, if_true, if_false = command.children
-			if await self.eval_expr(condition):
+			if condition.data == "conditional_let":
+				pattern, value = condition.children
+				yes = scope.assign_to_cond_pattern(get_conditional_destructure_pattern(pattern), await self.eval_expr(value))
+			else:
+				yes = await self.eval_expr(condition)
+			if yes:
 				exit, value = await self.new_scope().eval_command(if_true)
 			else:
 				exit, value = await self.new_scope().eval_command(if_false)
@@ -856,7 +868,7 @@ class Scope:
 			if parent_function is None:
 				self.errors.append(TypeCheckError(expr, "You can't use the await operator outside a function."))
 			elif parent_function.returntype is not None and not n_cmd_type.is_type(parent_function.returntype):
-				self.errors.append(TypeCheckError(expr, "You can only use the await operator in a function that returns a cmd, but this function returns a %s." % display_type(parent_function.returntype)))
+				self.errors.append(TypeCheckError(expr, "You can only use the await operator in a function that returns a cmd, but the surrounding function returns a %s." % display_type(parent_function.returntype)))
 			return contained_type
 
 		if len(expr.children) == 2 and type(expr.children[0]) is lark.Token:
@@ -1094,16 +1106,22 @@ class Scope:
 			scope.type_check_command(body)
 		elif command.data == "ifelse":
 			condition, if_true, if_false = command.children
-			cond_type = self.type_check_expr(condition)
-			if type(condition.children[0]) is lark.Token:
-				if condition.children[0].value == "true":
-					self.warnings.append(TypeCheckError(condition, "The else statement of the expression will never run."))
-				if condition.children[0].value == "false":
-					self.warnings.append(TypeCheckError(condition, "The if statement of the expression will never run."))
-			if cond_type is not None and cond_type != "bool":
-				self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
-			exit_if_true = self.type_check_command(if_true)
-			exit_if_false = self.type_check_command(if_false)
+			scope = self.new_scope()
+			if condition.data == "conditional_let":
+				pattern, value = condition.children
+				eval_type = self.type_check_expr(value)
+				scope.assign_to_cond_pattern(get_conditional_destructure_pattern(pattern), eval_type, True)
+			else:
+				cond_type = self.type_check_expr(condition)
+				if type(condition.children[0]) is lark.Token:
+					if condition.children[0].value == "true":
+						self.warnings.append(TypeCheckError(condition, "The else statement of the expression will never run."))
+					if condition.children[0].value == "false":
+						self.warnings.append(TypeCheckError(condition, "The if statement of the expression will never run."))
+				if cond_type is not None and cond_type != "bool":
+					self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
+			exit_if_true = scope.type_check_command(if_true)
+			exit_if_false = scope.type_check_command(if_false)
 			if exit_if_true and exit_if_false:
 				return command
 		elif command.data == "enum_definition":

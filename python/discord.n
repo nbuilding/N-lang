@@ -1,4 +1,5 @@
 import request
+import json
 
 // important variables
 let key:str = ""
@@ -69,8 +70,8 @@ alias reaction = {
 let parseUserData = [data:map[str, str]] -> member{
 	return {
 		id: data
-			  |> <getValue "id">
-			  |> <default "">
+				|> <getValue "id">
+				|> <default "">
 		name: data
 				|> <getValue "username">
 				|> <default "">
@@ -85,7 +86,7 @@ let parseUserData = [data:map[str, str]] -> member{
 }
 
 // public functions
-let pub start = [k:str] -> bool {
+let pub start = [k:str] -> cmd[bool] {
 	var key = k
 	var header = <mapFrom [
 		("Content-Type", "application/json"),
@@ -103,6 +104,23 @@ let pub getKey = [] -> str{
 	return key
 }
 
+let jsonToStrMap = [jsonVal: json.value] -> maybe[map[str, str]] {
+  if let <object map> = jsonVal {
+    return <entries map>
+      |> <filterMap ([(key, value): (str, json.value)] -> maybe[(str, str)] {
+        if let <string str> = value {
+          return <yes (key, str)>
+        } else {
+          return none
+        }
+      })>
+      |> <mapFrom>
+      |> <yes>
+  } else {
+    return none
+  }
+}
+
 let pub getSelf = [] -> cmd[maybe[member]] {
 	// Sends a request to the url
 	let r = <request.get "https://discord.com/api/users/@me" header>!
@@ -110,7 +128,11 @@ let pub getSelf = [] -> cmd[maybe[member]] {
 		return none
 	}
 
-	return <parseUserData r.return>.<yes>
+	if let <yes map> = <jsonToStrMap r.return> {
+		return <parseUserData map>.<yes>
+	} else {
+		return none
+	}
 }
 
 let pub getUser = [id:str] -> cmd[maybe[member]] {
@@ -121,7 +143,11 @@ let pub getUser = [id:str] -> cmd[maybe[member]] {
 		return none
 	}
 
-	return <parseUserData r.return>.<yes>
+	if let <yes map> = <jsonToStrMap r.return> {
+		return <parseUserData map>.<yes>
+	} else {
+		return none
+	}
 }
 
 let pub sendMessage = [c:str m:str] -> cmd[int] {
