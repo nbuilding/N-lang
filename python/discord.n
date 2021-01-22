@@ -1,5 +1,6 @@
 import request
 import json
+import websocket
 
 // important variables
 let key:str = ""
@@ -129,7 +130,8 @@ let pub getSelf = [] -> cmd[maybe[member]] {
 	}
 
 	if let <yes map> = <jsonToStrMap r.return> {
-		return <parseUserData map>.<yes>
+		return <parseUserData map>
+								|> <yes>
 	} else {
 		return none
 	}
@@ -144,7 +146,8 @@ let pub getUser = [id:str] -> cmd[maybe[member]] {
 	}
 
 	if let <yes map> = <jsonToStrMap r.return> {
-		return <parseUserData map>.<yes>
+		return <parseUserData map>
+								|> <yes>
 	} else {
 		return none
 	}

@@ -5,15 +5,17 @@ import request
 
 let discord = imp discord
 
-<discord.start "brub">
-
-print <discord.getKey>
 
 let self = [] -> cmd[()]{
-	print <discord.getSelf>!
-	print <discord.getUser "384499090865782785">!
-	print <discord.getMessages "710936824121655396">!
-	print <discord.sendMessage "710936824121655396" "I have been released">!
+	if <discord.start "valid code">!{
+		print <discord.getKey>
+		print <discord.getSelf>!
+		print <discord.getUser "384499090865782785">!
+		print <discord.getMessages "710936824121655396">!
+		print <discord.sendMessage "710936824121655396" "I have been released">!
+	} else {
+		print "key is not valid"
+	}
 }
 
 let pub main = <self>
