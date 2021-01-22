@@ -29,10 +29,14 @@ class Function(Variable):
 			return Function(scope, self.arguments[len(arguments):], self.returntype, self.codeblock)
 
 		async def run_command():
-			_, value = await scope.eval_command(self.codeblock)
-			if not using_await_future.done():
-				using_await_future.set_result((False, value))
-			return value
+			try:
+				_, value = await scope.eval_command(self.codeblock)
+				if not using_await_future.done():
+					using_await_future.set_result((False, value))
+				return value
+			except Exception as err:
+				print("OMG AN ERROR ==>", err)
+				using_await_future.set_exception(err)
 		# Run eval_command in a parallel Task because the await operator might
 		# block it.
 		run_task = loop.create_task(run_command())

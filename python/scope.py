@@ -650,13 +650,14 @@ class Scope:
 					return (True, value)
 		elif command.data == "ifelse":
 			condition, if_true, if_false = command.children
+			scope = self.new_scope()
 			if condition.data == "conditional_let":
 				pattern, value = condition.children
 				yes = scope.assign_to_cond_pattern(get_conditional_destructure_pattern(pattern), await self.eval_expr(value))
 			else:
 				yes = await self.eval_expr(condition)
 			if yes:
-				exit, value = await self.new_scope().eval_command(if_true)
+				exit, value = await scope.eval_command(if_true)
 			else:
 				exit, value = await self.new_scope().eval_command(if_false)
 			if exit:
