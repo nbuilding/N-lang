@@ -3,9 +3,6 @@ import lark
 import asyncio
 import sys
 import signal
-# https://github.com/encode/httpx/issues/914#issuecomment-622586610
-if sys.version_info[0] == 3 and sys.version_info[1] >= 8 and sys.platform.startswith('win'):
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 import argparse
 from colorama import init, Fore, Style
 init()
@@ -84,15 +81,6 @@ def type_check(file, tree):
 	return (error_count, warning_count)
 
 async def parse_tree(tree):
-	running = True
-	# HACK: `anger` does nothing but wait, but since it begins a new sleep every
-	# second, when there's a keyboardinterrupt it can (ungracefully) explode
-	# instead of ignoring it.
-	async def anger():
-		while running:
-			await asyncio.sleep(1)
-	task = asyncio.create_task(anger())
-
 	if tree.data == "start":
 		scope = global_scope.new_scope()
 		for child in tree.children:
@@ -103,8 +91,6 @@ async def parse_tree(tree):
 				break
 	else:
 		raise SyntaxError("Unable to run parse_tree on non-starting branch")
-
-	running = False
 
 try:
 	tree = file.parse(n_parser)
@@ -122,4 +108,5 @@ if error_count > 0 or args.check:
 	print(f"{Fore.BLUE}Ran with {Fore.RED}{error_count} error{error_s}{Fore.BLUE} and {Fore.YELLOW}{warning_count} warning{warning_s}{Fore.BLUE}.{Style.RESET_ALL}")
 	exit()
 
-asyncio.run(parse_tree(tree))
+# https://github.com/aio-libs/aiohttp/issues/4324#issuecomment-676675779
+asyncio.get_event_loop().run_until_complete(parse_tree(tree))
