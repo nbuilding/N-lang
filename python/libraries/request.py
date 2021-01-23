@@ -14,11 +14,7 @@ def _prepare(sc):
 async def get(url, headers):
 	async with aiohttp.ClientSession() as session:
 		async with session.get(url, headers=headers) as r:
-			out = json.loads(await r.text())
-			for key in out.keys():
-				out[key] = str(out[key])
-
-			return {"code": r.status, "response": r.reason, "return": python_to_json(out)}
+			return {"code": r.status, "response": r.reason, "return": python_to_json(json.loads(await r.text()))}
 
 async def post(url, content, headers):
 	print(json.dumps(content))

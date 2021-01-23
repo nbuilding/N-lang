@@ -51,6 +51,7 @@ alias channel = {
 	name:str
 	guild:maybe[str]
 	membersAllowed:list[member]
+	textChannel:bool
 }
 
 alias message = {
@@ -58,7 +59,6 @@ alias message = {
 	id:str
 	content:str
 	sender:str
-	textChannel:bool
 }
 
 alias reaction = {
@@ -68,6 +68,42 @@ alias reaction = {
 }
 
 // internal functions
+let jsonToStrMap = [jsonVal: json.value] -> maybe[map[str, str]] {
+	if let <object map> = jsonVal {
+		return <entries map>
+			|> <filterMap ([(key, value): (str, json.value)] -> maybe[(str, str)] {
+				if let <string str> = value {
+					return <yes (key, str)>
+				} else {
+					return none
+				}
+			})>
+			|> <mapFrom>
+			|> <yes>
+	} else {
+		return none
+	}
+}
+
+let parseMessageData = [data:json.value] -> maybe[message] {
+
+	if let <object map> = data {
+		return {
+			channel: if let <string ch> = <getValue "channel_id" map> {ch} else {none}
+			id: data
+					|> <getValue "id">
+					|> <default "">
+			content: data
+						 |> <getValue "content">
+						 |> <default "">
+			sender: userdata
+
+		}
+	} else {
+		return none
+	}
+}
+
 let parseUserData = [data:map[str, str]] -> member{
 	return {
 		id: data
@@ -103,23 +139,6 @@ let pub start = [k:str] -> cmd[bool] {
 
 let pub getKey = [] -> str{
 	return key
-}
-
-let jsonToStrMap = [jsonVal: json.value] -> maybe[map[str, str]] {
-  if let <object map> = jsonVal {
-    return <entries map>
-      |> <filterMap ([(key, value): (str, json.value)] -> maybe[(str, str)] {
-        if let <string str> = value {
-          return <yes (key, str)>
-        } else {
-          return none
-        }
-      })>
-      |> <mapFrom>
-      |> <yes>
-  } else {
-    return none
-  }
 }
 
 let pub getSelf = [] -> cmd[maybe[member]] {
@@ -167,9 +186,19 @@ let pub getMessages = [c:str] -> cmd[maybe[list[message]]] {
 		return none
 	}
 
-	//let messages:list[message] = []
+	if let <array list> = r.return{
+		return list
+				 |> <filterMap ([[b] thing:b] -> list[message] {
+				 	thing
+				 	   |> <parseMessageData>
+				 	   |> <yes>
+				 })>
+				 |> <yes>
+	} else {
+		return none
+	}
 
-	print r.return
+//	print r.return
 
 	return none
 
