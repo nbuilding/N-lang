@@ -212,8 +212,8 @@ let pub getMessages = [c:str] -> cmd[maybe[list[message]]] {
 	if let <array list> = r.return{
 		return list
 				 |> <filterMap ([thing: json.value] -> maybe[message] {
-				 	thing
-				 		 |> <parseMessageData>
+				 	return thing
+				 		 	  |> <parseMessageData>
 				 })>
 				 |> <yes>
 	} else {
