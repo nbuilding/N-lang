@@ -90,13 +90,26 @@ let parseMessageData = [data:json.value] -> maybe[message] {
 	if let <object map> = data {
 
 		return {
-			channel: if let <string <default <string ""> ch>> = <getValue "channel_id" map> {ch} else {none}
-			id: data
-					|> <getValue "id">
-					|> <default "">
-			content: data
-						 |> <getValue "content">
-						 |> <default "">
+			channel: if let <yes <string ch>> = <getValue "channel_id" map> {<yes ch>} else {none}
+			id: if let <object map> = data {
+        if let <yes <string str>> = <getValue "id" map> {
+          str
+        } else {
+          ""
+        }
+      } else {
+        ""
+      }
+
+			content: if let <object map> = data {
+        if let <yes <string str>> = <getValue "content" map> {
+          str
+        } else {
+          ""
+        }
+      } else {
+        ""
+      }
 			sender: userdata
 
 		}
@@ -189,10 +202,9 @@ let pub getMessages = [c:str] -> cmd[maybe[list[message]]] {
 
 	if let <array list> = r.return{
 		return list
-				 |> <filterMap ([[b] thing:b] -> list[message] {
+				 |> <filterMap ([thing: json.value] -> maybe[message] {
 				 	thing
 				 	   |> <parseMessageData>
-				 	   |> <yes>
 				 })>
 				 |> <yes>
 	} else {
