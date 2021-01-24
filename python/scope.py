@@ -414,7 +414,14 @@ class Scope:
 
 		if expr.data == "ifelse_expr":
 			condition, if_true, if_false = expr.children
-			if await self.eval_expr(condition):
+			scope = self.new_scope()
+			if condition.data == "conditional_let":
+				pattern, value = condition.children
+				if scope.assign_to_cond_pattern(get_conditional_destructure_pattern(pattern), await self.eval_expr(value)):
+					return await self.eval_expr(if_true)
+				else:
+					return await self.eval_expr(if_false)
+			elif await self.eval_expr(condition):
 				return await self.eval_expr(if_true)
 			else:
 				return await self.eval_expr(if_false)
@@ -741,11 +748,17 @@ class Scope:
 
 		if expr.data == "ifelse_expr":
 			condition, if_true, if_false = expr.children
-			cond_type = self.type_check_expr(condition)
+			scope = self.new_scope()
+			if condition.data == "conditional_let":
+				pattern, value = condition.children
+				eval_type = self.type_check_expr(value)
+				scope.assign_to_cond_pattern(get_conditional_destructure_pattern(pattern), eval_type, True)
+			else:
+				cond_type = self.type_check_expr(condition)
+				if cond_type is not None and cond_type != "bool":
+					self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
 			if_true_type = self.type_check_expr(if_true)
 			if_false_type = self.type_check_expr(if_false)
-			if cond_type is not None and cond_type != "bool":
-				self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
 			if if_true_type is None or if_false_type is None:
 				return None
 			return_type, incompatible = resolve_equal_types(if_true_type, if_false_type)

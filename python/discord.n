@@ -88,8 +88,9 @@ let jsonToStrMap = [jsonVal: json.value] -> maybe[map[str, str]] {
 let parseMessageData = [data:json.value] -> maybe[message] {
 
 	if let <object map> = data {
+
 		return {
-			channel: if let <string ch> = <getValue "channel_id" map> {ch} else {none}
+			channel: if let <string <default <string ""> ch>> = <getValue "channel_id" map> {ch} else {none}
 			id: data
 					|> <getValue "id">
 					|> <default "">
@@ -197,10 +198,4 @@ let pub getMessages = [c:str] -> cmd[maybe[list[message]]] {
 	} else {
 		return none
 	}
-
-//	print r.return
-
-	return none
-
-	//return <parseUserData r.return>.<yes>
 }
