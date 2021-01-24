@@ -55,10 +55,10 @@ alias channel = {
 }
 
 alias message = {
-	channel:str
+	channel:maybe[str]
 	id:str
 	content:str
-	sender:str
+	sender:maybe[member]
 }
 
 alias reaction = {
@@ -131,7 +131,7 @@ let parseMessageData = [data:json.value] -> maybe[message] {
 				sender: if let <object val> = <default <json.object <mapFrom [("", <json.string "">)]>> <getValue "author" map>> {
 							if let <yes retained> = <jsonToStrMap <json.object val>>{
 								<parseUserData retained>
-												 |> <yes>
+													  |> <yes>
 							} else {
 								none
 							}
