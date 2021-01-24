@@ -85,39 +85,6 @@ let jsonToStrMap = [jsonVal: json.value] -> maybe[map[str, str]] {
 	}
 }
 
-let parseMessageData = [data:json.value] -> maybe[message] {
-
-	if let <object map> = data {
-
-		return {
-			channel: if let <yes <string ch>> = <getValue "channel_id" map> {<yes ch>} else {none}
-			id: if let <object map> = data {
-        if let <yes <string str>> = <getValue "id" map> {
-          str
-        } else {
-          ""
-        }
-      } else {
-        ""
-      }
-
-			content: if let <object map> = data {
-        if let <yes <string str>> = <getValue "content" map> {
-          str
-        } else {
-          ""
-        }
-      } else {
-        ""
-      }
-			sender: userdata
-
-		}
-	} else {
-		return none
-	}
-}
-
 let parseUserData = [data:map[str, str]] -> member{
 	return {
 		id: data
@@ -133,6 +100,48 @@ let parseUserData = [data:map[str, str]] -> member{
 				|> <getValue "bot">
 				|> <default "false">) == "True"
 
+	}
+}
+
+let parseMessageData = [data:json.value] -> maybe[message] {
+
+	if let <object map> = data {
+
+		return <yes {
+			channel: if let <yes <string ch>> = <getValue "channel_id" map> {<yes ch>} else {none}
+			id: if let <object map> = data {
+				if let <yes <string str>> = <getValue "id" map> {
+					str
+				} else {
+					""
+				}
+			} else {
+				""
+			}
+
+			content: if let <object map> = data {
+				if let <yes <string str>> = <getValue "content" map> {
+					str
+				} else {
+					""
+				}
+			} else {
+				""
+			}
+				sender: if let <object val> = <default <json.object <mapFrom [("", <json.string "">)]>> <getValue "author" map>> {
+							if let <yes retained> = <jsonToStrMap <json.object val>>{
+								<parseUserData retained>
+												 |> <yes>
+							} else {
+								none
+							}
+						} else {
+							none
+						}
+
+		}>
+	} else {
+		return none
 	}
 }
 
@@ -204,7 +213,7 @@ let pub getMessages = [c:str] -> cmd[maybe[list[message]]] {
 		return list
 				 |> <filterMap ([thing: json.value] -> maybe[message] {
 				 	thing
-				 	   |> <parseMessageData>
+				 		 |> <parseMessageData>
 				 })>
 				 |> <yes>
 	} else {
