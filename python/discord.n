@@ -98,7 +98,7 @@ let parseUserData = [data:map[str, str]] -> member{
 				|> <default "">
 		bot: (data
 				|> <getValue "bot">
-				|> <default "false">) == "True"
+				|> <default "True">) == "True"
 
 	}
 }
@@ -198,6 +198,7 @@ let pub getUser = [id:str] -> cmd[maybe[member]] {
 let pub sendMessage = [c:str m:str] -> cmd[int] {
 	let url:str = "https://discord.com/api/channels/" + c + "/messages"
 	let r = <request.post url <mapFrom [("content", m)]> header>!
+	print r.response
 	return r.code
 }
 
@@ -219,4 +220,15 @@ let pub getMessages = [c:str] -> cmd[maybe[list[message]]] {
 	} else {
 		return none
 	}
+}
+
+let pub getMessage = [c:str m:str] -> cmd[maybe[message]] {
+	let url:str = "https://discord.com/api/channels/" + c + "/messages/" + m 
+	let r = <request.get url header>!
+
+	if r.code /= 200{
+		return none
+	}
+
+	return <parseMessageData r.return>
 }
