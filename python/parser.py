@@ -2,7 +2,7 @@ from lark import Lark
 import sys
 import lark
 
-file = "run.n"
+file = "discord.n"
 if len(sys.argv) > 1:
 	file = ''.join(sys.argv[1:]) 
 

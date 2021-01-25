@@ -4,7 +4,7 @@ from cmd import Cmd
 from type_check_error import display_type
 
 class Function(Variable):
-	def __init__(self, scope, arguments, returntype, codeblock, generics=[], public=False):
+	def __init__(self, scope, arguments, returntype, codeblock, generics=None, public=False):
 		# Tuples represent function types. (a, b, c) represents a -> b -> c.
 		types = tuple([ty for _, ty in arguments] + [returntype])
 		super(Function, self).__init__(types, self, public)
@@ -13,7 +13,7 @@ class Function(Variable):
 		self.arguments = arguments
 		self.returntype = returntype
 		self.codeblock = codeblock
-		self.generics = generics
+		self.generics = generics or []
 
 	async def run(self, arguments):
 		# This function suddenly got so complicated because of async.
@@ -29,10 +29,14 @@ class Function(Variable):
 			return Function(scope, self.arguments[len(arguments):], self.returntype, self.codeblock)
 
 		async def run_command():
-			_, value = await scope.eval_command(self.codeblock)
-			if not using_await_future.done():
-				using_await_future.set_result((False, value))
-			return value
+			try:
+				_, value = await scope.eval_command(self.codeblock)
+				if not using_await_future.done():
+					using_await_future.set_result((False, value))
+				return value
+			except Exception as err:
+				print("OMG AN ERROR ==>", err)
+				using_await_future.set_exception(err)
 		# Run eval_command in a parallel Task because the await operator might
 		# block it.
 		run_task = loop.create_task(run_command())

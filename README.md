@@ -17,8 +17,9 @@ pip install lark
 # Coloured console text
 pip install colorama
 
-# Async requests
+# Async requests and files
 pip install aiohttp
+pip install aiofile
 
 # Websockets
 pip install websockets
@@ -32,7 +33,7 @@ python n.py
 # OPTIONAL: Check the code for accidental errors
 # https://stackoverflow.com/a/31908039
 # https://stackoverflow.com/a/54488818
-pylint --disable=all --enable=F,E,unreachable,duplicate-key,unnecessary-semicolon,global-variable-not-assigned,unused-variable,binary-op-exception,bad-format-string,anomalous-backslash-in-string,bad-open-mode *.py **/*.py
+pylint --disable=all --enable=F,E,unreachable,duplicate-key,unnecessary-semicolon,global-variable-not-assigned,unused-variable,binary-op-exception,bad-format-string,anomalous-backslash-in-string,bad-open-mode,dangerous-default-value *.py **/*.py
 ```
 
 ### Features to add:

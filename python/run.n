@@ -1,174 +1,15 @@
 import fek
 import SystemIO
-import discordn
-
-print fek
-
-<discordn.setId "you thought">
-let messageout = <discordn.sendMessage "710936824121655396" "uau" false>
-print messageout
-print discordn.sendMessage
+import json
+import request
 
 let runner = imp runner
-
-let billy: runner.state = <runner.dead 2020 ["Died due to Covid", "ok"]>
-print billy
-// print <runner.alive 3.4>
-
-if let <dead wow ok> = billy {
-  print "billy is dead!"
-  print (wow, ok)
-}
-// TODO: Allow destructuring non-exported variants?
-if let <alive wow> = runner.secret {
-  print "runner.secret is alive!"
-  print wow
-}
-
-let years: map[str, int] = <mapFrom [
-  ("sean", 2021),
-  ("bucketpotato", 2022),
-  ("kevin", 2023),
-  ("asra", 2024)
-]>
-print years
-if let <yes year> = <getValue "kevin" years> {
-  print year
-}
-
-type myMaybe[t] = <myYes t>
-  | myNothing
-let ok: myMaybe[str] = myNothing
-print (ok = myNothing)
-
-let hmm: runner.strPair = ("ok", "lol")
-print hmm
-
-let main = [test:int test1:str] -> bool {
-	print "# Main"
-	print test
-	print test1
-	// if test1 == hi {return true}
-	return false
-}
-
-let singleton = [[a] item: a] -> list[a] {
-  let list: list[a] = [item]
-  return list
-}
-print <singleton \t>
-
-let pairSingleton = [[a, b] item1:a item2:b] -> list[(a, b)] {
-  let pair: (a, b) = (item1, item2)
-  //let type_error: int = "wow"
-  return [pair]
-}
-//let type_error2: int = "wow"
-print <pairSingleton 1 "2">
-
-let wowowo = {
-  ok: (3, (("hap\npy", \r), true))
-  uwu: "ok"//; extra: 3.4; extra2: 5.4
-}
-let { uwu; ok: aaa, ((caa, _), (((baa)))) } = wowowo
-print { uwu; aaa; caa; baa }
-
-for i 15 {
-	let n:int = i + 1
-	print
-		(if n % 3 == 0 && n % 5 == 0 {
-			"Fizzbuzz"
-		} else if n % 3 == 0 {
-			"Fizz"
-		} else if n % 5 = 0 {
-			"Buzz"
-		} else {
-			<intInBase10 n>
-		})
-}
-
-let test:int = if not 1 == 1 || 2 > 3 1 else 3
-let test1:int = 1 + 1
-let eee:str = "hi"
-
-let a:int = 1
-let b:int = 3
-let c:int = 2
-print (a < c < b)
-
-var c = 4 + 3
-print "-------------"
-
-print c
-
-print <round 10.1>
-
-print "a"
-  |> <charAt 1>
-  |> <default <intCode 0>>
-  |> <charCode>
-
-if let <yes char> = ("a"
-  |> <charAt 0>) {
-  print char
-    |> <charCode>
-}
-
-if false {
-	print "test of a thing"
-}
-
-let thing = {
-	a: 0
-}
-
-print thing.a
-
-let ch:char = \n
-
-let lis = [1, 2, 3, 4]
-
-if let [a, b, c, d] = lis {
-  print { a; b; c; d }
-}
-
-print <itemAt 0 lis> // please take a look at this
-
-// let list:list[func] = [main]
-
-// print main.<type>
-
-// var list = [1]
-
-let tup:(int, str) = (1, eee)
-
-print tup
-
-print ch
-
-print (0.1 + 0.2 == 0.3)
-
-<main test1 eee>
-// print (<fek.paer "test">)
-print (if true { "hi" } else { "hello" })
-if true {
-	print ("<main test \"hello\"> returned false")
-} else {
-	print "test"
-}
-if <main test eee> {
-	print "{main test eee} returned true"
-} else {
-	print "{main test eee} returned false"
-}
-
-print (2 + 3 * (4 + 1) * 4 + 5)
 
 let thenHelper = [[t] command:cmd[t] _:()] -> cmd[t] {
   return command
 }
 let printResult = [[t] result:t] -> cmd[()] {
-  print result
+  //print result
   return <fek.paer "done">
 }
 let cmdId = [[v] value: v] -> cmd[v] {
@@ -177,46 +18,17 @@ let cmdId = [[v] value: v] -> cmd[v] {
 let main2 = [question: str] -> cmd[int] {
   let name = <SystemIO.inp question>!
   let _ = <fek.paer ("Hi " + name + ".")>!
-  let token = <SystemIO.inp "Discord bot token: ">!
-  let _ = <discordn.setId token>!
-  print <discordn.sendMessage "710936824121655396" "uau" false>!
+//  let token = <SystemIO.inp "Discord bot token: ">!
+//  let _ = <discordn.setId token>!
+//  print <discordn.sendMessage "710936824121655396" "uau" false>!
   return <cmdId 3>
 }
 let main3 = [_: ()] -> cmd[()] {
   let wow: int = <cmdId <main2 "What's your name? ">!>!
-  print wow
+  //print wow
 }
 // let pub exec = <main3 ()>
 
 // print runner.e runner.e is not public so this throws an error
-print runner.eeeeee
+//print runner.eeeeee
 
-
-// if true {"teste"}
-
-import json
-
-print <mapFrom [
-  ("sean", <json.number 2021.0>),
-  ("bucketpotato", <json.number 2022.0>),
-  ("kevin", <json.number 2023.0>),
-  ("asra", <json.number 2024.0>)
-]>
-  |> <json.object>
-  |> <json.stringify>
-let cool: json.value = <json.parse "[\"heterogeneous\", 1, { \"array\": [true, null] }]">
-print cool
-
-import websocket
-// https://www.websocket.org/echo.html
-let pub websocketTest = <websocket.connect {
-  onOpen: [send: websocket.send] -> cmd[bool] {
-    print "Connected to Discord gateway!"
-    return false
-  }
-  onMessage: [send: websocket.send message: str] -> cmd[bool] {
-    print <json.parse message>
-    print "ok that's enough, closing connection"
-    return true
-  }
-} "wss://gateway.discord.gg/?v=8&encoding=json">

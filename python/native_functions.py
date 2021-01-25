@@ -29,6 +29,14 @@ def length(string):
 	except TypeError:
 		return len(str(string))
 
+async def filter_map(transformer, lis):
+	new_list = []
+	for item in lis:
+		transformed = await transformer.run([item])
+		if transformed.variant == "yes":
+			new_list.append(transformed.values[0])
+	return new_list
+
 def type_display(o):
 	if type(o) == Function:
 		return str(o)
@@ -56,6 +64,11 @@ def map_get(key, map):
 		return none
 	else:
 		return yes(item)
+
+def entries(n_map):
+	# NMap extends dict so it's basically a dict, but this way we can
+	# distinguish between a record and a map.
+	return list(n_map.items())
 
 # Define global functions/variables
 def add_funcs(global_scope):
@@ -117,6 +130,18 @@ def add_funcs(global_scope):
 		length,
 	)
 	global_scope.add_native_function(
+		"split",
+		[("splitter", "char"), ("string", "str")],
+		n_list_type.with_typevars(["str"]),
+		lambda string, splitter: string.split(splitter)
+	)
+	global_scope.add_native_function(
+		"strip",
+		[("string", "str")],
+		"str",
+		lambda string: string.strip()
+	)
+	global_scope.add_native_function(
 		"type",
 		[("obj", NGenericType("t"))],
 		"str",
@@ -128,6 +153,24 @@ def add_funcs(global_scope):
 		[("index", "int"), ("list", n_list_type.with_typevars([item_at_generic]))],
 		n_maybe_type.with_typevars([item_at_generic]),
 		item_at
+	)
+	append_generic = NGenericType("t")
+	global_scope.add_native_function(
+		"append",
+		[("item", append_generic), ("list", n_list_type.with_typevars([item_at_generic]))],
+		n_list_type.with_typevars([item_at_generic]),
+		lambda item, l: l.__add__([item])
+	)
+	filter_map_generic_a = NGenericType("a")
+	filter_map_generic_b = NGenericType("b")
+	global_scope.add_native_function(
+		"filterMap",
+		[
+			("function", (filter_map_generic_a, n_maybe_type.with_typevars([filter_map_generic_b]))),
+			("list", n_list_type.with_typevars([filter_map_generic_a]))
+		],
+		n_list_type.with_typevars([filter_map_generic_b]),
+		filter_map
 	)
 	yes_generic = NGenericType("t")
 	global_scope.add_native_function(
@@ -166,6 +209,14 @@ def add_funcs(global_scope):
 		[("key", map_get_generic_key), ("map", n_map_type.with_typevars([map_get_generic_key, map_get_generic_value]))],
 		n_maybe_type.with_typevars([map_get_generic_value]),
 		map_get,
+	)
+	entries_generic_key = NGenericType("k")
+	entries_generic_value = NGenericType("v")
+	global_scope.add_native_function(
+		"entries",
+		[("map", n_map_type.with_typevars([map_from_generic_key, map_from_generic_value]))],
+		n_list_type.with_typevars([[map_from_generic_key, map_from_generic_value]]),
+		entries,
 	)
 
 	global_scope.types['str'] = 'str'
