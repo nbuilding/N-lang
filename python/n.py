@@ -15,9 +15,6 @@ from imported_error import ImportedError
 from cmd import Cmd
 from syntax_error import format_error
 
-global_scope = Scope()
-add_funcs(global_scope)
-
 with open("syntax.lark", "r") as f:
 	parse = f.read()
 n_parser = Lark(parse, start="start", propagate_positions=True)
@@ -32,6 +29,11 @@ filename = args.file
 
 with open(filename, "r") as f:
 	file = File(f)
+
+global_scope = Scope(relative_path="/".join(filename.replace("\\", "/").split("/")[0:-1]) + "/")
+add_funcs(global_scope)
+
+
 
 def type_check(file, tree):
 	scope = global_scope.new_scope(inherit_errors=False)
