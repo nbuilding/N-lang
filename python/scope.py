@@ -1,5 +1,6 @@
 import importlib
 import lark
+import os.path
 from lark import Lark
 from colorama import Fore, Style
 
@@ -19,8 +20,8 @@ from imported_error import ImportedError
 import native_functions
 from syntax_error import format_error
 
-def parse_file(file):
-	import_scope = Scope()
+def parse_file(file, relative_path):
+	import_scope = Scope(relative_path=relative_path)
 	native_functions.add_funcs(import_scope)
 
 	with open("syntax.lark", "r") as f:
@@ -29,7 +30,7 @@ def parse_file(file):
 
 	filename = file
 
-	with open(filename, "r") as f:
+	with open(relative_path + filename, "r") as f:
 		file = File(f)
 
 	try:
@@ -39,14 +40,14 @@ def parse_file(file):
 
 	return import_scope, tree, file
 
-async def eval_file(file):
-	import_scope, tree, _ = parse_file(file)
+async def eval_file(file, relative_path):
+	import_scope, tree, _ = parse_file(file, relative_path)
 
 	import_scope.variables = {**import_scope.variables, **(await parse_tree(tree, import_scope)).variables}
 	return import_scope
 
-def type_check_file(file):
-	import_scope, tree, text_file = parse_file(file)
+def type_check_file(file, relative_path):
+	import_scope, tree, text_file = parse_file(file, relative_path)
 
 	scope = type_check(file, tree, import_scope)
 	import_scope.variables = {**import_scope.variables, **scope.variables}
@@ -112,7 +113,7 @@ def pattern_to_name(pattern_and_src):
 		return "<destructuring pattern>"
 
 class Scope:
-	def __init__(self, parent=None, parent_function=None, errors=None, warnings=None):
+	def __init__(self, parent=None, parent_function=None, errors=None, warnings=None, relative_path="./"):
 		self.parent = parent
 		self.parent_function = parent_function
 		self.variables = {}
@@ -120,6 +121,7 @@ class Scope:
 		self.public_types = {}
 		self.errors = errors if errors is not None else []
 		self.warnings = warnings if warnings is not None else []
+		self.relative_path = relative_path
 
 	def new_scope(self, parent_function=None, inherit_errors=True):
 		return Scope(
@@ -127,6 +129,7 @@ class Scope:
 			parent_function=parent_function or self.parent_function,
 			errors=self.errors if inherit_errors else [],
 			warnings=self.warnings if inherit_errors else [],
+			relative_path=self.relative_path
 		)
 
 	def get_variable(self, name, err=True):
@@ -971,18 +974,22 @@ class Scope:
 
 			return n_list_type.with_typevars([contained_type])
 		elif expr.data == "impn":
-			impn, f = type_check_file(expr.children[0] + ".n")
-			if len(impn.errors) != 0:
-				self.errors.append(ImportedError(impn.errors[:], f))
-			if len(impn.warnings) != 0:
-				self.warnings.append(ImportedError(impn.warnings[:], f))
-			holder = {}
-			for key in impn.variables.keys():
-				if impn.variables[key].public:
-					holder[key] = impn.variables[key].type
-			if holder == {}:
-				self.warnings.append(TypeCheckError(expr.children[0], "There was nothing to import from %s" % expr.children[0]))
-			return NModule(expr.children[0] + ".n", holder, types=impn.public_types)
+			if os.path.isfile(self.relative_path + expr.children[0] + ".n"):
+				impn, f = type_check_file(expr.children[0] + ".n", self.relative_path)
+				if len(impn.errors) != 0:
+					self.errors.append(ImportedError(impn.errors[:], f))
+				if len(impn.warnings) != 0:
+					self.warnings.append(ImportedError(impn.warnings[:], f))
+				holder = {}
+				for key in impn.variables.keys():
+					if impn.variables[key].public:
+						holder[key] = impn.variables[key].type
+				if holder == {}:
+					self.warnings.append(TypeCheckError(expr.children[0], "There was nothing to import from %s" % expr.children[0]))
+				return NModule(expr.children[0] + ".n", holder, types=impn.public_types)
+			else:
+				self.errors.append(TypeCheckError(expr.children[0], "The file %s does not exist" % (expr.children[0] + ".n")))
+				return None
 		elif expr.data == "recordval":
 			record_type = dict(self.get_record_entry_type(entry) for entry in expr.children)
 			if None in record_type.values():
