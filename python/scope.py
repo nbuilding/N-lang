@@ -550,7 +550,7 @@ class Scope:
 			else:
 				return self.eval_value(token_or_tree)
 		elif expr.data == "impn":
-			val = await eval_file(expr.children[0] + ".n")
+			val = await eval_file(expr.children[0] + ".n", self.relative_path)
 			holder = {}
 			for key in val.variables.keys():
 				if val.variables[key].public:
