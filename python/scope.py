@@ -444,13 +444,9 @@ class Scope:
 				returntype,
 				codeblock
 			)
-		elif expr.data == "function_callback" or expr.data == "function_callback_quirky" or expr.data == "function_callback_quirky_pipe":
+		elif expr.data == "function_callback" or expr.data == "function_callback_quirky":
 			if expr.data == "function_callback":
 				function, *arguments = expr.children[0].children
-			elif expr.data == "function_callback_quirky":
-				mainarg = expr.children[0]
-				function, *arguments = expr.children[1].children
-				arguments.insert(0, mainarg)
 			else:
 				mainarg = expr.children[0]
 				function, *arguments = expr.children[1].children
@@ -800,13 +796,9 @@ class Scope:
 				scope.assign_to_pattern(arg_pattern, arg_type, True)
 			scope.type_check_command(codeblock)
 			return dummy_function.type
-		elif expr.data == "function_callback" or expr.data == "function_callback_quirky" or expr.data == "function_callback_quirky_pipe":
+		elif expr.data == "function_callback" or expr.data == "function_callback_quirky":
 			if expr.data == "function_callback":
 				function, *arguments = expr.children[0].children
-			elif expr.data == "function_callback_quirky":
-				mainarg = expr.children[0]
-				function, *arguments = expr.children[1].children
-				arguments.insert(0, mainarg)
 			else:
 				mainarg = expr.children[0]
 				function, *arguments = expr.children[1].children

@@ -4,7 +4,6 @@ instruction: declare (";")?
            | print (";")?
            | function_callback (";")?
            | function_callback_quirky (";")?
-           | function_callback_quirky_pipe (";")?
            | for (";")?
            | imp (";")?
            | return (";")?
@@ -20,9 +19,8 @@ declare: "let " modifier name_type "=" expression
 enum_definition: "type" modifier declaration_with_typevars "=" enum_constructors
 alias_definition: "alias" modifier declaration_with_typevars "=" types
 print: "print" expression
-function_callback: "<" function_call ">"
-function_callback_quirky: value ".<" function_call ">"
-function_callback_quirky_pipe: value "|>" "<" function_call ">"
+function_callback: function_call
+function_callback_quirky: value "|>" function_call
 for: "for" name_type NUMBER code_block
 imp: "import" NAME
 impn: "imp" NAME
@@ -37,7 +35,7 @@ conditional_let: "let" cond_pattern "=" expression
 //helpers
 name_type: definite_pattern [":" types]
 function_dec_call: NAME (" " [name_type (" " name_type)*])?
-function_call : literal (" " literal)*
+function_call : literal "(" literal? ("," literal)* ")"
 code_block: "{" instruction* "}"
 function_def: arguments ["->" types] code_block
 arguments: "[" generic_declaration? (name_type (" " name_type)*)? "]"
@@ -100,6 +98,8 @@ module_type: [NAME "."]* NAME
            | boolean_expression
            | function_def
            | anonymous_func
+           | function_callback
+           | function_callback_quirky
 
 ?boolean_expression: or_expression
 ?or_expression: [or_expression OR] and_expression
@@ -134,7 +134,6 @@ value: NUMBER
      | UNIT
      | function_callback
      | function_callback_quirky
-     | function_callback_quirky_pipe
      | char
      | tupleval
      | listval

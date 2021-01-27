@@ -3,32 +3,10 @@ import SystemIO
 import json
 import request
 
-let runner = imp runner
+let test = [a:int b:int] -> int {
+	return a + b
+}
 
-let thenHelper = [[t] command:cmd[t] _:()] -> cmd[t] {
-  return command
-}
-let printResult = [[t] result:t] -> cmd[()] {
-  //print result
-  return <fek.paer "done">
-}
-let cmdId = [[v] value: v] -> cmd[v] {
-  return value
-}
-let main2 = [question: str] -> cmd[int] {
-  let name = <SystemIO.inp question>!
-  let _ = <fek.paer ("Hi " + name + ".")>!
-//  let token = <SystemIO.inp "Discord bot token: ">!
-//  let _ = <discordn.setId token>!
-//  print <discordn.sendMessage "710936824121655396" "uau" false>!
-  return <cmdId 3>
-}
-let main3 = [_: ()] -> cmd[()] {
-  let wow: int = <cmdId <main2 "What's your name? ">!>!
-  //print wow
-}
-// let pub exec = <main3 ()>
 
-// print runner.e runner.e is not public so this throws an error
-//print runner.eeeeee
-
+print (test(1, 2)
+	           |> test(1))
