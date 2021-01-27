@@ -12,6 +12,7 @@ instruction: declare (";")?
            | vary (";")?
            | enum_definition (";")?
            | alias_definition (";")?
+           | class_definition (";")?
 
 // functions
 vary: "var " NAME "=" expression
@@ -31,6 +32,7 @@ ifelse_expr: "if" condition "{"? expression "}"? "else" "{"? expression "}"?
 ?condition: expression
           | conditional_let
 conditional_let: "let" cond_pattern "=" expression
+class_definition: "class" NAME class_val
 
 //helpers
 name_type: definite_pattern [":" types]
@@ -51,9 +53,11 @@ declaration_with_typevars: NAME ("[" NAME ("," NAME)* "]")?
 tupleval: "(" expression ("," expression)* ")"
 listval: "[" (expression ("," expression)*)? "]"
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
+class_val: "{" class_instructions* "}"
 enum_constructors: enum_constructor ("|" enum_constructor)*
 enum_constructor: modifier "<" NAME types* ">"
                 | modifier NAME
+
 
 modifier: PUBLIC?
 
@@ -139,6 +143,10 @@ value: NUMBER
      | listval
      | recordval
      | impn
+class_instructions: declare (";")?
+                  | alias_definition (";")?
+                  | enum_definition (";")?
+                  | function_def (";")?
 
 // Alias for unary_expression. Used for values that visually look tightly bound,
 // which is important for function arguments since they're separated by spaces.

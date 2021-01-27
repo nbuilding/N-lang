@@ -10,3 +10,11 @@ let test = [a:int b:int] -> int {
 
 print (test(1, 2)
 	           |> test(1))
+
+class test {
+	let test:int = 0
+
+	let thingo = [a:int b:int] -> int{
+		return a + b + test
+	}
+}
