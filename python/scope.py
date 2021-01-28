@@ -625,13 +625,6 @@ class Scope:
 				exit, value = await scope.eval_command(code)
 				if exit:
 					return True, value
-		elif command.data == "print":
-			val = await self.eval_expr(command.children[0])
-			if isinstance(val, str):
-				print(val)
-			else:
-				display, _ = display_value(val, indent="  ")
-				print(display)
 		elif command.data == "return":
 			return (True, await self.eval_expr(command.children[0]))
 		elif command.data == "declare":
@@ -1046,10 +1039,6 @@ class Scope:
 			scope = self.new_scope()
 			scope.assign_to_pattern(pattern, ty, True)
 			return scope.type_check_command(code)
-		elif command.data == "print":
-			# NOTE: In JS, `print` will be an indentity function, but since it's
-			# a command in Python, it won't return anything.
-			self.type_check_expr(command.children[0])
 		elif command.data == "return":
 			return_type = self.type_check_expr(command.children[0])
 			parent_function = self.get_parent_function()

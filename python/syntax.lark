@@ -1,7 +1,6 @@
 start: (instruction ((";" | "\n") instruction)*)
 
 instruction: declare (";")?
-           | print (";")?
            | function_callback (";")?
            | function_callback_quirky (";")?
            | for (";")?
@@ -19,7 +18,6 @@ vary: "var " NAME "=" expression
 declare: "let " modifier name_type "=" expression
 enum_definition: "type" modifier declaration_with_typevars "=" enum_constructors
 alias_definition: "alias" modifier declaration_with_typevars "=" types
-print: "print" expression
 function_callback: function_call
 function_callback_quirky: value "|>" function_call
 for: "for" name_type NUMBER code_block
@@ -32,7 +30,8 @@ ifelse_expr: "if" condition "{"? expression "}"? "else" "{"? expression "}"?
 ?condition: expression
           | conditional_let
 conditional_let: "let" cond_pattern "=" expression
-class_definition: "class" NAME class_val
+class_definition: "class" modifier NAME class_val
+class_constuctor: NAME "=" arguments code_block
 
 //helpers
 name_type: definite_pattern [":" types]
@@ -147,6 +146,7 @@ class_instructions: declare (";")?
                   | alias_definition (";")?
                   | enum_definition (";")?
                   | function_def (";")?
+                  | class_constuctor (";")?
 
 // Alias for unary_expression. Used for values that visually look tightly bound,
 // which is important for function arguments since they're separated by spaces.
