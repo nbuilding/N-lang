@@ -1,14 +1,14 @@
 from colorama import Fore, Style
 
 class File:
-	def __init__(self, file=None, tab_length=4):
+	def __init__(self, file=None, tab_length=4, name=None):
 		#if the file is none then that means it was duplicated
 		self.lines = []
-		self.name = ""
+		self.name = name or ""
 		self.line_num_width = 0
 		if file != None:
 			self.lines = [line.rstrip().replace('\t', ' ' * tab_length) for line in file]
-			self.name = file.name
+			self.name = file.name if name is None else name
 			self.line_num_width = len(str(len(self.lines)))
 
 	def duplicate(self):

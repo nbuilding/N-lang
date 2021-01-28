@@ -4,6 +4,7 @@ import asyncio
 import sys
 import signal
 import argparse
+from os import path
 from colorama import init, Fore, Style
 init()
 
@@ -15,7 +16,10 @@ from imported_error import ImportedError
 from cmd import Cmd
 from syntax_error import format_error
 
-with open("syntax.lark", "r") as f:
+# https://stackoverflow.com/a/4381638
+basepath = path.dirname(__file__)
+syntaxpath = path.abspath(path.join(basepath, "syntax.lark"))
+with open(syntaxpath, "r") as f:
 	parse = f.read()
 n_parser = Lark(parse, start="start", propagate_positions=True)
 
@@ -30,10 +34,9 @@ filename = args.file
 with open(filename, "r") as f:
 	file = File(f)
 
-global_scope = Scope(relative_path="/".join(filename.replace("\\", "/").split("/")[0:-1]) + "/")
+file_path = path.abspath(filename)
+global_scope = Scope(base_path=path.dirname(file_path), file_path=file_path)
 add_funcs(global_scope)
-
-
 
 def type_check(file, tree):
 	scope = global_scope.new_scope(inherit_errors=False)
