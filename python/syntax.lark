@@ -2,7 +2,7 @@ start: (instruction ((";" | "\n") instruction)*)
 
 instruction: declare (";")?
            | function_callback (";")?
-           | function_callback_quirky (";")?
+           | function_callback_pipe (";")?
            | for (";")?
            | imp (";")?
            | return (";")?
@@ -19,14 +19,15 @@ declare: "let " modifier name_type "=" expression
 enum_definition: "type" modifier declaration_with_typevars "=" enum_constructors
 alias_definition: "alias" modifier declaration_with_typevars "=" types
 function_callback: function_call
-function_callback_quirky: value "|>" function_call
+function_callback_pipe: literal "|>" function_call
+                      | function_callback_pipe "|>" function_call
 for: "for" name_type NUMBER code_block
 imp: "import" NAME
 impn: "imp" NAME
 return: "return" expression
-if: "if" condition ("{"? expression "}"? | "{"? instruction "}"? | code_block)
-ifelse: "if" condition ("{"? expression "}"? | "{"? instruction "}"? | code_block) "else" ("{"? instruction "}"? | code_block)
-ifelse_expr: "if" condition "{"? expression "}"? "else" "{"? expression "}"?
+if: "if" condition ("{" instruction "}" | code_block)
+ifelse: "if" condition ("{" instruction "}" | code_block) "else" ("{" instruction "}" | code_block)
+ifelse_expr: "if" condition "{" expression "}" "else" "{" expression "}"
 ?condition: expression
           | conditional_let
 conditional_let: "let" cond_pattern "=" expression
@@ -36,7 +37,7 @@ class_constuctor: NAME "=" arguments code_block
 //helpers
 name_type: definite_pattern [":" types]
 function_dec_call: NAME (" " [name_type (" " name_type)*])?
-function_call : literal "(" literal? ("," literal)* ")"
+function_call: literal "(" [expression ("," expression)*] ")"
 code_block: "{" instruction* "}"
 function_def: arguments ["->" types] code_block
 arguments: "[" generic_declaration? (name_type (" " name_type)*)? "]"
@@ -101,8 +102,7 @@ module_type: [NAME "."]* NAME
            | boolean_expression
            | function_def
            | anonymous_func
-           | function_callback
-           | function_callback_quirky
+           | function_callback_pipe
 
 ?boolean_expression: or_expression
 ?or_expression: [or_expression OR] and_expression
@@ -136,7 +136,6 @@ value: NUMBER
      | "(" expression ")"
      | UNIT
      | function_callback
-     | function_callback_quirky
      | char
      | tupleval
      | listval
