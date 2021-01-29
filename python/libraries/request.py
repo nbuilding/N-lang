@@ -17,7 +17,6 @@ async def get(url, headers):
 			return {"code": r.status, "response": r.reason, "return": python_to_json(json.loads(await r.text()))}
 
 async def post(url, content, headers):
-	print(json.dumps(content))
 	async with aiohttp.ClientSession() as session:
 		async with session.post(url, data=json.dumps(content), headers=headers) as r:
 

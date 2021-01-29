@@ -1,10 +1,8 @@
 start: (instruction ((";" | "\n") instruction)*)
 
 instruction: declare (";")?
-           | print (";")?
            | function_callback (";")?
            | function_callback_quirky (";")?
-           | function_callback_quirky_pipe (";")?
            | for (";")?
            | imp (";")?
            | return (";")?
@@ -13,16 +11,15 @@ instruction: declare (";")?
            | vary (";")?
            | enum_definition (";")?
            | alias_definition (";")?
+           | class_definition (";")?
 
 // functions
 vary: "var " NAME "=" expression
 declare: "let " modifier name_type "=" expression
 enum_definition: "type" modifier declaration_with_typevars "=" enum_constructors
 alias_definition: "alias" modifier declaration_with_typevars "=" types
-print: "print" expression
-function_callback: "<" function_call ">"
-function_callback_quirky: value ".<" function_call ">"
-function_callback_quirky_pipe: value "|>" "<" function_call ">"
+function_callback: function_call
+function_callback_quirky: value "|>" function_call
 for: "for" name_type NUMBER code_block
 imp: "import" NAME
 impn: "imp" NAME
@@ -33,11 +30,13 @@ ifelse_expr: "if" condition "{"? expression "}"? "else" "{"? expression "}"?
 ?condition: expression
           | conditional_let
 conditional_let: "let" cond_pattern "=" expression
+class_definition: "class" modifier NAME class_val
+class_constuctor: NAME "=" arguments code_block
 
 //helpers
 name_type: definite_pattern [":" types]
 function_dec_call: NAME (" " [name_type (" " name_type)*])?
-function_call : literal (" " literal)*
+function_call : literal "(" literal? ("," literal)* ")"
 code_block: "{" instruction* "}"
 function_def: arguments ["->" types] code_block
 arguments: "[" generic_declaration? (name_type (" " name_type)*)? "]"
@@ -53,9 +52,11 @@ declaration_with_typevars: NAME ("[" NAME ("," NAME)* "]")?
 tupleval: "(" expression ("," expression)* ")"
 listval: "[" (expression ("," expression)*)? "]"
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
+class_val: "{" class_instructions* "}"
 enum_constructors: enum_constructor ("|" enum_constructor)*
 enum_constructor: modifier "<" NAME types* ">"
                 | modifier NAME
+
 
 modifier: PUBLIC?
 
@@ -100,6 +101,8 @@ module_type: [NAME "."]* NAME
            | boolean_expression
            | function_def
            | anonymous_func
+           | function_callback
+           | function_callback_quirky
 
 ?boolean_expression: or_expression
 ?or_expression: [or_expression OR] and_expression
@@ -134,12 +137,16 @@ value: NUMBER
      | UNIT
      | function_callback
      | function_callback_quirky
-     | function_callback_quirky_pipe
      | char
      | tupleval
      | listval
      | recordval
      | impn
+class_instructions: declare (";")?
+                  | alias_definition (";")?
+                  | enum_definition (";")?
+                  | function_def (";")?
+                  | class_constuctor (";")?
 
 // Alias for unary_expression. Used for values that visually look tightly bound,
 // which is important for function arguments since they're separated by spaces.

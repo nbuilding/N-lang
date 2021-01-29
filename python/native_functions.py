@@ -1,6 +1,8 @@
 import math
 import lark
 
+import scope
+
 from variable import Variable
 from function import Function
 from type_check_error import display_type
@@ -69,6 +71,14 @@ def entries(n_map):
 	# NMap extends dict so it's basically a dict, but this way we can
 	# distinguish between a record and a map.
 	return list(n_map.items())
+
+def special_print(val):
+	if isinstance(val, str):
+		print(val)
+	else:
+		display, _ = scope.display_value(val, indent="  ")
+		print(display)
+	return val
 
 # Define global functions/variables
 def add_funcs(global_scope):
@@ -146,6 +156,13 @@ def add_funcs(global_scope):
 		[("obj", NGenericType("t"))],
 		"str",
 		type_display,
+	)
+	print_generic = NGenericType("t")
+	global_scope.add_native_function(
+		"print",
+		[("val", print_generic)],
+		print_generic,
+		special_print
 	)
 	item_at_generic = NGenericType("t")
 	global_scope.add_native_function(

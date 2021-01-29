@@ -450,13 +450,9 @@ class Scope:
 				returntype,
 				codeblock
 			)
-		elif expr.data == "function_callback" or expr.data == "function_callback_quirky" or expr.data == "function_callback_quirky_pipe":
+		elif expr.data == "function_callback" or expr.data == "function_callback_quirky":
 			if expr.data == "function_callback":
 				function, *arguments = expr.children[0].children
-			elif expr.data == "function_callback_quirky":
-				mainarg = expr.children[0]
-				function, *arguments = expr.children[1].children
-				arguments.insert(0, mainarg)
 			else:
 				mainarg = expr.children[0]
 				function, *arguments = expr.children[1].children
@@ -636,13 +632,6 @@ class Scope:
 				exit, value = await scope.eval_command(code)
 				if exit:
 					return True, value
-		elif command.data == "print":
-			val = await self.eval_expr(command.children[0])
-			if isinstance(val, str):
-				print(val)
-			else:
-				display, _ = display_value(val, indent="  ")
-				print(display)
 		elif command.data == "return":
 			return (True, await self.eval_expr(command.children[0]))
 		elif command.data == "declare":
@@ -807,13 +796,9 @@ class Scope:
 				scope.assign_to_pattern(arg_pattern, arg_type, True)
 			scope.type_check_command(codeblock)
 			return dummy_function.type
-		elif expr.data == "function_callback" or expr.data == "function_callback_quirky" or expr.data == "function_callback_quirky_pipe":
+		elif expr.data == "function_callback" or expr.data == "function_callback_quirky":
 			if expr.data == "function_callback":
 				function, *arguments = expr.children[0].children
-			elif expr.data == "function_callback_quirky":
-				mainarg = expr.children[0]
-				function, *arguments = expr.children[1].children
-				arguments.insert(0, mainarg)
 			else:
 				mainarg = expr.children[0]
 				function, *arguments = expr.children[1].children
@@ -1062,10 +1047,6 @@ class Scope:
 			scope = self.new_scope()
 			scope.assign_to_pattern(pattern, ty, True)
 			return scope.type_check_command(code)
-		elif command.data == "print":
-			# NOTE: In JS, `print` will be an indentity function, but since it's
-			# a command in Python, it won't return anything.
-			self.type_check_expr(command.children[0])
 		elif command.data == "return":
 			return_type = self.type_check_expr(command.children[0])
 			parent_function = self.get_parent_function()
