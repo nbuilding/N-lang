@@ -821,11 +821,6 @@ class Scope:
 				if incompatible:
 					if expr.data == "function_callback":
 						self.errors.append(TypeCheckError(argument, "%s's argument #%d should be a %s, but you gave a %s." % (display_type(func_type), n, display_type(resolved_arg_type), display_type(check_type))))
-					elif expr.data == "function_callback_pipe":
-						if n == 1:
-							self.errors.append(TypeCheckError(argument, "This left operand of .<, which I use as the first argument of %s, should be a %s, but you gave a %s." % (display_type(func_type), display_type(resolved_arg_type), display_type(check_type))))
-						else:
-							self.errors.append(TypeCheckError(argument, "The argument #%d here should be a %s because the function is a %s, but you gave a %s." % (n - 1, display_type(resolved_arg_type), display_type(func_type), display_type(check_type))))
 					else:
 						if n == len(arguments):
 							self.errors.append(TypeCheckError(argument, "This left operand of |>, which I pass as the last argument to %s, should be a %s, but you gave a %s." % (display_type(func_type), display_type(resolved_arg_type), display_type(check_type))))
