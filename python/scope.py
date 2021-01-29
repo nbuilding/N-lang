@@ -20,43 +20,44 @@ from imported_error import ImportedError
 import native_functions
 from syntax_error import format_error
 
-def parse_file(file, relative_path):
-	import_scope = Scope(relative_path=relative_path)
+basepath = os.path.dirname(__file__)
+syntaxpath = os.path.abspath(os.path.join(basepath, "syntax.lark"))
+
+def parse_file(file_path, base_path):
+	import_scope = Scope(base_path=base_path, file_path=file_path)
 	native_functions.add_funcs(import_scope)
 
-	with open("syntax.lark", "r") as f:
+	with open(syntaxpath, "r") as f:
 		parse = f.read()
 	n_parser = Lark(parse, start="start", propagate_positions=True)
 
-	filename = file
-
-	with open(relative_path + filename, "r") as f:
-		file = File(f)
+	with open(file_path, "r") as f:
+		file = File(f, name=os.path.relpath(file_path, start=base_path))
 
 	try:
 		tree = file.parse(n_parser)
 	except lark.exceptions.UnexpectedCharacters as e:
-		format_error(e, file)
+		format_error(e, os.path.relpath(file_path, start=base_path))
 
 	return import_scope, tree, file
 
-async def eval_file(file, relative_path):
-	import_scope, tree, _ = parse_file(file, relative_path)
+async def eval_file(file_path, base_path):
+	import_scope, tree, _ = parse_file(file_path, base_path)
 
 	import_scope.variables = {**import_scope.variables, **(await parse_tree(tree, import_scope)).variables}
 	return import_scope
 
-def type_check_file(file, relative_path):
-	import_scope, tree, text_file = parse_file(file, relative_path)
+def type_check_file(file_path, base_path):
+	import_scope, tree, text_file = parse_file(file_path, base_path)
 
-	scope = type_check(file, tree, import_scope)
+	scope = type_check(tree, import_scope)
 	import_scope.variables = {**import_scope.variables, **scope.variables}
 	import_scope.public_types = {**import_scope.public_types, **scope.public_types}
 	import_scope.errors += scope.errors[:]
 	import_scope.warnings += scope.warnings[:]
 	return import_scope, text_file
 
-def type_check(file, tree, import_scope):
+def type_check(tree, import_scope):
 	scope = import_scope.new_scope(inherit_errors=False)
 	if tree.data == "start":
 		for child in tree.children:
@@ -113,7 +114,7 @@ def pattern_to_name(pattern_and_src):
 		return "<destructuring pattern>"
 
 class Scope:
-	def __init__(self, parent=None, parent_function=None, errors=None, warnings=None, relative_path="./"):
+	def __init__(self, parent=None, parent_function=None, errors=None, warnings=None, base_path="", file_path=""):
 		self.parent = parent
 		self.parent_function = parent_function
 		self.variables = {}
@@ -121,7 +122,11 @@ class Scope:
 		self.public_types = {}
 		self.errors = errors if errors is not None else []
 		self.warnings = warnings if warnings is not None else []
-		self.relative_path = relative_path
+		# The path of the directory containing the initial file. Used to
+		# determine the relative path of a file to the starting file.
+		self.base_path = base_path
+		# The path of the file the Scope is associated with.
+		self.file_path = file_path
 
 	def new_scope(self, parent_function=None, inherit_errors=True):
 		return Scope(
@@ -129,7 +134,8 @@ class Scope:
 			parent_function=parent_function or self.parent_function,
 			errors=self.errors if inherit_errors else [],
 			warnings=self.warnings if inherit_errors else [],
-			relative_path=self.relative_path
+			base_path=self.base_path,
+			file_path=self.file_path,
 		)
 
 	def get_variable(self, name, err=True):
@@ -546,7 +552,8 @@ class Scope:
 			else:
 				return self.eval_value(token_or_tree)
 		elif expr.data == "impn":
-			val = await eval_file(expr.children[0] + ".n", self.relative_path)
+			file_path = os.path.join(os.path.dirname(self.file_path), expr.children[0] + ".n")
+			val = await eval_file(file_path, self.base_path)
 			holder = {}
 			for key in val.variables.keys():
 				if val.variables[key].public:
@@ -959,8 +966,9 @@ class Scope:
 
 			return n_list_type.with_typevars([contained_type])
 		elif expr.data == "impn":
-			if os.path.isfile(self.relative_path + expr.children[0] + ".n"):
-				impn, f = type_check_file(expr.children[0] + ".n", self.relative_path)
+			file_path = os.path.join(os.path.dirname(self.file_path), expr.children[0] + ".n")
+			if os.path.isfile(file_path):
+				impn, f = type_check_file(file_path, self.base_path)
 				if len(impn.errors) != 0:
 					self.errors.append(ImportedError(impn.errors[:], f))
 				if len(impn.warnings) != 0:

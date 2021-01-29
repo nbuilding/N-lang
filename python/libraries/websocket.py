@@ -1,6 +1,6 @@
 import websockets
 
-from native_types import n_cmd_type
+from native_types import n_cmd_type, n_maybe_type, yes, none
 from native_function import NativeFunction
 from type import NAliasType
 from cmd import Cmd
@@ -29,18 +29,22 @@ async def connect(options, url):
 		if isinstance(close, Cmd):
 			close = await close.eval()
 		if not close:
-			async for message in websocket:
-				close = await options['onMessage'].run([send, message])
-				if isinstance(close, Cmd):
-					close = await close.eval()
-				if close:
-					break
+			try:
+				async for message in websocket:
+					close = await options['onMessage'].run([send, message])
+					if isinstance(close, Cmd):
+						close = await close.eval()
+					if close:
+						break
+			except websockets.exceptions.ConnectionClosedError as err:
+				return yes(err.reason)
 		# await options['onClose'].eval()
+	return none
 
 def _values():
 	return {
-		# connect: connectOptions -> str -> cmd[()]
-		"connect": (connect_options_type, "str", n_cmd_type.with_typevars(["unit"])),
+		# connect: connectOptions -> str -> cmd[maybe[str]]
+		"connect": (connect_options_type, "str", n_cmd_type.with_typevars([n_maybe_type.with_typevars(["str"])])),
 	}
 
 def _types():
