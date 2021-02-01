@@ -142,9 +142,7 @@ value: NUMBER
      | recordval
      | impn
 class_instruction: declare (";")?
-                 | alias_definition (";")?
                  | enum_definition (";")?
-                 | function_def (";")?
                  | class_constuctor (";")?
 
 // Alias for unary_expression. Used for values that visually look tightly bound,

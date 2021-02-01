@@ -274,6 +274,41 @@ class Scope:
 
 		command = tree.children[0]
 
+		elif command.data == "declare":
+			modifiers, name_type, value = command.children
+			pattern, ty = self.get_name_type(name_type, err=False)
+			name = pattern_to_name(pattern)
+
+			value_type = self.type_check_expr(value)
+			resolved_value_type = apply_generics(value_type, ty)
+			if ty == 'infer':
+				ty = resolved_value_type
+			else:
+				_, incompatible = resolve_equal_types(ty, resolved_value_type)
+				if incompatible:
+					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
+
+			public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
+			# self.assign_to_pattern(pattern, ty, True, None, public) what am i supposed to do here
+	elif command.data == "enum_definition":
+			_, type_def, constructors = command.children
+			type_name, *_ = type_def.children
+			enum_type = NType(type_name.value)
+			self.types[type_name.value] = enum_type
+			for constructor in constructors.children:
+				modifiers, constructor_name, *types = constructor.children
+				public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
+				if len(types) >= 1:
+					return ("value", NativeFunction(self, [("idk", arg_type) for arg_type in types], enum_type, EnumValue.construct(constructor_name), public=public))
+				else:
+					return ("value", Variable(enum_type, EnumValue(constructor_name), public=public))
+	elif command.data == "class_constuctor":
+		name, args, instructions = command.children
+		# IDK how to do things for this, like really help
+	else:
+		self.errors.append(TypeCheckError(command, "Internal problem: I am unable to deal with the command %s inside a class." % command.data))
+
+
 		
 
 	"""

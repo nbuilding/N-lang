@@ -9,3 +9,8 @@ class NClass:
 	def call_constructor(self, *args):
 		pass
 		# Calls contructor and returns a record of values and things
+
+class NConstructor:
+	def __init__(self, args, instructions):
+		self.args = args
+		self.instructions = instructions
