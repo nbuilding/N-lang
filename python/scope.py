@@ -19,6 +19,7 @@ from file import File
 from imported_error import ImportedError
 import native_functions
 from syntax_error import format_error
+from classes import NClass
 
 basepath = os.path.dirname(__file__)
 syntaxpath = os.path.abspath(os.path.join(basepath, "syntax.lark"))
@@ -253,6 +254,27 @@ class Scope:
 			return pattern, 'infer'
 		else:
 			return pattern, self.parse_type(name_type.children[1], err) if get_type else 'whatever'
+
+	"""
+	This is to be used to get the NClass value for evaluating classes
+	"""
+	def get_class_val(self, modifiers, name, class_value):
+		return NClass(None, None, None, None)
+		# TODO get type_check_class_command working
+
+	"""
+	This is meant as the type checker to get_class_val
+	as not all instructions are allowed to be a class_instruction
+	and some are exclusive to it
+	"""
+	def type_check_class_command(self, tree):
+		if tree.data != "instruction":
+			self.errors.append(TypeCheckError(tree, "Internal problem: I am unable to deal with %s inside a class." % tree.data))
+			return False
+
+		command = tree.children[0]
+
+		
 
 	"""
 	This method is meant to be usable for both evaluation and type checking.
@@ -1158,6 +1180,12 @@ class Scope:
 				self.types[alias_name] = NAliasType(alias_name.value, alias_type, typevars)
 			if any(modifier.type == "PUBLIC" for modifier in modifiers.children):
 				self.public_types[alias_name] = self.types[alias_name]
+		elif command.data == "class_definition":
+			modifiers, name, class_value = command.children
+			# TODO: add a thing that stores classes
+			# TODO: add eval function for class_val
+			# To stop this from passing I'll make it throw an error for now
+			self.errors.append(TypeCheckError(command, "Classes still need to be properly implemented."))
 		else:
 			self.type_check_expr(command)
 
