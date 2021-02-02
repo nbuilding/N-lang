@@ -259,7 +259,11 @@ class Scope:
 	This is to be used to get the NClass value for evaluating classes
 	"""
 	def get_class_val(self, modifiers, name, class_value):
+		scope = Scope()
+		for ins in class_value.children:
+			type_check_class_command(ins, scope)
 		return NClass(None, None, None, None)
+
 		# TODO get type_check_class_command working
 
 	"""
@@ -267,46 +271,53 @@ class Scope:
 	as not all instructions are allowed to be a class_instruction
 	and some are exclusive to it
 	"""
-	def type_check_class_command(self, tree):
+	def type_check_class_command(self, tree, scope):
 		if tree.data != "instruction":
-			self.errors.append(TypeCheckError(tree, "Internal problem: I am unable to deal with %s inside a class." % tree.data))
+			scope.errors.append(TypeCheckError(tree, "Internal problem: I am unable to deal with %s inside a class." % tree.data))
 			return False
 
 		command = tree.children[0]
 
-		elif command.data == "declare":
+		if command.data == "declare":
 			modifiers, name_type, value = command.children
-			pattern, ty = self.get_name_type(name_type, err=False)
+			pattern, ty = scope.get_name_type(name_type, err=False)
 			name = pattern_to_name(pattern)
 
-			value_type = self.type_check_expr(value)
+			value_type = scope.type_check_expr(value)
 			resolved_value_type = apply_generics(value_type, ty)
 			if ty == 'infer':
 				ty = resolved_value_type
 			else:
 				_, incompatible = resolve_equal_types(ty, resolved_value_type)
 				if incompatible:
-					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
+					scope.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
 
 			public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
-			# self.assign_to_pattern(pattern, ty, True, None, public) what am i supposed to do here
-	elif command.data == "enum_definition":
-			_, type_def, constructors = command.children
-			type_name, *_ = type_def.children
-			enum_type = NType(type_name.value)
-			self.types[type_name.value] = enum_type
+			scope.assign_to_pattern(pattern, ty, True, None, public)
+		elif command.data == "enum_definition":
+			modifiers, type_def, constructors = command.children
+			type_name, sc, typevars = scope.get_name_typevars(type_def)
+			variants = []
+			enum_type = EnumType(type_name.value, variants, typevars)
+			scope.types[type_name] = enum_type
+			if any(modifier.type == "PUBLIC" for modifier in modifiers.children):
+				scope.public_types[type_name] = scope.types[type_name]
 			for constructor in constructors.children:
 				modifiers, constructor_name, *types = constructor.children
 				public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
+				types = [sc.parse_type(type_token, err=False) for type_token in types]
+				variants.append((constructor_name.value, types))
+				if constructor_name.value in scope.variables:
+					scope.errors.append(TypeCheckError(constructor_name, "You've already defined `%s` in this scope." % constructor_name.value))
 				if len(types) >= 1:
-					return ("value", NativeFunction(self, [("idk", arg_type) for arg_type in types], enum_type, EnumValue.construct(constructor_name), public=public))
+					scope.variables[constructor_name.value] = NativeFunction(scope, [("idk", arg_type) for arg_type in types], enum_type, id, public=public)
 				else:
-					return ("value", Variable(enum_type, EnumValue(constructor_name), public=public))
-	elif command.data == "class_constuctor":
-		name, args, instructions = command.children
-		# IDK how to do things for this, like really help
-	else:
-		self.errors.append(TypeCheckError(command, "Internal problem: I am unable to deal with the command %s inside a class." % command.data))
+					scope.variables[constructor_name.value] = Variable(enum_type, "I don't think this is used", public=public)
+		elif command.data == "class_constuctor":
+			name, args, instructions = command.children
+			# IDK how to do things for this, like really help
+		else:
+			scope.errors.append(TypeCheckError(command, "Internal problem: I am unable to deal with the command %s inside a class." % command.data))
 
 
 		
