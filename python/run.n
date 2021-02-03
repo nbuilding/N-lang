@@ -1,7 +1,7 @@
 class pub Test {
 	let test:int = 0
 
-	Test = [] {
+	New = [] {
 		var test = 2
 	}
 

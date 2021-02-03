@@ -19,7 +19,7 @@ from file import File
 from imported_error import ImportedError
 import native_functions
 from syntax_error import format_error
-from classes import NClass
+from classes import NClass, NConstructor
 
 basepath = os.path.dirname(__file__)
 syntaxpath = os.path.abspath(os.path.join(basepath, "syntax.lark"))
@@ -314,8 +314,9 @@ class Scope:
 				else:
 					scope.variables[constructor_name.value] = Variable(enum_type, "I don't think this is used", public=public)
 		elif command.data == "class_constuctor":
-			name, args, instructions = command.children
-			# IDK how to do things for this, like really help
+			args, instructions = command.children
+			contructor = NConstructor(args, instructions)
+			# help
 		else:
 			scope.errors.append(TypeCheckError(command, "Internal problem: I am unable to deal with the command %s inside a class." % command.data))
 

@@ -32,7 +32,7 @@ ifelse_expr: "if" condition "{" expression "}" "else" "{" expression "}"
           | conditional_let
 conditional_let: "let" cond_pattern "=" expression
 class_definition: "class" modifier NAME class_val
-class_constuctor: NAME "=" arguments code_block
+class_constuctor: "New" "=" arguments code_block
 
 //helpers
 name_type: definite_pattern [":" types]
