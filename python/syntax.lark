@@ -31,8 +31,7 @@ ifelse_expr: "if" condition "{" expression "}" "else" "{" expression "}"
 ?condition: expression
           | conditional_let
 conditional_let: "let" cond_pattern "=" expression
-class_definition: "class" modifier NAME class_val
-class_constuctor: "New" "=" arguments code_block
+class_definition: "class" modifier NAME arguments code_block
 
 //helpers
 name_type: definite_pattern [":" types]
@@ -53,7 +52,6 @@ declaration_with_typevars: NAME ("[" NAME ("," NAME)* "]")?
 tupleval: "(" expression ("," expression)* ")"
 listval: "[" (expression ("," expression)*)? "]"
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
-class_val: "{" class_instruction* "}"
 enum_constructors: enum_constructor ("|" enum_constructor)*
 enum_constructor: modifier "<" NAME types* ">"
                 | modifier NAME
@@ -141,9 +139,6 @@ value: NUMBER
      | listval
      | recordval
      | impn
-class_instruction: declare (";")?
-                 | enum_definition (";")?
-                 | class_constuctor (";")?
 
 // Alias for unary_expression. Used for values that visually look tightly bound,
 // which is important for function arguments since they're separated by spaces.
