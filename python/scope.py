@@ -752,6 +752,15 @@ class Scope:
 		elif command.data == "alias_definition":
 			# Type aliases are purely for type checking so they do nothing at runtime
 			pass
+		elif command.data == "class_definition":
+			modifiers, name, class_args, class_body = command.children
+			public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
+			self.variables[name.value] = NConstructor(
+				self,
+				[self.get_name_type(arg, get_type=False) for arg in class_args.children],
+				class_body,
+				public
+			)
 		else:
 			await self.eval_expr(command)
 
