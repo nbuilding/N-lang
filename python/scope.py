@@ -19,6 +19,7 @@ from file import File
 from imported_error import ImportedError
 import native_functions
 from syntax_error import format_error
+from classes import NClass, NConstructor
 
 basepath = os.path.dirname(__file__)
 syntaxpath = os.path.abspath(os.path.join(basepath, "syntax.lark"))
@@ -255,6 +256,74 @@ class Scope:
 			return pattern, self.parse_type(name_type.children[1], err) if get_type else 'whatever'
 
 	"""
+	This is to be used to get the NClass value for evaluating classes
+	"""
+	def get_class_val(self, modifiers, name, class_value):
+		scope = Scope()
+		for ins in class_value.children:
+			type_check_class_command(ins, scope)
+		return NClass(None, None, None, None)
+
+		# TODO get type_check_class_command working
+
+	"""
+	This is meant as the type checker to get_class_val
+	as not all instructions are allowed to be a class_instruction
+	and some are exclusive to it
+	"""
+	def type_check_class_command(self, tree, scope):
+		if tree.data != "instruction":
+			scope.errors.append(TypeCheckError(tree, "Internal problem: I am unable to deal with %s inside a class." % tree.data))
+			return False
+
+		command = tree.children[0]
+
+		if command.data == "declare":
+			modifiers, name_type, value = command.children
+			pattern, ty = scope.get_name_type(name_type, err=False)
+			name = pattern_to_name(pattern)
+
+			value_type = scope.type_check_expr(value)
+			resolved_value_type = apply_generics(value_type, ty)
+			if ty == 'infer':
+				ty = resolved_value_type
+			else:
+				_, incompatible = resolve_equal_types(ty, resolved_value_type)
+				if incompatible:
+					scope.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
+
+			public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
+			scope.assign_to_pattern(pattern, ty, True, None, public)
+		elif command.data == "enum_definition":
+			modifiers, type_def, constructors = command.children
+			type_name, sc, typevars = scope.get_name_typevars(type_def)
+			variants = []
+			enum_type = EnumType(type_name.value, variants, typevars)
+			scope.types[type_name] = enum_type
+			if any(modifier.type == "PUBLIC" for modifier in modifiers.children):
+				scope.public_types[type_name] = scope.types[type_name]
+			for constructor in constructors.children:
+				modifiers, constructor_name, *types = constructor.children
+				public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
+				types = [sc.parse_type(type_token, err=False) for type_token in types]
+				variants.append((constructor_name.value, types))
+				if constructor_name.value in scope.variables:
+					scope.errors.append(TypeCheckError(constructor_name, "You've already defined `%s` in this scope." % constructor_name.value))
+				if len(types) >= 1:
+					scope.variables[constructor_name.value] = NativeFunction(scope, [("idk", arg_type) for arg_type in types], enum_type, id, public=public)
+				else:
+					scope.variables[constructor_name.value] = Variable(enum_type, "I don't think this is used", public=public)
+		elif command.data == "class_constuctor":
+			args, instructions = command.children
+			contructor = NConstructor(args, instructions)
+			# help
+		else:
+			scope.errors.append(TypeCheckError(command, "Internal problem: I am unable to deal with the command %s inside a class." % command.data))
+
+
+
+
+	"""
 	This method is meant to be usable for both evaluation and type checking.
 	"""
 	def assign_to_pattern(self, pattern_and_src, value_or_type, warn=False, path=None, public=False):
@@ -450,13 +519,9 @@ class Scope:
 				returntype,
 				codeblock
 			)
-		elif expr.data == "function_callback" or expr.data == "function_callback_quirky" or expr.data == "function_callback_quirky_pipe":
+		elif expr.data == "function_callback" or expr.data == "function_callback_pipe":
 			if expr.data == "function_callback":
 				function, *arguments = expr.children[0].children
-			elif expr.data == "function_callback_quirky":
-				mainarg = expr.children[0]
-				function, *arguments = expr.children[1].children
-				arguments.insert(0, mainarg)
 			else:
 				mainarg = expr.children[0]
 				function, *arguments = expr.children[1].children
@@ -636,13 +701,6 @@ class Scope:
 				exit, value = await scope.eval_command(code)
 				if exit:
 					return True, value
-		elif command.data == "print":
-			val = await self.eval_expr(command.children[0])
-			if isinstance(val, str):
-				print(val)
-			else:
-				display, _ = display_value(val, indent="  ")
-				print(display)
 		elif command.data == "return":
 			return (True, await self.eval_expr(command.children[0]))
 		elif command.data == "declare":
@@ -694,6 +752,15 @@ class Scope:
 		elif command.data == "alias_definition":
 			# Type aliases are purely for type checking so they do nothing at runtime
 			pass
+		elif command.data == "class_definition":
+			modifiers, name, class_args, class_body = command.children
+			public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
+			self.variables[name.value] = NConstructor(
+				self,
+				[self.get_name_type(arg, get_type=False) for arg in class_args.children],
+				class_body,
+				public
+			)
 		else:
 			await self.eval_expr(command)
 
@@ -807,13 +874,9 @@ class Scope:
 				scope.assign_to_pattern(arg_pattern, arg_type, True)
 			scope.type_check_command(codeblock)
 			return dummy_function.type
-		elif expr.data == "function_callback" or expr.data == "function_callback_quirky" or expr.data == "function_callback_quirky_pipe":
+		elif expr.data == "function_callback" or expr.data == "function_callback_pipe":
 			if expr.data == "function_callback":
 				function, *arguments = expr.children[0].children
-			elif expr.data == "function_callback_quirky":
-				mainarg = expr.children[0]
-				function, *arguments = expr.children[1].children
-				arguments.insert(0, mainarg)
 			else:
 				mainarg = expr.children[0]
 				function, *arguments = expr.children[1].children
@@ -836,11 +899,6 @@ class Scope:
 				if incompatible:
 					if expr.data == "function_callback":
 						self.errors.append(TypeCheckError(argument, "%s's argument #%d should be a %s, but you gave a %s." % (display_type(func_type), n, display_type(resolved_arg_type), display_type(check_type))))
-					elif expr.data == "function_callback_quirky":
-						if n == 1:
-							self.errors.append(TypeCheckError(argument, "This left operand of .<, which I use as the first argument of %s, should be a %s, but you gave a %s." % (display_type(func_type), display_type(resolved_arg_type), display_type(check_type))))
-						else:
-							self.errors.append(TypeCheckError(argument, "The argument #%d here should be a %s because the function is a %s, but you gave a %s." % (n - 1, display_type(resolved_arg_type), display_type(func_type), display_type(check_type))))
 					else:
 						if n == len(arguments):
 							self.errors.append(TypeCheckError(argument, "This left operand of |>, which I pass as the last argument to %s, should be a %s, but you gave a %s." % (display_type(func_type), display_type(resolved_arg_type), display_type(check_type))))
@@ -1062,10 +1120,6 @@ class Scope:
 			scope = self.new_scope()
 			scope.assign_to_pattern(pattern, ty, True)
 			return scope.type_check_command(code)
-		elif command.data == "print":
-			# NOTE: In JS, `print` will be an indentity function, but since it's
-			# a command in Python, it won't return anything.
-			self.type_check_expr(command.children[0])
 		elif command.data == "return":
 			return_type = self.type_check_expr(command.children[0])
 			parent_function = self.get_parent_function()
@@ -1182,6 +1236,38 @@ class Scope:
 				self.types[alias_name] = NAliasType(alias_name.value, alias_type, typevars)
 			if any(modifier.type == "PUBLIC" for modifier in modifiers.children):
 				self.public_types[alias_name] = self.types[alias_name]
+		elif command.data == "class_definition":
+			modifiers, name, class_args, class_body = command.children
+			public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
+
+			if len(class_args.children) > 0 and class_args.children[0].data == "generic_declaration":
+				self.errors.append(TypeCheckError(class_args.children[0], "Classes do not support generic types."))
+				return False
+			arguments = [self.get_name_type(arg, err=False) for arg in class_args.children]
+			scope = self.new_scope(parent_function=None)
+			for arg_pattern, arg_type in arguments:
+				scope.assign_to_pattern(arg_pattern, arg_type, True)
+			scope.type_check_command(class_body)
+
+			class_type = {}
+			for prop_name, var in scope.variables.items():
+				if var.public:
+					if var.type is None:
+						class_type = "invalid"
+						break
+					else:
+						class_type[prop_name] = var.type
+			constructor_type = tuple([*(arg_type for _, arg_type in arguments), class_type])
+
+			if name.value in self.types:
+				scope.errors.append(TypeCheckError(name, "You've already defined the `%s` type in this scope." % name.value))
+			self.types[name.value] = class_type
+			if public:
+				self.public_types[name.value] = self.types[name.value]
+
+			if name.value in self.variables:
+				scope.errors.append(TypeCheckError(name, "You've already defined `%s` in this scope." % name.value))
+			self.variables[name.value] = Variable(constructor_type, constructor_type, public)
 		else:
 			self.type_check_expr(command)
 

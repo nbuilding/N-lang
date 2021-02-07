@@ -7,6 +7,8 @@ class Function(Variable):
 	def __init__(self, scope, arguments, returntype, codeblock, generics=None, public=False):
 		# Tuples represent function types. (a, b, c) represents a -> b -> c.
 		types = tuple([ty for _, ty in arguments] + [returntype])
+		if None in types:
+			types = None
 		super(Function, self).__init__(types, self, public)
 
 		self.scope = scope
