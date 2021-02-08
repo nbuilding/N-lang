@@ -19,7 +19,7 @@ from syntax_error import format_error
 
 # https://stackoverflow.com/a/4381638
 basepath = path.dirname(__file__)
-syntaxpath = path.abspath(path.join(basepath, "syntax.lark"))
+syntaxpath = "syntax.lark"
 with open(syntaxpath, "r") as f:
 	parse = f.read()
 n_parser = Lark(parse, start="start", propagate_positions=True)
