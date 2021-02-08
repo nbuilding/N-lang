@@ -1,4 +1,3 @@
-import importlib
 import lark
 import os.path
 from lark import Lark
@@ -20,6 +19,7 @@ from imported_error import ImportedError
 import native_functions
 from syntax_error import format_error
 from classes import NClass, NConstructor
+from modules import libraries
 
 basepath = os.path.dirname(__file__)
 syntaxpath = os.path.abspath(os.path.join(basepath, "syntax.lark"))
@@ -681,7 +681,7 @@ class Scope:
 
 		if command.data == "imp":
 			import_name = command.children[0].value
-			lib = importlib.import_module("libraries." + import_name)
+			lib = libraries["libraries." + import_name]
 			self.variables[import_name] = Variable(None, NModule(import_name, {
 				key: NativeFunction.from_imported(self, types, getattr(lib, key))
 				for key, types in lib._values().items()
@@ -1093,7 +1093,7 @@ class Scope:
 			if import_name in self.variables:
 				self.errors.append(TypeCheckError(command.children[0], "You've already used the name `%s`." % import_name))
 			try:
-				imp = importlib.import_module("libraries." + command.children[0])
+				imp = libraries["libraries." + command.children[0].value]
 				types = {}
 				try:
 					types = imp._types()
@@ -1102,7 +1102,7 @@ class Scope:
 				import_type = NModule(import_name, imp._values(), types=types)
 			except AttributeError:
 				self.errors.append(TypeCheckError(command.children[0], "`%s` isn't a compatible native library." % command.children[0]))
-			except ModuleNotFoundError:
+			except KeyError:
 				self.errors.append(TypeCheckError(command.children[0], "I can't find the native library `%s`." % command.children[0]))
 			self.variables[import_name] = Variable(import_type, import_type)
 		elif command.data == "for":
