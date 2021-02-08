@@ -173,11 +173,11 @@ class Scope:
 		if len(modules) > 0:
 			current_module = self.get_variable(modules[0].value, err=err)
 			if current_module is None:
-				self.errors.append(TypeCheckError(module, "I can't find `%s` from this scope." % module.value))
+				self.errors.append(TypeCheckError(modules[0], "I can't find `%s` from this scope." % modules[0].value))
 				return None
 			current_module = current_module.type
 			if not isinstance(current_module, NModule):
-				self.errors.append(TypeCheckError(module, "%s is not a module." % module.value))
+				self.errors.append(TypeCheckError(modules[0], "%s is not a module." % modules[0].value))
 				return None
 			for module in modules[1:]:
 				current_module = current_module.get(module.value)
