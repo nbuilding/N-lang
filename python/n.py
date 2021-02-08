@@ -18,7 +18,7 @@ from cmd import Cmd
 from syntax_error import format_error
 
 # https://stackoverflow.com/a/4381638
-basepath = path.dirname(__file__)
+basepath = path.dirname(sys.argv[0])
 syntaxpath = path.join(basepath, "syntax.lark")
 with open(syntaxpath, "r") as f:
 	parse = f.read()
