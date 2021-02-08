@@ -22,7 +22,7 @@ from classes import NClass, NConstructor
 from modules import libraries
 
 basepath = os.path.dirname(__file__)
-syntaxpath = "syntax.lark"
+syntaxpath = path.join(basepath, "syntax.lark")
 
 def parse_file(file_path, base_path):
 	import_scope = Scope(base_path=base_path, file_path=file_path)
