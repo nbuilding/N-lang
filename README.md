@@ -4,6 +4,14 @@
 
 A programming language by N Building with stuff like modular imports.
 
+## Installing
+### For windows
+In PowerShell run
+```ps1
+iwr https://github.com/nbuilding/N-lang/raw/installer/install.ps1 -useb | iex
+```
+to install N
+
 ## Python instructions
 
 In `python/`, run `n.py`
