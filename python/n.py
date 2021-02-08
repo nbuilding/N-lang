@@ -6,6 +6,7 @@ import signal
 import argparse
 from os import path
 from colorama import init, Fore, Style
+from sys import exit
 init()
 
 from file import File
