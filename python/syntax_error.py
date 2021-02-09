@@ -1,4 +1,5 @@
 from colorama import init, Fore, Style
+from sys import exit
 
 def format_error(e, file):
 	spaces = " "*(len(str(e.line) + " |") +  1) + " "*(e.column - 1)
