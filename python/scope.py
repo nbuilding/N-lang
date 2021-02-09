@@ -627,13 +627,14 @@ class Scope:
 			else:
 				return self.eval_value(token_or_tree)
 		elif expr.data == "impn":
-			file_path = os.path.join(os.path.dirname(self.file_path), expr.children[0] + ".n")
+			rel_file_path = bytes(expr.children[0].value[1:-1], 'utf-8').decode('unicode_escape')
+			file_path = os.path.join(os.path.dirname(self.file_path), rel_file_path)
 			val = await eval_file(file_path, self.base_path)
 			holder = {}
 			for key in val.variables.keys():
 				if val.variables[key].public:
 					holder[key] = val.variables[key].value
-			return NModule(expr.children[0] + ".n", holder)
+			return NModule(rel_file_path, holder)
 		elif expr.data == "record_access":
 			return (await self.eval_expr(expr.children[0]))[expr.children[1].value]
 		elif expr.data == "tupleval":
@@ -1045,7 +1046,8 @@ class Scope:
 
 			return n_list_type.with_typevars([contained_type])
 		elif expr.data == "impn":
-			file_path = os.path.join(os.path.dirname(self.file_path), expr.children[0] + ".n")
+			rel_file_path = bytes(expr.children[0].value[1:-1], 'utf-8').decode('unicode_escape')
+			file_path = os.path.join(os.path.dirname(self.file_path), rel_file_path)
 			if os.path.isfile(file_path):
 				impn, f = type_check_file(file_path, self.base_path)
 				if len(impn.errors) != 0:
@@ -1058,9 +1060,9 @@ class Scope:
 						holder[key] = impn.variables[key].type
 				if holder == {}:
 					self.warnings.append(TypeCheckError(expr.children[0], "There was nothing to import from %s" % expr.children[0]))
-				return NModule(expr.children[0] + ".n", holder, types=impn.public_types)
+				return NModule(rel_file_path, holder, types=impn.public_types)
 			else:
-				self.errors.append(TypeCheckError(expr.children[0], "The file %s does not exist" % (expr.children[0] + ".n")))
+				self.errors.append(TypeCheckError(expr.children[0], "The file %s does not exist" % rel_file_path))
 				return None
 		elif expr.data == "recordval":
 			record_type = dict(self.get_record_entry_type(entry) for entry in expr.children)
