@@ -10,4 +10,4 @@ type pub state = <alive float>
 alias pub pair[t] = (t, t)
 alias pub strPair = pair[str]
 
-let pub secret = <alive 3.4>
+let pub secret = alive(3.4)

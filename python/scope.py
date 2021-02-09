@@ -627,7 +627,11 @@ class Scope:
 			else:
 				return self.eval_value(token_or_tree)
 		elif expr.data == "impn":
-			rel_file_path = bytes(expr.children[0].value[1:-1], 'utf-8').decode('unicode_escape')
+			if expr.children[0].type == "STRING":
+				rel_file_path = bytes(expr.children[0].value[1:-1], 'utf-8').decode('unicode_escape')
+			else:
+				# Support old syntax
+				rel_file_path = expr.children[0].value + ".n"
 			file_path = os.path.join(os.path.dirname(self.file_path), rel_file_path)
 			val = await eval_file(file_path, self.base_path)
 			holder = {}
@@ -1046,7 +1050,11 @@ class Scope:
 
 			return n_list_type.with_typevars([contained_type])
 		elif expr.data == "impn":
-			rel_file_path = bytes(expr.children[0].value[1:-1], 'utf-8').decode('unicode_escape')
+			if expr.children[0].type == "STRING":
+				rel_file_path = bytes(expr.children[0].value[1:-1], 'utf-8').decode('unicode_escape')
+			else:
+				# Support old syntax
+				rel_file_path = expr.children[0].value + ".n"
 			file_path = os.path.join(os.path.dirname(self.file_path), rel_file_path)
 			if os.path.isfile(file_path):
 				impn, f = type_check_file(file_path, self.base_path)
