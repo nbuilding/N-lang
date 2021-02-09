@@ -1,8 +1,24 @@
 # N
 ![Status](https://img.shields.io/badge/Status-Finished-brightgreen)
-![Version](https://img.shields.io/badge/Version-1.0.0-brightgreen)
+![Version](https://img.shields.io/badge/Version-1.0.1-brightgreen)
 
 A programming language by N Building with stuff like modular imports.
+
+## Install N
+
+PowerShell (Windows):
+
+```ps1
+iwr https://github.com/nbuilding/N-lang/raw/main/install.ps1 -useb | iex
+```
+
+### Install a specific version
+
+PowerShell (Windows):
+
+```ps1
+$v="1.0.0"; iwr https://github.com/nbuilding/N-lang/raw/master/install.ps1 -useb | iex
+```
 
 ## Python instructions
 
