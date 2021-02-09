@@ -2,6 +2,7 @@ import lark
 import os.path
 from lark import Lark
 from colorama import Fore, Style
+import sys
 
 from variable import Variable
 from function import Function
@@ -21,7 +22,12 @@ from syntax_error import format_error
 from classes import NClass, NConstructor
 from modules import libraries
 
-basepath = os.path.dirname(__file__)
+basepath = ""
+if getattr(sys, 'frozen', False):
+    basepath = os.path.dirname(sys.executable)
+elif __file__:
+    basepath = os.path.dirname(__file__)
+
 syntaxpath = os.path.join(basepath, "syntax.lark")
 
 def parse_file(file_path, base_path):
