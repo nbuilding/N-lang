@@ -23,11 +23,11 @@ function_callback_pipe: literal "|>" function_call
                       | function_callback_pipe "|>" function_call
 for: "for" name_type NUMBER code_block
 imp: "import" NAME
-impn: "imp" NAME
+impn: "imp" STRING
 return: "return" expression
 if: "if" condition ("{" instruction "}" | code_block)
-ifelse: "if" condition ("{" instruction "}" | code_block) "else" ("{" instruction "}" | code_block)
-ifelse_expr: "if" condition "{" expression "}" "else" "{" expression "}"
+ifelse: "if" condition ("{" instruction "}" | code_block) "else" ("{" instruction "}" | code_block | ifelse | if)
+ifelse_expr: "if" condition "{" expression "}" "else" ("{" expression "}" | ifelse_expr)
 ?condition: expression
           | conditional_let
 conditional_let: "let" cond_pattern "=" expression
