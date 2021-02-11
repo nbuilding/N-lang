@@ -1,6 +1,5 @@
 # N
-![Status](https://img.shields.io/badge/Status-Finished-brightgreen)
-![Version](https://img.shields.io/badge/Version-1.0.1-brightgreen)
+![Version](https://img.shields.io/github/v/release/nbuilding/N-Lang?color=Green&style=flat-square)
 
 A programming language by N Building with stuff like modular imports.
 
