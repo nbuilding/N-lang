@@ -28,7 +28,7 @@ curl -fsSL https://github.com/nbuilding/N-lang/raw/main/install.sh | sh -s v1.0.
 PowerShell (Windows):
 
 ```ps1
-$v="1.0.0"; iwr https://github.com/nbuilding/N-lang/raw/master/install.ps1 -useb | iex
+$v="1.0.0"; iwr https://github.com/nbuilding/N-lang/raw/main/install.ps1 -useb | iex
 ```
 
 ## Python instructions
