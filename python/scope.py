@@ -44,7 +44,7 @@ def parse_file(file_path, base_path):
 	try:
 		tree = file.parse(n_parser)
 	except lark.exceptions.UnexpectedCharacters as e:
-		format_error(e, os.path.relpath(file_path, start=base_path))
+		format_error(e, file)
 
 	return import_scope, tree, file
 
