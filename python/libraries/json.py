@@ -1,7 +1,7 @@
 import json
 
 from enums import EnumType, EnumValue
-from native_types import n_list_type, n_map_type, NMap, n_maybe_type
+from native_types import n_list_type, n_map_type, NMap, n_maybe_type, yes
 
 json_value_type = EnumType("value", [
 	("null", []),
@@ -72,7 +72,7 @@ def parse(string):
 
 def parseSafe(string):
 	try:
-		return python_to_json(json.loads(string))
+		return yes(python_to_json(json.loads(string)))
 	except:
 		return None
 
