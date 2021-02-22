@@ -70,7 +70,7 @@ def parse(string):
 	return python_to_json(json.loads(string))
 
 
-def parseString(string):
+def parseSafe(string):
 	try:
 		return python_to_json(json.loads(string))
 	except:
@@ -92,7 +92,7 @@ def _values():
 		"object": (n_map_type.with_typevars(["str", json_value_type]), json_value_type),
 		# JSON parsing/stringifying
 		"parse": ("str", json_value_type),
-		"parseSafe": n_maybe_type.with_typevars(("str", json_value_type)),
+		"parseSafe": ("str", n_maybe_type.with_typevars([json_value_type])),
 		"stringify": (json_value_type, "str"),
 	}
 
