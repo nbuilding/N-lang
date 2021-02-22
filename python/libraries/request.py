@@ -3,7 +3,7 @@ import json
 import aiohttp
 import asyncio
 from native_types import n_cmd_type, NMap, n_map_type
-from libraries.json import json_value_type, python_to_json
+from libraries.json import json_value_type, python_to_json, string
 
 #for gateways
 scope = None
@@ -14,7 +14,12 @@ def _prepare(sc):
 async def get(url, headers):
 	async with aiohttp.ClientSession() as session:
 		async with session.get(url, headers=headers) as r:
-			return {"code": r.status, "response": r.reason, "return": python_to_json(json.loads(await r.text()))}
+			returndata = string(await r.text())
+			try:
+				returndata = python_to_json(json.loads(await r.text()))
+			except:
+				pass
+			return {"code": r.status, "response": r.reason, "return": returndata}
 
 async def post(url, content, headers):
 	async with aiohttp.ClientSession() as session:

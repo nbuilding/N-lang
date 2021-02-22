@@ -1,7 +1,7 @@
 import json
 
 from enums import EnumType, EnumValue
-from native_types import n_list_type, n_map_type, NMap
+from native_types import n_list_type, n_map_type, NMap, n_maybe_type
 
 json_value_type = EnumType("value", [
 	("null", []),
@@ -69,6 +69,13 @@ def json_to_python(enum_value):
 def parse(string):
 	return python_to_json(json.loads(string))
 
+
+def parseString(string):
+	try:
+		return python_to_json(json.loads(string))
+	except:
+		return None
+
 # TODO: Formatting options?
 # TODO: Convert NaN and infinities to null, per spec.
 def stringify(json_value):
@@ -85,6 +92,7 @@ def _values():
 		"object": (n_map_type.with_typevars(["str", json_value_type]), json_value_type),
 		# JSON parsing/stringifying
 		"parse": ("str", json_value_type),
+		"parseSafe": n_maybe_type.with_typevars(("str", json_value_type)),
 		"stringify": (json_value_type, "str"),
 	}
 
