@@ -149,7 +149,8 @@ value: NUMBER
 
 //constants
 BOOLEAN: ("true" | "false")
-COMMENT: "//" /[^\n]/*
+COMMENT: "/*" /(.|\n|\r)+/ "*/"     
+       | "//" /[^\n]/*
 MULTILINE_COMMENT: "/*" /.+(?=\*\/)/*
 OR: ("||" | "|")
 AND: ("&&" | "&")
