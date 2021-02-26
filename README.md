@@ -64,8 +64,9 @@ python n.py
 pylint --disable=all --enable=F,E,unreachable,duplicate-key,unnecessary-semicolon,global-variable-not-assigned,unused-variable,binary-op-exception,bad-format-string,anomalous-backslash-in-string,bad-open-mode,dangerous-default-value *.py **/*.py
 ```
 
-### Features to add:
-- look at [features.md](./features.md)
+### Have something cool in N?
+- contact us or make a PR
+- look at [PROJECTS.md](./PROJECTS.md)
 
 ### Bugs:
 - None currently
