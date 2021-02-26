@@ -150,6 +150,7 @@ value: NUMBER
 //constants
 BOOLEAN: ("true" | "false")
 COMMENT: "//" /[^\n]/*
+MULTILINE_COMMENT: "/*" /.+(?=\*\/)/*
 OR: ("||" | "|")
 AND: ("&&" | "&")
 EQUALS: ("==" | "=")
@@ -175,3 +176,4 @@ UNIT: "()"
 %import common.WS
 %ignore WS
 %ignore COMMENT
+%ignore MULTILINE_COMMENT
