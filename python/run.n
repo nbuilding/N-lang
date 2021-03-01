@@ -13,3 +13,6 @@ print(person("Billia-chan", 18)(14.3))
 print(1.0 / -0.0) // -Infinity
 print(0.0 / 0.0) // NaN
 print(3 / 0) // 0
+
+let wow: result[str, ()] = ok("cool!")
+print(wow)

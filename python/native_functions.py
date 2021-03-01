@@ -8,7 +8,7 @@ from function import Function
 from type_check_error import display_type
 from type import NGenericType
 from enums import EnumType, EnumValue
-from native_types import n_list_type, n_map_type, NMap, n_cmd_type, n_maybe_type, maybe_generic, none, yes
+from native_types import n_list_type, n_map_type, NMap, n_cmd_type, n_maybe_type, none, yes, n_result_type, ok, err
 
 def substr(start, end, string):
 	return string[start:end]
@@ -208,6 +208,22 @@ def add_funcs(global_scope):
 		default_generic,
 		with_default,
 	)
+	ok_generic_o = NGenericType("o")
+	ok_generic_e = NGenericType("e")
+	global_scope.add_native_function(
+		"ok",
+		[("value", ok_generic_o)],
+		n_result_type.with_typevars([ok_generic_o, ok_generic_e]),
+		ok,
+	)
+	err_generic_o = NGenericType("o")
+	err_generic_e = NGenericType("e")
+	global_scope.add_native_function(
+		"err",
+		[("error", err_generic_e)],
+		n_result_type.with_typevars([err_generic_o, err_generic_e]),
+		err,
+	)
 	then_generic_in = NGenericType("a")
 	then_generic_out = NGenericType("b")
 	global_scope.add_native_function(
@@ -250,3 +266,4 @@ def add_funcs(global_scope):
 	global_scope.types['map'] = n_map_type
 	global_scope.types['cmd'] = n_cmd_type
 	global_scope.types['maybe'] = n_maybe_type
+	global_scope.types['result'] = n_result_type
