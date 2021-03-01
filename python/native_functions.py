@@ -152,6 +152,12 @@ def add_funcs(global_scope):
 		lambda string: string.strip()
 	)
 	global_scope.add_native_function(
+		"range",
+		[("start", "int"), ("end", "int"), ("step", "int")],
+		n_list_type.with_typevars(["int"]),
+		range
+	)
+	global_scope.add_native_function(
 		"type",
 		[("obj", NGenericType("t"))],
 		"str",

@@ -17,4 +17,5 @@ unary_operation_types = {
 	"NOT": { "bool": "bool", "int": "int" },
 }
 comparable_types = ["int", "float"]
+legacy_iterable_types = { "int": "int" }
 iterable_types = { "int": "int" }

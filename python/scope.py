@@ -14,7 +14,7 @@ from native_types import n_list_type, n_cmd_type
 from cmd import Cmd
 from type_check_error import TypeCheckError, display_type
 from display import display_value
-from operation_types import binary_operation_types, unary_operation_types, comparable_types, iterable_types
+from operation_types import binary_operation_types, unary_operation_types, comparable_types, iterable_types, legacy_iterable_types
 from file import File
 from imported_error import ImportedError
 import native_functions
@@ -260,74 +260,6 @@ class Scope:
 			return pattern, 'infer'
 		else:
 			return pattern, self.parse_type(name_type.children[1], err) if get_type else 'whatever'
-
-	"""
-	This is to be used to get the NClass value for evaluating classes
-	"""
-	def get_class_val(self, modifiers, name, class_value):
-		scope = Scope()
-		for ins in class_value.children:
-			type_check_class_command(ins, scope)
-		return NClass(None, None, None, None)
-
-		# TODO get type_check_class_command working
-
-	"""
-	This is meant as the type checker to get_class_val
-	as not all instructions are allowed to be a class_instruction
-	and some are exclusive to it
-	"""
-	def type_check_class_command(self, tree, scope):
-		if tree.data != "instruction":
-			scope.errors.append(TypeCheckError(tree, "Internal problem: I am unable to deal with %s inside a class." % tree.data))
-			return False
-
-		command = tree.children[0]
-
-		if command.data == "declare":
-			modifiers, name_type, value = command.children
-			pattern, ty = scope.get_name_type(name_type, err=False)
-			name = pattern_to_name(pattern)
-
-			value_type = scope.type_check_expr(value)
-			resolved_value_type = apply_generics(value_type, ty)
-			if ty == 'infer':
-				ty = resolved_value_type
-			else:
-				_, incompatible = resolve_equal_types(ty, resolved_value_type)
-				if incompatible:
-					scope.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
-
-			public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
-			scope.assign_to_pattern(pattern, ty, True, None, public)
-		elif command.data == "enum_definition":
-			modifiers, type_def, constructors = command.children
-			type_name, sc, typevars = scope.get_name_typevars(type_def)
-			variants = []
-			enum_type = EnumType(type_name.value, variants, typevars)
-			scope.types[type_name] = enum_type
-			if any(modifier.type == "PUBLIC" for modifier in modifiers.children):
-				scope.public_types[type_name] = scope.types[type_name]
-			for constructor in constructors.children:
-				modifiers, constructor_name, *types = constructor.children
-				public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
-				types = [sc.parse_type(type_token, err=False) for type_token in types]
-				variants.append((constructor_name.value, types))
-				if constructor_name.value in scope.variables:
-					scope.errors.append(TypeCheckError(constructor_name, "You've already defined `%s` in this scope." % constructor_name.value))
-				if len(types) >= 1:
-					scope.variables[constructor_name.value] = NativeFunction(scope, [("idk", arg_type) for arg_type in types], enum_type, id, public=public)
-				else:
-					scope.variables[constructor_name.value] = Variable(enum_type, "I don't think this is used", public=public)
-		elif command.data == "class_constuctor":
-			args, instructions = command.children
-			contructor = NConstructor(args, instructions)
-			# help
-		else:
-			scope.errors.append(TypeCheckError(command, "Internal problem: I am unable to deal with the command %s inside a class." % command.data))
-
-
-
 
 	"""
 	This method is meant to be usable for both evaluation and type checking.
@@ -1126,7 +1058,7 @@ class Scope:
 			var, iterable, code = command.children
 			pattern, ty = self.get_name_type(var, err=False)
 			iterable_type = self.type_check_expr(iterable)
-			iterated_type = iterable_types.get(iterable_type)
+			iterated_type = legacy_iterable_types.get(iterable_type)
 			if iterable_type is not None:
 				if iterated_type is None:
 					self.errors.append(TypeCheckError(iterable, "I can't loop over a %s." % display_type(iterable_type)))
@@ -1137,6 +1069,12 @@ class Scope:
 			scope = self.new_scope()
 			scope.assign_to_pattern(pattern, ty, True)
 			return scope.type_check_command(code)
+		elif command.data == "for":
+			var, iterable, code = command.children
+			pattern, ty = self.get_name_type(var, err=False)
+			iterable_type = self.type_check_expr(iterable)
+			iterated_type = iterable_types.get(iterable_type)
+			# TODO: Finish this
 		elif command.data == "return":
 			return_type = self.type_check_expr(command.children[0])
 			parent_function = self.get_parent_function()
