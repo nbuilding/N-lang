@@ -704,8 +704,21 @@ class Scope:
 				else:
 					self.variables[constructor_name] = Variable(enum_type, EnumValue(constructor_name), public=public)
 		elif command.data == "alias_definition":
-			# Type aliases are purely for type checking so they do nothing at runtime
-			pass
+			modifiers, alias_def, alias_raw_type = command.children
+			alias_name, *_ = alias_def.children
+			public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
+			if type(alias_raw_type) == lark.Tree and alias_raw_type.data == "recorddef":
+				if alias_name.value not in self.variables:
+					self.variables[alias_name.value] = NativeFunction(
+						self,
+						[("idk", "whatever")] * len(alias_raw_type.children),
+						"The alias return value, but types are removed at runtime",
+						lambda *args: {
+							entry.children[0].value: arg
+							for entry, arg in zip(alias_raw_type.children, args)
+						},
+						public=public
+					)
 		elif command.data == "class_definition":
 			modifiers, name, class_args, class_body = command.children
 			public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
@@ -1202,15 +1215,25 @@ class Scope:
 				else:
 					self.variables[constructor_name.value] = Variable(enum_type, "I don't think this is used", public=public)
 		elif command.data == "alias_definition":
-			modifiers, alias_def, alias_type = command.children
+			modifiers, alias_def, alias_raw_type = command.children
 			alias_name, scope, typevars = self.get_name_typevars(alias_def)
-			alias_type = scope.parse_type(alias_type, err=False)
+			alias_type = scope.parse_type(alias_raw_type, err=False)
 			if alias_type is None:
 				self.types[alias_name] = "invalid"
 			else:
 				self.types[alias_name] = NAliasType(alias_name.value, alias_type, typevars)
-			if any(modifier.type == "PUBLIC" for modifier in modifiers.children):
+			public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
+			if public:
 				self.public_types[alias_name] = self.types[alias_name]
+			if type(alias_raw_type) == lark.Tree and alias_raw_type.data == "recorddef" and isinstance(alias_type, dict):
+				if alias_name in self.variables:
+					self.warnings.append(TypeCheckError(alias_def, "Type aliases for records now declare constructor functions, but `%s` already exists. In the future, this may become an error." % alias_name))
+				else:
+					self.variables[alias_name] = Variable(
+						tuple(alias_type.values()) + (self.types[alias_name],),
+						"I don't think this is used",
+						public=public
+					)
 		elif command.data == "class_definition":
 			modifiers, name, class_args, class_body = command.children
 			public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)

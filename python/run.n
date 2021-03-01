@@ -5,3 +5,7 @@ for i 10 {
 for (i in range(0, 10, 1)) {
 	print(i)
 }
+
+alias person = { name: str; age: int; height: float }
+// Canonically Billia-chan is 18 years old for fanservice reasons
+print(person("Billia-chan", 18)(14.3))
