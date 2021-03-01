@@ -1,32 +1,7 @@
-print("this is a test")
-let sum = [a:int b:int] -> int {
-	return a + b
-}
-print(sum(1, 2))
-if true {
-	print("true is true")
-}
-let test = 3
-test
-  |> sum(1)
-  |> print()
-// same as
-print(sum(1, test))
-let addOne = sum(1)
-
-print(addOne(2)) // prints out 3
-
 for i 10 {
 	print(i)
 }
 
-for (i in [1, 2, 3]) {
+for (i in range(0, 10, 1)) {
 	print(i)
 }
-
-/*
-testing
-/*
-testing
-*/
-*/
