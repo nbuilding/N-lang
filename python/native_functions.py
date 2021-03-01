@@ -90,7 +90,6 @@ def add_funcs(global_scope):
 		"str",
 		str,
 	)
-
 	global_scope.add_native_function(
 		"round",
 		[("number", "float")],
@@ -155,7 +154,7 @@ def add_funcs(global_scope):
 		"range",
 		[("start", "int"), ("end", "int"), ("step", "int")],
 		n_list_type.with_typevars(["int"]),
-		range
+		lambda start, end, step: list(range(start, end, step))
 	)
 	global_scope.add_native_function(
 		"type",
