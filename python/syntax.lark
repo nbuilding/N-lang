@@ -4,6 +4,7 @@ instruction: declare (";")?
            | function_callback (";")?
            | function_callback_pipe (";")?
            | for (";")?
+           | for_legacy (";")?
            | imp (";")?
            | return (";")?
            | if (";")?
@@ -21,7 +22,8 @@ alias_definition: "alias" modifier declaration_with_typevars "=" types
 function_callback: function_call
 function_callback_pipe: literal "|>" function_call
                       | function_callback_pipe "|>" function_call
-for: "for" name_type NUMBER code_block
+for_legacy: "for" name_type NUMBER code_block
+for: "for" "(" name_type "in" value ")" code_block
 imp: "import" NAME
 impn: "imp" (STRING | NAME)
 return: "return" expression

@@ -1,3 +1,5 @@
+from type import NTypeVars
+
 # TODO: Move these into Scope because one day these might be scoped due to
 # implementations of traits.
 binary_operation_types = {
@@ -17,4 +19,11 @@ unary_operation_types = {
 	"NOT": { "bool": "bool", "int": "int" },
 }
 comparable_types = ["int", "float"]
-iterable_types = { "int": "int" }
+legacy_iterable_types = { "int": "int" }
+_other_iterable_types = {  }
+def iterable_types(iterable_type):
+	if isinstance(iterable_type, NTypeVars):
+		if iterable_type.name == "list":
+			return iterable_type.typevars[0]
+
+	return _other_iterable_types.get(iterable_type)
