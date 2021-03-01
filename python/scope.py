@@ -644,6 +644,17 @@ class Scope:
 				exit, value = await scope.eval_command(code)
 				if exit:
 					return True, value
+		elif command.data == "for":
+			var, iterable, code = command.children
+			pattern, _ = self.get_name_type(var, get_type=False)
+			iterval = await self.eval_expr(iterable)
+			for i in iterval:
+				scope = self.new_scope()
+
+				scope.assign_to_pattern(pattern, i)
+				exit, value = await scope.eval_command(code)
+				if exit:
+					return True, value
 		elif command.data == "return":
 			return (True, await self.eval_expr(command.children[0]))
 		elif command.data == "declare":
@@ -1073,8 +1084,17 @@ class Scope:
 			var, iterable, code = command.children
 			pattern, ty = self.get_name_type(var, err=False)
 			iterable_type = self.type_check_expr(iterable)
-			iterated_type = iterable_types.get(iterable_type)
-			# TODO: Finish this
+			iterated_type = iterable_types(iterable_type)
+			if iterable_type is not None:
+				if iterated_type is None:
+					self.errors.append(TypeCheckError(iterable, "I can't loop over a %s." % display_type(iterable_type)))
+				elif ty == 'infer':
+					ty = iterated_type
+				elif ty != iterated_type:
+					self.errors.append(TypeCheckError(var, "Looping over a %s produces %s values, not %s." % (display_type(iterable_type), display_type(iterated_type), display_type(ty))))
+			scope = self.new_scope()
+			scope.assign_to_pattern(pattern, ty, True)
+			return scope.type_check_command(code)
 		elif command.data == "return":
 			return_type = self.type_check_expr(command.children[0])
 			parent_function = self.get_parent_function()
