@@ -1,8 +1,10 @@
-import lark
+import math
 import os.path
+import sys
+
+import lark
 from lark import Lark
 from colorama import Fore, Style
-import sys
 
 from variable import Variable
 from function import Function
@@ -520,9 +522,26 @@ class Scope:
 			if operation.type == "MULTIPLY":
 				return await self.eval_expr(left) * await self.eval_expr(right)
 			elif operation.type == "DIVIDE":
-				return await self.eval_expr(left) / await self.eval_expr(right)
-			elif operation.type == "ROUNDDIV":
-				return await self.eval_expr(left) // await self.eval_expr(right)
+				dividend = await self.eval_expr(left)
+				divisor = await self.eval_expr(right)
+				if divisor == 0:
+					if isinstance(divisor, int):
+						# Division by zero for ints will safely return 0, like
+						# Elm. Alternatively, it could unrecoverably panic
+						# like Rust.
+						return 0
+					else:
+						# Conform with float standards for float division by
+						# zero.
+						if dividend == 0:
+							return float("nan")
+						# Distinguish between negative and positive zero
+						# https://stackoverflow.com/a/25338224
+						elif math.copysign(1, divisor) == -1:
+							return float("-inf")
+						else:
+							return float("inf")
+				return dividend / divisor
 			elif operation.type == "MODULO":
 				return await self.eval_expr(left) % await self.eval_expr(right)
 			else:
