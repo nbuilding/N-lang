@@ -702,7 +702,7 @@ class Scope:
 			except AttributeError:
 				# Apparently it's more Pythonic to use try/except than hasattr
 				pass
-		elif command.data == "for":
+		elif command.data == "for_legacy":
 			var, iterable, code = command.children
 			pattern, _ = self.get_name_type(var, get_type=False)
 			for i in range(int(iterable)):
@@ -1121,7 +1121,8 @@ class Scope:
 			except KeyError:
 				self.errors.append(TypeCheckError(command.children[0], "I can't find the native library `%s`." % command.children[0]))
 			self.variables[import_name] = Variable(import_type, import_type)
-		elif command.data == "for":
+		elif command.data == "for_legacy":
+			self.warnings.append(TypeCheckError(command, "This syntax is decapricated."))
 			var, iterable, code = command.children
 			pattern, ty = self.get_name_type(var, err=False)
 			iterable_type = self.type_check_expr(iterable)
