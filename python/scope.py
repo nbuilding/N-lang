@@ -85,35 +85,31 @@ async def parse_tree(tree, import_scope):
 		raise SyntaxError("Unable to run parse_tree on non-starting branch")
 
 
-def get_destructure_pattern(name):
-	if type(name) == lark.Tree:
-		if name.data == "record_pattern":
-			names = []
-			for pattern in name.children:
+def get_destructure_pattern(tree):
+	if type(tree) == lark.Tree:
+		if tree.data == "record_pattern":
+			entries = []
+			for pattern in tree.children:
 				if type(pattern) == lark.Token:
-					names.append((pattern.value, (pattern.value, pattern)))
+					entries.append((pattern.value, (pattern.value, pattern)))
 				else:
 					key, value = pattern.children
-					names.append((key.value, get_destructure_pattern(value)))
-			return (dict(names), name)
-		elif name.data == "tuple_pattern":
-			return (tuple(get_destructure_pattern(pattern) for pattern in name.children), name)
-	return (None if name.value == "_" else name.value, name)
-
-def get_conditional_destructure_pattern(tree):
-	if type(tree) == lark.Tree:
-		if tree.data == "list_pattern":
+					entries.append((key.value, get_destructure_pattern(value)))
+			return (dict(entries), tree)
+		elif tree.data == "tuple_pattern":
+			return (tuple(get_destructure_pattern(pattern) for pattern in tree.children), tree)
+		elif tree.data == "list_pattern":
 			patterns = []
 			for pattern in tree.children:
-				patterns.append(get_conditional_destructure_pattern(pattern))
+				patterns.append(get_destructure_pattern(pattern))
 			return (patterns, tree)
 		elif tree.data == "enum_pattern":
 			enum_name, *pattern_trees = tree.children
 			patterns = []
 			for pattern in pattern_trees:
-				patterns.append(get_conditional_destructure_pattern(pattern))
+				patterns.append(get_destructure_pattern(pattern))
 			return (EnumPattern(enum_name, patterns), tree)
-	return get_destructure_pattern(tree)
+	return (None if tree.value == "_" else tree.value, tree)
 
 def pattern_to_name(pattern_and_src):
 	pattern, _ = pattern_and_src
@@ -279,62 +275,6 @@ class Scope:
 			return pattern, self.parse_type(name_type.children[1], err) if get_type else 'whatever'
 
 	"""
-	This method is meant to be usable for both evaluation and type checking.
-	"""
-	def assign_to_pattern(self, pattern_and_src, value_or_type, warn=False, path=None, public=False):
-		path_name = path or "the value"
-		pattern, src = pattern_and_src
-		if isinstance(pattern, dict):
-			is_dict = isinstance(value_or_type, dict)
-			if is_dict:
-				# Should this be an error? Warning?
-				unused_keys = [key for key in value_or_type.keys() if key not in pattern]
-				if len(unused_keys) > 0:
-					self.errors.append(TypeCheckError(src, "%s (%s) has field(s) %s, but you haven't destructured them. (Hint: use `_` to denote unused fields.)" % (display_type(value_or_type), path_name, ", ".join(unused_keys))))
-			else:
-				if warn:
-					if value_or_type is not None:
-						self.errors.append(TypeCheckError(src, "I can't destructure %s as a record because %s is not a record." % (path_name, display_type(value_or_type))))
-				else:
-					raise TypeError("Destructuring non-record as record.")
-			for key, (sub_pattern, parse_src) in pattern.items():
-				value = value_or_type.get(key) if is_dict else None
-				if is_dict and value is None:
-					if warn:
-						self.errors.append(TypeCheckError(parse_src, "I can't get the field %s from %s because %s doesn't have that field." % (key, path_name, display_type(value_or_type))))
-					else:
-						raise TypeError("Given record doesn't have a key %s." % key)
-				self.assign_to_pattern((sub_pattern, parse_src), value, warn, "%s.%s" % (path or "<record>", key), public)
-		elif isinstance(pattern, tuple):
-			# I believe the interpreter uses actual Python tuples, while the
-			# type checker uses lists for tuple types. We should fix that for
-			# the type checker.
-			is_tuple = isinstance(value_or_type, list) if warn else isinstance(value_or_type, tuple)
-			if not is_tuple:
-				if warn:
-					if value_or_type is not None:
-						self.errors.append(TypeCheckError(src, "I can't destructure %s as a tuple because %s is not a tuple." % (path_name, display_type(value_or_type))))
-				else:
-					raise TypeError("Destructuring non-record as record.")
-			if is_tuple and len(pattern) != len(value_or_type):
-				if warn:
-					if len(pattern) > len(value_or_type):
-						_, parse_src = pattern[len(value_or_type)]
-						self.errors.append(TypeCheckError(parse_src, "I can't destructure %d items from a %s." % (len(pattern), display_type(value_or_type))))
-					else:
-						self.errors.append(TypeCheckError(src, "I can't destructure only %d items from a %s. (Hint: use `_` to denote unused members of a destructured tuple.)" % (len(pattern), display_type(value_or_type))))
-				else:
-					raise TypeError("Number of destructured values from tuple doesn't match tuple length.")
-			for i, (sub_pattern, parse_src) in enumerate(pattern):
-				value = value_or_type[i] if is_tuple and i < len(value_or_type) else None
-				self.assign_to_pattern((sub_pattern, parse_src), value, warn, "%s.%d" % (path or "<tuple>", i), public)
-		elif pattern is not None:
-			name = pattern
-			if warn and name in self.variables:
-				self.errors.append(TypeCheckError(src, "You've already defined `%s`." % name))
-			self.variables[name] = Variable(value_or_type, value_or_type, public)
-
-	"""
 	Sets variables from a pattern given a value or a type and returns whether
 	the entire pattern matched.
 
@@ -358,10 +298,54 @@ class Scope:
 	NOTE: This must return True if warn=True. (In other words, don't short
 	circuit if a pattern fails to match.)
 	"""
-	def assign_to_cond_pattern(self, cond_pattern_and_src, value_or_type, warn=False, path=None):
+	def assign_to_pattern(self, pattern_and_src, value_or_type, warn=False, path=None, public=False, certain=False):
 		path_name = path or "the value"
-		pattern, src = cond_pattern_and_src
-		if isinstance(pattern, EnumPattern):
+		pattern, src = pattern_and_src
+		if isinstance(pattern, dict):
+			is_dict = isinstance(value_or_type, dict)
+			if is_dict:
+				# Should this be an error? Warning?
+				unused_keys = [key for key in value_or_type.keys() if key not in pattern]
+				if len(unused_keys) > 0:
+					self.errors.append(TypeCheckError(src, "%s (%s) has field(s) %s, but you haven't destructured them. (Hint: use `_` to denote unused fields.)" % (display_type(value_or_type), path_name, ", ".join(unused_keys))))
+			else:
+				if warn:
+					if value_or_type is not None:
+						self.errors.append(TypeCheckError(src, "I can't destructure %s as a record because %s is not a record." % (path_name, display_type(value_or_type))))
+				else:
+					raise TypeError("Destructuring non-record as record.")
+			for key, (sub_pattern, parse_src) in pattern.items():
+				value = value_or_type.get(key) if is_dict else None
+				if is_dict and value is None:
+					if warn:
+						self.errors.append(TypeCheckError(parse_src, "I can't get the field %s from %s because %s doesn't have that field." % (key, path_name, display_type(value_or_type))))
+					else:
+						raise TypeError("Given record doesn't have a key %s." % key)
+				self.assign_to_pattern((sub_pattern, parse_src), value, warn, "%s.%s" % (path or "<record>", key), public, certain=certain)
+		elif isinstance(pattern, tuple):
+			# I believe the interpreter uses actual Python tuples, while the
+			# type checker uses lists for tuple types. We should fix that for
+			# the type checker.
+			is_tuple = isinstance(value_or_type, list) if warn else isinstance(value_or_type, tuple)
+			if not is_tuple:
+				if warn:
+					if value_or_type is not None:
+						self.errors.append(TypeCheckError(src, "I can't destructure %s as a tuple because %s is not a tuple." % (path_name, display_type(value_or_type))))
+				else:
+					raise TypeError("Destructuring non-record as record.")
+			if is_tuple and len(pattern) != len(value_or_type):
+				if warn:
+					if len(pattern) > len(value_or_type):
+						_, parse_src = pattern[len(value_or_type)]
+						self.errors.append(TypeCheckError(parse_src, "I can't destructure %d items from a %s." % (len(pattern), display_type(value_or_type))))
+					else:
+						self.errors.append(TypeCheckError(src, "I can't destructure only %d items from a %s. (Hint: use `_` to denote unused members of a destructured tuple.)" % (len(pattern), display_type(value_or_type))))
+				else:
+					raise TypeError("Number of destructured values from tuple doesn't match tuple length.")
+			for i, (sub_pattern, parse_src) in enumerate(pattern):
+				value = value_or_type[i] if is_tuple and i < len(value_or_type) else None
+				self.assign_to_pattern((sub_pattern, parse_src), value, warn, "%s.%d" % (path or "<tuple>", i), public, certain=certain)
+		elif isinstance(pattern, EnumPattern):
 			if warn:
 				if not isinstance(value_or_type, EnumType):
 					if value_or_type is not None:
@@ -383,15 +367,17 @@ class Scope:
 					raise TypeError("Destructuring non-enum as enum.")
 				elif pattern.variant != value_or_type.variant:
 					return False
+			if warn and certain and len(value_or_type.variants) > 1:
+				self.errors.append(TypeCheckError(src, "I can't be sure that %s will be a `%s`; for example, it could instead be a `%s`." % (path_name, pattern.variant, (value_or_type.variants[1] if value_or_type.variants[0][0] == pattern.variant else value_or_type.variants[0])[0])))
 			for i, (sub_pattern, parse_src) in enumerate(pattern.patterns):
 				if warn:
 					value = variant_types[i]
 				else:
 					value = value_or_type.values[i]
-				valid = self.assign_to_cond_pattern((sub_pattern, parse_src), value, warn, "%s.%s#%d" % (path or "<enum>", pattern.variant, i + 1))
+				valid = self.assign_to_pattern((sub_pattern, parse_src), value, warn, "%s.%s#%d" % (path or "<enum>", pattern.variant, i + 1), public, certain=certain)
 				if not valid:
 					return False
-		if isinstance(pattern, list):
+		elif isinstance(pattern, list):
 			if warn:
 				if not isinstance(value_or_type, NTypeVars) or value_or_type.base_type is not n_list_type:
 					if value_or_type is not None:
@@ -401,14 +387,19 @@ class Scope:
 			else:
 				if not isinstance(value_or_type, list):
 					raise TypeError("Destructuring non-list as list.")
+			if warn and certain:
+				self.errors.append(TypeCheckError(src, "I can't be sure that %s has exactly %d item(s); for example, it could instead %s." % (path_name, len(pattern), "have two items" if len(pattern) == 0 else "be empty")))
 			if not warn and len(value_or_type) != len(pattern):
 				return False
 			for i, (sub_pattern, parse_src) in enumerate(pattern):
-				valid = self.assign_to_cond_pattern((sub_pattern, parse_src), contained_type if warn else value_or_type[i], warn, "%s[%d]" % (path or "<enum variant>", i))
+				valid = self.assign_to_pattern((sub_pattern, parse_src), contained_type if warn else value_or_type[i], warn, "%s[%d]" % (path or "<enum variant>", i), public, certain=certain)
 				if not valid:
 					return False
-		else:
-			self.assign_to_pattern(cond_pattern_and_src, value_or_type, warn, path)
+		elif pattern is not None:
+			name = pattern
+			if warn and name in self.variables:
+				self.errors.append(TypeCheckError(src, "You've already defined `%s`." % name))
+			self.variables[name] = Variable(value_or_type, value_or_type, public)
 		return True
 
 	async def eval_record_entry(self, entry):
@@ -450,7 +441,7 @@ class Scope:
 			scope = self.new_scope()
 			if condition.data == "conditional_let":
 				pattern, value = condition.children
-				if scope.assign_to_cond_pattern(get_conditional_destructure_pattern(pattern), await self.eval_expr(value)):
+				if scope.assign_to_pattern(get_destructure_pattern(pattern), await self.eval_expr(value)):
 					return await scope.eval_expr(if_true)
 				else:
 					return await scope.eval_expr(if_false)
@@ -674,7 +665,7 @@ class Scope:
 			for i in range(int(iterable)):
 				scope = self.new_scope()
 
-				scope.assign_to_pattern(pattern, i)
+				scope.assign_to_pattern(pattern, i, certain=True)
 				exit, value = await scope.eval_command(code)
 				if exit:
 					return True, value
@@ -685,7 +676,7 @@ class Scope:
 			for i in iterval:
 				scope = self.new_scope()
 
-				scope.assign_to_pattern(pattern, i)
+				scope.assign_to_pattern(pattern, i, certain=True)
 				exit, value = await scope.eval_command(code)
 				if exit:
 					return True, value
@@ -695,7 +686,7 @@ class Scope:
 			modifiers, name_type, value = command.children
 			pattern, _ = self.get_name_type(name_type, get_type=False)
 			public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
-			self.assign_to_pattern(pattern, await self.eval_expr(value), False, None, public)
+			self.assign_to_pattern(pattern, await self.eval_expr(value), False, None, public, certain=True)
 		elif command.data == "vary":
 			name, value = command.children
 			self.get_variable(name.value).value = await self.eval_expr(value)
@@ -704,7 +695,7 @@ class Scope:
 			scope = self.new_scope()
 			if condition.data == "conditional_let":
 				pattern, value = condition.children
-				yes = scope.assign_to_cond_pattern(get_conditional_destructure_pattern(pattern), await self.eval_expr(value))
+				yes = scope.assign_to_pattern(get_destructure_pattern(pattern), await self.eval_expr(value))
 			else:
 				yes = await self.eval_expr(condition)
 			if yes:
@@ -716,7 +707,7 @@ class Scope:
 			scope = self.new_scope()
 			if condition.data == "conditional_let":
 				pattern, value = condition.children
-				yes = scope.assign_to_cond_pattern(get_conditional_destructure_pattern(pattern), await self.eval_expr(value))
+				yes = scope.assign_to_pattern(get_destructure_pattern(pattern), await self.eval_expr(value), certain=True)
 			else:
 				yes = await self.eval_expr(condition)
 			if yes:
@@ -830,7 +821,7 @@ class Scope:
 			if condition.data == "conditional_let":
 				pattern, value = condition.children
 				eval_type = self.type_check_expr(value)
-				scope.assign_to_cond_pattern(get_conditional_destructure_pattern(pattern), eval_type, True)
+				scope.assign_to_pattern(get_destructure_pattern(pattern), eval_type, True, certain=True)
 			else:
 				cond_type = self.type_check_expr(condition)
 				if cond_type is not None and cond_type != "bool":
@@ -872,7 +863,7 @@ class Scope:
 			dummy_function = Function(self, arguments, wrap_scope.parse_type(returntype, err=False), codeblock, generic_types)
 			scope = wrap_scope.new_scope(parent_function=dummy_function)
 			for arg_pattern, arg_type in arguments:
-				scope.assign_to_pattern(arg_pattern, arg_type, True)
+				scope.assign_to_pattern(arg_pattern, arg_type, True, certain=True)
 			scope.type_check_command(codeblock)
 			return dummy_function.type
 		elif expr.data == "function_callback" or expr.data == "function_callback_pipe":
@@ -1125,7 +1116,7 @@ class Scope:
 				elif ty != iterated_type:
 					self.errors.append(TypeCheckError(ty, "Looping over a %s produces %s values, not %s." % (display_type(iterable_type), display_type(iterated_type), display_type(ty))))
 			scope = self.new_scope()
-			scope.assign_to_pattern(pattern, ty, True)
+			scope.assign_to_pattern(pattern, ty, True, certain=True)
 			return scope.type_check_command(code)
 		elif command.data == "for":
 			var, iterable, code = command.children
@@ -1140,7 +1131,7 @@ class Scope:
 				elif ty != iterated_type:
 					self.errors.append(TypeCheckError(var, "Looping over a %s produces %s values, not %s." % (display_type(iterable_type), display_type(iterated_type), display_type(ty))))
 			scope = self.new_scope()
-			scope.assign_to_pattern(pattern, ty, True)
+			scope.assign_to_pattern(pattern, ty, True, certain=True)
 			return scope.type_check_command(code)
 		elif command.data == "return":
 			return_type = self.type_check_expr(command.children[0])
@@ -1173,7 +1164,7 @@ class Scope:
 					self.errors.append(TypeCheckError(value, "You set %s, which is defined to be a %s, to what evaluates to a %s." % (name, display_type(ty), display_type(value_type))))
 
 			public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
-			self.assign_to_pattern(pattern, ty, True, None, public)
+			self.assign_to_pattern(pattern, ty, True, None, public, certain=True)
 		elif command.data == "vary":
 			name, value = command.children
 			variable = self.get_variable(name.value)
@@ -1198,7 +1189,7 @@ class Scope:
 			if condition.data == "conditional_let":
 				pattern, value = condition.children
 				eval_type = self.type_check_expr(value)
-				scope.assign_to_cond_pattern(get_conditional_destructure_pattern(pattern), eval_type, True)
+				scope.assign_to_pattern(get_destructure_pattern(pattern), eval_type, True)
 			else:
 				cond_type = self.type_check_expr(condition)
 				if type(condition.children[0]) is lark.Token:
@@ -1215,7 +1206,7 @@ class Scope:
 			if condition.data == "conditional_let":
 				pattern, value = condition.children
 				eval_type = self.type_check_expr(value)
-				scope.assign_to_cond_pattern(get_conditional_destructure_pattern(pattern), eval_type, True)
+				scope.assign_to_pattern(get_destructure_pattern(pattern), eval_type, True)
 			else:
 				cond_type = self.type_check_expr(condition)
 				if type(condition.children[0]) is lark.Token:
@@ -1278,7 +1269,7 @@ class Scope:
 			arguments = [self.get_name_type(arg, err=False) for arg in class_args.children]
 			scope = self.new_scope(parent_function=None)
 			for arg_pattern, arg_type in arguments:
-				scope.assign_to_pattern(arg_pattern, arg_type, True)
+				scope.assign_to_pattern(arg_pattern, arg_type, True, certain=True)
 			scope.type_check_command(class_body)
 
 			class_type = {}
