@@ -1039,7 +1039,7 @@ class Scope:
 			for i, item_type in enumerate(rest):
 				resolved_contained_type, incompatible = resolve_equal_types(contained_type, item_type)
 				if incompatible:
-					self.errors.append(TypeCheckError(expr.children[i+1], "The list item #%s's type is %s while the first item's type is %s" % (i + 2, item_type, first)))
+					self.errors.append(TypeCheckError(expr.children[i+1], "The list item #%s's type is %s while the first item's type is %s" % (i + 2, display_type(item_type), display_type(first))))
 				elif resolved_contained_type is not None:
 					# To deal with cases like [[], [3]] as list[int]
 					contained_type = resolved_contained_type
