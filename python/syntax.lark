@@ -41,7 +41,8 @@ function_dec_call: NAME (" " [name_type (" " name_type)*])?
 function_call: literal "(" [expression ("," expression)*] ")"
 code_block: "{" instruction* "}"
 function_def: arguments ["->" types] code_block
-arguments: "[" generic_declaration? (name_type (WS name_type)*)? "]"
+arguments: "[" generic_declaration? arg_name_type* "]"
+arg_name_type: definite_pattern [":" types]
 generic_declaration: "[" (NAME ",")* NAME "]"
 anonymous_func: arguments "->" NAME ":" (instruction (";" instruction)*)
 char: "\\" ( escape_code | "{" /./ "}")
@@ -79,6 +80,14 @@ record_pattern: "{" (record_entry_pattern (";" | "\n"))* record_entry_pattern "}
 
 list_pattern: "[" (pattern_value ("," pattern_value)*)? "]"
 enum_pattern: "<" NAME pattern_value* ">"
+
+// Deal with a syntax ambiguity where [a:type[b]] could be seen as a list
+// destructuring in the second argument.
+?definite_pattern: NAME
+                 | "_"
+                 | "(" pattern ")"
+                 | record_pattern
+                 | tuple_pattern
 
 // Boolean and number expressions, with order of operations.
 // Question mark "inlines" the branch, so we don't get nested

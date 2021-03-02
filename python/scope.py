@@ -119,6 +119,9 @@ def pattern_to_name(pattern_and_src):
 		return "<destructuring pattern>"
 
 def get_arguments(tree):
+	"""
+	The arguments syntax briefly had the WS token which had to be removed.
+	"""
 	arguments = [tree for tree in tree.children if type(tree) == lark.Tree]
 	if len(arguments) > 0 and arguments[0].data == "generic_declaration":
 		return arguments[0].children, arguments[1:]
