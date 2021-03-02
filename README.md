@@ -1,7 +1,7 @@
 # N
 ![Version](https://img.shields.io/github/v/release/nbuilding/N-Lang?color=Green&style=flat-square)
 
-A programming language by N Building with stuff like modular imports.
+A programming language by N Building with features such as modular imports.
 
 ## Install N
 
@@ -65,11 +65,12 @@ pylint --disable=all --enable=F,E,unreachable,duplicate-key,unnecessary-semicolo
 ```
 
 ### Have something cool in N?
-- contact us or make a PR
-- look at [PROJECTS.md](./PROJECTS.md)
+- Contact us or make a PR
+- Look at [PROJECTS.md](./PROJECTS.md)
 
 ### Bugs:
-- None currently
+
+See [issues](https://github.com/nbuilding/N-lang/issues).
 
 ## JavaScript
 
