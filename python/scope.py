@@ -217,14 +217,14 @@ class Scope:
 				elif isinstance(typevar_type, NAliasType) or isinstance(typevar_type, NTypeVars):
 					# Duck typing :sunglasses:
 					if len(typevars) < len(typevar_type.typevars):
-						self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variable(s)." % (name.value, len(typevar_type.typevars))))
+						self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variable(s)." % (display_type(typevar_type), len(typevar_type.typevars))))
 						return None
 					elif len(typevars) > len(typevar_type.typevars):
-						self.errors.append(TypeCheckError(tree_or_token, "%s only expects %d type variable(s)." % (name.value, len(typevar_type.typevars))))
+						self.errors.append(TypeCheckError(tree_or_token, "%s only expects %d type variable(s)." % (display_type(typevar_type), len(typevar_type.typevars))))
 						return None
 					return typevar_type.with_typevars(parsed_typevars) if None not in parsed_typevars else None
 				else:
-					self.errors.append(TypeCheckError(tree_or_token, "%s doesn't take any type variables." % name.value))
+					self.errors.append(TypeCheckError(tree_or_token, "%s doesn't take any type variables." % display_type(typevar_type)))
 					return None
 			elif tree_or_token.data == "tupledef":
 				tuple_type = [self.parse_type(child, err=err) for child in tree_or_token.children]
@@ -237,7 +237,7 @@ class Scope:
 				if n_type is None:
 					return None
 				elif (isinstance(n_type, NAliasType) or isinstance(n_type, NTypeVars)) and len(n_type.typevars) > 0:
-					self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variables." % (type_name.value, len(n_type.typevars))))
+					self.errors.append(TypeCheckError(tree_or_token, "%s expects %d type variables." % (display_type(n_type), len(n_type.typevars))))
 					return None
 				elif isinstance(n_type, NAliasType):
 					return n_type.with_typevars()

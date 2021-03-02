@@ -252,8 +252,8 @@ def add_funcs(global_scope):
 	entries_generic_value = NGenericType("v")
 	global_scope.add_native_function(
 		"entries",
-		[("map", n_map_type.with_typevars([map_from_generic_key, map_from_generic_value]))],
-		n_list_type.with_typevars([[map_from_generic_key, map_from_generic_value]]),
+		[("map", n_map_type.with_typevars([entries_generic_key, entries_generic_value]))],
+		n_list_type.with_typevars([[entries_generic_key, entries_generic_value]]),
 		entries,
 	)
 
