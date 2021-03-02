@@ -32,16 +32,17 @@ ifelse: "if" condition ("{" instruction "}" | code_block) "else" ("{" instructio
 ifelse_expr: "if" condition "{" expression "}" "else" ("{" expression "}" | ifelse_expr)
 ?condition: expression
           | conditional_let
-conditional_let: "let" cond_pattern "=" expression
+conditional_let: "let" pattern "=" expression
 class_definition: "class" modifier NAME arguments code_block
 
 //helpers
-name_type: definite_pattern [":" types]
+name_type: pattern [":" types]
 function_dec_call: NAME (" " [name_type (" " name_type)*])?
 function_call: literal "(" [expression ("," expression)*] ")"
 code_block: "{" instruction* "}"
 function_def: arguments ["->" types] code_block
-arguments: "[" generic_declaration? (name_type (" " name_type)*)? "]"
+arguments: "[" generic_declaration? arg_name_type* "]"
+arg_name_type: definite_pattern [":" types]
 generic_declaration: "[" (NAME ",")* NAME "]"
 anonymous_func: arguments "->" NAME ":" (instruction (";" instruction)*)
 char: "\\" ( escape_code | "{" /./ "}")
@@ -64,26 +65,29 @@ modifier: PUBLIC?
 ?record_entry: NAME ":" expression
              | NAME
 
-?any_pattern: definite_pattern_value
-            | cond_pattern_value
-
-?definite_pattern: definite_pattern_value
-                 | tuple_pattern
-?definite_pattern_value: NAME
-                       | "_"
-                       | "(" definite_pattern ")"
-                       | record_pattern
-tuple_pattern: (definite_pattern_value ",")+ definite_pattern_value
+?pattern: pattern_value
+        | tuple_pattern
+?pattern_value: NAME
+              | "_"
+              | "(" pattern ")"
+              | record_pattern
+              | list_pattern
+              | enum_pattern
+tuple_pattern: (pattern_value ",")+ pattern_value
 record_pattern: "{" (record_entry_pattern (";" | "\n"))* record_entry_pattern "}"
 ?record_entry_pattern: NAME
-                     | NAME ":" definite_pattern
+                     | NAME ":" pattern
 
-?cond_pattern: cond_pattern_value
-?cond_pattern_value: "(" cond_pattern_value ")"
-                   | list_pattern
-                   | enum_pattern
-list_pattern: "[" (any_pattern ("," any_pattern)*)? "]"
-enum_pattern: "<" NAME any_pattern* ">"
+list_pattern: "[" (pattern_value ("," pattern_value)*)? "]"
+enum_pattern: "<" NAME pattern_value* ">"
+
+// Deal with a syntax ambiguity where [a:type[b]] could be seen as a list
+// destructuring in the second argument.
+?definite_pattern: NAME
+                 | "_"
+                 | "(" pattern ")"
+                 | record_pattern
+                 | tuple_pattern
 
 // Boolean and number expressions, with order of operations.
 // Question mark "inlines" the branch, so we don't get nested
@@ -91,12 +95,17 @@ enum_pattern: "<" NAME any_pattern* ">"
 // Square brackets mean that the stuff inside it can appear 0 or 1 time. Same as
 // (whatever)?
 
-?types: module_type
-      | tupledef
-      | recorddef
-      | with_typevars
-      | UNIT
+?types: not_func_type
+      | func_type
+?not_func_type: module_type
+              | tupledef
+              | recorddef
+              | with_typevars
+              | UNIT
 module_type: [NAME "."]* NAME
+func_type: generic_declaration? (func_inner_type "->")+ not_func_type
+?func_inner_type: not_func_type
+                | "(" func_type ")"
 
 ?expression: ifelse_expr
            | boolean_expression
@@ -151,7 +160,7 @@ value: NUMBER
 
 //constants
 BOOLEAN: ("true" | "false")
-COMMENT: "/*" /(.|\n|\r)+/ "*/"     
+COMMENT: "/*" /(.|\n|\r)+/ "*/"
        | "//" /[^\n]/*
 MULTILINE_COMMENT: "/*" /.+(?=\*\/)/*
 OR: ("||" | "|")

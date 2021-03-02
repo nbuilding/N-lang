@@ -22,3 +22,14 @@ n_maybe_type = EnumType("maybe", [
 none = EnumValue("none")
 def yes(value):
 	return EnumValue("yes", [value])
+
+result_ok_generic = NGenericType("o")
+result_err_generic = NGenericType("e")
+n_result_type = EnumType("result", [
+	("ok", [result_ok_generic]),
+	("err", [result_err_generic]),
+], [result_ok_generic, result_err_generic])
+def ok(value):
+	return EnumValue("ok", [value])
+def err(value):
+	return EnumValue("err", [value])
