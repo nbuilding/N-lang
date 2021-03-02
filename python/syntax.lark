@@ -41,7 +41,7 @@ function_dec_call: NAME (" " [name_type (" " name_type)*])?
 function_call: literal "(" [expression ("," expression)*] ")"
 code_block: "{" instruction* "}"
 function_def: arguments ["->" types] code_block
-arguments: "[" generic_declaration? (name_type name_type*)? "]"
+arguments: "[" generic_declaration? (name_type (WS name_type)*)? "]"
 generic_declaration: "[" (NAME ",")* NAME "]"
 anonymous_func: arguments "->" NAME ":" (instruction (";" instruction)*)
 char: "\\" ( escape_code | "{" /./ "}")

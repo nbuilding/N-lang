@@ -118,6 +118,13 @@ def pattern_to_name(pattern_and_src):
 	else:
 		return "<destructuring pattern>"
 
+def get_arguments(tree):
+	arguments = [tree for tree in tree.children if type(tree) == lark.Tree]
+	if len(arguments) > 0 and arguments[0].data == "generic_declaration":
+		return arguments[0].children, arguments[1:]
+	else:
+		return [], arguments
+
 class Scope:
 	def __init__(self, parent=None, parent_function=None, errors=None, warnings=None, base_path="", file_path=""):
 		self.parent = parent
@@ -252,6 +259,10 @@ class Scope:
 				func_type = tuple(scope.parse_type(child, err=err) for child in func_types)
 				if None in func_type:
 					return None
+				# If the function type returns a function, flatten the entire
+				# thing
+				if isinstance(func_type[-1], tuple):
+					func_type = tuple([*func_type[0:-1], *func_type[-1]])
 				return func_type
 			elif err:
 				raise NameError("Type annotation of type %s; I am not ready for this." % tree_or_token.data)
@@ -347,31 +358,33 @@ class Scope:
 				self.assign_to_pattern((sub_pattern, parse_src), value, warn, "%s.%d" % (path or "<tuple>", i), public, certain=certain)
 		elif isinstance(pattern, EnumPattern):
 			if warn:
+				problem = False
 				if not isinstance(value_or_type, EnumType):
 					if value_or_type is not None:
 						self.errors.append(TypeCheckError(src, "I cannot destructure %s as an enum because it's a %s." % (path_name, display_type(value_or_type))))
-					return True
+					problem = True
 				else:
 					variant_types = value_or_type.get_types(pattern.variant)
 					if variant_types is None:
 						self.errors.append(TypeCheckError(src, "%s has no variant %s because it's a %s." % (path_name, pattern.variant, display_type(value_or_type))))
-						return True
+						problem = True
 					elif len(pattern.patterns) < len(variant_types):
 						self.errors.append(TypeCheckError(src, "Variant %s has %d fields, but you only destructure %d of them." % (pattern.variant, len(variant_types), len(pattern.patterns))))
-						return True
+						problem = True
 					elif len(pattern.patterns) > len(variant_types):
 						self.errors.append(TypeCheckError(pattern.patterns[len(variant_types)][1], "Variant %s only has %d fields." % (pattern.variant, len(variant_types))))
-						return True
+						problem = True
 			else:
 				if not isinstance(value_or_type, EnumValue):
 					raise TypeError("Destructuring non-enum as enum.")
 				elif pattern.variant != value_or_type.variant:
 					return False
-			if warn and certain and len(value_or_type.variants) > 1:
+			if warn and not problem and certain and len(value_or_type.variants) > 1:
 				self.errors.append(TypeCheckError(src, "I can't be sure that %s will be a `%s`; for example, it could instead be a `%s`." % (path_name, pattern.variant, (value_or_type.variants[1] if value_or_type.variants[0][0] == pattern.variant else value_or_type.variants[0])[0])))
+				problem = True
 			for i, (sub_pattern, parse_src) in enumerate(pattern.patterns):
 				if warn:
-					value = variant_types[i]
+					value = None if problem else variant_types[i]
 				else:
 					value = value_or_type.values[i]
 				valid = self.assign_to_pattern((sub_pattern, parse_src), value, warn, "%s.%s#%d" % (path or "<enum>", pattern.variant, i + 1), public, certain=certain)
@@ -455,10 +468,7 @@ class Scope:
 			else:
 				arguments, returntype, *codeblock = expr.children
 				codeblock = lark.tree.Tree("code_block", codeblock)
-			if len(arguments.children) > 0 and arguments.children[0].data == "generic_declaration":
-				_, *arguments = arguments.children
-			else:
-				arguments = arguments.children
+			_, arguments = get_arguments(arguments)
 			return Function(
 				self,
 				[self.get_name_type(arg, get_type=False) for arg in arguments],
@@ -847,18 +857,14 @@ class Scope:
 				arguments, returntype, *cb = expr.children
 				codeblock = lark.tree.Tree("code_block", cb)
 			generic_types = []
-			if len(arguments.children) > 0 and arguments.children[0].data == "generic_declaration":
-				generics, *arguments = arguments.children
-				wrap_scope = self.new_scope()
-				for generic in generics.children:
-					if generic.value in wrap_scope.types:
-						self.errors.append(TypeCheckError(generic, "You already defined a generic type with this name."))
-					generic_type = NGenericType(generic.value)
-					wrap_scope.types[generic.value] = generic_type
-					generic_types.append(generic_type)
-			else:
-				arguments = arguments.children
-				wrap_scope = self
+			generics, arguments = get_arguments(arguments)
+			wrap_scope = self.new_scope()
+			for generic in generics:
+				if generic.value in wrap_scope.types:
+					self.errors.append(TypeCheckError(generic, "You already defined a generic type with this name."))
+				generic_type = NGenericType(generic.value)
+				wrap_scope.types[generic.value] = generic_type
+				generic_types.append(generic_type)
 			arguments = [wrap_scope.get_name_type(arg, err=False) for arg in arguments]
 			dummy_function = Function(self, arguments, wrap_scope.parse_type(returntype, err=False), codeblock, generic_types)
 			scope = wrap_scope.new_scope(parent_function=dummy_function)
@@ -1266,10 +1272,11 @@ class Scope:
 			modifiers, name, class_args, class_body = command.children
 			public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
 
-			if len(class_args.children) > 0 and class_args.children[0].data == "generic_declaration":
+			generics, class_args = get_arguments(class_args)
+			if len(generics) > 0:
 				self.errors.append(TypeCheckError(class_args.children[0], "Classes do not support generic types."))
 				return False
-			arguments = [self.get_name_type(arg, err=False) for arg in class_args.children]
+			arguments = [self.get_name_type(arg, err=False) for arg in class_args]
 			scope = self.new_scope(parent_function=None)
 			for arg_pattern, arg_type in arguments:
 				scope.assign_to_pattern(arg_pattern, arg_type, True, certain=True)

@@ -8,7 +8,7 @@ from function import Function
 from type_check_error import display_type
 from type import NGenericType
 from enums import EnumType, EnumValue
-from native_types import n_list_type, n_map_type, NMap, n_cmd_type, n_maybe_type, none, yes, n_result_type, ok, err
+from native_types import n_list_type, n_map_type, NMap, n_cmd_type, n_maybe_type, maybe_generic, none, yes, n_result_type, result_ok_generic, result_err_generic, ok, err
 
 def substr(start, end, string):
 	return string[start:end]
@@ -194,11 +194,10 @@ def add_funcs(global_scope):
 		n_list_type.with_typevars([filter_map_generic_b]),
 		filter_map
 	)
-	yes_generic = NGenericType("t")
 	global_scope.add_native_function(
 		"yes",
-		[("value", yes_generic)],
-		n_maybe_type.with_typevars([yes_generic]),
+		[("value", maybe_generic)],
+		n_maybe_type.with_typevars([maybe_generic]),
 		yes,
 	)
 	default_generic = NGenericType("t")
@@ -208,20 +207,16 @@ def add_funcs(global_scope):
 		default_generic,
 		with_default,
 	)
-	ok_generic_o = NGenericType("o")
-	ok_generic_e = NGenericType("e")
 	global_scope.add_native_function(
 		"ok",
-		[("value", ok_generic_o)],
-		n_result_type.with_typevars([ok_generic_o, ok_generic_e]),
+		[("value", result_ok_generic)],
+		n_result_type.with_typevars([result_ok_generic, result_err_generic]),
 		ok,
 	)
-	err_generic_o = NGenericType("o")
-	err_generic_e = NGenericType("e")
 	global_scope.add_native_function(
 		"err",
-		[("error", err_generic_e)],
-		n_result_type.with_typevars([err_generic_o, err_generic_e]),
+		[("error", result_err_generic)],
+		n_result_type.with_typevars([result_ok_generic, result_err_generic]),
 		err,
 	)
 	then_generic_in = NGenericType("a")
