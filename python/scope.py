@@ -242,6 +242,21 @@ class Scope:
 				elif isinstance(n_type, NAliasType):
 					return n_type.with_typevars()
 				return n_type
+			elif tree_or_token.data == "func_type":
+				func_types = tree_or_token.children
+				if type(func_types[0]) == lark.Tree and func_types[0].data == "generic_declaration":
+					generics, *func_types = func_types
+					scope = self.new_scope()
+					for generic in generics.children:
+						if generic.value in scope.types:
+							self.errors.append(TypeCheckError(generic, "You already defined a generic type with this name."))
+						scope.types[generic.value] = NGenericType(generic.value)
+				else:
+					scope = self
+				func_type = tuple(scope.parse_type(child, err=err) for child in func_types)
+				if None in func_type:
+					return None
+				return func_type
 			elif err:
 				raise NameError("Type annotation of type %s; I am not ready for this." % tree_or_token.data)
 			else:
@@ -1249,7 +1264,7 @@ class Scope:
 					self.warnings.append(TypeCheckError(alias_def, "Type aliases for records now declare constructor functions, but `%s` already exists. In the future, this may become an error." % alias_name))
 				else:
 					self.variables[alias_name] = Variable(
-						tuple(alias_type.values()) + (self.types[alias_name],),
+						tuple(alias_type.values()) + (alias_type,),
 						"I don't think this is used",
 						public=public
 					)

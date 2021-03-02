@@ -91,12 +91,17 @@ enum_pattern: "<" NAME any_pattern* ">"
 // Square brackets mean that the stuff inside it can appear 0 or 1 time. Same as
 // (whatever)?
 
-?types: module_type
-      | tupledef
-      | recorddef
-      | with_typevars
-      | UNIT
+?types: not_func_type
+      | func_type
+?not_func_type: module_type
+              | tupledef
+              | recorddef
+              | with_typevars
+              | UNIT
 module_type: [NAME "."]* NAME
+func_type: generic_declaration? (func_inner_type "->")+ not_func_type
+?func_inner_type: not_func_type
+                | "(" func_type ")"
 
 ?expression: ifelse_expr
            | boolean_expression
@@ -151,7 +156,7 @@ value: NUMBER
 
 //constants
 BOOLEAN: ("true" | "false")
-COMMENT: "/*" /(.|\n|\r)+/ "*/"     
+COMMENT: "/*" /(.|\n|\r)+/ "*/"
        | "//" /[^\n]/*
 MULTILINE_COMMENT: "/*" /.+(?=\*\/)/*
 OR: ("||" | "|")

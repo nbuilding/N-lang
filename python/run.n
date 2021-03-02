@@ -6,7 +6,7 @@ for (i in range(0, 10, 1)) {
 	print(i)
 }
 
-alias person = { name: str; age: int; height: float }
+alias person[n] = { name: str; age: int; height: n }
 // Canonically Billia-chan is 18 years old for fanservice reasons
 print(person("Billia-chan", 18)(14.3))
 
@@ -16,3 +16,15 @@ print(3 / 0) // 0
 
 let wow: result[str, ()] = ok("cool!")
 print(wow)
+
+let test: (str -> int -> float -> person[float]) -> float -> str -> int -> person[float] = [a:str -> int -> float -> person[float] b:float c:str d:int] -> person[float] {
+  return a(c, d, b)
+}
+let test2: [n] (str -> int -> n -> person[n]) -> n -> str -> int -> person[n] = [[n] a:str -> int -> n -> person[n] b:n c:str d:int] -> person[n] {
+  return a(c, d, b)
+}
+// Does not work because str -> int -> n -> person[n] is assumed to use n from
+// an outer function which may not necessarily be float, so it cannot be used as
+// str -> int -> float -> person[float].
+// print(test(person)(10.1)("wow", 3))
+print(test2(person)(10)("wow", 3))
