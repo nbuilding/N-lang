@@ -1,8 +1,8 @@
-for i 10 {
+for i 3 {
 	print(i)
 }
 
-for (i in range(0, 10, 1)) {
+for (i in range(0, 3, 1)) {
 	print(i)
 }
 
@@ -28,3 +28,10 @@ let test2: [n] (str -> int -> n -> person[n]) -> n -> str -> int -> person[n] = 
 // str -> int -> float -> person[float].
 // print(test(person)(10.1)("wow", 3))
 print(test2(person)(10)("wow", 3))
+
+for (item in ([1, 2] + [3, 4])) {
+  print(item)
+}
+for (item in ([] + [])) {
+  print(item)
+}

@@ -669,20 +669,13 @@ class Scope:
 			except AttributeError:
 				# Apparently it's more Pythonic to use try/except than hasattr
 				pass
-		elif command.data == "for_legacy":
+		elif command.data == "for" or command.data == "for_legacy":
 			var, iterable, code = command.children
 			pattern, _ = self.get_name_type(var, get_type=False)
-			for i in range(int(iterable)):
-				scope = self.new_scope()
-
-				scope.assign_to_pattern(pattern, i, certain=True)
-				exit, value = await scope.eval_command(code)
-				if exit:
-					return True, value
-		elif command.data == "for":
-			var, iterable, code = command.children
-			pattern, _ = self.get_name_type(var, get_type=False)
-			iterval = await self.eval_expr(iterable)
+			if command.data == "for":
+				iterval = await self.eval_expr(iterable)
+			else:
+				iterval = range(int(iterable))
 			for i in iterval:
 				scope = self.new_scope()
 
@@ -961,12 +954,17 @@ class Scope:
 				value_type = self.type_check_expr(value)
 				if value_type is None:
 					return None
-				return_type = types.get(value_type)
-				if return_type is None:
-					self.errors.append(TypeCheckError(expr, "I don't know how to use %s on a %s." % (operation.type, display_type(value_type))))
-					return None
-				else:
-					return return_type
+				# Treating each operation like a function until one of their
+				# types matches the operands' types.
+				for operand_type, result_type in types:
+					generics = {}
+					resolved_type = apply_generics(operand_type, value_type, generics)
+					_, incompatible = resolve_equal_types(value_type, resolved_type)
+					if incompatible:
+						continue
+					return apply_generics_to(result_type, generics)
+				self.errors.append(TypeCheckError(expr, "I don't know how to use %s on a %s." % (operation.type, display_type(value_type))))
+				return None
 
 		# For now, we assert that both operands are of the same time. In the
 		# future, when we add traits for operations, this assumption may no
@@ -977,21 +975,25 @@ class Scope:
 			if types:
 				left_type = self.type_check_expr(left)
 				right_type = self.type_check_expr(right)
-				# When `type_check_expr` returns None, that means that there has
-				# been an error and we don't know what type the user meant it to
-				# return. That error should've been logged, so there's no need
-				# to log more errors. Stop checking and pass down the None.
+				# If either operand's type is None, we can't be sure what the
+				# result type could be. (Could it be str + char? or str + str?)
 				if left_type is None or right_type is None:
 					return None
-				if isinstance(left_type, dict) or isinstance(right_type, dict):
-					return_type = None
-				else:
-					return_type = types.get((left_type, right_type))
-				if return_type is None:
-					self.errors.append(TypeCheckError(expr, "I don't know how to use %s on a %s and %s." % (operation.type, display_type(left_type), display_type(right_type))))
-					return None
-				else:
-					return return_type
+				# Treating each operation like a function until one of their
+				# types matches the operands' types.
+				for left_operand_type, right_operand_type, result_type in types:
+					generics = {}
+					resolved_type = apply_generics(left_operand_type, left_type, generics)
+					_, incompatible = resolve_equal_types(left_type, resolved_type)
+					if incompatible:
+						continue
+					resolved_type = apply_generics(right_operand_type, right_type, generics)
+					_, incompatible = resolve_equal_types(right_type, resolved_type)
+					if incompatible:
+						continue
+					return apply_generics_to(result_type, generics)
+				self.errors.append(TypeCheckError(expr, "I don't know how to use %s on a %s and %s." % (operation.type, display_type(left_type), display_type(right_type))))
+				return None
 			elif expr.data == "compare_expression":
 				left, comparison, right = expr.children
 				if left.data == "compare_expression":
@@ -1111,12 +1113,25 @@ class Scope:
 			except KeyError:
 				self.errors.append(TypeCheckError(command.children[0], "I can't find the native library `%s`." % command.children[0]))
 			self.variables[import_name] = Variable(import_type, import_type)
-		elif command.data == "for_legacy":
-			self.warnings.append(TypeCheckError(command, "This syntax is decapricated."))
+		elif command.data == "for" or command.data == "for_legacy":
+			if command.data == "for_legacy":
+				iterable_types_src = legacy_iterable_types
+				self.warnings.append(TypeCheckError(command, "This syntax is decapricated."))
+			else:
+				iterable_types_src = iterable_types
 			var, iterable, code = command.children
 			pattern, ty = self.get_name_type(var, err=False)
 			iterable_type = self.type_check_expr(iterable)
-			iterated_type = legacy_iterable_types.get(iterable_type)
+			iterated_type = None
+			for ideal_iterable_type, ideal_iterated_type in iterable_types_src:
+				# Treating iteration like a function until one of their types
+				# matches the iterable's types.
+				generics = {}
+				resolved_type = apply_generics(ideal_iterable_type, iterable_type, generics)
+				_, incompatible = resolve_equal_types(iterable_type, resolved_type)
+				if incompatible:
+					continue
+				iterated_type = apply_generics_to(ideal_iterated_type, generics)
 			if iterable_type is not None:
 				if iterated_type is None:
 					self.errors.append(TypeCheckError(iterable, "I can't loop over a %s." % display_type(iterable_type)))
@@ -1124,21 +1139,6 @@ class Scope:
 					ty = iterated_type
 				elif ty != iterated_type:
 					self.errors.append(TypeCheckError(ty, "Looping over a %s produces %s values, not %s." % (display_type(iterable_type), display_type(iterated_type), display_type(ty))))
-			scope = self.new_scope()
-			scope.assign_to_pattern(pattern, ty, True, certain=True)
-			return scope.type_check_command(code)
-		elif command.data == "for":
-			var, iterable, code = command.children
-			pattern, ty = self.get_name_type(var, err=False)
-			iterable_type = self.type_check_expr(iterable)
-			iterated_type = iterable_types(iterable_type)
-			if iterable_type is not None:
-				if iterated_type is None:
-					self.errors.append(TypeCheckError(iterable, "I can't loop over a %s." % display_type(iterable_type)))
-				elif ty == 'infer':
-					ty = iterated_type
-				elif ty != iterated_type:
-					self.errors.append(TypeCheckError(var, "Looping over a %s produces %s values, not %s." % (display_type(iterable_type), display_type(iterated_type), display_type(ty))))
 			scope = self.new_scope()
 			scope.assign_to_pattern(pattern, ty, True, certain=True)
 			return scope.type_check_command(code)
