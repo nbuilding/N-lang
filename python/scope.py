@@ -707,7 +707,7 @@ class Scope:
 			scope = self.new_scope()
 			if condition.data == "conditional_let":
 				pattern, value = condition.children
-				yes = scope.assign_to_pattern(get_destructure_pattern(pattern), await self.eval_expr(value), certain=True)
+				yes = scope.assign_to_pattern(get_destructure_pattern(pattern), await self.eval_expr(value))
 			else:
 				yes = await self.eval_expr(condition)
 			if yes:
@@ -821,7 +821,7 @@ class Scope:
 			if condition.data == "conditional_let":
 				pattern, value = condition.children
 				eval_type = self.type_check_expr(value)
-				scope.assign_to_pattern(get_destructure_pattern(pattern), eval_type, True, certain=True)
+				scope.assign_to_pattern(get_destructure_pattern(pattern), eval_type, True)
 			else:
 				cond_type = self.type_check_expr(condition)
 				if cond_type is not None and cond_type != "bool":
@@ -1029,7 +1029,10 @@ class Scope:
 					# To deal with cases like [[], [3]] as list[int]
 					contained_type = resolved_contained_type
 
-			return n_list_type.with_typevars([contained_type])
+			if contained_type is None:
+				return None
+			else:
+				return n_list_type.with_typevars([contained_type])
 		elif expr.data == "impn":
 			if expr.children[0].type == "STRING":
 				rel_file_path = bytes(expr.children[0].value[1:-1], 'utf-8').decode('unicode_escape')
