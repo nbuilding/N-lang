@@ -8,7 +8,7 @@ from function import Function
 from type_check_error import display_type
 from type import NGenericType
 from enums import EnumType, EnumValue
-from native_types import n_list_type, n_map_type, NMap, n_cmd_type, n_maybe_type, maybe_generic, none, yes
+from native_types import n_list_type, n_map_type, NMap, n_cmd_type, n_maybe_type, maybe_generic, none, yes, n_result_type, result_ok_generic, result_err_generic, ok, err
 
 def substr(start, end, string):
 	return string[start:end]
@@ -194,11 +194,10 @@ def add_funcs(global_scope):
 		n_list_type.with_typevars([filter_map_generic_b]),
 		filter_map
 	)
-	yes_generic = NGenericType("t")
 	global_scope.add_native_function(
 		"yes",
-		[("value", yes_generic)],
-		n_maybe_type.with_typevars([yes_generic]),
+		[("value", maybe_generic)],
+		n_maybe_type.with_typevars([maybe_generic]),
 		yes,
 	)
 	default_generic = NGenericType("t")
@@ -207,6 +206,18 @@ def add_funcs(global_scope):
 		[("default", default_generic), ("maybeValue", n_maybe_type.with_typevars([default_generic]))],
 		default_generic,
 		with_default,
+	)
+	global_scope.add_native_function(
+		"ok",
+		[("value", result_ok_generic)],
+		n_result_type.with_typevars([result_ok_generic, result_err_generic]),
+		ok,
+	)
+	global_scope.add_native_function(
+		"err",
+		[("error", result_err_generic)],
+		n_result_type.with_typevars([result_ok_generic, result_err_generic]),
+		err,
 	)
 	then_generic_in = NGenericType("a")
 	then_generic_out = NGenericType("b")
@@ -236,8 +247,8 @@ def add_funcs(global_scope):
 	entries_generic_value = NGenericType("v")
 	global_scope.add_native_function(
 		"entries",
-		[("map", n_map_type.with_typevars([map_from_generic_key, map_from_generic_value]))],
-		n_list_type.with_typevars([[map_from_generic_key, map_from_generic_value]]),
+		[("map", n_map_type.with_typevars([entries_generic_key, entries_generic_value]))],
+		n_list_type.with_typevars([[entries_generic_key, entries_generic_value]]),
 		entries,
 	)
 
@@ -250,3 +261,4 @@ def add_funcs(global_scope):
 	global_scope.types['map'] = n_map_type
 	global_scope.types['cmd'] = n_cmd_type
 	global_scope.types['maybe'] = n_maybe_type
+	global_scope.types['result'] = n_result_type

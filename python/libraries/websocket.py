@@ -25,7 +25,7 @@ connect_options_type = {
 }
 
 async def connect(options, url):
-	debug = os.environ['N_WS_DEBUG'] == 'experimental'
+	debug = os.environ.get('N_WS_DEBUG') == 'experimental'
 	if debug:
 		print(f"{Fore.YELLOW}Websocket debugging is experimental and may be removed in the future.{Style.RESET_ALL}")
 		print(f"[{url}] {Fore.BLUE}Connecting.{Style.RESET_ALL}")

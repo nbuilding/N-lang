@@ -5,12 +5,6 @@ import asyncio
 from native_types import n_cmd_type, NMap, n_map_type
 from libraries.json import json_value_type, python_to_json, string
 
-#for gateways
-scope = None
-
-def _prepare(sc):
-	scope = sc
-
 async def get(url, headers):
 	async with aiohttp.ClientSession() as session:
 		async with session.get(url, headers=headers) as r:

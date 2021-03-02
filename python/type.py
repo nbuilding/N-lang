@@ -157,11 +157,12 @@ def resolve_equal_types(type_a, type_b):
 	elif isinstance(type_a, NTypeVars):
 		if not isinstance(type_b, NTypeVars) or type_a.base_type is not type_b.base_type:
 			return None, True
+		base_type = type_a.base_type
 		resolved_typevars = []
 		for typevar_a, typevar_b in zip(type_a.typevars, type_b.typevars):
-			if isinstance(typevar_a, NGenericType) and typevar_a in type_a.base_type.typevars:
+			if isinstance(typevar_a, NGenericType) and typevar_a in base_type.typevars:
 				resolved_typevars.append(typevar_b)
-			elif isinstance(typevar_b, NGenericType) and typevar_b in type_a.base_type.typevars:
+			elif isinstance(typevar_b, NGenericType) and typevar_b in base_type.typevars:
 				resolved_typevars.append(typevar_a)
 			else:
 				resolved, problem = resolve_equal_types(typevar_a, typevar_b)
