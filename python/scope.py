@@ -335,7 +335,9 @@ class Scope:
 						self.errors.append(TypeCheckError(parse_src, "I can't get the field %s from %s because %s doesn't have that field." % (key, path_name, display_type(value_or_type))))
 					else:
 						raise TypeError("Given record doesn't have a key %s." % key)
-				self.assign_to_pattern((sub_pattern, parse_src), value, warn, "%s.%s" % (path or "<record>", key), public, certain=certain)
+				valid = self.assign_to_pattern((sub_pattern, parse_src), value, warn, "%s.%s" % (path or "<record>", key), public, certain=certain)
+				if not valid:
+					return False
 		elif isinstance(pattern, tuple):
 			# I believe the interpreter uses actual Python tuples, while the
 			# type checker uses lists for tuple types. We should fix that for
@@ -358,7 +360,9 @@ class Scope:
 					raise TypeError("Number of destructured values from tuple doesn't match tuple length.")
 			for i, (sub_pattern, parse_src) in enumerate(pattern):
 				value = value_or_type[i] if is_tuple and i < len(value_or_type) else None
-				self.assign_to_pattern((sub_pattern, parse_src), value, warn, "%s.%d" % (path or "<tuple>", i), public, certain=certain)
+				valid = self.assign_to_pattern((sub_pattern, parse_src), value, warn, "%s.%d" % (path or "<tuple>", i), public, certain=certain)
+				if not valid:
+					return False
 		elif isinstance(pattern, EnumPattern):
 			if warn:
 				problem = False
