@@ -6,7 +6,7 @@ declaration -> %identifier (_ ":" _ type):? {% from(ast.Declaration) %}
 type -> tupleTypeExpr {% id %}
 
 tupleTypeExpr -> funcTypeExpr {% id %}
-	| (funcTypeExpr _ "," _):+ funcTypeExpr {% from(ast.TupleType) %}
+	| commaList[funcTypeExpr] {% from(ast.TupleType) %}
 
 funcTypeExpr -> typeValue {% id %}
 	| typeValue _ "->" _ funcTypeExpr {% from(ast.FuncType) %}
@@ -14,3 +14,8 @@ funcTypeExpr -> typeValue {% id %}
 typeValue -> modIdentifier {% id %}
 	| "(" _ type _ ")" {% includeBrackets %}
 	| "(" _ ")" {% from(ast.UnitType) %}
+	| "{" _ (%identifier _ ":" _ type blockSeparator):* _ "}"
+
+modIdentifier -> (%identifier "."):* %identifier typeVars:?
+
+typeVars -> "[" _ commaList[funcTypeExpr]:? _ "]"

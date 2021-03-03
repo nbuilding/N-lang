@@ -34,26 +34,32 @@ const lexer = moo.states({
 		symbol: [
 			'->', ':', '.', ',',
 		],
+		await: '!',
 		arithmeticOperator: [
 			'+', '-', '*', '%', '/', '^',
 		],
 		comparisonOperator: [
-			'<=', '==', '=>', '/=', '!=', '<', '=', '>',
+			'<=', '==', '=>', '/=', '<', '=', '>',
 		],
 		booleanOperator: [
 			'&&', '||', '&', '|', '!', '~',
 		],
-		lbracket: ['{', '[', '(', '<'],
-		rbracket: ['}', ']', ')', '>'],
+		lbracket: ['{', '[', '('],
+		rbracket: ['}', ']', ')'],
 		semicolon: ';',
 		identifier: {
 			match: /_?[a-zA-Z]\w*/,
 			type: moo.keywords({
 				'import keyword': 'import',
+				'import N keyword': 'impn',
 				'return keyword': 'return',
 				'let keyword': 'let',
+				'vary keyword': 'var',
+				'public keyword': 'pub',
+				'if keyword': 'if',
 				'else keyword': 'else',
 				'for keyword': 'for',
+				'in keyword': 'in',
 				'not operator': 'not',
 			}),
 		},
@@ -88,6 +94,8 @@ const lexer = moo.states({
 
 main -> _ block _ {% ([, block]) => block %}
 	| _ {% () => ast.Block.empty() %}
+
+commaList[EXPRESSION] -> (EXPRESSION _ "," _):* EXPRESSION _ ",":?
 
 # // comment
 lineComment -> %comment {% () => null %}

@@ -2,8 +2,37 @@
 
 block -> (statement blockSeparator):* statement {% from(ast.Block) %}
 
-statement -> expression {% id %}
-	| "import" __ %identifier {% from(ast.ImportStmt) %}
-	| "let" __ declaration _ "=" _ expression {% from(ast.VarStmt) %}
+statement -> "import" _ %identifier {% from(ast.ImportStmt) %}
+	| letStatement
+	| varStatement
+	| oldForLoop
+	| forLoop
+	| postfixExpressionImpure {% id %}
+	| returnExpression {% id %}
 
-forLoop -> "for" _ declaration _ value _ value {% from(ast.For) %}
+letStatement -> "let" _ modifiers _ declaration _ "=" _ expression
+
+varStatement -> "var" _ %identifier _ "=" _ expression
+
+enumDeclaration -> "type" _ modifiers _ typeSpec _ "=" _ ("|" _):? enumDefinition
+
+enumDefinition -> enumVariant (_ "|" _ enumVariant):*
+
+enumVariant -> "<" _ %identifier (_ typeValue):* _ ">"
+	| %identifier
+
+oldForLoop -> "for" _ declaration _ value _ "{" _ block _ "}"
+
+forLoop -> "for" _ "(" _ declaration _ "in" _ expression _ ")" _ "{" _ block _ "}" {% from(ast.For) %}
+
+ifStatement -> "if" _ expression _ "{" _ block _ "}" (_ "else" _ elseStatement):?
+
+elseStatement -> "{" _ block _ "}"
+	| ifStatement
+
+typeSpec -> %identifier typeVarsDeclaration:?
+
+typeVarsDeclaration -> "[" _ commaList[%identifier] "]"
+
+modifiers -> empty
+	| "pub"

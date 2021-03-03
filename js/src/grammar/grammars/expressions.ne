@@ -1,22 +1,23 @@
 @lexer lexer
 
 expression -> tupleExpression {% id %}
-	| "return" __ expression {% from(ast.Return) %}
-	| "return" bracketedExpression {% from(ast.Return) %}
-	| ifExpression {% id %}
-	| funcExpr {% id %}
-	| forLoop {% id %}
+	| returnExpression {% id %}
+	| "imp" _ %identifier
+	| "imp" _ %string
 
-bracketedExpression -> bracketedValue {% id %}
-	| funcExpr {% id %}
+returnExpression -> "return" _ expression {% from(ast.Return) %}
 
-funcExpr -> "[" _ declaration (__ declaration):* _ "]" _ "->" _ type _ ("{" _ block _ "}" | ":" _ expression) {% from(ast.Function) %}
+funcExpr -> "[" _ declaration (__ declaration):* _ "]" _ "->" _ type _ "{" _ block _ "}" {% from(ast.Function) %}
 
 funcDefParams -> declaration {% ([decl]) => [decl] %}
 	| funcDefParams __ declaration {% ([params, , decl]) => [...params, decl] %}
 
-tupleExpression -> booleanExpression {% id %}
-	| (booleanExpression _ "," _):+ booleanExpression {% from(ast.Tuple) %}
+tupleExpression -> noCommaExpression {% id %}
+	| commaList[noCommaExpression] {% from(ast.Tuple) %}
+
+noCommaExpression -> booleanExpression {% id %}
+	| ifExpression {% id %}
+	| funcExpr {% id %}
 
 booleanExpression -> notExpression {% id %}
 	| booleanExpression _ ("&&" | "&") _ notExpression {% operation(ast.Operator.AND) %}
@@ -50,33 +51,34 @@ productExpression -> exponentExpression {% id %}
 	| productExpression _ "/" _ exponentExpression {% operation(ast.Operator.DIVIDE) %}
 	| productExpression _ "%" _ exponentExpression {% operation(ast.Operator.MODULO) %}
 
-exponentExpression -> unaryExpression {% id %}
-	| exponentExpression _ "^" _ unaryExpression {% operation(ast.Operator.EXPONENT) %}
+exponentExpression -> prefixExpression {% id %}
+	| exponentExpression _ "^" _ prefixExpression {% operation(ast.Operator.EXPONENT) %}
 
-unaryExpression -> value {% id %}
-	| "-" empty unaryExpression {% unaryOperation(ast.UnaryOperator.NEGATE) %}
-	| ("!" | "~") _ unaryExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
+prefixExpression -> postfixExpression {% id %}
+	| "-" empty prefixExpression {% unaryOperation(ast.UnaryOperator.NEGATE) %}
+	| "~" _ prefixExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
+
+postfixExpression -> postfixExpressionUnpure {% id %}
+	| postfixExpression _ "." _ %identifier
+
+postfixExpressionImpure -> value {% id %}
+	| postfixExpression _ "!"
+	| postfixExpression _ "(" _ commaList[noCommaExpression]:? _ ")"
 
 # Generally, values are the same as expressions except they require some form of
 # enclosing brackets for more complex expressions, which can help avoid syntax
 # ambiguities.
-value -> modIdentifier {% id %}
+value -> %identifier
 	| %number {% from(ast.Number) %}
 	| %float {% from(ast.Float) %}
 	| %string {% from(ast.String) %}
 	| %char {% from(ast.Char) %}
-	| bracketedValue {% id %}
-
-# Separate rule here to allow a special case for print/return to not have a
-# space between the keyword and a bracket
-bracketedValue -> "(" _ expression _ ")" {% includeBrackets %}
-	| functionCall {% id %}
-	| "{" _ block _ "}" {% includeBrackets %}
+	| "(" _ expression _ ")" {% includeBrackets %}
 	| "(" _ ")" {% from(ast.Unit) %}
+	| "[" _ commaList[noCommaExpression]:? _ "]"
+	| "{" _ (%identifier (_ ":" _ expression):? blockSeparator):* _ "}"
 
-# identifier [...parameters]
-functionCall -> "<" _ value (__ value):* _ ">" {% from(ast.CallFunc) %}
+ifExpression -> "if" _ expression _ "{" _ expression _ "}" _ "else" _ elseExprBranch
 
-ifExpression -> "if" __ expression __ value (__ "else" __ expression):? {% from(ast.If) %}
-
-modIdentifier -> (%identifier "."):* %identifier {% from(ast.Identifier) %}
+elseExprBranch -> "{" _ expression _ "}"
+	| ifExpression
