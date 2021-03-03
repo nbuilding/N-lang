@@ -36,12 +36,12 @@ def python_to_json(value):
 		return null
 	elif isinstance(value, str):
 		return string(value)
+	elif isinstance(value, bool):
+		return boolean(value)
 	elif isinstance(value, float):
 		return number(value)
 	elif isinstance(value, int):
 		return number(float(value))
-	elif isinstance(value, bool):
-		return boolean(value)
 	elif isinstance(value, list):
 		return array([python_to_json(item) for item in value])
 	elif isinstance(value, dict):
