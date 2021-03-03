@@ -53,8 +53,8 @@ recorddef: "{" (record_entry_def (";" | "\n"))* record_entry_def (";" | "\n")? "
 record_entry_def: NAME ":" types
 with_typevars: module_type "[" types ("," types)* "]"
 declaration_with_typevars: NAME ("[" NAME ("," NAME)* "]")?
-tupleval: "(" expression ("," expression)* ")"
-listval: "[" (expression ("," expression)*)? "]"
+tupleval: "(" expression ("," expression)* (",")? ")" 
+listval: "[" (expression ("," expression)* (",")?)? "]" 
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
 enum_constructors: enum_constructor ("|" enum_constructor)*
 enum_constructor: modifier "<" NAME types* ">"
