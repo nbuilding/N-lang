@@ -29,7 +29,9 @@ with the same name already defined.
 
   - **BUG**: Declaring a variable
   with the same name as an alias
-  will now raise an error.
+  *after* the alias definition
+  will now result in an error
+  when it didn't before.
 
 - Enum variant declarations and patterns
 still use the old `<...>` function calling syntax
