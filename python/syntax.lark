@@ -20,8 +20,8 @@ declare: "let " modifier name_type "=" expression
 enum_definition: "type" modifier declaration_with_typevars "=" enum_constructors
 alias_definition: "alias" modifier declaration_with_typevars "=" types
 function_callback: function_call
-function_callback_pipe: literal "|>" function_call
-                      | function_callback_pipe "|>" function_call
+function_callback_pipe: literal "|>" pipe_function_call
+                      | function_callback_pipe "|>" pipe_function_call
 for_legacy: "for" name_type NUMBER code_block
 for: "for" "(" name_type "in" value ")" code_block
 imp: "import" NAME
@@ -39,6 +39,7 @@ class_definition: "class" modifier NAME arguments code_block
 name_type: pattern [":" types]
 function_dec_call: NAME (" " [name_type (" " name_type)*])?
 function_call: literal "(" [expression ("," expression)*] ")"
+pipe_function_call: literal ["(" [expression ("," expression)*] ")"]
 code_block: "{" instruction* "}"
 function_def: arguments ["->" types] code_block
 arguments: "[" generic_declaration? arg_name_type* "]"
