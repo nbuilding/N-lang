@@ -16,8 +16,12 @@ function shouldBeNearleyArgs (value: any): asserts value is NearleyArgs {
 }
 
 interface HasSchema<T extends Base, S> {
+  new (pos: BasePosition, args: S): T
   schema: schem.Guard<S>
-  fromSchema (pos: BasePosition, args: S): T
+}
+interface HasSchemaAlt<T extends Base, S> {
+  schema: schem.Guard<S>
+  from (pos: BasePosition, args: S): T
 }
 
 function getNonNullArgs (args: NearleyArgs): (Base | moo.Token)[] {
@@ -36,7 +40,7 @@ function getNonNullArgs (args: NearleyArgs): (Base | moo.Token)[] {
   return nonNullArgs
 }
 
-export function from<T extends Base, S> (hasSchema: HasSchema<T, S>) {
+export function from<T extends Base, S> (hasSchema: HasSchema<T, S> | HasSchemaAlt<T, S>) {
   function preprocessor (args: any[], _loc?: number, _reject?: {}): T {
     shouldBeNearleyArgs(args)
     const nonNullArgs = getNonNullArgs(args)
@@ -60,8 +64,15 @@ export function from<T extends Base, S> (hasSchema: HasSchema<T, S>) {
       pos = { line, col, endLine, endCol }
     }
     try {
-      hasSchema.schema.check(args)
-      return hasSchema.fromSchema(pos, args)
+      if ('from' in hasSchema) {
+        const fromSchema: HasSchemaAlt<T, S> = hasSchema
+        fromSchema.schema.check(args)
+        return fromSchema.from(pos, args)
+      } else {
+        const constructor: HasSchema<T, S> = hasSchema
+        constructor.schema.check(args)
+        return new constructor(pos, args)
+      }
     } catch (err) {
       if (err instanceof schem.GuardError) {
         console.log('args', util.inspect(args, false, null, true))
@@ -83,7 +94,7 @@ const includeBracketsSchema = schema.tuple([
 ])
 export const includeBrackets = from({
   schema: includeBracketsSchema,
-  fromSchema ({ line, col, endLine, endCol }: BasePosition, [, , base]: schem.infer<typeof includeBracketsSchema>): Base {
+  from ({ line, col, endLine, endCol }: BasePosition, [, , base]: schem.infer<typeof includeBracketsSchema>): Base {
     base.line = line
     base.col = col
     base.endLine = endLine

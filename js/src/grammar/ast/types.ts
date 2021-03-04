@@ -11,9 +11,12 @@ export function isType (value: any): value is Type {
 export class TupleType extends Base {
   types: Type[]
 
-  constructor (pos: BasePosition, types: Type[]) {
+  constructor (pos: BasePosition, [types, type]: schem.infer<typeof TupleType.schema>) {
     super(pos)
-    this.types = types
+    this.types = [
+      ...types.map(([type]) => type),
+      type,
+    ]
   }
 
   toString () {
@@ -30,20 +33,13 @@ export class TupleType extends Base {
     schema.guard(isType),
     schema.any,
   ])
-
-  static fromSchema (pos: BasePosition, [types, type]: schem.infer<typeof TupleType.schema>): TupleType {
-    return new TupleType(pos, [
-      ...types.map(([type]) => type),
-      type,
-    ])
-  }
 }
 
 export class FuncType extends Base {
   takes: Type
   returns: Type
 
-  constructor (pos: BasePosition, takes: Type, returns: Type) {
+  constructor (pos: BasePosition, [takes, , returns]: schem.infer<typeof FuncType.schema>) {
     super(pos)
     this.takes = takes
     this.returns = returns
@@ -58,10 +54,6 @@ export class FuncType extends Base {
     schema.any,
     schema.guard(isType),
   ])
-
-  static fromSchema (pos: BasePosition, [takes, , returns]: schem.infer<typeof FuncType.schema>): FuncType {
-    return new FuncType(pos, takes, returns)
-  }
 }
 
 export class ModuleId extends Base {
@@ -69,11 +61,14 @@ export class ModuleId extends Base {
   name: string
   typeVars: Type[]
 
-  constructor (pos: BasePosition, modules: string[], name: string, typeVars: Type[]) {
+  constructor (pos: BasePosition, [modules, typeName, maybeTypeVars]: schem.infer<typeof ModuleId.schema>) {
     super(pos)
-    this.modules = modules
-    this.name = name
-    this.typeVars = typeVars
+    this.modules = modules.map(([mod]) => mod.value)
+    this.name = typeName.value
+    this.typeVars = maybeTypeVars ? [
+      ...maybeTypeVars[1].map(([type]) => type),
+      maybeTypeVars[2]
+    ] : []
   }
 
   toString () {
@@ -97,28 +92,16 @@ export class ModuleId extends Base {
       schema.any,
     ])),
   ])
-
-  static fromSchema (pos: BasePosition, [modules, typeName, maybeTypeVars]: schem.infer<typeof ModuleId.schema>): ModuleId {
-    return new ModuleId(
-      pos,
-      modules.map(([mod]) => mod.value),
-      typeName.value,
-      maybeTypeVars ? [
-        ...maybeTypeVars[1].map(([type]) => type),
-        maybeTypeVars[2]
-      ] : [],
-    )
-  }
 }
 
 export class UnitType extends Base {
+  constructor (pos: BasePosition, _: schem.infer<typeof UnitType.schema>) {
+    super(pos)
+  }
+
   static schema = schema.tuple([
     schema.any,
     schema.any,
     schema.any,
   ])
-
-  static fromSchema (pos: BasePosition, _: schem.infer<typeof UnitType.schema>): UnitType {
-    return new UnitType(pos)
-  }
 }

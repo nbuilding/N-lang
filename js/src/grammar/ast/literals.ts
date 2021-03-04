@@ -5,9 +5,9 @@ import { Base, BasePosition } from './base'
 export class Literal extends Base {
   value: string
 
-  constructor (pos: BasePosition, value: string) {
+  constructor (pos: BasePosition, [str]: schem.infer<typeof Literal.schema>) {
     super(pos)
-    this.value = value
+    this.value = str.value
   }
 
   toString () {
@@ -17,10 +17,6 @@ export class Literal extends Base {
   static schema = schema.tuple([
     schema.guard(isToken),
   ])
-
-  static fromSchema<T extends typeof Literal> (pos: BasePosition, [str]: schem.infer<typeof Literal.schema>): InstanceType<T> {
-    return new this(pos, str.value) as InstanceType<T>
-  }
 }
 
 export class String extends Literal {
@@ -41,15 +37,15 @@ export class Number extends Literal {}
 export class Float extends Literal {}
 
 export class Unit extends Base {
+  constructor (pos: BasePosition, _: schem.infer<typeof Unit.schema>) {
+    super(pos)
+  }
+
   static schema = schema.tuple([
     schema.any,
     schema.any,
     schema.any,
   ])
-
-  static fromSchema (pos: BasePosition, _: schem.infer<typeof Unit.schema>): Unit {
-    return new Unit(pos)
-  }
 }
 
 export class Identifier extends Literal {}

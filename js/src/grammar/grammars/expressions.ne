@@ -21,7 +21,7 @@ booleanExpression -> notExpression {% id %}
 	| booleanExpression _ ("||" | "|") _ notExpression {% operation(ast.Operator.OR) %}
 
 notExpression -> compareExpression {% id %}
-	| "not" _ notExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
+	| "not" _ notExpression {% prefix(ast.UnaryOperator.NOT) %}
 
 compareExpression -> sumExpression {% id %}
 	| (sumExpression _ compareOperator _):+ sumExpression {% from(ast.Comparisons) %}
@@ -46,15 +46,15 @@ exponentExpression -> prefixExpression {% id %}
 	| exponentExpression _ "^" _ prefixExpression {% operation(ast.Operator.EXPONENT) %}
 
 prefixExpression -> postfixExpression {% id %}
-	| "-" _ prefixExpression {% unaryOperation(ast.UnaryOperator.NEGATE) %}
-	| "~" _ prefixExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
+	| "-" _ prefixExpression {% prefix(ast.UnaryOperator.NEGATE) %}
+	| "~" _ prefixExpression {% prefix(ast.UnaryOperator.NOT) %}
 
 postfixExpression -> value {% id %}
 	| postfixExpressionImpure {% id %}
-	| postfixExpression _ "." _ identifier
+	| postfixExpression (_ "." _) identifier {% from(ast.RecordAccess) %}
 
-postfixExpressionImpure -> postfixExpression _ "!"
-	| postfixExpression _ "(" _ ((noCommaExpression _ "," _):* noCommaExpression (_ ","):? _):? ")"
+postfixExpressionImpure -> postfixExpression _ "!" {% suffix(ast.UnaryOperator.AWAIT) %}
+	| postfixExpression (_ "(" _) ((noCommaExpression (_ "," _)):* noCommaExpression ((_ ","):? _)):? ")" {% from(ast.FuncCall) %}
 
 # Generally, values are the same as expressions except they require some form of
 # enclosing brackets for more complex expressions, which can help avoid syntax

@@ -8,7 +8,7 @@ const {
 	from,
 	includeBrackets,
 	Operation: { operation },
-	UnaryOperation: { operation: unaryOperation },
+	UnaryOperation: { prefix, suffix },
 } = ast
 
 const escapes: { [key: string]: string } = {
@@ -54,7 +54,7 @@ const lexer = moo.states({
 			match: /_?[a-zA-Z]\w*/,
 			type: moo.keywords({
 				'import keyword': 'import',
-				'import N keyword': 'impn',
+				'import N keyword': 'imp',
 				'return keyword': 'return',
 				'let keyword': 'let',
 				'vary keyword': 'var',

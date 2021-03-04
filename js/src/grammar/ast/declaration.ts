@@ -7,10 +7,10 @@ export class Declaration extends Base {
   name: Identifier | null
   type: Type | null
 
-  constructor (pos: BasePosition, name: Identifier | null, type: Type | null) {
-    super(pos, type ? [type] : [])
-    this.name = name
-    this.type = type
+  constructor (pos: BasePosition, [id, maybeType]: schem.infer<typeof Declaration.schema>) {
+    super(pos, maybeType && maybeType[1] ? [maybeType[1]] : [])
+    this.name = id
+    this.type = maybeType && maybeType[1]
   }
 
   toString () {
@@ -24,8 +24,4 @@ export class Declaration extends Base {
       schema.guard(isType),
     ])),
   ])
-
-  static fromSchema (pos: BasePosition, [id, maybeType]: schem.infer<typeof Declaration.schema>): Declaration {
-    return new Declaration(pos, id, maybeType && maybeType[1])
-  }
 }

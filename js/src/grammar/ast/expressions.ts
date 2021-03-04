@@ -35,7 +35,7 @@ export function isExpression (value: any): value is Expression {
 export class Return extends Base {
   value: Expression
 
-  constructor (pos: BasePosition, expr: Expression) {
+  constructor (pos: BasePosition, [, , expr]: schem.infer<typeof Return.schema>) {
     super(pos, [expr])
     this.value = expr
   }
@@ -49,18 +49,17 @@ export class Return extends Base {
     schema.any,
     schema.guard(isExpression),
   ])
-
-  static fromSchema (pos: BasePosition, [, , expr]: schem.infer<typeof Return.schema>): Return {
-    return new Return(pos, expr)
-  }
 }
 
 export class Tuple extends Base {
   values: Expression[]
 
-  constructor (pos: BasePosition, values: Expression[]) {
+  constructor (pos: BasePosition, [values, value]: schem.infer<typeof Tuple.schema>) {
     super(pos)
-    this.values = values
+    this.values = [
+      ...values.map(([value]) => value),
+      value,
+    ]
   }
 
   toString () {
@@ -77,13 +76,6 @@ export class Tuple extends Base {
     schema.guard(isExpression),
     schema.any,
   ])
-
-  static fromSchema (pos: BasePosition, [values, value]: schem.infer<typeof Tuple.schema>): Tuple {
-    return new Tuple(pos, [
-      ...values.map(([value]) => value),
-      value,
-    ])
-  }
 }
 
 export class IfExpression extends Base {
@@ -93,9 +85,7 @@ export class IfExpression extends Base {
 
   constructor (
     pos: BasePosition,
-    condition: Expression,
-    ifThen: Expression,
-    ifElse: Expression,
+    [, condition, , ifThen, , ifElse]: schem.infer<typeof IfExpression.schema>,
   ) {
     super(pos, [condition, ifThen, ifElse])
     this.condition = condition
@@ -116,10 +106,6 @@ export class IfExpression extends Base {
     schema.any,
     schema.guard(isExpression),
   ])
-
-  static fromSchema (pos: BasePosition, [, cond, , a, , b]: schem.infer<typeof IfExpression.schema>): IfExpression {
-    return new IfExpression(pos, cond, a, b)
-  }
 }
 
 export class Function extends Base {
@@ -129,10 +115,12 @@ export class Function extends Base {
 
   constructor (
     pos: BasePosition,
-    params: Declaration[],
-    returnType: Type,
-    body: Block,
+    [, _maybeTypeVars, , param, rawParams, , returnType, , body]: schem.infer<typeof Function.schema>
   ) {
+    const params = [
+      param,
+      ...rawParams.map(([, param]) => param),
+    ]
     super(pos, [...params, returnType, body])
     this.params = params
     this.returnType = returnType
@@ -161,16 +149,6 @@ export class Function extends Base {
     schema.instance(Block),
     schema.any, // _ }
   ])
-
-  static fromSchema (
-    pos: BasePosition,
-    [, _maybeTypeVars, , param, params, , returnType, , body]: schem.infer<typeof Function.schema>
-  ): Function {
-    return new Function(pos, [
-      param,
-      ...params.map(([, param]) => param),
-    ], returnType, body)
-  }
 }
 
 export enum Compare {
@@ -213,7 +191,26 @@ export class Comparison extends Base {
 export class Comparisons extends Base {
   comparisons: Comparison[]
 
-  constructor (pos: BasePosition, comparisons: Comparison[]) {
+  constructor (pos: BasePosition, [rawComparisons, value]: schem.infer<typeof Comparisons.schema>) {
+    const comparisons: Comparison[] = []
+    let lastExpr
+    for (const comparisonOperatorPair of rawComparisons) {
+      const [left, , operator] = comparisonOperatorPair
+      if (lastExpr) {
+        comparisons.push(new Comparison(lastExpr.operator, lastExpr.left, left))
+      }
+      lastExpr = {
+        left,
+        operator: operator.value
+      }
+    }
+    if (lastExpr) {
+      comparisons.push(new Comparison(lastExpr.operator, lastExpr.left, value))
+    }
+    if (comparisons.length === 0) {
+      console.log(rawComparisons)
+      throw new TypeError('I should have at least one comparison!')
+    }
     super(pos, comparisons)
     this.comparisons = comparisons
   }
@@ -237,29 +234,6 @@ export class Comparisons extends Base {
     ])),
     schema.guard(isExpression),
   ])
-
-  static fromSchema (pos: BasePosition, [rawComparisons, value]: schem.infer<typeof Comparisons.schema>): Comparisons {
-    const comparisons: Comparison[] = []
-    let lastExpr
-    for (const comparisonOperatorPair of rawComparisons) {
-      const [left, , operator] = comparisonOperatorPair
-      if (lastExpr) {
-        comparisons.push(new Comparison(lastExpr.operator, lastExpr.left, left))
-      }
-      lastExpr = {
-        left,
-        operator: operator.value
-      }
-    }
-    if (lastExpr) {
-      comparisons.push(new Comparison(lastExpr.operator, lastExpr.left, value))
-    }
-    if (comparisons.length === 0) {
-      console.log(rawComparisons)
-      throw new TypeError('I should have at least one comparison!')
-    }
-    return new Comparisons(pos, comparisons)
-  }
 }
 
 export enum Operator {
@@ -318,19 +292,21 @@ export class Operation extends Base {
     function fromSchema (pos: BasePosition, [expr, , , , val]: schem.infer<typeof opSchema>): Operation {
       return new Operation(pos, operator, expr, val)
     }
-    return from({ schema: opSchema, fromSchema })
+    return from({ schema: opSchema, from: fromSchema })
   }
 }
 
 export enum UnaryOperator {
   NEGATE = 'negate',
   NOT = 'not',
+  AWAIT = 'await',
 }
 
 export function unaryOperatorToString (self: UnaryOperator): string {
   switch (self) {
-    case UnaryOperator.NEGATE: return '-'
-    case UnaryOperator.NOT: return 'not '
+    case UnaryOperator.NEGATE: return 'negate'
+    case UnaryOperator.NOT: return 'not'
+    case UnaryOperator.AWAIT: return 'await'
   }
 }
 
@@ -348,17 +324,53 @@ export class UnaryOperation extends Base {
     return `${unaryOperatorToString(this.type)}${this.value}`
   }
 
-  static operation (operator: UnaryOperator) {
-    const opSchema = schema.tuple([
+  static prefix (operator: UnaryOperator) {
+    const prefixSchema = schema.tuple([
       schema.any,
       schema.any,
       schema.guard(isExpression),
     ])
-    function fromSchema (pos: BasePosition, [, , value]: schem.infer<typeof opSchema>): UnaryOperation {
+    function fromSchema (pos: BasePosition, [, , value]: schem.infer<typeof prefixSchema>): UnaryOperation {
       return new UnaryOperation(pos, operator, value)
     }
-    return from({ schema: opSchema, fromSchema })
+    return from({ schema: prefixSchema, from: fromSchema })
   }
+
+  static suffix (operator: UnaryOperator) {
+    const suffixSchema = schema.tuple([
+      schema.guard(isExpression),
+      schema.any,
+      schema.any,
+    ])
+    function fromSchema (pos: BasePosition, [value]: schem.infer<typeof suffixSchema>): UnaryOperation {
+      return new UnaryOperation(pos, operator, value)
+    }
+    return from({ schema: suffixSchema, from: fromSchema })
+  }
+}
+
+export class RecordAccess extends Base {
+  value: Expression
+  field: string
+
+  constructor (
+    pos: BasePosition,
+    [value, , field]: schem.infer<typeof RecordAccess.schema>,
+  ) {
+    super(pos, [value])
+    this.value = value
+    this.field = field.value
+  }
+
+  toString () {
+    return `${this.value}.${this.field}`
+  }
+
+  static schema = schema.tuple([
+    schema.guard(isExpression),
+    schema.any,
+    schema.instance(Identifier),
+  ])
 }
 
 export class FuncCall extends Base {
@@ -367,41 +379,32 @@ export class FuncCall extends Base {
 
   constructor (
     pos: BasePosition,
-    value: Expression,
-    params: Expression[],
+    [func, , maybeParams]: schem.infer<typeof FuncCall.schema>,
   ) {
-    super(pos, [value, ...params])
-    this.func = value
+    const params = maybeParams ? [
+      ...maybeParams[0].map(([param]) => param),
+      maybeParams[1],
+    ] : []
+    super(pos, [func, ...params])
+    this.func = func
     this.params = params
   }
 
   toString () {
-    return `<${this.func}${this.params.map(param => ' ' + param).join('')}>`
+    return `${this.func}(${this.params.join(', ')})`
   }
 
   static schema = schema.tuple([
     schema.guard(isExpression),
     schema.any,
-    schema.any,
-    schema.any,
     schema.nullable(schema.tuple([
       schema.array(schema.tuple([
         schema.guard(isExpression),
         schema.any,
-        schema.any,
-        schema.any,
       ])),
       schema.guard(isExpression),
-      schema.any,
       schema.any,
     ])),
     schema.any,
   ])
-
-  static fromSchema (pos: BasePosition, [func, , , , maybeParams]: schem.infer<typeof FuncCall.schema>): FuncCall {
-    return new FuncCall(pos, func, maybeParams ? [
-      ...maybeParams[0].map(([param]) => param),
-      maybeParams[1],
-    ] : [])
-  }
 }

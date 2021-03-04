@@ -7,7 +7,11 @@ import { Identifier } from './literals'
 export class Block extends Base {
   statements: Statement[]
 
-  constructor (pos: BasePosition, statements: Statement[] = []) {
+  constructor (pos: BasePosition, rawStatements?: schem.infer<typeof Block.schema>) {
+    const statements = rawStatements ? [
+      ...rawStatements[0].map(([statement]) => statement),
+      rawStatements[1],
+    ] : []
     super(pos, statements)
     this.statements = statements
   }
@@ -29,13 +33,6 @@ export class Block extends Base {
     ),
     schema.guard(isStatement),
   ])
-
-  static fromSchema (pos: BasePosition, [statements, statement]: schem.infer<typeof Block.schema>): Block {
-    return new Block(pos, [
-      ...statements.map(([statement]) => statement),
-      statement,
-    ])
-  }
 
   static empty (): Block {
     return new Block({
@@ -60,9 +57,9 @@ function isStatement (value: any): value is Statement {
 export class ImportStmt extends Base {
   name: string
 
-  constructor (pos: BasePosition, id: string) {
+  constructor (pos: BasePosition, [, , id]: schem.infer<typeof ImportStmt.schema>) {
     super(pos)
-    this.name = id
+    this.name = id.value
   }
 
   toString () {
@@ -74,10 +71,6 @@ export class ImportStmt extends Base {
     schema.any,
     schema.instance(Identifier),
   ])
-
-  static fromSchema (pos: BasePosition, [, , id]: schem.infer<typeof ImportStmt.schema>): ImportStmt {
-    return new ImportStmt(pos, id.value)
-  }
 }
 
 export class LetStmt extends Base {
@@ -85,10 +78,10 @@ export class LetStmt extends Base {
   public: boolean
   value: Expression
 
-  constructor (pos: BasePosition, decl: Declaration, isPublic: boolean, expr: Expression) {
+  constructor (pos: BasePosition, [, pub, decl, , expr]: schem.infer<typeof LetStmt.schema>) {
     super(pos, [decl, expr])
     this.declaration = decl
-    this.public = isPublic
+    this.public = pub !== null
     this.value = expr
   }
 
@@ -105,20 +98,13 @@ export class LetStmt extends Base {
       schema.guard(isExpression),
     ])
   }
-
-  static fromSchema (
-    pos: BasePosition,
-    [, pub, decl, , expr]: schem.infer<typeof LetStmt.schema>
-  ): LetStmt {
-    return new LetStmt(pos, decl, pub !== null, expr)
-  }
 }
 
 export class VarStmt extends Base {
   declaration: Declaration
   value: Expression
 
-  constructor (pos: BasePosition, decl: Declaration, expr: Expression) {
+  constructor (pos: BasePosition, [, decl, , expr]: schem.infer<typeof VarStmt.schema>) {
     super(pos, [decl, expr])
     this.declaration = decl
     this.value = expr
@@ -136,13 +122,6 @@ export class VarStmt extends Base {
       schema.guard(isExpression),
     ])
   }
-
-  static fromSchema (
-    pos: BasePosition,
-    [, decl, , expr]: schem.infer<typeof VarStmt.schema>
-  ): VarStmt {
-    return new VarStmt(pos, decl, expr)
-  }
 }
 
 export class OldFor extends Base {
@@ -152,14 +131,12 @@ export class OldFor extends Base {
 
   constructor (
     pos: BasePosition,
-    value: Expression,
-    decl: Declaration,
-    body: Block,
+    [, decl, , value, , block]: schem.infer<typeof OldFor.schema>,
   ) {
-    super(pos, [value, decl, body])
+    super(pos, [value, decl, block])
     this.value = value
     this.var = decl
-    this.body = body
+    this.body = block
   }
 
   toString (): string {
@@ -176,10 +153,6 @@ export class OldFor extends Base {
       schema.instance(Block),
       schema.any,
     ])
-  }
-
-  static fromSchema (pos: BasePosition, [, decl, , value, , block]: schem.infer<typeof OldFor.schema>): OldFor {
-    return new OldFor(pos, value, decl, block)
   }
 }
 
@@ -190,14 +163,12 @@ export class For extends Base {
 
   constructor (
     pos: BasePosition,
-    value: Expression,
-    decl: Declaration,
-    body: Block,
+    [, decl, , value, , block]: schem.infer<typeof For.schema>,
   ) {
-    super(pos, [value, decl, body])
+    super(pos, [value, decl, block])
     this.value = value
     this.var = decl
-    this.body = body
+    this.body = block
   }
 
   toString (): string {
@@ -214,9 +185,5 @@ export class For extends Base {
       schema.instance(Block),
       schema.any,
     ])
-  }
-
-  static fromSchema (pos: BasePosition, [, decl, , value, , block]: schem.infer<typeof For.schema>): For {
-    return new For(pos, value, decl, block)
   }
 }
