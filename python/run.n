@@ -18,3 +18,8 @@ let main = [_: ()] -> () {
 }
 
 main(())
+
+
+if (true) {
+	print(main)
+}

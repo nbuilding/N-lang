@@ -1096,6 +1096,8 @@ class Scope:
 			    elif exit_point and not warned:
 			        warned = True
 			        self.warnings.append(TypeCheckError(exit_point, "There are commands after this return statement, but I will never run them."))
+			if exit_point is None:
+				self.errors.append(TypeCheckError(tree, "You are not returning anything"))
 			return exit_point
 		elif tree.data != "instruction":
 			self.errors.append(TypeCheckError(tree, "Internal problem: I only deal with instructions, not %s." % tree.data))
