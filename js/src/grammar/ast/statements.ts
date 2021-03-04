@@ -1,26 +1,8 @@
 import schema, * as schem from '../../utils/schema'
-import { isToken } from '../../utils/type-guards'
 import { Base, BasePosition } from './base'
 import { Declaration } from './declaration'
 import { Expression, isExpression } from './expressions'
 import { Identifier } from './literals'
-
-export class Modifiers extends Base {
-  public: boolean
-
-  constructor (pos: BasePosition, isPublic: boolean) {
-    super(pos)
-    this.public = isPublic
-  }
-
-  static schema = schema.tuple([
-    schema.nullable(schema.guard(isToken)),
-  ])
-
-  static fromSchema (pos: BasePosition, [pub]: schem.infer<typeof Modifiers.schema>): Modifiers {
-    return new Modifiers(pos, pub !== null)
-  }
-}
 
 export class Block extends Base {
   statements: Statement[]
@@ -100,13 +82,13 @@ export class ImportStmt extends Base {
 
 export class LetStmt extends Base {
   declaration: Declaration
-  modifiers: Modifiers
+  public: boolean
   value: Expression
 
-  constructor (pos: BasePosition, decl: Declaration, modifiers: Modifiers, expr: Expression) {
+  constructor (pos: BasePosition, decl: Declaration, isPublic: boolean, expr: Expression) {
     super(pos, [decl, expr])
     this.declaration = decl
-    this.modifiers = modifiers
+    this.public = isPublic
     this.value = expr
   }
 
@@ -117,8 +99,7 @@ export class LetStmt extends Base {
   static get schema () {
     return schema.tuple([
       schema.any,
-      schema.instance(Modifiers),
-      schema.any,
+      schema.nullable(schema.tuple([schema.any, schema.any])),
       schema.instance(Declaration),
       schema.any,
       schema.guard(isExpression),
@@ -127,9 +108,9 @@ export class LetStmt extends Base {
 
   static fromSchema (
     pos: BasePosition,
-    [, modifiers, , decl, , expr]: schem.infer<typeof LetStmt.schema>
+    [, pub, decl, , expr]: schem.infer<typeof LetStmt.schema>
   ): LetStmt {
-    return new LetStmt(pos, decl, modifiers, expr)
+    return new LetStmt(pos, decl, pub !== null, expr)
   }
 }
 

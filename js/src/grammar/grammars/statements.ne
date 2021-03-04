@@ -13,20 +13,20 @@ statement -> "import" _ identifier {% from(ast.ImportStmt) %}
 	| postfixExpressionImpure {% id %}
 	| returnExpression {% id %}
 
-letStatement -> ("let" _) modifiers _ declaration (_ "=" _) expression {% from(ast.LetStmt) %}
+letStatement -> ("let" _) ("pub" _):? declaration (_ "=" _) expression {% from(ast.LetStmt) %}
 
 varStatement -> ("var" _) identifier (_ "=" _) expression {% from(ast.VarStmt) %}
 
-enumDeclaration -> "type" _ modifiers _ typeSpec _ "=" _ enumDefinition
+enumDeclaration -> "type" _ ("pub" _):?  typeSpec _ "=" _ enumDefinition
 
 enumDefinition -> enumVariant (_ "|" _ enumVariant):*
 
 enumVariant -> "<" _ identifier (_ typeValue):* _ ">"
 	| identifier
 
-aliasDefinition -> "alias" _ modifiers _ typeSpec _ "=" _ type
+aliasDefinition -> "alias" _ ("pub" _):?  typeSpec _ "=" _ type
 
-classDeclaration -> "class" _ modifiers _ identifier _ "[" (_ typeVarsDeclaration):? _ declaration (__ declaration):* _ "]" _ "{" _ block _ "}"
+classDeclaration -> "class" _ ("pub" _):?  identifier _ "[" (_ typeVarsDeclaration):? _ declaration (__ declaration):* _ "]" _ "{" _ block _ "}"
 
 oldForLoop -> ("for" _) declaration _ value (_ "{" _) block (_ "}") {% from(ast.OldFor) %}
 
@@ -40,5 +40,3 @@ elseStatement -> "{" _ block _ "}"
 typeSpec -> identifier typeVarsDeclaration:?
 
 typeVarsDeclaration -> "[" _ (identifier _ "," _):* identifier (_ ","):? _ "]"
-
-modifiers -> "pub":? {% from(ast.Modifiers) %}

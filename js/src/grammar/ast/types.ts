@@ -16,6 +16,10 @@ export class TupleType extends Base {
     this.types = types
   }
 
+  toString () {
+    return `(${this.types.join(', ')})`
+  }
+
   static schema = schema.tuple([
     schema.array(schema.tuple([
       schema.guard(isType),
@@ -45,6 +49,10 @@ export class FuncType extends Base {
     this.returns = returns
   }
 
+  toString () {
+    return `(${this.takes}) -> ${this.returns}`
+  }
+
   static schema = schema.tuple([
     schema.guard(isType),
     schema.any,
@@ -66,6 +74,11 @@ export class ModuleId extends Base {
     this.modules = modules
     this.name = name
     this.typeVars = typeVars
+  }
+
+  toString () {
+    return this.modules.map(mod => mod + '.').join('') + this.name +
+      (this.typeVars.length > 0 ? `[${this.typeVars.join(', ')}]` : '')
   }
 
   static schema = schema.tuple([

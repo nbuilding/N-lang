@@ -1,0 +1,2 @@
+let pub char1: char = \n
+let char2: char = \{a}
