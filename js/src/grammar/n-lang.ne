@@ -44,6 +44,9 @@ const lexer = moo.states({
 		booleanOperator: [
 			'&&', '||', '&', '|', '~',
 		],
+		funcOperator: [
+			'|>',
+		],
 		lbracket: ['{', '[', '('],
 		rbracket: ['}', ']', ')'],
 		semicolon: ';',
@@ -98,6 +101,11 @@ const lexer = moo.states({
 
 main -> _ block _ {% ([, block]) => block %}
 	| _ {% () => ast.Block.empty() %}
+
+declaration -> identifier ((_ ":" _) type):? {% from(ast.Declaration) %}
+	| "_" ((_ ":" _) type):? {% from(ast.Declaration) %}
+
+identifier -> %identifier
 
 # // comment
 lineComment -> %comment {% () => null %}

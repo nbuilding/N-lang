@@ -2,15 +2,12 @@
 
 expression -> tupleExpression {% id %}
 	| returnExpression {% id %}
-	| "imp" _ %identifier
+	| "imp" _ identifier
 	| "imp" _ %string
 
 returnExpression -> "return" _ expression {% from(ast.Return) %}
 
-funcExpr -> "[" (_ typeVarsDeclaration):? _ declaration (__ declaration):* _ "]" _ "->" _ type _ "{" _ block _ "}" {% from(ast.Function) %}
-
-funcDefParams -> declaration {% ([decl]) => [decl] %}
-	| funcDefParams __ declaration {% ([params, , decl]) => [...params, decl] %}
+funcExpr -> "[" (_ typeVarsDeclaration):? _ declaration (__ declaration):* (_ "]" _ "->" _) type (_ "{" _) block (_ "}") {% from(ast.Function) %}
 
 tupleExpression -> noCommaExpression {% id %}
 	| (noCommaExpression _ "," _):+ noCommaExpression (_ ","):? {% from(ast.Tuple) %}
@@ -52,27 +49,27 @@ prefixExpression -> postfixExpression {% id %}
 	| "-" _ prefixExpression {% unaryOperation(ast.UnaryOperator.NEGATE) %}
 	| "~" _ prefixExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
 
-postfixExpression -> postfixExpressionImpure {% id %}
-	| postfixExpression _ "." _ %identifier
+postfixExpression -> value {% id %}
+	| postfixExpressionImpure {% id %}
+	| postfixExpression _ "." _ identifier
 
-postfixExpressionImpure -> value {% id %}
-	| postfixExpression _ "!"
+postfixExpressionImpure -> postfixExpression _ "!"
 	| postfixExpression _ "(" _ ((noCommaExpression _ "," _):* noCommaExpression (_ ","):? _):? ")"
 
 # Generally, values are the same as expressions except they require some form of
 # enclosing brackets for more complex expressions, which can help avoid syntax
 # ambiguities.
-value -> %identifier
+value -> identifier
 	| %number {% from(ast.Number) %}
 	| %float {% from(ast.Float) %}
 	| %string {% from(ast.String) %}
 	| %char {% from(ast.Char) %}
-	| "(" _ expression _ ")" {% includeBrackets %}
 	| "(" _ ")" {% from(ast.Unit) %}
+	| "(" _ expression _ ")" {% includeBrackets %}
 	| "[" _ ((noCommaExpression _ "," _):* noCommaExpression (_ ","):? _):? "]"
-	| "{" _ (%identifier (_ ":" _ expression):? blockSeparator):* _ "}"
+	| "{" _ (identifier (_ ":" _ expression):? blockSeparator):* _ "}"
 
-ifExpression -> "if" _ expression _ "{" _ expression _ "}" _ "else" _ elseExprBranch
+ifExpression -> ("if" _) expression (_ "{" _) expression (_ "}" _ "else" _) elseExprBranch
 
-elseExprBranch -> "{" _ expression _ "}"
-	| ifExpression
+elseExprBranch -> "{" _ expression _ "}" {% includeBrackets %}
+	| ifExpression {% id %}
