@@ -40,6 +40,16 @@ export class Number extends Literal {}
 
 export class Float extends Literal {}
 
-export class Unit extends Literal {}
+export class Unit extends Base {
+  static schema = schema.tuple([
+    schema.any,
+    schema.any,
+    schema.any,
+  ])
+
+  static fromSchema (pos: BasePosition, _: schem.infer<typeof Unit.schema>): Unit {
+    return new Unit(pos)
+  }
+}
 
 export class Identifier extends Literal {}

@@ -3,17 +3,17 @@
 block -> (statement blockSeparator):* statement {% from(ast.Block) %}
 
 statement -> "import" _ identifier {% from(ast.ImportStmt) %}
-	| letStatement
-	| varStatement
-	| enumDeclaration
-	| aliasDefinition
-	| classDeclaration
-	| oldForLoop
-	| forLoop
+	| letStatement {% id %}
+	| varStatement {% id %}
+	| enumDeclaration {% id %}
+	| aliasDefinition {% id %}
+	| classDeclaration {% id %}
+	| oldForLoop {% id %}
+	| forLoop {% id %}
 	| postfixExpressionImpure {% id %}
 	| returnExpression {% id %}
 
-letStatement -> ("let" _) modifiers _ declaration (_ "=" _) expression
+letStatement -> ("let" _) modifiers _ declaration (_ "=" _) expression {% from(ast.LetStmt) %}
 
 varStatement -> ("var" _) identifier (_ "=" _) expression {% from(ast.VarStmt) %}
 
@@ -41,5 +41,4 @@ typeSpec -> identifier typeVarsDeclaration:?
 
 typeVarsDeclaration -> "[" _ (identifier _ "," _):* identifier (_ ","):? _ "]"
 
-modifiers -> empty
-	| "pub"
+modifiers -> "pub":? {% from(ast.Modifiers) %}

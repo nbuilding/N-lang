@@ -3,19 +3,33 @@ import { isEnum, isToken } from '../../utils/type-guards'
 import { from } from '../from-nearley'
 import { Base, BasePosition } from './base'
 import { Declaration } from './declaration'
-import { Identifier, Literal } from './literals'
+import { Identifier, Literal, Unit } from './literals'
 import { Block } from './statements'
 import { isType, Type } from './types'
 
-export type Expression = Literal | Operation | UnaryOperation | Comparisons
-  | FuncCall | Return | IfExpression | Identifier | Function | Tuple
+export type Expression = Literal
+  | Operation
+  | UnaryOperation
+  | Comparisons
+  | FuncCall
+  | Return
+  | IfExpression
+  | Identifier
+  | Function
+  | Tuple
+  | Unit
 export function isExpression (value: any): value is Expression {
-  return value instanceof Literal || value instanceof Operation ||
-    value instanceof UnaryOperation || value instanceof Comparisons ||
+  return value instanceof Literal ||
+    value instanceof Operation ||
+    value instanceof UnaryOperation ||
+    value instanceof Comparisons ||
     value instanceof FuncCall ||
-    value instanceof Return || value instanceof IfExpression ||
-    value instanceof Identifier || value instanceof Function ||
-    value instanceof Tuple
+    value instanceof Return ||
+    value instanceof IfExpression ||
+    value instanceof Identifier ||
+    value instanceof Function ||
+    value instanceof Tuple ||
+    value instanceof Unit
 }
 
 export class Return extends Base {

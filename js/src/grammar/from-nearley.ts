@@ -40,25 +40,28 @@ export function from<T extends Base, S> (hasSchema: HasSchema<T, S>) {
   function preprocessor (args: any[], _loc?: number, _reject?: {}): T {
     shouldBeNearleyArgs(args)
     const nonNullArgs = getNonNullArgs(args)
+    let pos
     if (nonNullArgs.length === 0) {
-      throw new SyntaxError('I cannot create a Base out of nothing! (Array was empty or full of nulls.)')
-    }
-    const { line, col } = nonNullArgs[0]
-    const lastTokenOrBase = nonNullArgs[nonNullArgs.length - 1]
-    let endLine, endCol
-    if (lastTokenOrBase instanceof Base) {
-      endLine = lastTokenOrBase.endLine
-      endCol = lastTokenOrBase.endCol
+      pos = { line: 0, col: 0, endLine: 0, endCol: 0 }
     } else {
-      endLine = lastTokenOrBase.line + lastTokenOrBase.lineBreaks
-      const lastLine = lastTokenOrBase.text.includes('\n')
-        ? lastTokenOrBase.text.slice(lastTokenOrBase.text.lastIndexOf('\n') + 1)
-        : lastTokenOrBase.text
-      endCol = lastTokenOrBase.col + lastLine.length
+      const { line, col } = nonNullArgs[0]
+      const lastTokenOrBase = nonNullArgs[nonNullArgs.length - 1]
+      let endLine, endCol
+      if (lastTokenOrBase instanceof Base) {
+        endLine = lastTokenOrBase.endLine
+        endCol = lastTokenOrBase.endCol
+      } else {
+        endLine = lastTokenOrBase.line + lastTokenOrBase.lineBreaks
+        const lastLine = lastTokenOrBase.text.includes('\n')
+          ? lastTokenOrBase.text.slice(lastTokenOrBase.text.lastIndexOf('\n') + 1)
+          : lastTokenOrBase.text
+        endCol = lastTokenOrBase.col + lastLine.length
+      }
+      pos = { line, col, endLine, endCol }
     }
     try {
       hasSchema.schema.check(args)
-      return hasSchema.fromSchema({ line, col, endLine, endCol }, args)
+      return hasSchema.fromSchema(pos, args)
     } catch (err) {
       if (err instanceof schem.GuardError) {
         console.log('args', util.inspect(args, false, null, true))

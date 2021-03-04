@@ -59,7 +59,7 @@ postfixExpressionImpure -> postfixExpression _ "!"
 # Generally, values are the same as expressions except they require some form of
 # enclosing brackets for more complex expressions, which can help avoid syntax
 # ambiguities.
-value -> identifier
+value -> identifier {% id %}
 	| %number {% from(ast.Number) %}
 	| %float {% from(ast.Float) %}
 	| %string {% from(ast.String) %}

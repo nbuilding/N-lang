@@ -97,7 +97,7 @@ class Guarded<T> implements Guard<T> {
 
   constructor (guard: (value: unknown) => value is T, name?: string) {
     this.guard = guard
-    this.name = name || `satisfier of ${guard?.name ?? 'a type guard'}`
+    this.name = name || `satisfier of ${guard.name || 'a type guard'}`
   }
 
   check (value: unknown): asserts value is any {
@@ -166,6 +166,9 @@ export default {
   },
 
   guard<T> (guard: (value: unknown) => value is T, name?: string): Guard<T> {
+    if (guard === undefined) {
+      throw new Error('TypeScript is big dumb and didn\'t catch you passing in undefined for the type guard function, but I did!')
+    }
     return new Guarded(guard, name)
   },
 }
