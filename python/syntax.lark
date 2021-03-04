@@ -1,4 +1,4 @@
-start: (instruction ((";" | "\n") instruction)*)
+start: [instruction ((";" | "\n") instruction)*]
 
 instruction: declare (";")?
            | function_callback (";")?
@@ -40,7 +40,7 @@ name_type: pattern [":" types]
 function_dec_call: NAME (" " [name_type (" " name_type)*])?
 function_call: literal "(" [expression ("," expression)*] ")"
 pipe_function_call: literal ["(" [expression ("," expression)*] ")"]
-code_block: "{" instruction* "}"
+code_block: "{" [instruction (("\n" | ";") instruction)*] "}"
 function_def: arguments ["->" types] code_block
 arguments: "[" generic_declaration? arg_name_type* "]"
 arg_name_type: definite_pattern [":" types]
