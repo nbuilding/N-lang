@@ -1,6 +1,6 @@
 import schema, * as schem from '../../utils/schema'
 import { isToken } from '../../utils/type-guards'
-import { Base, BasePosition } from '../ast'
+import { Base, BasePosition } from './base'
 
 export class Literal extends Base {
   value: string

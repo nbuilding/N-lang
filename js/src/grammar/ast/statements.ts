@@ -1,5 +1,6 @@
 import schema, * as schem from '../../utils/schema'
-import { Base, BasePosition, Declaration } from '../ast'
+import { Base, BasePosition } from './base'
+import { Declaration } from './declaration'
 import { Expression, isExpression } from './expressions'
 import { Identifier } from './literals'
 
@@ -139,5 +140,41 @@ export class OldFor extends Base {
 
   static fromSchema (pos: BasePosition, [, decl, , value, , block]: schem.infer<typeof OldFor.schema>): OldFor {
     return new OldFor(pos, value, decl, block)
+  }
+}
+
+export class For extends Base {
+  value: Expression
+  var: Declaration
+  body: Block
+
+  constructor (
+    pos: BasePosition,
+    value: Expression,
+    decl: Declaration,
+    body: Block,
+  ) {
+    super(pos, [value, decl, body])
+    this.value = value
+    this.var = decl
+    this.body = body
+  }
+
+  toString (): string {
+    return `for ${this.var} ${this.value} ${this.body}`
+  }
+
+  static schema = schema.tuple([
+    schema.any,
+    schema.instance(Declaration),
+    schema.any,
+    schema.guard(isExpression),
+    schema.any,
+    schema.instance(Block),
+    schema.any,
+  ])
+
+  static fromSchema (pos: BasePosition, [, decl, , value, , block]: schem.infer<typeof For.schema>): For {
+    return new For(pos, value, decl, block)
   }
 }

@@ -11,7 +11,7 @@ export interface Guard<T> {
 
 export type infer<T extends Guard<any>> = T['_output']
 
-class GuardError extends Error {
+export class GuardError extends Error {
   value: any
 
   constructor (value: any, shouldBe: string) {
@@ -42,8 +42,8 @@ class Tuple<T extends [any, ...any[]] | []> implements Guard<T> {
         throw new GuardError(value, `${this.guards.length} item(s)`)
       }
       value.forEach((item, index) => {
-        const guard: (value: unknown) => void = this.guards[index].check
-        guard(item)
+        const guard: { check: (value: unknown) => void } = this.guards[index]
+        guard.check(item)
       })
     } else {
       throw new GuardError(value, this.name)
@@ -75,7 +75,7 @@ class Instance<T> implements Guard<T> {
   }
 
   check (value: unknown): asserts value is T {
-    if (value instanceof this.classConstructor) {
+    if (!(value instanceof this.classConstructor)) {
       throw new GuardError(value, this.name)
     }
   }
@@ -95,9 +95,9 @@ class Guarded<T> implements Guard<T> {
   name: string
   readonly _output!: T
 
-  constructor (guard: (value: unknown) => value is T, name = 'satisfier of a type guard') {
+  constructor (guard: (value: unknown) => value is T, name?: string) {
     this.guard = guard
-    this.name = name
+    this.name = name || `satisfier of ${guard?.name ?? 'a type guard'}`
   }
 
   check (value: unknown): asserts value is any {
@@ -117,7 +117,7 @@ class ArrayOf<T> implements Guard<T[]> {
     this.name = `array of ${guard.name}`
   }
 
-  check (value: unknown): asserts value is any {
+  check (value: unknown): asserts value is T[] {
     if (Array.isArray(value)) {
       for (const item of value) {
         this.guard.check(item)
@@ -128,9 +128,30 @@ class ArrayOf<T> implements Guard<T[]> {
   }
 }
 
+class Nullable<T> implements Guard<T | null> {
+  guard: Guard<T>
+  name: string
+  readonly _output!: T | null
+
+  constructor (guard: Guard<T>) {
+    this.guard = guard
+    this.name = `nullable ${guard.name}`
+  }
+
+  check (value: unknown): asserts value is T | null {
+    if (value !== null) {
+      this.guard.check(value)
+    }
+  }
+}
+
 export default {
   null: new Null(),
   any: new Any(),
+
+  nullable<T> (guard: Guard<T>): Nullable<T> {
+    return new Nullable(guard)
+  },
 
   tuple<T extends [any, ...any[]] | []> (validators: TupleGuards<T>): Guard<T> {
     return new Tuple(validators)

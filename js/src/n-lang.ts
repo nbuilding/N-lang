@@ -3,7 +3,8 @@
 import fs from 'fs/promises'
 import util from 'util'
 import parseArgs from 'minimist'
-import { compileToJS, TypeChecker, FileLines } from './index'
+// import { compileToJS, TypeChecker, FileLines } from './index'
+import { FileLines } from './type-checker/display-lines'
 
 async function main () {
   const {
@@ -55,6 +56,7 @@ async function main () {
 
   if (!(js || running || checksOnly)) return
 
+  /*
   const checker = new TypeChecker({
     colours: true
   })
@@ -65,6 +67,7 @@ async function main () {
   if (js) console.log(compiled)
   // Indirect call of eval to run in global scope
   if (running) (null, eval)(compiled)
+  */
 }
 
 main()

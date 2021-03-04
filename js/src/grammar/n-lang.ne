@@ -105,7 +105,7 @@ main -> _ block _ {% ([, block]) => block %}
 declaration -> identifier ((_ ":" _) type):? {% from(ast.Declaration) %}
 	| "_" ((_ ":" _) type):? {% from(ast.Declaration) %}
 
-identifier -> %identifier
+identifier -> %identifier {% from(ast.Identifier) %}
 
 # // comment
 lineComment -> %comment {% () => null %}

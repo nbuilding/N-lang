@@ -1,6 +1,8 @@
 import schema, * as schem from '../../utils/schema'
 import { isEnum, isToken } from '../../utils/type-guards'
-import { Base, BasePosition, Declaration, from } from '../ast'
+import { from } from '../from-nearley'
+import { Base, BasePosition } from './base'
+import { Declaration } from './declaration'
 import { Identifier, Literal } from './literals'
 import { Block } from './statements'
 import { isType, Type } from './types'
@@ -129,10 +131,10 @@ export class Function extends Base {
 
   static schema = schema.tuple([
     schema.any, // [
-    schema.tuple([
+    schema.nullable(schema.tuple([
       schema.any, // _
       schema.any, // TODO: TypeVars
-    ]), // nullable
+    ])),
     schema.any, // _
     schema.instance(Declaration),
     schema.array(schema.tuple([
@@ -148,7 +150,7 @@ export class Function extends Base {
 
   static fromSchema (
     pos: BasePosition,
-    [, [, _typeVars], , param, params, , returnType, , body]: schem.infer<typeof Function.schema>
+    [, _maybeTypeVars, , param, params, , returnType, , body]: schem.infer<typeof Function.schema>
   ): Function {
     return new Function(pos, [
       param,
@@ -368,7 +370,7 @@ export class FuncCall extends Base {
     schema.any,
     schema.any,
     schema.any,
-    schema.tuple([
+    schema.nullable(schema.tuple([
       schema.array(schema.tuple([
         schema.guard(isExpression),
         schema.any,
@@ -378,14 +380,14 @@ export class FuncCall extends Base {
       schema.guard(isExpression),
       schema.any,
       schema.any,
-    ]), // nullable
+    ])),
     schema.any,
   ])
 
-  static fromSchema (pos: BasePosition, [func, , , , [params, param]]: schem.infer<typeof FuncCall.schema>): FuncCall {
-    return new FuncCall(pos, func, [
-      ...params.map(([param]) => param),
-      param,
-    ])
+  static fromSchema (pos: BasePosition, [func, , , , maybeParams]: schem.infer<typeof FuncCall.schema>): FuncCall {
+    return new FuncCall(pos, func, maybeParams ? [
+      ...maybeParams[0].map(([param]) => param),
+      maybeParams[1],
+    ] : [])
   }
 }

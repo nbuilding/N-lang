@@ -1,22 +1,13 @@
 import schema, * as schem from '../../utils/schema'
-import { Base, BasePosition } from '../ast'
+import { Base, BasePosition } from './base'
 import { Identifier } from './literals'
 
-export type Type = Identifier | UnitType | TupleType | FuncType
+export type Type = ModuleId | UnitType | TupleType | FuncType
 export function isType (value: any): value is Type {
-  return value instanceof Identifier || value instanceof UnitType
+  return value instanceof ModuleId || value instanceof UnitType
     || value instanceof TupleType || value instanceof FuncType
 }
 
-export class UnitType extends Base {
-  static schema = schema.tuple([
-    schema.any,
-  ])
-
-  static fromSchema (pos: BasePosition, _: schem.infer<typeof UnitType.schema>): UnitType {
-    return new UnitType(pos)
-  }
-}
 export class TupleType extends Base {
   types: Type[]
 
@@ -62,5 +53,59 @@ export class FuncType extends Base {
 
   static fromSchema (pos: BasePosition, [takes, , returns]: schem.infer<typeof FuncType.schema>): FuncType {
     return new FuncType(pos, takes, returns)
+  }
+}
+
+export class ModuleId extends Base {
+  modules: string[]
+  name: string
+  typeVars: Type[]
+
+  constructor (pos: BasePosition, modules: string[], name: string, typeVars: Type[]) {
+    super(pos)
+    this.modules = modules
+    this.name = name
+    this.typeVars = typeVars
+  }
+
+  static schema = schema.tuple([
+    schema.array(schema.tuple([
+      schema.instance(Identifier),
+      schema.any,
+    ])),
+    schema.instance(Identifier),
+    schema.nullable(schema.tuple([
+      schema.any,
+      schema.array(schema.tuple([
+        schema.guard(isType),
+        schema.any,
+      ])),
+      schema.guard(isType),
+      schema.any,
+    ])),
+  ])
+
+  static fromSchema (pos: BasePosition, [modules, typeName, maybeTypeVars]: schem.infer<typeof ModuleId.schema>): ModuleId {
+    return new ModuleId(
+      pos,
+      modules.map(([mod]) => mod.value),
+      typeName.value,
+      maybeTypeVars ? [
+        ...maybeTypeVars[1].map(([type]) => type),
+        maybeTypeVars[2]
+      ] : [],
+    )
+  }
+}
+
+export class UnitType extends Base {
+  static schema = schema.tuple([
+    schema.any,
+    schema.any,
+    schema.any,
+  ])
+
+  static fromSchema (pos: BasePosition, _: schem.infer<typeof UnitType.schema>): UnitType {
+    return new UnitType(pos)
   }
 }

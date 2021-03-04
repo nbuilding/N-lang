@@ -13,9 +13,9 @@ statement -> "import" _ identifier {% from(ast.ImportStmt) %}
 	| postfixExpressionImpure {% id %}
 	| returnExpression {% id %}
 
-letStatement -> "let" _ modifiers _ declaration _ "=" _ expression
+letStatement -> ("let" _) modifiers _ declaration (_ "=" _) expression
 
-varStatement -> ("var" _) identifier (_ "=" _) expression
+varStatement -> ("var" _) identifier (_ "=" _) expression {% from(ast.VarStmt) %}
 
 enumDeclaration -> "type" _ modifiers _ typeSpec _ "=" _ enumDefinition
 
@@ -28,9 +28,9 @@ aliasDefinition -> "alias" _ modifiers _ typeSpec _ "=" _ type
 
 classDeclaration -> "class" _ modifiers _ identifier _ "[" (_ typeVarsDeclaration):? _ declaration (__ declaration):* _ "]" _ "{" _ block _ "}"
 
-oldForLoop -> ("for" _) declaration _ value (_ "{" _) block (_ "}")
+oldForLoop -> ("for" _) declaration _ value (_ "{" _) block (_ "}") {% from(ast.OldFor) %}
 
-forLoop -> "for" _ "(" _ declaration _ "in" _ expression _ ")" _ "{" _ block _ "}" {% from(ast.For) %}
+forLoop -> ("for" _ "(" _) declaration (_ "in" _) expression (_ ")" _ "{" _) block (_ "}") {% from(ast.For) %}
 
 ifStatement -> "if" _ expression _ "{" _ block _ "}" (_ "else" _ elseStatement):?
 
