@@ -5,6 +5,9 @@ block -> (statement blockSeparator):* statement {% from(ast.Block) %}
 statement -> "import" _ %identifier {% from(ast.ImportStmt) %}
 	| letStatement
 	| varStatement
+	| enumDeclaration
+	| aliasDefinition
+	| classDeclaration
 	| oldForLoop
 	| forLoop
 	| postfixExpressionImpure {% id %}
@@ -14,12 +17,16 @@ letStatement -> "let" _ modifiers _ declaration _ "=" _ expression
 
 varStatement -> "var" _ %identifier _ "=" _ expression
 
-enumDeclaration -> "type" _ modifiers _ typeSpec _ "=" _ ("|" _):? enumDefinition
+enumDeclaration -> "type" _ modifiers _ typeSpec _ "=" _ enumDefinition
 
 enumDefinition -> enumVariant (_ "|" _ enumVariant):*
 
 enumVariant -> "<" _ %identifier (_ typeValue):* _ ">"
 	| %identifier
+
+aliasDefinition -> "alias" _ modifiers _ typeSpec _ "=" _ type
+
+classDeclaration -> "class" _ modifiers _ %identifier _ "[" (_ typeVarsDeclaration):? _ declaration (__ declaration):* _ "]" _ "{" _ block _ "}"
 
 oldForLoop -> "for" _ declaration _ value _ "{" _ block _ "}"
 
@@ -32,7 +39,7 @@ elseStatement -> "{" _ block _ "}"
 
 typeSpec -> %identifier typeVarsDeclaration:?
 
-typeVarsDeclaration -> "[" _ commaList[%identifier] "]"
+typeVarsDeclaration -> "[" _ (%identifier _ "," _):* %identifier (_ ","):? _ "]"
 
 modifiers -> empty
 	| "pub"

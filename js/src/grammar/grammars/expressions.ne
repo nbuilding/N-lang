@@ -7,13 +7,13 @@ expression -> tupleExpression {% id %}
 
 returnExpression -> "return" _ expression {% from(ast.Return) %}
 
-funcExpr -> "[" _ declaration (__ declaration):* _ "]" _ "->" _ type _ "{" _ block _ "}" {% from(ast.Function) %}
+funcExpr -> "[" (_ typeVarsDeclaration):? _ declaration (__ declaration):* _ "]" _ "->" _ type _ "{" _ block _ "}" {% from(ast.Function) %}
 
 funcDefParams -> declaration {% ([decl]) => [decl] %}
 	| funcDefParams __ declaration {% ([params, , decl]) => [...params, decl] %}
 
 tupleExpression -> noCommaExpression {% id %}
-	| commaList[noCommaExpression] {% from(ast.Tuple) %}
+	| (noCommaExpression _ "," _):+ noCommaExpression (_ ","):? {% from(ast.Tuple) %}
 
 noCommaExpression -> booleanExpression {% id %}
 	| ifExpression {% id %}
@@ -36,15 +36,9 @@ compareOperator -> ("==" | "=") {% ([token]) => ({ ...token[0], value: ast.Compa
 	| "<=" {% ([token]) => ({ ...token, value: ast.Compare.LEQ }) %}
 	| ("!=" | "/=") {% ([token]) => ({ ...token[0], value: ast.Compare.NEQ }) %}
 
-# Avoid syntactic ambiguity with negation:
-# a - b is subtraction.
-# a -b is a and then negative b.
-# a- b is odd, but it can be subtraction.
-# a-b is subtraction.
 sumExpression -> productExpression {% id %}
 	| sumExpression _ "+" _ productExpression {% operation(ast.Operator.ADD) %}
-	| sumExpression _ "-" __ productExpression {% operation(ast.Operator.MINUS) %}
-	| sumExpression empty "-" empty productExpression {% operation(ast.Operator.MINUS) %}
+	| sumExpression _ "-" _ productExpression {% operation(ast.Operator.MINUS) %}
 
 productExpression -> exponentExpression {% id %}
 	| productExpression _ "*" _ exponentExpression {% operation(ast.Operator.MULTIPLY) %}
@@ -55,15 +49,15 @@ exponentExpression -> prefixExpression {% id %}
 	| exponentExpression _ "^" _ prefixExpression {% operation(ast.Operator.EXPONENT) %}
 
 prefixExpression -> postfixExpression {% id %}
-	| "-" empty prefixExpression {% unaryOperation(ast.UnaryOperator.NEGATE) %}
+	| "-" _ prefixExpression {% unaryOperation(ast.UnaryOperator.NEGATE) %}
 	| "~" _ prefixExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
 
-postfixExpression -> postfixExpressionUnpure {% id %}
+postfixExpression -> postfixExpressionImpure {% id %}
 	| postfixExpression _ "." _ %identifier
 
 postfixExpressionImpure -> value {% id %}
 	| postfixExpression _ "!"
-	| postfixExpression _ "(" _ commaList[noCommaExpression]:? _ ")"
+	| postfixExpression _ "(" _ ((noCommaExpression _ "," _):* noCommaExpression (_ ","):? _):? ")"
 
 # Generally, values are the same as expressions except they require some form of
 # enclosing brackets for more complex expressions, which can help avoid syntax
@@ -75,7 +69,7 @@ value -> %identifier
 	| %char {% from(ast.Char) %}
 	| "(" _ expression _ ")" {% includeBrackets %}
 	| "(" _ ")" {% from(ast.Unit) %}
-	| "[" _ commaList[noCommaExpression]:? _ "]"
+	| "[" _ ((noCommaExpression _ "," _):* noCommaExpression (_ ","):? _):? "]"
 	| "{" _ (%identifier (_ ":" _ expression):? blockSeparator):* _ "}"
 
 ifExpression -> "if" _ expression _ "{" _ expression _ "}" _ "else" _ elseExprBranch

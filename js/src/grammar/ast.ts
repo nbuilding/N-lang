@@ -1,5 +1,6 @@
 import moo from 'moo'
 import { isEnum, isToken, shouldBe, shouldSatisfy } from '../utils/type-guards'
+import schema, * as schem from '../utils/schema'
 
 type NearleyArgs = (Base | moo.Token | NearleyArgs | null)[]
 function shouldBeNearleyArgs (value: any): asserts value is NearleyArgs {
@@ -11,8 +12,9 @@ function shouldBeNearleyArgs (value: any): asserts value is NearleyArgs {
   }
 }
 
-interface FromAnyable<T extends Base> {
-  fromAny (pos: BasePosition, args: NearleyArgs): T
+interface HasSchema<T extends Base, S> {
+  schema: schem.Guard<S>
+  fromSchema (pos: BasePosition, args: S): T
 }
 
 function getNonNullArgs (args: NearleyArgs): (Base | moo.Token)[] {
@@ -31,7 +33,7 @@ function getNonNullArgs (args: NearleyArgs): (Base | moo.Token)[] {
   return nonNullArgs
 }
 
-export function from<T extends Base> (fromAnyable: FromAnyable<T>) {
+export function from<T extends Base, S> (hasSchema: HasSchema<T, S>) {
   function preprocessor (args: any[], _loc?: number, _reject?: {}): T {
     shouldBeNearleyArgs(args)
     const nonNullArgs = getNonNullArgs(args)
@@ -51,21 +53,11 @@ export function from<T extends Base> (fromAnyable: FromAnyable<T>) {
         : lastTokenOrBase.text
       endCol = lastTokenOrBase.col + lastLine.length
     }
-    return fromAnyable.fromAny({ line, col, endLine, endCol }, args)
+    hasSchema.schema.check(args)
+    return hasSchema.fromSchema({ line, col, endLine, endCol }, args)
   }
   return preprocessor
 }
-
-export const includeBrackets = from({
-  fromAny ({ line, col, endLine, endCol }: BasePosition, [, , base]: NearleyArgs): Base {
-    shouldBe(Base, base)
-    base.line = line
-    base.col = col
-    base.endLine = endLine
-    base.endCol = endCol
-    return base
-  }
-})
 
 interface BasePosition {
   line: number
@@ -119,11 +111,26 @@ export class Base {
       return []
     }
   }
-
-  static fromAny (pos: BasePosition, _: NearleyArgs): Base {
-    return new Base(pos)
-  }
 }
+
+const includeBracketsSchema = schema.tuple([
+  schema.any,
+  schema.any,
+  schema.instance(Base),
+  schema.any,
+  schema.any,
+])
+export const includeBrackets = from({
+  schema: includeBracketsSchema,
+  fromSchema ({ line, col, endLine, endCol }: BasePosition, [, , base]: schem.infer<typeof includeBracketsSchema>): Base {
+    shouldBe(Base, base)
+    base.line = line
+    base.col = col
+    base.endLine = endLine
+    base.endCol = endCol
+    return base
+  },
+})
 
 export class Block extends Base {
   statements: Statement[]
@@ -141,18 +148,21 @@ export class Block extends Base {
     return `{\n\t${this.statements.join('\n').replace(/\n/g, '\n\t')}\n}`
   }
 
-  static fromAny (pos: BasePosition, [statements, statement]: NearleyArgs): Block {
-    const stmts: Statement[] = []
-    shouldBe(Array, statements)
-    for (const statementSepPair of statements) {
-      shouldBe(Array, statementSepPair)
-      const [statement] = statementSepPair
-      shouldSatisfy(isStatement, statement)
-      stmts.push(statement)
-    }
-    shouldSatisfy(isStatement, statement)
-    stmts.push(statement)
-    return new Block(pos, stmts)
+  static schema = schema.tuple([
+    schema.array(
+      schema.tuple([
+        schema.guard(isStatement),
+        schema.any,
+      ])
+    ),
+    schema.guard(isStatement),
+  ])
+
+  static fromSchema (pos: BasePosition, [statements, statement]: schem.infer<typeof Block.schema>): Block {
+    return new Block(pos, [
+      ...statements.map(([statement]) => statement),
+      statement,
+    ])
   }
 
   static empty (): Block {
@@ -335,7 +345,6 @@ export class UnitType extends Base {
     return new UnitType(pos)
   }
 }
-
 export class TupleType extends Base {
   types: Type[]
 
@@ -581,12 +590,17 @@ export class Operation extends Base {
   }
 
   static operation (operator: Operator) {
-    function fromAny (pos: BasePosition, [expr, , , , val]: NearleyArgs): Operation {
-      shouldSatisfy(isExpression, expr)
-      shouldSatisfy(isExpression, val)
+    const opSchema = schema.tuple([
+      schema.guard(isExpression),
+      schema.any,
+      schema.any,
+      schema.any,
+      schema.guard(isExpression),
+    ])
+    function fromSchema (pos: BasePosition, [expr, , , , val]: schem.infer<typeof opSchema>): Operation {
       return new Operation(pos, operator, expr, val)
     }
-    return from({ fromAny })
+    return from({ schema: opSchema, fromSchema })
   }
 }
 
@@ -617,11 +631,15 @@ export class UnaryOperation extends Base {
   }
 
   static operation (operator: UnaryOperator) {
-    function fromAny (pos: BasePosition, [, , value]: NearleyArgs): UnaryOperation {
-      shouldSatisfy(isExpression, value)
+    const opSchema = schema.tuple([
+      schema.any,
+      schema.any,
+      schema.guard(isExpression),
+    ])
+    function fromSchema (pos: BasePosition, [, , value]: schem.infer<typeof opSchema>): UnaryOperation {
       return new UnaryOperation(pos, operator, value)
     }
-    return from({ fromAny })
+    return from({ schema: opSchema, fromSchema })
   }
 }
 

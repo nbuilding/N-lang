@@ -42,7 +42,7 @@ const lexer = moo.states({
 			'<=', '==', '=>', '/=', '<', '=', '>',
 		],
 		booleanOperator: [
-			'&&', '||', '&', '|', '!', '~',
+			'&&', '||', '&', '|', '~',
 		],
 		lbracket: ['{', '[', '('],
 		rbracket: ['}', ']', ')'],
@@ -86,6 +86,10 @@ const lexer = moo.states({
 })
 %}
 
+# Can't use macros because they can't be imported
+# https://github.com/kach/nearley/issues/387
+# and also the linter gets pissed.
+
 @lexer lexer
 
 @include "./grammars/statements.ne"
@@ -94,8 +98,6 @@ const lexer = moo.states({
 
 main -> _ block _ {% ([, block]) => block %}
 	| _ {% () => ast.Block.empty() %}
-
-commaList[EXPRESSION] -> (EXPRESSION _ "," _):* EXPRESSION _ ",":?
 
 # // comment
 lineComment -> %comment {% () => null %}
