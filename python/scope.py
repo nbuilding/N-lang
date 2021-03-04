@@ -828,6 +828,7 @@ class Scope:
 		if expr.data == "ifelse_expr":
 			condition, if_true, if_false = expr.children
 			scope = self.new_scope()
+			elsescope = self.new_scope()
 			if condition.data == "conditional_let":
 				pattern, value = condition.children
 				eval_type = self.type_check_expr(value)
@@ -837,7 +838,7 @@ class Scope:
 				if cond_type is not None and cond_type != "bool":
 					self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
 			if_true_type = scope.type_check_expr(if_true)
-			if_false_type = scope.type_check_expr(if_false)
+			if_false_type = elsescope.type_check_expr(if_false)
 			if if_true_type is None or if_false_type is None:
 				return None
 			return_type, incompatible = resolve_equal_types(if_true_type, if_false_type)
@@ -1219,6 +1220,7 @@ class Scope:
 		elif command.data == "ifelse":
 			condition, if_true, if_false = command.children
 			scope = self.new_scope()
+			elsescope = self.new_scope()
 			if condition.data == "conditional_let":
 				pattern, value = condition.children
 				eval_type = self.type_check_expr(value)
@@ -1233,7 +1235,7 @@ class Scope:
 				if cond_type is not None and cond_type != "bool":
 					self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
 			exit_if_true = scope.type_check_command(if_true)
-			exit_if_false = scope.type_check_command(if_false)
+			exit_if_false = elsescope.type_check_command(if_false)
 			if exit_if_true and exit_if_false:
 				return command
 		elif command.data == "enum_definition":
