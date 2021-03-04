@@ -1,11 +1,20 @@
-print(if let <yes test> = none {
-	test
-} else {
-	test
-})
+let main = [_: ()] -> () {
+    let results: list[result[int, str]] = [err("sad"), ok(2), err("wow")]
 
-if let <yes test> = none {
-	print(test)
-} else {
-	print(test)
+    let errors = filterMap(
+        [result: result[int, str]] -> maybe[str] {
+            return if let <err error> = result {
+                yes(error)
+            } else {
+                none
+            }
+        },
+        results
+    )
+        |> err
+        |> yes
+
+    print(errors)
 }
+
+main(())
