@@ -23,3 +23,7 @@ main(())
 if (true) {
 	print(main)
 }
+
+let test = [] -> int {}
+
+print(test())
