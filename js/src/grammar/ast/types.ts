@@ -2,10 +2,17 @@ import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from './base'
 import { Identifier } from './literals'
 
-export type Type = ModuleId | UnitType | TupleType | FuncType
+export type Type = ModuleId
+  | UnitType
+  | TupleType
+  | FuncType
+  | RecordType
 export function isType (value: any): value is Type {
-  return value instanceof ModuleId || value instanceof UnitType
-    || value instanceof TupleType || value instanceof FuncType
+  return value instanceof ModuleId
+    || value instanceof UnitType
+    || value instanceof TupleType
+    || value instanceof FuncType
+    || value instanceof RecordType
 }
 
 export class TupleType extends Base {
@@ -102,6 +109,33 @@ export class UnitType extends Base {
   static schema = schema.tuple([
     schema.any,
     schema.any,
+    schema.any,
+  ])
+}
+
+export class RecordType extends Base {
+  entries: [string, Type][]
+
+  constructor (
+    pos: BasePosition,
+    [, rawEntries]: schem.infer<typeof RecordType.schema>,
+  ) {
+    const entries: [string, Type][] = rawEntries.map(([key, , type]) => [
+      key.value,
+      type,
+    ])
+    super(pos, entries.map(([, value]) => value))
+    this.entries = entries
+  }
+
+  static schema = schema.tuple([
+    schema.any,
+    schema.array(schema.tuple([
+      schema.instance(Identifier),
+      schema.any,
+      schema.guard(isType),
+      schema.any,
+    ])),
     schema.any,
   ])
 }

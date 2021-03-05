@@ -35,11 +35,11 @@ const lexer = moo.states({
 			'->', ':', '.', ',',
 		],
 		await: '!',
+		comparisonOperator: [
+			'<=', '==', '>=', '/=', '<', '=', '>',
+		],
 		arithmeticOperator: [
 			'+', '-', '*', '%', '/', '^',
-		],
-		comparisonOperator: [
-			'<=', '==', '=>', '/=', '<', '=', '>',
 		],
 		booleanOperator: [
 			'&&', '||', '&', '|', '~',

@@ -23,9 +23,7 @@ export class GuardError extends Error {
 
 type TupleGuards<T extends [any, ...any[]] | []> = {
   [index in keyof T]: Guard<T[index]>
-} & {
-  length: number
-}
+} & Array<Guard<any>>
 
 class Tuple<T extends [any, ...any[]] | []> implements Guard<T> {
   guards: TupleGuards<T>
@@ -48,6 +46,29 @@ class Tuple<T extends [any, ...any[]] | []> implements Guard<T> {
     } else {
       throw new GuardError(value, this.name)
     }
+  }
+}
+
+class Union<T extends [any, any, ...any[]] | []> implements Guard<T[number]['_output']> {
+  guards: TupleGuards<T>
+  name: string
+  readonly _output!: T[number]['_output']
+
+  constructor (guards: TupleGuards<T>) {
+    this.guards = guards
+    this.name = guards.map(guard => guard.name).join(' or ')
+  }
+
+  check (value: unknown): asserts value is T[number]['_output'] {
+    for (const guard of this.guards) {
+      try {
+        guard.check(value)
+        return
+      } catch {
+        continue
+      }
+    }
+    throw new GuardError(value, this.name)
   }
 }
 
@@ -170,5 +191,9 @@ export default {
       throw new Error('TypeScript is big dumb and didn\'t catch you passing in undefined for the type guard function, but I did!')
     }
     return new Guarded(guard, name)
+  },
+
+  union<T extends [any, any, ...any[]] | []> (validators: TupleGuards<T>): Guard<T[number]> {
+    return new Union(validators)
   },
 }

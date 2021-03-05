@@ -2,12 +2,14 @@
 
 expression -> tupleExpression {% id %}
 	| returnExpression {% id %}
-	| "imp" _ identifier
-	| "imp" _ %string
+	| "imp" _ identifier {% from(ast.ImportFile) %}
+	| "imp" _ string {% from(ast.ImportFile) %}
 
 returnExpression -> "return" _ expression {% from(ast.Return) %}
 
-funcExpr -> "[" (_ typeVarsDeclaration):? _ declaration (__ declaration):* (_ "]" _ "->" _) type (_ "{" _) block (_ "}") {% from(ast.Function) %}
+funcExpr -> arguments (_ "->" _) type (_ "{" _) block (_ "}") {% from(ast.Function) %}
+
+arguments -> ("[" _) (typeVarsDeclaration _):? declaration (__ declaration):* (_ "]") {% from(ast.Arguments) %}
 
 tupleExpression -> noCommaExpression {% id %}
 	| (noCommaExpression _ "," _):+ noCommaExpression (_ ","):? {% from(ast.Tuple) %}
@@ -62,14 +64,16 @@ postfixExpressionImpure -> postfixExpression _ "!" {% suffix(ast.UnaryOperator.A
 value -> identifier {% id %}
 	| %number {% from(ast.Number) %}
 	| %float {% from(ast.Float) %}
-	| %string {% from(ast.String) %}
+	| string {% id %}
 	| %char {% from(ast.Char) %}
 	| "(" _ ")" {% from(ast.Unit) %}
 	| "(" _ expression _ ")" {% includeBrackets %}
-	| "[" _ ((noCommaExpression _ "," _):* noCommaExpression (_ ","):? _):? "]"
-	| "{" _ (identifier (_ ":" _ expression):? blockSeparator):* _ "}"
+	| ("[" _) ((noCommaExpression (_ "," _)):* noCommaExpression ((_ ","):? _)):? "]" {% from(ast.List) %}
+	| ("{" _) (identifier ((_ ":" _) expression):? blockSeparator):* (_ "}") {% from(ast.Record) %}
 
-ifExpression -> ("if" _) expression (_ "{" _) expression (_ "}" _ "else" _) elseExprBranch
+string -> %string {% from(ast.String) %}
+
+ifExpression -> ("if" _) expression (_ "{" _) expression (_ "}" _ "else" _) elseExprBranch {% from(ast.IfExpression) %}
 
 elseExprBranch -> "{" _ expression _ "}" {% includeBrackets %}
 	| ifExpression {% id %}

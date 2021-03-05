@@ -11,7 +11,7 @@ funcTypeExpr -> typeValue {% id %}
 typeValue -> modIdentifier {% id %}
 	| "(" _ type _ ")" {% includeBrackets %}
 	| "(" _ ")" {% from(ast.UnitType) %}
-	| "{" _ (identifier _ ":" _ type blockSeparator):* _ "}"
+	| ("{" _) (identifier (_ ":" _) type blockSeparator):* (_ "}") {% from(ast.RecordType) %}
 
 modIdentifier -> (identifier "."):* identifier typeVars:? {% from(ast.ModuleId) %}
 

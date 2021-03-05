@@ -2,14 +2,14 @@ import schema, * as schem from '../../utils/schema'
 import { isEnum, isToken } from '../../utils/type-guards'
 import { from } from '../from-nearley'
 import { Base, BasePosition } from './base'
-import { Declaration } from './declaration'
-import { Identifier, Literal, Unit } from './literals'
+import { Arguments, Declaration } from './declaration'
+import { Identifier, Literal, Unit, String } from './literals'
 import { Block } from './statements'
 import { isType, Type } from './types'
 
 export type Expression = Literal
-  | Operation
-  | UnaryOperation
+  | Operation<Operator>
+  | UnaryOperation<UnaryOperator>
   | Comparisons
   | FuncCall
   | Return
@@ -18,6 +18,10 @@ export type Expression = Literal
   | Function
   | Tuple
   | Unit
+  | RecordAccess
+  | ImportFile
+  | List
+  | Record
 export function isExpression (value: any): value is Expression {
   return value instanceof Literal ||
     value instanceof Operation ||
@@ -29,7 +33,34 @@ export function isExpression (value: any): value is Expression {
     value instanceof Identifier ||
     value instanceof Function ||
     value instanceof Tuple ||
-    value instanceof Unit
+    value instanceof Unit ||
+    value instanceof RecordAccess ||
+    value instanceof ImportFile ||
+    value instanceof List ||
+    value instanceof Record
+}
+
+export class ImportFile extends Base {
+  path: string
+  oldSyntax: boolean
+
+  constructor (pos: BasePosition, [, , path]: schem.infer<typeof ImportFile.schema>) {
+    super(pos)
+    this.path = path instanceof Identifier ? path.value + '.n' : path.value
+    this.oldSyntax = path instanceof Identifier
+  }
+
+  toString () {
+    return `imp ${this.path}`
+  }
+
+  static schema = schema.tuple([
+    schema.any,
+    schema.any,
+    schema.guard((value: unknown): value is Identifier | String => {
+      return value instanceof Identifier || value instanceof String
+    }),
+  ])
 }
 
 export class Return extends Base {
@@ -109,41 +140,27 @@ export class IfExpression extends Base {
 }
 
 export class Function extends Base {
-  params: Declaration[]
+  arguments: Arguments
   returnType: Type
   body: Block
 
   constructor (
     pos: BasePosition,
-    [, _maybeTypeVars, , param, rawParams, , returnType, , body]: schem.infer<typeof Function.schema>
+    [params, , returnType, , body]: schem.infer<typeof Function.schema>
   ) {
-    const params = [
-      param,
-      ...rawParams.map(([, param]) => param),
-    ]
-    super(pos, [...params, returnType, body])
-    this.params = params
+    super(pos, [params, returnType, body])
+    this.arguments = params
     this.returnType = returnType
     this.body = body
   }
 
   toString (): string {
-    return `[${this.params.join(' ')}] -> ${this.returnType} : ${this.body}`
+    return `${this.arguments} -> ${this.returnType} : ${this.body}`
   }
 
   static schema = schema.tuple([
-    schema.any, // [
-    schema.nullable(schema.tuple([
-      schema.any, // _
-      schema.any, // TODO: TypeVars
-    ])),
-    schema.any, // _
-    schema.instance(Declaration),
-    schema.array(schema.tuple([
-      schema.any, // __
-      schema.instance(Declaration),
-    ])),
-    schema.any, // _ ] _ -> _
+    schema.instance(Arguments), // [ ... ]
+    schema.any, // _ -> _
     schema.guard(isType),
     schema.any, // _ { _
     schema.instance(Block),
@@ -260,14 +277,14 @@ export function operatorToString (self: Operator): string {
   }
 }
 
-export class Operation extends Base {
-  type: Operator
+export class Operation<O extends Operator> extends Base {
+  type: O
   a: Expression
   b: Expression
 
   constructor (
     pos: BasePosition,
-    operator: Operator,
+    operator: O,
     expr: Expression,
     val: Expression,
   ) {
@@ -281,7 +298,7 @@ export class Operation extends Base {
     return `(${this.a} ${operatorToString(this.type)} ${this.b})`
   }
 
-  static operation (operator: Operator) {
+  static operation<O extends Operator> (operator: O) {
     const opSchema = schema.tuple([
       schema.guard(isExpression),
       schema.any,
@@ -289,7 +306,7 @@ export class Operation extends Base {
       schema.any,
       schema.guard(isExpression),
     ])
-    function fromSchema (pos: BasePosition, [expr, , , , val]: schem.infer<typeof opSchema>): Operation {
+    function fromSchema (pos: BasePosition, [expr, , , , val]: schem.infer<typeof opSchema>): Operation<O> {
       return new Operation(pos, operator, expr, val)
     }
     return from({ schema: opSchema, from: fromSchema })
@@ -310,11 +327,11 @@ export function unaryOperatorToString (self: UnaryOperator): string {
   }
 }
 
-export class UnaryOperation extends Base {
-  type: UnaryOperator
+export class UnaryOperation<O extends UnaryOperator> extends Base {
+  type: O
   value: Expression
 
-  constructor (pos: BasePosition, operator: UnaryOperator, value: Expression) {
+  constructor (pos: BasePosition, operator: O, value: Expression) {
     super(pos, [value])
     this.type = operator
     this.value = value
@@ -324,25 +341,25 @@ export class UnaryOperation extends Base {
     return `${unaryOperatorToString(this.type)}${this.value}`
   }
 
-  static prefix (operator: UnaryOperator) {
+  static prefix<O extends UnaryOperator> (operator: O) {
     const prefixSchema = schema.tuple([
       schema.any,
       schema.any,
       schema.guard(isExpression),
     ])
-    function fromSchema (pos: BasePosition, [, , value]: schem.infer<typeof prefixSchema>): UnaryOperation {
+    function fromSchema (pos: BasePosition, [, , value]: schem.infer<typeof prefixSchema>): UnaryOperation<O> {
       return new UnaryOperation(pos, operator, value)
     }
     return from({ schema: prefixSchema, from: fromSchema })
   }
 
-  static suffix (operator: UnaryOperator) {
+  static suffix<O extends UnaryOperator> (operator: O) {
     const suffixSchema = schema.tuple([
       schema.guard(isExpression),
       schema.any,
       schema.any,
     ])
-    function fromSchema (pos: BasePosition, [value]: schem.infer<typeof suffixSchema>): UnaryOperation {
+    function fromSchema (pos: BasePosition, [value]: schem.infer<typeof suffixSchema>): UnaryOperation<O> {
       return new UnaryOperation(pos, operator, value)
     }
     return from({ schema: suffixSchema, from: fromSchema })
@@ -403,6 +420,64 @@ export class FuncCall extends Base {
         schema.any,
       ])),
       schema.guard(isExpression),
+      schema.any,
+    ])),
+    schema.any,
+  ])
+}
+
+export class List extends Base {
+  items: Expression[]
+
+  constructor (
+    pos: BasePosition,
+    [, rawItems]: schem.infer<typeof List.schema>,
+  ) {
+    const items = rawItems ? [
+      ...rawItems[0].map(([item]) => item),
+      rawItems[1],
+    ] : []
+    super(pos, items)
+    this.items = items
+  }
+
+  static schema = schema.tuple([
+    schema.any,
+    schema.nullable(schema.tuple([
+      schema.array(schema.tuple([
+        schema.guard(isExpression),
+        schema.any,
+      ])),
+      schema.guard(isExpression),
+      schema.any,
+    ])),
+    schema.any,
+  ])
+}
+
+export class Record extends Base {
+  entries: [string, Expression][]
+
+  constructor (
+    pos: BasePosition,
+    [, rawEntries]: schem.infer<typeof Record.schema>,
+  ) {
+    const entries: [string, Expression][] = rawEntries.map(([key, maybeValue]) => [
+      key.value,
+      maybeValue ? maybeValue[1] : key,
+    ])
+    super(pos, entries.map(([, value]) => value))
+    this.entries = entries
+  }
+
+  static schema = schema.tuple([
+    schema.any,
+    schema.array(schema.tuple([
+      schema.instance(Identifier),
+      schema.nullable(schema.tuple([
+        schema.any,
+        schema.guard(isExpression),
+      ])),
       schema.any,
     ])),
     schema.any,

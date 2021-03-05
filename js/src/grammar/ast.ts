@@ -1,5 +1,5 @@
 export { from, includeBrackets } from './from-nearley'
-export { Declaration } from './ast/declaration'
+export * from './ast/declaration'
 export * from './ast/expressions'
 export * from './ast/literals'
 export * from './ast/statements'
