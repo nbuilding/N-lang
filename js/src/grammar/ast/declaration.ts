@@ -14,7 +14,7 @@ export class Declaration extends Base {
   }
 
   toString () {
-    return this.type ? `${this.name}: ${this.type}` : this.name
+    return this.type ? `${this.name}: ${this.type}` : `${this.name}`
   }
 
   static schema = schema.tuple([
@@ -26,26 +26,35 @@ export class Declaration extends Base {
   ])
 }
 
-const typeVarsDeclarationSchema = schema.tuple([
-  schema.any,
-  schema.array(schema.tuple([
+export class TypeVars extends Base {
+  vars: string[]
+
+  constructor (pos: BasePosition, [, typeVars, typeVar]: schem.infer<typeof TypeVars.schema>) {
+    super(pos)
+    this.vars = [
+      ...typeVars.map(([name]) => name.value),
+      typeVar.value,
+    ]
+  }
+
+  static schema = schema.tuple([
+    schema.any,
+    schema.array(schema.tuple([
+      schema.instance(Identifier),
+      schema.any,
+    ])),
     schema.instance(Identifier),
     schema.any,
-  ])),
-  schema.instance(Identifier),
-  schema.any,
-])
+  ])
+}
 
 export class Arguments extends Base {
-  typeVars: string[]
+  typeVars: TypeVars | null
   params: Declaration[]
 
   constructor (pos: BasePosition, [, maybeTypeVars, param, rawParams]: schem.infer<typeof Arguments.schema>) {
     super(pos)
-    this.typeVars = maybeTypeVars ? [
-      ...maybeTypeVars[0][1].map(([name]) => name.value),
-      maybeTypeVars[0][2].value,
-    ] : []
+    this.typeVars = maybeTypeVars && maybeTypeVars[0]
     this.params = [
       param,
       ...rawParams.map(([, param]) => param),
@@ -55,7 +64,7 @@ export class Arguments extends Base {
   static schema = schema.tuple([
     schema.any, // [ _
     schema.nullable(schema.tuple([
-      typeVarsDeclarationSchema,
+      schema.instance(TypeVars),
       schema.any, // _
     ])),
     schema.instance(Declaration),
@@ -69,19 +78,16 @@ export class Arguments extends Base {
 
 export class TypeSpec extends Base {
   name: string
-  typeVars: string[]
+  typeVars: TypeVars | null
 
   constructor (pos: BasePosition, [name, maybeTypeVars]: schem.infer<typeof TypeSpec.schema>) {
     super(pos)
     this.name = name.value
-    this.typeVars = maybeTypeVars ? [
-      ...maybeTypeVars[1].map(([name]) => name.value),
-      maybeTypeVars[2].value,
-    ] : []
+    this.typeVars = maybeTypeVars
   }
 
   static schema = schema.tuple([
     schema.instance(Identifier),
-    schema.nullable(typeVarsDeclarationSchema),
+    schema.nullable(schema.instance(TypeVars)),
   ])
 }

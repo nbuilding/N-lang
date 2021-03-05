@@ -10,8 +10,10 @@ statement -> "import" _ identifier {% from(ast.ImportStmt) %}
 	| classDeclaration {% id %}
 	| oldForLoop {% id %}
 	| forLoop {% id %}
+	| ifStatement {% id %}
 	| postfixExpressionImpure {% id %}
 	| returnExpression {% id %}
+	| "{" _ block _ "}" {% includeBrackets %}
 
 letStatement -> ("let" _) ("pub" _):? declaration (_ "=" _) expression {% from(ast.LetStmt) %}
 
@@ -19,7 +21,7 @@ varStatement -> ("var" _) identifier (_ "=" _) expression {% from(ast.VarStmt) %
 
 enumDeclaration -> ("type" _) ("pub" _):? typeSpec (_ "=" _) enumDefinition {% from(ast.EnumDeclaration) %}
 
-enumDefinition -> enumVariant ((_ "|" _) enumVariant):*
+enumDefinition -> ("|" _):? enumVariant ((_ "|" _) enumVariant):*
 
 enumVariant -> ("<" _) identifier (_ typeValue):* (_ ">")
 	| identifier
@@ -39,4 +41,4 @@ elseStatement -> "{" _ block _ "}" {% includeBrackets %}
 
 typeSpec -> identifier typeVarsDeclaration:? {% from(ast.TypeSpec) %}
 
-typeVarsDeclaration -> ("[" _) (identifier (_ "," _)):* identifier ((_ ","):? _ "]")
+typeVarsDeclaration -> ("[" _) (identifier (_ "," _)):* identifier ((_ ","):? _ "]") {% from(ast.TypeVars) %}

@@ -14,13 +14,19 @@ arguments -> ("[" _) (typeVarsDeclaration _):? declaration (__ declaration):* (_
 tupleExpression -> noCommaExpression {% id %}
 	| (noCommaExpression _ "," _):+ noCommaExpression (_ ","):? {% from(ast.Tuple) %}
 
-noCommaExpression -> booleanExpression {% id %}
+noCommaExpression -> pipeExpression {% id %}
+
+pipeExpression -> pipeRhs {% id %}
+	| pipeExpression _ "|>" _ booleanExpression {% operation(ast.Operator.PIPE) %}
+
+# RHS = right hand side
+pipeRhs -> booleanExpression {% id %}
 	| ifExpression {% id %}
 	| funcExpr {% id %}
 
 booleanExpression -> notExpression {% id %}
-	| booleanExpression _ ("&&" | "&") _ notExpression {% operation(ast.Operator.AND) %}
-	| booleanExpression _ ("||" | "|") _ notExpression {% operation(ast.Operator.OR) %}
+	| notExpression _ ("&&" | "&") _ booleanExpression {% operation(ast.Operator.AND) %}
+	| notExpression _ ("||" | "|") _ booleanExpression {% operation(ast.Operator.OR) %}
 
 notExpression -> compareExpression {% id %}
 	| "not" _ notExpression {% prefix(ast.UnaryOperator.NOT) %}
@@ -69,7 +75,9 @@ value -> identifier {% id %}
 	| "(" _ ")" {% from(ast.Unit) %}
 	| "(" _ expression _ ")" {% includeBrackets %}
 	| ("[" _) ((noCommaExpression (_ "," _)):* noCommaExpression ((_ ","):? _)):? "]" {% from(ast.List) %}
-	| ("{" _) (identifier ((_ ":" _) expression):? blockSeparator):* (_ "}") {% from(ast.Record) %}
+	| ("{" _) ((recordEntry blockSeparator):* recordEntry (blockSeparator:? _)):? "}" {% from(ast.Record) %}
+
+recordEntry -> identifier ((_ ":" _) expression):? {% from(ast.RecordEntry) %}
 
 string -> %string {% from(ast.String) %}
 

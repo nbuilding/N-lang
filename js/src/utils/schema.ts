@@ -183,6 +183,9 @@ export default {
   },
 
   instance<T> (classConstructor: Constructor<T>): Guard<T> {
+    if (classConstructor === undefined) {
+      throw new Error('TypeScript is big dumb and didn\'t catch you passing in undefined as the class constructor, but I did!')
+    }
     return new Instance(classConstructor)
   },
 

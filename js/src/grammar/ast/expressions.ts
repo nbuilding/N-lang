@@ -2,7 +2,7 @@ import schema, * as schem from '../../utils/schema'
 import { isEnum, isToken } from '../../utils/type-guards'
 import { from } from '../from-nearley'
 import { Base, BasePosition } from './base'
-import { Arguments, Declaration } from './declaration'
+import { Arguments } from './declaration'
 import { Identifier, Literal, Unit, String } from './literals'
 import { Block } from './statements'
 import { isType, Type } from './types'
@@ -262,6 +262,7 @@ export enum Operator {
   DIVIDE = 'divide',
   MODULO = 'modulo',
   EXPONENT = 'exponent',
+  PIPE = 'pipe',
 }
 
 export function operatorToString (self: Operator): string {
@@ -274,6 +275,7 @@ export function operatorToString (self: Operator): string {
     case Operator.DIVIDE: return '/'
     case Operator.MODULO: return '%'
     case Operator.EXPONENT: return '^'
+    case Operator.PIPE: return '|>'
   }
 }
 
@@ -455,29 +457,51 @@ export class List extends Base {
   ])
 }
 
+export class RecordEntry extends Base {
+  key: string
+  value: Expression
+
+  constructor (
+    pos: BasePosition,
+    [key, maybeValue]: schem.infer<typeof RecordEntry.schema>,
+  ) {
+    super(pos)
+    this.key = key.value
+    this.value = maybeValue ? maybeValue[1] : key
+  }
+
+  static schema = schema.tuple([
+    schema.instance(Identifier),
+    schema.nullable(schema.tuple([
+      schema.any,
+      schema.guard(isExpression),
+    ])),
+  ])
+}
+
 export class Record extends Base {
-  entries: [string, Expression][]
+  entries: RecordEntry[]
 
   constructor (
     pos: BasePosition,
     [, rawEntries]: schem.infer<typeof Record.schema>,
   ) {
-    const entries: [string, Expression][] = rawEntries.map(([key, maybeValue]) => [
-      key.value,
-      maybeValue ? maybeValue[1] : key,
-    ])
-    super(pos, entries.map(([, value]) => value))
+    const entries = rawEntries ? [
+      ...rawEntries[0].map(([entry]) => entry),
+      rawEntries[1],
+    ] : []
+    super(pos, entries)
     this.entries = entries
   }
 
   static schema = schema.tuple([
     schema.any,
-    schema.array(schema.tuple([
-      schema.instance(Identifier),
-      schema.nullable(schema.tuple([
+    schema.nullable(schema.tuple([
+      schema.array(schema.tuple([
+        schema.instance(RecordEntry),
         schema.any,
-        schema.guard(isExpression),
       ])),
+      schema.instance(RecordEntry),
       schema.any,
     ])),
     schema.any,

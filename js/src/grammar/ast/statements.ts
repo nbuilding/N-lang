@@ -57,6 +57,8 @@ export type Statement = ImportStmt
   | UnaryOperation<UnaryOperator.AWAIT>
   | FuncCall
   | Return
+  | Block
+  | IfStmt
 
 function isStatement (value: any): value is Statement {
   return value instanceof ImportStmt ||
@@ -69,7 +71,9 @@ function isStatement (value: any): value is Statement {
     value instanceof For ||
     value instanceof UnaryOperation && value.type === UnaryOperator.AWAIT ||
     value instanceof FuncCall ||
-    value instanceof Return
+    value instanceof Return ||
+    value instanceof Block ||
+    value instanceof IfStmt
 }
 
 export class ImportStmt extends Base {
@@ -103,10 +107,6 @@ export class LetStmt extends Base {
     this.value = expr
   }
 
-  toString () {
-    return `let ${this.declaration} = ${this.value}`
-  }
-
   static get schema () {
     return schema.tuple([
       schema.any,
@@ -119,23 +119,23 @@ export class LetStmt extends Base {
 }
 
 export class VarStmt extends Base {
-  declaration: Declaration
+  var: string
   value: Expression
 
-  constructor (pos: BasePosition, [, decl, , expr]: schem.infer<typeof VarStmt.schema>) {
-    super(pos, [decl, expr])
-    this.declaration = decl
+  constructor (pos: BasePosition, [, name, , expr]: schem.infer<typeof VarStmt.schema>) {
+    super(pos, [name, expr])
+    this.var = name.value
     this.value = expr
   }
 
   toString () {
-    return `var ${this.declaration} = ${this.value}`
+    return `var ${this.var} = ${this.value}`
   }
 
   static get schema () {
     return schema.tuple([
       schema.any,
-      schema.instance(Declaration),
+      schema.instance(Identifier),
       schema.any,
       schema.guard(isExpression),
     ])
@@ -175,7 +175,7 @@ export class EnumDeclaration extends Base {
 
   constructor (
     pos: BasePosition,
-    [, pub, typeSpec, , [variant, variants]]: schem.infer<typeof EnumDeclaration.schema>,
+    [, pub, typeSpec, , [, variant, variants]]: schem.infer<typeof EnumDeclaration.schema>,
   ) {
     super(pos)
     this.isPublic = pub !== null
@@ -192,6 +192,7 @@ export class EnumDeclaration extends Base {
     schema.instance(TypeSpec),
     schema.any,
     schema.tuple([
+      schema.any,
       enumVariantSchema,
       schema.array(schema.tuple([
         schema.any,

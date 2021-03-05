@@ -35,6 +35,9 @@ const lexer = moo.states({
 			'->', ':', '.', ',',
 		],
 		await: '!',
+		funcOperator: [
+			'|>',
+		],
 		comparisonOperator: [
 			'<=', '==', '>=', '/=', '<', '=', '>',
 		],
@@ -43,9 +46,6 @@ const lexer = moo.states({
 		],
 		booleanOperator: [
 			'&&', '||', '&', '|', '~',
-		],
-		funcOperator: [
-			'|>',
 		],
 		lbracket: ['{', '[', '('],
 		rbracket: ['}', ']', ')'],

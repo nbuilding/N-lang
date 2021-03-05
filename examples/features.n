@@ -110,7 +110,7 @@ var char1 = \t
 
 type pub enum1[fff, ggg] =
   | variant1
-  | <variant2 fff, ggg>
+  | <variant2 fff ggg>
 
 if not1 {
   let i = 3

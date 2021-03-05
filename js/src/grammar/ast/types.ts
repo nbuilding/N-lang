@@ -1,5 +1,6 @@
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from './base'
+import { TypeVars } from './declaration'
 import { Identifier } from './literals'
 
 export type Type = ModuleId
@@ -45,22 +46,30 @@ export class TupleType extends Base {
 export class FuncType extends Base {
   takes: Type
   returns: Type
+  typeVars: TypeVars | null
 
-  constructor (pos: BasePosition, [takes, , returns]: schem.infer<typeof FuncType.schema>) {
+  constructor (pos: BasePosition, [maybeTypeVars, takes, , returns]: schem.infer<typeof FuncType.schema>) {
     super(pos)
     this.takes = takes
     this.returns = returns
+    this.typeVars = maybeTypeVars && maybeTypeVars[0]
   }
 
   toString () {
     return `(${this.takes}) -> ${this.returns}`
   }
 
-  static schema = schema.tuple([
-    schema.guard(isType),
-    schema.any,
-    schema.guard(isType),
-  ])
+  static get schema () {
+    return schema.tuple([
+      schema.nullable(schema.tuple([
+        schema.instance(TypeVars),
+        schema.any,
+      ])),
+      schema.guard(isType),
+      schema.any,
+      schema.guard(isType),
+    ])
+  }
 }
 
 export class ModuleId extends Base {
@@ -113,27 +122,49 @@ export class UnitType extends Base {
   ])
 }
 
+export class RecordTypeEntry extends Base {
+  key: string
+  value: Type
+
+  constructor (
+    pos: BasePosition,
+    [key, , type]: schem.infer<typeof RecordTypeEntry.schema>,
+  ) {
+    super(pos)
+    this.key = key.value
+    this.value = type
+  }
+
+  static schema = schema.tuple([
+    schema.instance(Identifier),
+    schema.any,
+    schema.guard(isType),
+  ])
+}
+
 export class RecordType extends Base {
-  entries: [string, Type][]
+  entries: RecordTypeEntry[]
 
   constructor (
     pos: BasePosition,
     [, rawEntries]: schem.infer<typeof RecordType.schema>,
   ) {
-    const entries: [string, Type][] = rawEntries.map(([key, , type]) => [
-      key.value,
-      type,
-    ])
-    super(pos, entries.map(([, value]) => value))
+    const entries = rawEntries ? [
+      ...rawEntries[0].map(([entry]) => entry),
+      rawEntries[1],
+    ] : []
+    super(pos, entries)
     this.entries = entries
   }
 
   static schema = schema.tuple([
     schema.any,
-    schema.array(schema.tuple([
-      schema.instance(Identifier),
-      schema.any,
-      schema.guard(isType),
+    schema.nullable(schema.tuple([
+      schema.array(schema.tuple([
+        schema.instance(RecordTypeEntry),
+        schema.any,
+      ])),
+      schema.instance(RecordTypeEntry),
       schema.any,
     ])),
     schema.any,
