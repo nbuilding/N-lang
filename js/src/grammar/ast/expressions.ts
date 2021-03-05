@@ -2,8 +2,9 @@ import schema, * as schem from '../../utils/schema'
 import { isEnum, isToken } from '../../utils/type-guards'
 import { from } from '../from-nearley'
 import { Base, BasePosition } from './base'
-import { Arguments } from './declaration'
+import { Arguments, Declaration } from './declaration'
 import { Identifier, Literal, Unit, String } from './literals'
+import { isPattern, Pattern } from './patterns'
 import { Block } from './statements'
 import { isType, Type } from './types'
 
@@ -109,8 +110,32 @@ export class Tuple extends Base {
   ])
 }
 
+export type Condition = Expression
+  | IfLet
+export function isCondition (value: any): value is Condition {
+  return value instanceof IfLet || isExpression(value)
+}
+
+export class IfLet extends Base {
+  declaration: Declaration
+  expression: Expression
+
+  constructor (pos: BasePosition, [, declaration, , expression]: schem.infer<typeof IfLet.schema>) {
+    super(pos, [expression])
+    this.declaration = declaration
+    this.expression = expression
+  }
+
+  static schema = schema.tuple([
+    schema.any,
+    schema.instance(Declaration),
+    schema.any,
+    schema.guard(isExpression),
+  ])
+}
+
 export class IfExpression extends Base {
-  condition: Expression
+  condition: Condition
   then: Expression
   else: Expression
 
@@ -131,7 +156,7 @@ export class IfExpression extends Base {
 
   static schema = schema.tuple([
     schema.any,
-    schema.guard(isExpression),
+    schema.guard(isCondition),
     schema.any,
     schema.guard(isExpression),
     schema.any,

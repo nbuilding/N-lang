@@ -97,13 +97,11 @@ const lexer = moo.states({
 
 @include "./grammars/statements.ne"
 @include "./grammars/expressions.ne"
+@include "./grammars/patterns.ne"
 @include "./grammars/types.ne"
 
 main -> _ block _ {% ([, block]) => block %}
 	| _ {% () => ast.Block.empty() %}
-
-declaration -> identifier ((_ ":" _) type):? {% from(ast.Declaration) %}
-	| "_" ((_ ":" _) type):? {% from(ast.Declaration) %}
 
 identifier -> %identifier {% from(ast.Identifier) %}
 

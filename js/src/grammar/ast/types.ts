@@ -35,8 +35,6 @@ export class TupleType extends Base {
     schema.array(schema.tuple([
       schema.guard(isType),
       schema.any,
-      schema.any,
-      schema.any,
     ])),
     schema.guard(isType),
     schema.any,

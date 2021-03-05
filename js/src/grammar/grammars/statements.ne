@@ -34,10 +34,13 @@ oldForLoop -> ("for" _) declaration _ value (_ "{" _) block (_ "}") {% from(ast.
 
 forLoop -> ("for" _ "(" _) declaration (_ "in" _) expression (_ ")" _ "{" _) block (_ "}") {% from(ast.For) %}
 
-ifStatement -> ("if" _) expression (_ "{" _) block (_ "}") ((_ "else" _) elseStatement):? {% from(ast.IfStmt) %}
+ifStatement -> ("if" _) condition (_ "{" _) block (_ "}") ((_ "else" _) elseStatement):? {% from(ast.IfStmt) %}
 
 elseStatement -> "{" _ block _ "}" {% includeBrackets %}
 	| ifStatement {% id %}
+
+condition -> expression {% id %}
+	| ("let" _) declaration (_ "=" _) expression {% from(ast.IfLet) %}
 
 typeSpec -> identifier typeVarsDeclaration:? {% from(ast.TypeSpec) %}
 

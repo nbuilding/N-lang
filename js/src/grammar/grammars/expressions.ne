@@ -9,7 +9,7 @@ returnExpression -> "return" _ expression {% from(ast.Return) %}
 
 funcExpr -> arguments (_ "->" _) type (_ "{" _) block (_ "}") {% from(ast.Function) %}
 
-arguments -> ("[" _) (typeVarsDeclaration _):? declaration (__ declaration):* (_ "]") {% from(ast.Arguments) %}
+arguments -> ("[" _) (typeVarsDeclaration _):? deifniteDeclaration (__ deifniteDeclaration):* (_ "]") {% from(ast.Arguments) %}
 
 tupleExpression -> noCommaExpression {% id %}
 	| (noCommaExpression _ "," _):+ noCommaExpression (_ ","):? {% from(ast.Tuple) %}
@@ -81,7 +81,7 @@ recordEntry -> identifier ((_ ":" _) expression):? {% from(ast.RecordEntry) %}
 
 string -> %string {% from(ast.String) %}
 
-ifExpression -> ("if" _) expression (_ "{" _) expression (_ "}" _ "else" _) elseExprBranch {% from(ast.IfExpression) %}
+ifExpression -> ("if" _) condition (_ "{" _) expression (_ "}" _ "else" _) elseExprBranch {% from(ast.IfExpression) %}
 
 elseExprBranch -> "{" _ expression _ "}" {% includeBrackets %}
 	| ifExpression {% id %}

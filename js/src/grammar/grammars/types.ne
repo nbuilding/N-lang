@@ -3,7 +3,7 @@
 type -> tupleTypeExpr {% id %}
 
 tupleTypeExpr -> funcTypeExpr {% id %}
-	| (funcTypeExpr _ "," _):+ funcTypeExpr (_ ","):? {% from(ast.TupleType) %}
+	| (funcTypeExpr (_ "," _)):+ funcTypeExpr (_ ","):? {% from(ast.TupleType) %}
 
 funcTypeExpr -> typeValue {% id %}
 	| (typeVarsDeclaration _):? typeValue (_ "->" _) funcTypeExpr {% from(ast.FuncType) %}

@@ -1,7 +1,7 @@
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from './base'
 import { Arguments, Declaration, TypeSpec } from './declaration'
-import { Expression, FuncCall, isExpression, Return, UnaryOperation, UnaryOperator } from './expressions'
+import { Condition, Expression, FuncCall, isCondition, isExpression, Return, UnaryOperation, UnaryOperator } from './expressions'
 import { Identifier } from './literals'
 import { isType, Type } from './types'
 
@@ -320,7 +320,7 @@ export class For extends Base {
 }
 
 export class IfStmt extends Base {
-  condition: Expression
+  condition: Condition
   then: Block
   else: Block | Statement | null
 
@@ -342,7 +342,7 @@ export class IfStmt extends Base {
   static get schema () {
     return schema.tuple([
       schema.any,
-      schema.guard(isExpression),
+      schema.guard(isCondition),
       schema.any,
       schema.instance(Block),
       schema.any,
