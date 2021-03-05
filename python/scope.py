@@ -26,9 +26,9 @@ from modules import libraries
 
 basepath = ""
 if getattr(sys, 'frozen', False):
-    basepath = os.path.dirname(sys.executable)
+	basepath = os.path.dirname(sys.executable)
 elif __file__:
-    basepath = os.path.dirname(__file__)
+	basepath = os.path.dirname(__file__)
 
 syntaxpath = os.path.join(basepath, "syntax.lark")
 
@@ -1090,12 +1090,22 @@ class Scope:
 			exit_point = None
 			warned = False
 			for instruction in tree.children:
-			    exit = self.type_check_command(instruction)
-			    if exit and exit_point is None:
-			        exit_point = exit
-			    elif exit_point and not warned:
-			        warned = True
-			        self.warnings.append(TypeCheckError(exit_point, "There are commands after this return statement, but I will never run them."))
+				exit = self.type_check_command(instruction)
+				if exit and exit_point is None:
+					exit_point = exit
+				elif exit_point and not warned:
+					warned = True
+					self.warnings.append(TypeCheckError(exit_point, "There are commands after this return statement, but I will never run them."))
+			parent_function = self.get_parent_function()
+			if not parent_function is None and exit_point is None:
+				_, incompatible = resolve_equal_types(parent_function.returntype, "unit")
+				if n_cmd_type.is_type(parent_function.returntype):
+					if incompatible:
+						_, incompatible = resolve_equal_types(parent_function.returntype.typevars[0], ())
+					if incompatible:
+						self.errors.append(TypeCheckError(tree, "The function return type of a %s or a %s is unable to support the default return of %s [maybe you forgot a return]." % (display_type(parent_function.returntype), display_type(parent_function.returntype.typevars[0]), display_type("unit"))))
+				elif incompatible:
+					self.errors.append(TypeCheckError(tree, "The function return type of a %s is unable to support the default return of %s [maybe you forgot a return]." % (display_type(parent_function.returntype), display_type("unit"))))
 			return exit_point
 		elif tree.data != "instruction":
 			self.errors.append(TypeCheckError(tree, "Internal problem: I only deal with instructions, not %s." % tree.data))
