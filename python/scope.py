@@ -26,9 +26,9 @@ from modules import libraries
 
 basepath = ""
 if getattr(sys, 'frozen', False):
-    basepath = os.path.dirname(sys.executable)
+	basepath = os.path.dirname(sys.executable)
 elif __file__:
-    basepath = os.path.dirname(__file__)
+	basepath = os.path.dirname(__file__)
 
 syntaxpath = os.path.join(basepath, "syntax.lark")
 
@@ -828,6 +828,7 @@ class Scope:
 		if expr.data == "ifelse_expr":
 			condition, if_true, if_false = expr.children
 			scope = self.new_scope()
+			elsescope = self.new_scope()
 			if condition.data == "conditional_let":
 				pattern, value = condition.children
 				eval_type = self.type_check_expr(value)
@@ -837,7 +838,7 @@ class Scope:
 				if cond_type is not None and cond_type != "bool":
 					self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
 			if_true_type = scope.type_check_expr(if_true)
-			if_false_type = scope.type_check_expr(if_false)
+			if_false_type = elsescope.type_check_expr(if_false)
 			if if_true_type is None or if_false_type is None:
 				return None
 			return_type, incompatible = resolve_equal_types(if_true_type, if_false_type)
@@ -1089,12 +1090,22 @@ class Scope:
 			exit_point = None
 			warned = False
 			for instruction in tree.children:
-			    exit = self.type_check_command(instruction)
-			    if exit and exit_point is None:
-			        exit_point = exit
-			    elif exit_point and not warned:
-			        warned = True
-			        self.warnings.append(TypeCheckError(exit_point, "There are commands after this return statement, but I will never run them."))
+				exit = self.type_check_command(instruction)
+				if exit and exit_point is None:
+					exit_point = exit
+				elif exit_point and not warned:
+					warned = True
+					self.warnings.append(TypeCheckError(exit_point, "There are commands after this return statement, but I will never run them."))
+			parent_function = self.get_parent_function()
+			if not parent_function is None and exit_point is None:
+				_, incompatible = resolve_equal_types(parent_function.returntype, "unit")
+				if n_cmd_type.is_type(parent_function.returntype):
+					if incompatible:
+						_, incompatible = resolve_equal_types(parent_function.returntype.typevars[0], ())
+					if incompatible:
+						self.errors.append(TypeCheckError(tree, "The function return type of a %s or a %s is unable to support the default return of %s [maybe you forgot a return]." % (display_type(parent_function.returntype), display_type(parent_function.returntype.typevars[0]), display_type("unit"))))
+				elif incompatible:
+					self.errors.append(TypeCheckError(tree, "The function return type of a %s is unable to support the default return of %s [maybe you forgot a return]." % (display_type(parent_function.returntype), display_type("unit"))))
 			return exit_point
 		elif tree.data != "instruction":
 			self.errors.append(TypeCheckError(tree, "Internal problem: I only deal with instructions, not %s." % tree.data))
@@ -1219,6 +1230,7 @@ class Scope:
 		elif command.data == "ifelse":
 			condition, if_true, if_false = command.children
 			scope = self.new_scope()
+			elsescope = self.new_scope()
 			if condition.data == "conditional_let":
 				pattern, value = condition.children
 				eval_type = self.type_check_expr(value)
@@ -1233,7 +1245,7 @@ class Scope:
 				if cond_type is not None and cond_type != "bool":
 					self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
 			exit_if_true = scope.type_check_command(if_true)
-			exit_if_false = scope.type_check_command(if_false)
+			exit_if_false = elsescope.type_check_command(if_false)
 			if exit_if_true and exit_if_false:
 				return command
 		elif command.data == "enum_definition":
