@@ -117,6 +117,7 @@ blockSeparator -> (_spaces (newline | ";")):+ _spaces {% () => null %}
 
 newline -> lineComment:? %newline {% () => null %}
 
+# Optional whitespace but without newlines
 _spaces -> (%spaces:? multilineComment):* %spaces:? {% () => null %}
 
 # Obligatory whitespace

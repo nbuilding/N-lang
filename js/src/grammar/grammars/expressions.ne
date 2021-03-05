@@ -75,7 +75,7 @@ value -> identifier {% id %}
 	| "(" _ ")" {% from(ast.Unit) %}
 	| "(" _ expression _ ")" {% includeBrackets %}
 	| ("[" _) ((noCommaExpression (_ "," _)):* noCommaExpression ((_ ","):? _)):? "]" {% from(ast.List) %}
-	| ("{" _) ((recordEntry blockSeparator):* recordEntry (blockSeparator:? _)):? "}" {% from(ast.Record) %}
+	| ("{" _) ((recordEntry blockSeparator):* recordEntry (blockSeparator | _spaces)):? "}" {% from(ast.Record) %}
 
 recordEntry -> identifier ((_ ":" _) expression):? {% from(ast.RecordEntry) %}
 

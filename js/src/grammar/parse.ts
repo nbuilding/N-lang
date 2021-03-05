@@ -26,12 +26,6 @@ export function parse (script: string, { ambiguityOutput = 'omit' }: ParseOption
     throw new ParseError(parser.results, 'Unexpected end of input.')
   }
   if (ambiguities.length) {
-    try {
-      assert.deepStrictEqual(ambiguities[0], ambiguities[1])
-      console.warn('The first two results are exactly the same! D:')
-    } catch (err) {
-      console.log('Differences between the first two results:', err.message)
-    }
     let results: string
     switch (ambiguityOutput) {
       case 'omit': {
@@ -39,7 +33,10 @@ export function parse (script: string, { ambiguityOutput = 'omit' }: ParseOption
         break
       }
       case 'object': {
-        results = util.inspect(parser.results, false, null, true)
+        results = util.inspect(parser.results, {
+          depth: null,
+          colors: true,
+        })
         break
       }
       case 'string': {
@@ -47,7 +44,18 @@ export function parse (script: string, { ambiguityOutput = 'omit' }: ParseOption
         break
       }
     }
-    throw new ParseError(parser.results, `You've discovered an ambiguity in the grammar!\n\n${results}\n\n(${parser.results.length} items)`)
+    console.error(results)
+    let i = 1
+    try {
+      for (; i < parser.results.length; i++) {
+        assert.deepStrictEqual(parser.results[0], parser.results[i])
+      }
+      console.error('All the results are exactly the same! D:')
+    } catch (err) {
+      console.error(err.message)
+      console.error(`^ Differences between results 0 and ${i}`)
+    }
+    throw new ParseError(parser.results, `You've discovered an ambiguity in the grammar (${parser.results.length} possibilities). This is a bug with the N parser.`)
   }
   return result
 }

@@ -17,7 +17,7 @@ valuePattern -> definitePattern {% id %}
 
 definitePattern -> identifier {% id %}
 	| "_" {% from(ast.DiscardPattern) %}
-	| ("{" _) valuePattern (blockSeparator valuePattern):* (blockSeparator:? _ "}") {% from(ast.RecordPattern) %}
+	| ("{" _) ((recordPatternEntry blockSeparator):* recordPatternEntry (blockSeparator | _spaces)):? "}" {% from(ast.RecordPattern) %}
 	| "(" _ pattern _ ")" {% includeBrackets %}
 
 recordPatternEntry -> identifier ((_ ":" _) valuePattern):? {% from(ast.RecordPatternEntry) %}

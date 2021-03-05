@@ -1,3 +1,5 @@
+import util from 'util'
+
 export interface BasePosition {
   line: number
   col: number
@@ -49,5 +51,20 @@ export class Base {
     } else {
       return []
     }
+  }
+
+  // Make the output of util.inspect cleaner
+  [util.inspect.custom] (): any {
+    const obj: any = { ...this }
+    // Sets a hidden value
+    Object.defineProperty(obj, 'constructor', {
+      value: this.constructor
+    })
+    delete obj.line
+    delete obj.col
+    delete obj.endLine
+    delete obj.endCol
+    delete obj.children
+    return obj
   }
 }

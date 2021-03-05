@@ -71,15 +71,18 @@ let call2 = 3 |> print
 let fizzbuzz1 = imp fizzbuzz
 let fizzbuzz2 = imp "./fizzbuzz.n"
 
-let tuple: float, str, char = 1, "two", \{3}
+let tuple1, tuple, tuple3: float, str, char = 1, "two", \{3}
 
 let list: list[(int, float)] = [(1, 0.1), (2, 0.2), (3, 0.3)]
 
-let record1: { name: str; age: int } = {
+let {
+  name: record1
+  age
+}: { name: str; age: int } = {
   name: "Billia"
   age: 18
 }
-let record2: {
+let { name; age: record2 }: {
   age: int
   name: str
 } = { name: "Billy"; age: 30 }
@@ -102,8 +105,8 @@ for i 3 {
 for (item in [1, 2, 3]) {
   print(item)
 }
-for (i in range(0, 3, 1)) {
-  print(i)
+for (_ in range(0, 3, 1)) {
+  print("i")
 }
 
 var char1 = \t
