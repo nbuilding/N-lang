@@ -96,8 +96,8 @@ export class ImportStmt extends Base {
 }
 
 export class LetStmt extends Base {
-  declaration: Declaration
   public: boolean
+  declaration: Declaration
   value: Expression
 
   constructor (pos: BasePosition, [, pub, decl, , expr]: schem.infer<typeof LetStmt.schema>) {
@@ -105,6 +105,10 @@ export class LetStmt extends Base {
     this.declaration = decl
     this.public = pub !== null
     this.value = expr
+  }
+
+  toString () {
+    return `let${this.public ? ' pub' : ''} ${this.declaration} = ${this.value}`
   }
 
   static get schema () {
@@ -142,48 +146,63 @@ export class VarStmt extends Base {
   }
 }
 
-const enumVariantSchema = schema.union([
-  schema.tuple([
-    schema.any,
-    schema.instance(Identifier),
-    schema.array(schema.tuple([
-      schema.any,
-      schema.guard(isType),
-    ])),
-    schema.any,
-  ]),
-  schema.tuple([
-    schema.instance(Identifier),
-  ]),
-])
+export class EnumVariant extends Base {
+  variant: string
+  types: Type[] = []
 
-function parseVariant (variant: schem.infer<typeof enumVariantSchema>): [string, Type[]] {
-  if (variant.length === 1) {
-    return [variant[0].value, []]
-  } else {
-    return [
-      variant[1].value,
-      variant[2].map(([, type]) => type),
-    ]
+  constructor (
+    pos: BasePosition,
+    variant: schem.infer<typeof EnumVariant.schema>,
+  ) {
+    super(pos)
+    if (variant.length === 1) {
+      this.variant = variant[0].value
+    } else {
+      this.variant = variant[1].value
+      this.types = variant[2].map(([, type]) => type)
+    }
   }
+
+  toString () {
+    return `<${this.variant}${this.types.map(type => ' ' + type).join('')}>`
+  }
+
+  static schema = schema.union([
+    schema.tuple([
+      schema.any,
+      schema.instance(Identifier),
+      schema.array(schema.tuple([
+        schema.any,
+        schema.guard(isType),
+      ])),
+      schema.any,
+    ]),
+    schema.tuple([
+      schema.instance(Identifier),
+    ]),
+  ])
 }
 
 export class EnumDeclaration extends Base {
-  isPublic: boolean
+  public: boolean
   typeSpec: TypeSpec
-  variants: [string, Type[]][]
+  variants: EnumVariant[]
 
   constructor (
     pos: BasePosition,
     [, pub, typeSpec, , [, variant, variants]]: schem.infer<typeof EnumDeclaration.schema>,
   ) {
     super(pos)
-    this.isPublic = pub !== null
+    this.public = pub !== null
     this.typeSpec = typeSpec
     this.variants = [
-      parseVariant(variant),
-      ...variants.map(([, variant]) => parseVariant(variant)),
+      variant,
+      ...variants.map(([, variant]) => variant),
     ]
+  }
+
+  toString () {
+    return `type${this.public ? ' pub' : ''} ${this.typeSpec} = ${this.variants.join(' | ')}`
   }
 
   static schema = schema.tuple([
@@ -193,17 +212,17 @@ export class EnumDeclaration extends Base {
     schema.any,
     schema.tuple([
       schema.any,
-      enumVariantSchema,
+      schema.instance(EnumVariant),
       schema.array(schema.tuple([
         schema.any,
-        enumVariantSchema,
+        schema.instance(EnumVariant),
       ])),
     ]),
   ])
 }
 
 export class AliasDeclaration extends Base {
-  isPublic: boolean
+  public: boolean
   typeSpec: TypeSpec
   type: Type
 
@@ -212,9 +231,13 @@ export class AliasDeclaration extends Base {
     [, pub, typeSpec, , type]: schem.infer<typeof AliasDeclaration.schema>,
   ) {
     super(pos)
-    this.isPublic = pub !== null
+    this.public = pub !== null
     this.typeSpec = typeSpec
     this.type = type
+  }
+
+  toString () {
+    return `alias${this.public ? ' pub' : ''} ${this.typeSpec} = ${this.type}`
   }
 
   static schema = schema.tuple([
@@ -227,7 +250,7 @@ export class AliasDeclaration extends Base {
 }
 
 export class ClassDeclaration extends Base {
-  isPublic: boolean
+  public: boolean
   name: string
   arguments: Arguments
   body: Block
@@ -237,10 +260,14 @@ export class ClassDeclaration extends Base {
     [, pub, name, , args, , body]: schem.infer<typeof ClassDeclaration.schema>,
   ) {
     super(pos, [body])
-    this.isPublic = pub !== null
+    this.public = pub !== null
     this.name = name.value
     this.arguments = args
     this.body = body
+  }
+
+  toString () {
+    return `class${this.public ? ' pub' : ''} ${this.name} ${this.arguments} ${this.body}`
   }
 
   static schema = schema.tuple([
@@ -303,7 +330,7 @@ export class For extends Base {
   }
 
   toString (): string {
-    return `for ${this.var} ${this.value} ${this.body}`
+    return `for (${this.var} in ${this.value}) ${this.body}`
   }
 
   static get schema () {

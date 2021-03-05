@@ -52,7 +52,7 @@ export class ImportFile extends Base {
   }
 
   toString () {
-    return `imp ${this.path}`
+    return `imp ${JSON.stringify(this.path)}`
   }
 
   static schema = schema.tuple([
@@ -126,6 +126,10 @@ export class IfLet extends Base {
     this.expression = expression
   }
 
+  toString () {
+    return `let ${this.declaration} = ${this.expression}`
+  }
+
   static schema = schema.tuple([
     schema.any,
     schema.instance(Declaration),
@@ -150,8 +154,8 @@ export class IfExpression extends Base {
   }
 
   toString () {
-    return `if ${this.condition} ${this.then}`
-      + (this.else ? ` else ${this.else}` : '')
+    return `if ${this.condition} { ${this.then} }`
+      + (this.else ? ` else { ${this.else} }` : '')
   }
 
   static schema = schema.tuple([
@@ -180,7 +184,7 @@ export class Function extends Base {
   }
 
   toString (): string {
-    return `${this.arguments} -> ${this.returnType} : ${this.body}`
+    return `${this.arguments} -> ${this.returnType} ${this.body}`
   }
 
   static schema = schema.tuple([
@@ -365,7 +369,12 @@ export class UnaryOperation<O extends UnaryOperator> extends Base {
   }
 
   toString () {
-    return `${unaryOperatorToString(this.type)}${this.value}`
+    switch (this.type) {
+      case UnaryOperator.NEGATE: return `-${this.value}`
+      case UnaryOperator.NOT: return `not ${this.value}`
+      case UnaryOperator.AWAIT: return `${this.value}!`
+    }
+    return super.toString()
   }
 
   static prefix<O extends UnaryOperator> (operator: O) {
@@ -468,6 +477,10 @@ export class List extends Base {
     this.items = items
   }
 
+  toString () {
+    return `[${this.items.join(', ')}]`
+  }
+
   static schema = schema.tuple([
     schema.any,
     schema.nullable(schema.tuple([
@@ -495,6 +508,10 @@ export class RecordEntry extends Base {
     this.value = maybeValue ? maybeValue[1] : key
   }
 
+  toString () {
+    return `${this.key}: ${this.value}`
+  }
+
   static schema = schema.tuple([
     schema.instance(Identifier),
     schema.nullable(schema.tuple([
@@ -517,6 +534,10 @@ export class Record extends Base {
     ] : []
     super(pos, entries)
     this.entries = entries
+  }
+
+  toString () {
+    return `{ ${this.entries.join('; ')} }`
   }
 
   static schema = schema.tuple([

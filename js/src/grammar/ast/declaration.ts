@@ -38,6 +38,10 @@ export class TypeVars extends Base {
     ]
   }
 
+  toString () {
+    return `[${this.vars.join(', ')}]`
+  }
+
   static schema = schema.tuple([
     schema.any,
     schema.array(schema.tuple([
@@ -60,6 +64,10 @@ export class Arguments extends Base {
       param,
       ...rawParams.map(([, param]) => param),
     ]
+  }
+
+  toString () {
+    return `[${this.typeVars ? this.typeVars + ' ' : ''}${this.params.join(' ')}]`
   }
 
   static schema = schema.tuple([
@@ -85,6 +93,10 @@ export class TypeSpec extends Base {
     super(pos)
     this.name = name.value
     this.typeVars = maybeTypeVars
+  }
+
+  toString () {
+    return `${this.name}${this.typeVars || ''}`
   }
 
   static schema = schema.tuple([

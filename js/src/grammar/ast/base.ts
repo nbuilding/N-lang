@@ -53,6 +53,10 @@ export class Base {
     }
   }
 
+  toString () {
+    return `[undisplayable ${this.constructor.name}]`
+  }
+
   // Make the output of util.inspect cleaner
   [util.inspect.custom] (): any {
     const obj: any = { ...this }

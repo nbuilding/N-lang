@@ -54,7 +54,7 @@ export class FuncType extends Base {
   }
 
   toString () {
-    return `(${this.takes}) -> ${this.returns}`
+    return `(${this.typeVars ? this.typeVars + ' ' : ''}${this.takes} -> ${this.returns})`
   }
 
   static get schema () {
@@ -113,6 +113,10 @@ export class UnitType extends Base {
     super(pos)
   }
 
+  toString () {
+    return '()'
+  }
+
   static schema = schema.tuple([
     schema.any,
     schema.any,
@@ -131,6 +135,10 @@ export class RecordTypeEntry extends Base {
     super(pos)
     this.key = key.value
     this.value = type
+  }
+
+  toString () {
+    return `${this.key}: ${this.value}`
   }
 
   static schema = schema.tuple([
@@ -153,6 +161,10 @@ export class RecordType extends Base {
     ] : []
     super(pos, entries)
     this.entries = entries
+  }
+
+  toString () {
+    return `{ ${this.entries.join('; ')} }`
   }
 
   static schema = schema.tuple([

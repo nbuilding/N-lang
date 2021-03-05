@@ -23,8 +23,8 @@ enumDeclaration -> ("type" _) ("pub" _):? typeSpec (_ "=" _) enumDefinition {% f
 
 enumDefinition -> ("|" _):? enumVariant ((_ "|" _) enumVariant):*
 
-enumVariant -> ("<" _) identifier (_ typeValue):* (_ ">")
-	| identifier
+enumVariant -> ("<" _) identifier (_ typeValue):* (_ ">") {% from(ast.EnumVariant) %}
+	| identifier {% from(ast.EnumVariant) %}
 
 aliasDefinition -> ("alias" _) ("pub" _):? typeSpec (_ "=" _) type {% from(ast.AliasDeclaration) %}
 

@@ -41,6 +41,10 @@ export class Unit extends Base {
     super(pos)
   }
 
+  toString () {
+    return '()'
+  }
+
   static schema = schema.tuple([
     schema.any,
     schema.any,

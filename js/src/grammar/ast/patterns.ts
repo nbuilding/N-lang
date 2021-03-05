@@ -28,6 +28,10 @@ export class TuplePattern extends Base {
     ]
   }
 
+  toString () {
+    return `(${this.patterns.join(', ')})`
+  }
+
   static schema = schema.tuple([
     schema.array(schema.tuple([
       schema.guard(isPattern),
@@ -46,6 +50,14 @@ export class EnumPattern extends Base {
     super(pos)
     this.variant = variant.value
     this.patterns = patterns.map(([, pattern]) => pattern)
+  }
+
+  toString () {
+    return `<${this.variant}${
+      this.patterns
+        .map(pattern => ' ' + pattern)
+        .join('')
+    }>`
   }
 
   static schema = schema.tuple([
@@ -70,6 +82,10 @@ export class ListPattern extends Base {
     ] : []
   }
 
+  toString () {
+    return `[${this.patterns.join(', ')}]`
+  }
+
   static schema = schema.tuple([
     schema.any,
     schema.nullable(schema.tuple([
@@ -89,6 +105,10 @@ export class DiscardPattern extends Base {
     super(pos)
   }
 
+  toString () {
+    return '_'
+  }
+
   static schema = schema.tuple([
     schema.any,
   ])
@@ -105,6 +125,10 @@ export class RecordPatternEntry extends Base {
     super(pos)
     this.key = key.value
     this.value = maybeValue ? maybeValue[1] : key
+  }
+
+  toString () {
+    return `${this.key}: ${this.value}`
   }
 
   static schema = schema.tuple([
@@ -129,6 +153,10 @@ export class RecordPattern extends Base {
     ] : []
     super(pos, entries)
     this.entries = entries
+  }
+
+  toString () {
+    return `{ ${this.entries.join('; ')} }`
   }
 
   static schema = schema.tuple([
