@@ -1,0 +1,70 @@
+// Aims to ensure that multiline comments can be
+// - inserted wherever reasonable (generally wherever whitespace is allowed)
+// - nested
+
+/* /* Nested */ */
+
+/*
+	We're
+*/let/*
+	no
+*/header/*
+	strangers
+*/:/*
+	to
+*/map/*
+	love
+*/[/*
+	You
+*/str/*
+	know
+*/,/*
+	the
+*/str/*
+	rules
+*/]/*
+	and
+*/=/*
+	so
+*/mapFrom/*
+	do
+*/(/*
+	I
+*/[/*
+	A
+*/("Content-Type"/*
+	full
+*/,/*
+	commitment's
+*/"application/json"/*
+	what
+*/)/*
+	I'm
+*/,/*
+	thinking
+*/(/*
+	of
+*/"Authorization"/*
+	You
+*/,/*
+	wouldn't
+*/"Bot "/*
+	get
+*/+/*
+	this
+*/key/*
+	from
+*/)/*
+	any
+*/]/*
+	other
+*/)/*
+	guy
+*/
+
+
+// Taken from discord.n
+let header: map[str, str] = mapFrom([
+	("Content-Type", "application/json"),
+	("Authorization", "Bot " + key)
+])
