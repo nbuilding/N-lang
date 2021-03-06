@@ -4,7 +4,6 @@ import { from } from '../from-nearley'
 import { Base, BasePosition } from './base'
 import { Arguments, Declaration } from './declaration'
 import { Identifier, Literal, Unit, String } from './literals'
-import { isPattern, Pattern } from './patterns'
 import { Block } from './statements'
 import { isType, Type } from './types'
 

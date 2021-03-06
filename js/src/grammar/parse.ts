@@ -1,7 +1,7 @@
 import util from 'util'
 import { Parser, Grammar } from 'nearley'
 import grammar from './n-lang.grammar'
-import { Block } from './ast'
+import { Block, Base, DiffError } from './ast'
 import assert from 'assert'
 
 export class ParseError extends SyntaxError {
@@ -47,10 +47,19 @@ export function parse (script: string, { ambiguityOutput = 'omit', loud = false 
     }
     if (loud) {
       console.error(results)
-      let i = 1
+      let i = parser.results.length - 1
       try {
-        for (; i < parser.results.length; i++) {
-          assert.deepStrictEqual(parser.results[0], parser.results[i])
+        for (; i >= 1; i--) {
+          const one = parser.results[0]
+          const other = parser.results[i]
+          if (one instanceof Base && other instanceof Base) {
+            const differences = one.diff(other)
+            if (differences.length > 0) {
+              throw new DiffError(differences)
+            }
+          } else {
+            assert.deepStrictEqual(one, other)
+          }
         }
         console.error('All the results are exactly the same! D:')
       } catch (err) {

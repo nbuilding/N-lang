@@ -1,8 +1,8 @@
-import { deepStrictEqual, AssertionError } from 'assert'
 import * as fs from 'fs/promises'
 import { resolve, join } from 'path'
 
 import { FileLines } from '../../src/type-checker/display-lines'
+import { DiffError } from '../../src/grammar/ast/base'
 
 const syntaxTestsDir = resolve(__dirname, '../../../tests/syntax/')
 const files: { path: string, name: string }[] = []
@@ -24,20 +24,9 @@ before(async () => {
           .map(snippet => new FileLines(snippet, name).parse())
 
         for (let i = 0; i < snippets.length; i++) {
-          try {
-            deepStrictEqual(firstSnippet, snippets[i], `First and snippet #${i + 2} expected to be equal.`)
-          } catch (err) {
-            // Throwing the AssertionError directly seems to hang the test
-            // because of how massive the diff is.
-            console.log(err)
-            if (err instanceof AssertionError) {
-              console.log({ ...err })
-            }
-            throw new AssertionError({
-              ...err,
-              actual: 3,
-              expected: 4,
-            })
+          const differences = firstSnippet.diff(snippets[i])
+          if (differences.length > 0) {
+            throw new DiffError(differences)
           }
         }
       })
