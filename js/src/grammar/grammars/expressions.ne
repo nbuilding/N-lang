@@ -64,7 +64,8 @@ postfixExpression -> value {% id %}
 	| postfixExpression (_ "." _) identifier {% from(ast.RecordAccess) %}
 
 postfixExpressionImpure -> postfixExpression _ "!" {% suffix(ast.UnaryOperator.AWAIT) %}
-	| postfixExpression (_ "(" _) ((noCommaExpression (_ "," _)):* noCommaExpression ((_ ","):? _)):? ")" {% from(ast.FuncCall) %}
+	# No newlines allowed between the function and its arguments
+	| postfixExpression (_spaces "(" _) ((noCommaExpression (_ "," _)):* noCommaExpression ((_ ","):? _)):? ")" {% from(ast.FuncCall) %}
 
 # Generally, values are the same as expressions except they require some form of
 # enclosing brackets for more complex expressions, which can help avoid syntax
