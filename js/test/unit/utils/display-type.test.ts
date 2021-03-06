@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 
-import { displayType } from '../../src/utils/display-type'
+import { displayType } from '../../../src/utils/display-type'
 
 describe('displayType', () => {
   it('should return null for null', () => {

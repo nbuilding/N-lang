@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 
-import { isString, isNumber, isEnum, isToken, shouldBe, shouldSatisfy } from '../../src/utils/type-guards'
+import { isString, isNumber, isEnum, isToken, shouldBe, shouldSatisfy } from '../../../src/utils/type-guards'
 
 describe('type guards', () => {
   enum SheepState {

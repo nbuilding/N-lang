@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 
-import s, * as schem from '../../src/utils/schema'
+import s, * as schem from '../../../src/utils/schema'
 
 describe('schema', () => {
   interface Sheep {

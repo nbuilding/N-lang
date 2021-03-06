@@ -17,7 +17,9 @@ tupleExpression -> noCommaExpression {% id %}
 noCommaExpression -> pipeExpression {% id %}
 
 pipeExpression -> pipeRhs {% id %}
-	| pipeExpression _ "|>" _ booleanExpression {% operation(ast.Operator.PIPE) %}
+	| pipeOperation {% id %}
+
+pipeOperation -> pipeExpression _ "|>" _ pipeRhs {% operation(ast.Operator.PIPE) %}
 
 # RHS = right hand side
 pipeRhs -> booleanExpression {% id %}

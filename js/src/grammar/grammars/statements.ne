@@ -12,6 +12,7 @@ statement -> "import" _ identifier {% from(ast.ImportStmt) %}
 	| forLoop {% id %}
 	| ifStatement {% id %}
 	| postfixExpressionImpure {% id %}
+	| pipeOperation {% id %}
 	| returnExpression {% id %}
 	| "{" _ block _ "}" {% includeBrackets %}
 

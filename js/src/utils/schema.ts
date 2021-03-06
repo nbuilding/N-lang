@@ -102,11 +102,12 @@ class Instance<T> implements Guard<T> {
   }
 }
 
-class Any implements Guard<any> {
+// The asserted value is void to prevent accidentally using the any value
+class Any implements Guard<void> {
   name = 'any'
-  readonly _output!: any
+  readonly _output!: void
 
-  check (_value: unknown): asserts _value is any {
+  check (_value: unknown): asserts _value is void {
     return
   }
 }

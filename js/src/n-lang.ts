@@ -49,7 +49,8 @@ async function main () {
   const file = await fs.readFile(fileName, 'utf8')
   const lines = new FileLines(file, fileName)
   const script = lines.parse({
-    ambiguityOutput
+    ambiguityOutput,
+    loud: true,
   })
   if (ast) console.log(util.inspect(script, false, null, true))
   if (repr) console.log(script.toString(true))

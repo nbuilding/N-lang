@@ -15,6 +15,6 @@ typeValue -> modIdentifier {% id %}
 
 recordTypeEntry -> identifier (_ ":" _) type {% from(ast.RecordTypeEntry) %}
 
-modIdentifier -> (identifier "."):* identifier typeVars:? {% from(ast.ModuleId) %}
+modIdentifier -> (identifier "."):* identifier (_ typeVars):? {% from(ast.ModuleId) %}
 
 typeVars -> ("[" _) (funcTypeExpr (_ "," _)):* funcTypeExpr ((_ ","):? _ "]")

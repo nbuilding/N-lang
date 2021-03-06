@@ -80,8 +80,8 @@ export class ModuleId extends Base {
     this.modules = modules.map(([mod]) => mod.value)
     this.name = typeName.value
     this.typeVars = maybeTypeVars ? [
-      ...maybeTypeVars[1].map(([type]) => type),
-      maybeTypeVars[2]
+      ...maybeTypeVars[1][1].map(([type]) => type),
+      maybeTypeVars[1][2],
     ] : []
   }
 
@@ -98,12 +98,15 @@ export class ModuleId extends Base {
     schema.instance(Identifier),
     schema.nullable(schema.tuple([
       schema.any,
-      schema.array(schema.tuple([
+      schema.tuple([
+        schema.any,
+        schema.array(schema.tuple([
+          schema.guard(isType),
+          schema.any,
+        ])),
         schema.guard(isType),
         schema.any,
-      ])),
-      schema.guard(isType),
-      schema.any,
+      ]),
     ])),
   ])
 }

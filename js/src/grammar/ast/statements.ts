@@ -1,7 +1,7 @@
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from './base'
 import { Arguments, Declaration, TypeSpec } from './declaration'
-import { Condition, Expression, FuncCall, isCondition, isExpression, Return, UnaryOperation, UnaryOperator } from './expressions'
+import { Condition, Expression, FuncCall, isCondition, isExpression, Operation, Operator, Return, UnaryOperation, UnaryOperator } from './expressions'
 import { Identifier } from './literals'
 import { isType, Type } from './types'
 
@@ -55,6 +55,7 @@ export type Statement = ImportStmt
   | OldFor
   | For
   | UnaryOperation<UnaryOperator.AWAIT>
+  | Operation<Operator.PIPE>
   | FuncCall
   | Return
   | Block
@@ -70,6 +71,7 @@ function isStatement (value: any): value is Statement {
     value instanceof OldFor ||
     value instanceof For ||
     value instanceof UnaryOperation && value.type === UnaryOperator.AWAIT ||
+    value instanceof Operation && value.type === Operator.PIPE ||
     value instanceof FuncCall ||
     value instanceof Return ||
     value instanceof Block ||
