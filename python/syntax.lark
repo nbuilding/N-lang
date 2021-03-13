@@ -153,7 +153,7 @@ value: NUMBER
      | impn
 
 // Make sure that keywords are not in NAME
-NAME: /(?!(\b(let|type|var|alias|for|in|import|imp|return|if|else|class|pub|break|continue|with|yield|do|not)\b))/ LETTER (LETTER | DIGIT)*
+NAME: /(?!(\b(let|type|var|alias|for|in|import|imp|return|if|else|class|pub|break|continue|with|yield|do|not)\b))/ CNAME
 
 // Alias for unary_expression. Used for values that visually look tightly bound,
 // which is important for function arguments since they're separated by spaces.
@@ -188,7 +188,7 @@ PUBLIC: "pub"
 UNIT: "()"
 %import common.ESCAPED_STRING -> STRING
 %import common.SIGNED_NUMBER  -> NUMBER
-%import common (LETTER, DIGIT)
+%import common.CNAME
 %import common.WS
 %ignore WS
 %ignore COMMENT
