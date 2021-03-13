@@ -24,6 +24,5 @@ if (true) {
 	print(main)
 }
 
-let test = [] -> int {}
 
-print(test())
+let in = 0
