@@ -76,6 +76,8 @@ try:
 	tree = file.parse(n_parser)
 except lark.exceptions.UnexpectedCharacters as e:
 	format_error(e, file)
+except lark.exceptions.UnexpectedEOF as e:
+	format_error(e, file)
 
 error_count, warning_count = type_check(file, tree)
 if error_count > 0 or args.check:
