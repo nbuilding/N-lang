@@ -153,7 +153,7 @@ value: NUMBER
      | impn
 
 // Make sure that keywords are not in NAME
-NAME: /(?!(let|type|var|alias|for|in|import|imp|return|if|else|class|pub|break|continue|with|yield|do|not))/ LETTER (LETTER | DIGIT)*
+NAME: /(?!(\b(let|type|var|alias|for|in|import|imp|return|if|else|class|pub|break|continue|with|yield|do|not)\b))/ LETTER (LETTER | DIGIT)*
 
 // Alias for unary_expression. Used for values that visually look tightly bound,
 // which is important for function arguments since they're separated by spaces.
