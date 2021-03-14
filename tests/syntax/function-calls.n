@@ -25,20 +25,28 @@ let test = [a: int] -> int {
 
 ([_: ()] -> () {
 	let a = 3
-	(print)(a)
+	// (print)(a)
 })(())
 
 
 return (3, 4)
 
-print(3, 4)(5)
-	|> print
+print(3, 4)
 
-let test = ([a: int] -> int {
-	return (3, 4)
+(5)
+  |> print
 
-	print(3, 4)(5)
-		|> print
-})([_: ()] -> () {
-	let a = 3(print)(a)
+let test = [a: int] -> int {
+    return (3, 4)
+
+    print(3, 4)
+
+    (5)
+      |> print
+}
+
+([_: ()] -> () {
+    let a = 3
+    
+    //(print)(a) parse error
 })(())
