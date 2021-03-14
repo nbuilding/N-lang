@@ -1,28 +1,11 @@
-let main = [_: ()] -> () {
-    let results: list[result[int, str]] = [err("sad"), ok(2), err("wow")]
+class Bit [value:int] {
+	let internal = value % 2
+	let pub toString = [] -> str {
+		return intInBase10(internal)
+	}
 
-    let errors = filterMap(
-        [result: result[int, str]] -> maybe[str] {
-            return if let <err error> = result {
-                yes(error)
-            } else {
-                none
-            }
-        },
-        results
-    )
-        |> err
-        |> yes
-
-    print(errors)
+	let pub toInt = [] -> int {
+		return internal
+	}
 }
-
-main(())
-
-
-if (true) {
-	print(main)
-}
-
-
-//let in = 0
+let b = Bit("test")

@@ -71,6 +71,12 @@ class NModule(dict):
 		# should never be shown to the casual N programmer.
 		self['not exhaustive'] = True
 
+# Classes are records but should have custom name displayed
+class NClass(dict):
+	def __init__(self, name, *args, **kw):
+		super(NClass, self).__init__(*args, **kw)
+		self.class_name = name
+
 """
 `expected` is the type of the function's argument, the type with the
 generics/type variables.
