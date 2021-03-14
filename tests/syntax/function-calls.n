@@ -28,6 +28,14 @@ let test = [a: int] -> int {
 	// (print)(a)
 })(())
 
+let function: int -> int = main
+
+([1, 2, 3] + [4, 5, 6])
+  |> len
+  |> function
+  |> intInBase10
+  |> print
+
 
 return (3, 4)
 
@@ -50,3 +58,5 @@ let test = [a: int] -> int {
     
     //(print)(a) parse error
 })(())
+
+let function: int -> int = (main([1, 2, 3] + [4, 5, 6]) |> len |> function |> intInBase10 |> print)
