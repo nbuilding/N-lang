@@ -8,4 +8,7 @@ class Bit [value:int] {
 		return internal
 	}
 }
-let b = Bit("test")
+
+let { return: wow }: { return: int } = { return: 3 }
+let b = Bit(wow)
+print(b.toInt())
