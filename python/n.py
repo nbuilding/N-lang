@@ -51,45 +51,14 @@ def type_check(file, tree):
 			scope.type_check_command(child)
 	else:
 		scope.errors.append(TypeCheckError(tree, "Internal issue: I cannot type check from a non-starting branch."))
-	errors = []
-	warnings = []
-	error_count = 0
-	warning_count = 0
+
 	if len(scope.errors) > 0 or args.check:
-		# remove duplicate errors and warnings
-		errors = []
-		if len(scope.errors) > 0:
-			errors = [scope.errors[0]]
-			if type(errors[0]) == ImportedError:
-				error_count = len(scope.errors[0].err)
-			else:
-				error_count = 1
-			for i in range(1, len(scope.errors)):
-				if not scope.errors[i-1].compare(scope.errors[i]):
-					errors.append(scope.errors[i])
-					if type(scope.errors[i]) == ImportedError:
-						error_count += len(scope.errors[i].err)
-					else:
-						error_count += 1
-
-
-		warnings = []
-		if len(scope.warnings) > 0:
-			warnings = [scope.warnings[0]]
-			warning_count = 1
-			for i in range(1, len(scope.warnings)):
-				if not scope.warnings[i-1].compare(scope.warnings[i]):
-					warnings.append(scope.warnings[i])
-					if type(scope.warnings[i]) == ImportedError:
-						warning_count += len(scope.warnings[i].err)
-					else:
-						warning_count += 1
-
 		print('\n'.join(
-			[warning.display('warning', file) for warning in warnings] +
-			[error.display('error', file) for error in errors]
+			[warning.display('warning', file) for warning in scope.warnings] +
+			[error.display('error', file) for error in scope.errors]
 		))
-	return (error_count, warning_count)
+		
+	return (len(scope.errors), len(scope.warnings))
 
 async def parse_tree(tree):
 	if tree.data == "start":
@@ -106,6 +75,8 @@ async def parse_tree(tree):
 try:
 	tree = file.parse(n_parser)
 except lark.exceptions.UnexpectedCharacters as e:
+	format_error(e, file)
+except lark.exceptions.UnexpectedEOF as e:
 	format_error(e, file)
 
 error_count, warning_count = type_check(file, tree)
