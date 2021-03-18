@@ -10,7 +10,7 @@ from sys import exit
 init()
 
 from file import File
-from parser import n_parser
+from parse import n_parser
 from native_functions import add_funcs
 from type_check_error import TypeCheckError
 from scope import Scope

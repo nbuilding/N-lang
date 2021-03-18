@@ -1,5 +1,5 @@
 import sys
-import path
+from os import path
 
 from lark import Lark
 import lark
