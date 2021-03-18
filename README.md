@@ -58,6 +58,9 @@ pip install websockets
 # If there is a --check flag then it will only do compile-time and show warnings
 python n.py
 
+# Test syntax
+python -m unittest parse_test.py
+
 # OPTIONAL: Check the code for accidental errors
 # https://stackoverflow.com/a/31908039
 # https://stackoverflow.com/a/54488818

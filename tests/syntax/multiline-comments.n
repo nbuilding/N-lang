@@ -4,6 +4,8 @@
 
 /* /* Nested */ */
 
+// Ignored multiline comment /*
+
 /*
 	We're
 */let/*
