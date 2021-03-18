@@ -3,7 +3,7 @@ import inspect
 from function import Function
 from type_check_error import display_type
 from native_types import n_cmd_type
-from cmd import Cmd
+from ncmd import Cmd
 
 class NativeFunction(Function):
 	def __init__(self, scope, arguments, return_type, function, argument_cache=None, public=False):
