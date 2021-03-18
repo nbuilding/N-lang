@@ -1,6 +1,6 @@
 import lark
 from colorama import Fore, Style
-from type import NType, NTypeVars, NModule
+from type import NType, NTypeVars, NModule, NClass
 
 class TypeCheckError:
 	def __init__(self, token_or_tree, message):
@@ -66,6 +66,8 @@ def display_type(n_type, color=True):
 			display = '(' + ', '.join(display_type(type, False) for type in n_type) + ')'
 	elif isinstance(n_type, NModule):
 		display = "module %s" % n_type.mod_name
+	elif isinstance(n_type, NClass):
+		display = n_type.class_name
 	elif isinstance(n_type, dict):
 		display = "{ %s }" % "; ".join('%s: %s' % (key, display_type(value, False)) for key, value in n_type.items())
 		if len(n_type) == 0:
@@ -77,7 +79,7 @@ def display_type(n_type, color=True):
 	elif isinstance(n_type, NType):
 		display = n_type.name
 	else:
-		print('display_type was given a value that is neither a string nor a tuple nor a list nor a dictionary nor an NType.', n_type)
+		print('display_type was given a value that is neither a string nor a tuple nor a list nor a dictionary nor a NType.', n_type)
 		if n_type is None: raise TypeError('found None')
 		return Fore.RED + '???' + Style.RESET_ALL if color else "???"
 	return Fore.YELLOW + display + Style.RESET_ALL if color else display

@@ -50,11 +50,11 @@ char: "\\" ( escape_code | "{" /./ "}")
 escape_code: /[tnr]/
 tupledef: "(" types ("," types)* ")"
 recorddef: "{" (record_entry_def (";" | "\n"))* record_entry_def (";" | "\n")? "}"
-record_entry_def: NAME ":" types
+record_entry_def: CNAME ":" types
 with_typevars: module_type "[" types ("," types)* "]"
 declaration_with_typevars: NAME ("[" NAME ("," NAME)* "]")?
-tupleval: "(" expression ("," expression)* (",")? ")" 
-listval: "[" (expression ("," expression)* (",")?)? "]" 
+tupleval: "(" expression ("," expression)* (",")? ")"
+listval: "[" (expression ("," expression)* (",")?)? "]"
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
 enum_constructors: enum_constructor ("|" enum_constructor)*
 enum_constructor: modifier "<" NAME types* ">"
@@ -63,7 +63,7 @@ enum_constructor: modifier "<" NAME types* ">"
 
 modifier: PUBLIC?
 
-?record_entry: NAME ":" expression
+?record_entry: CNAME ":" expression
              | NAME
 
 ?pattern: pattern_value
@@ -77,7 +77,7 @@ modifier: PUBLIC?
 tuple_pattern: (pattern_value ",")+ pattern_value
 record_pattern: "{" (record_entry_pattern (";" | "\n"))* record_entry_pattern "}"
 ?record_entry_pattern: NAME
-                     | NAME ":" pattern
+                     | CNAME ":" pattern
 
 list_pattern: "[" (pattern_value ("," pattern_value)*)? "]"
 enum_pattern: "<" NAME pattern_value* ">"
@@ -138,7 +138,7 @@ func_type: generic_declaration? (func_inner_type "->")+ not_func_type
 ?await_expression: record_access
                  | await_expression AWAIT
 ?record_access: value
-              | record_access "." NAME
+              | record_access "." CNAME
 value: NUMBER
      | BOOLEAN
      | STRING
@@ -151,6 +151,9 @@ value: NUMBER
      | listval
      | recordval
      | impn
+
+// Make sure that keywords are not in NAME
+NAME: /(?!(\b(let|type|var|alias|for|in|import|imp|return|if|else|class|pub|break|continue|with|yield|do|not)\b))/ CNAME
 
 // Alias for unary_expression. Used for values that visually look tightly bound,
 // which is important for function arguments since they're separated by spaces.
@@ -185,7 +188,7 @@ PUBLIC: "pub"
 UNIT: "()"
 %import common.ESCAPED_STRING -> STRING
 %import common.SIGNED_NUMBER  -> NUMBER
-%import common.CNAME  -> NAME
+%import common.CNAME
 %import common.WS
 %ignore WS
 %ignore COMMENT

@@ -1,29 +1,10 @@
-let main = [_: ()] -> () {
-    let results: list[result[int, str]] = [err("sad"), ok(2), err("wow")]
+import request
 
-    let errors = filterMap(
-        [result: result[int, str]] -> maybe[str] {
-            return if let <err error> = result {
-                yes(error)
-            } else {
-                none
-            }
-        },
-        results
-    )
-        |> err
-        |> yes
-
-    print(errors)
+let requestTest = [] -> cmd[()] {
+	let r = request.get("https://ash.vin", mapFrom([("a", "b")]))!
+	print(r.return)
+	let t = ()
+	return t
 }
 
-main(())
-
-
-if (true) {
-	print(main)
-}
-
-let test = [] -> int {}
-
-print(test())
+let pub main = requestTest()

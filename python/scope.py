@@ -9,11 +9,11 @@ from colorama import Fore, Style
 from variable import Variable
 from function import Function
 from native_function import NativeFunction
-from type import NType, NGenericType, NAliasType, NTypeVars, NModule, apply_generics, apply_generics_to, resolve_equal_types
+from type import NType, NGenericType, NAliasType, NTypeVars, NModule, apply_generics, apply_generics_to, resolve_equal_types, NClass
 from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
 from native_types import n_list_type, n_cmd_type
-from cmd import Cmd
+from ncmd import Cmd
 from type_check_error import TypeCheckError, display_type
 from display import display_value
 from operation_types import binary_operation_types, unary_operation_types, comparable_types, iterable_types, legacy_iterable_types
@@ -21,7 +21,7 @@ from file import File
 from imported_error import ImportedError
 import native_functions
 from syntax_error import format_error
-from classes import NClass, NConstructor
+from classes import NConstructor
 from modules import libraries
 
 basepath = ""
@@ -46,6 +46,8 @@ def parse_file(file_path, base_path):
 	try:
 		tree = file.parse(n_parser)
 	except lark.exceptions.UnexpectedCharacters as e:
+		format_error(e, file)
+	except lark.exceptions.UnexpectedEOF as e:
 		format_error(e, file)
 
 	return import_scope, tree, file
@@ -1301,7 +1303,7 @@ class Scope:
 				scope.assign_to_pattern(arg_pattern, arg_type, True, certain=True)
 			scope.type_check_command(class_body)
 
-			class_type = {}
+			class_type = NClass(name)
 			for prop_name, var in scope.variables.items():
 				if var.public:
 					if var.type is None:
