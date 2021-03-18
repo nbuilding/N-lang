@@ -58,6 +58,10 @@ pip install websockets
 # If there is a --check flag then it will only do compile-time and show warnings
 python n.py
 
+# Bundle
+pip install pyinstaller
+pyinstaller -y --add-data="syntax.lark;." n.py
+
 # Test syntax
 python -m unittest parse_test.py
 

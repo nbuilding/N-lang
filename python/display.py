@@ -3,7 +3,7 @@ from colorama import Fore, Style
 from function import Function
 from type import NModule
 from enums import EnumValue
-from cmd import Cmd
+from ncmd import Cmd
 from native_types import NMap
 
 unescape = {

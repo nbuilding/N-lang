@@ -1,7 +1,6 @@
 from lark import Lark
 import lark
 import asyncio
-import multiprocessing
 import sys
 import signal
 import argparse
@@ -16,7 +15,7 @@ from native_functions import add_funcs
 from type_check_error import TypeCheckError
 from scope import Scope
 from imported_error import ImportedError
-from cmd import Cmd
+from ncmd import Cmd
 from syntax_error import format_error
 
 parser = argparse.ArgumentParser(description='Allows to only show warnings and choose the file location')
@@ -50,28 +49,13 @@ def type_check(file, tree):
 
 	return (len(scope.errors), len(scope.warnings))
 
-class Test:
-	async def async_method(self):
-		print('hello')
-		await asyncio.sleep(1)
-		print('world')
-
 async def parse_tree(tree):
-	print("does Test have .async_method?", hasattr(Test, "async_method"))
-	print("does Test() have .async_method?", hasattr(Test(), "async_method"))
-	try:
-		await Test().async_method()
-	except err:
-		print(err)
-		print('Awaiting Test().async_method() gave an error.')
 	if tree.data == "start":
 		scope = global_scope.new_scope()
 		for child in tree.children:
 			await scope.eval_command(child)
 		for variable in reversed(scope.variables.values()):
 			if variable.public and isinstance(variable.value, Cmd):
-				print("does Cmd have .eval?", hasattr(Cmd, "eval"))
-				print("does variable.value (the exported variable) have .eval?", hasattr(variable.value, "eval"))
 				await variable.value.eval()
 				break
 	else:
@@ -96,8 +80,5 @@ if error_count > 0 or args.check:
 	exit()
 
 if __name__ == '__main__':
-	# https://github.com/pyinstaller/pyinstaller/wiki/Recipe-Multiprocessing
-	# See #70
-	multiprocessing.freeze_support()
 	# https://github.com/aio-libs/aiohttp/issues/4324#issuecomment-676675779
 	asyncio.get_event_loop().run_until_complete(parse_tree(tree))
