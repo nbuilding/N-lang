@@ -10,24 +10,13 @@ from sys import exit
 init()
 
 from file import File
+from parse import n_parser
 from native_functions import add_funcs
 from type_check_error import TypeCheckError
 from scope import Scope
 from imported_error import ImportedError
 from cmd import Cmd
 from syntax_error import format_error
-
-# https://stackoverflow.com/a/4381638
-basepath = ""
-if getattr(sys, 'frozen', False):
-    basepath = path.dirname(sys.executable)
-elif __file__:
-    basepath = path.dirname(__file__)
-
-syntaxpath = path.join(basepath, "syntax.lark")
-with open(syntaxpath, "r") as f:
-	parse = f.read()
-n_parser = Lark(parse, start="start", propagate_positions=True)
 
 parser = argparse.ArgumentParser(description='Allows to only show warnings and choose the file location')
 parser.add_argument('--file', type=str, default="run.n", help="The file to read. (optional. if not included, it'll just run run.n)")
@@ -57,7 +46,7 @@ def type_check(file, tree):
 			[warning.display('warning', file) for warning in scope.warnings] +
 			[error.display('error', file) for error in scope.errors]
 		))
-		
+
 	return (len(scope.errors), len(scope.warnings))
 
 async def parse_tree(tree):
