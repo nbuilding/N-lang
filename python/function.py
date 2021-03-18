@@ -1,6 +1,6 @@
 import asyncio
 from variable import Variable
-from cmd import Cmd
+from ncmd import Cmd
 from type_check_error import display_type
 
 class Function(Variable):

@@ -1,11 +1,10 @@
-class Bit [value:int] {
-	let internal = value % 2
-	let pub toString = [] -> str {
-		return intInBase10(internal)
-	}
+import request
 
-	let pub toInt = [] -> int {
-		return internal
-	}
+let requestTest = [] -> cmd[()] {
+	let r = request.get("https://ash.vin", mapFrom([("a", "b")]))!
+	print(r.return)
+	let t = ()
+	return t
 }
-let b = Bit("test")
+
+let pub main = requestTest()
