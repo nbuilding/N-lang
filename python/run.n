@@ -1,10 +1,13 @@
-import request
-
-let requestTest = [] -> cmd[()] {
-	let r = request.get("https://ash.vin", mapFrom([("a", "b")]))!
-	print(r.return)
-	let t = ()
-	return t
+let apple = "hi"
+let print2 = [[a, b] a:a b:b] -> a -> b {
+  print((a, b))
+  return [_:a] -> b {
+    return b
+  }
 }
 
-let pub main = requestTest()
+print2
+("3", 4)
+(apple)
+(5)
+|> print
