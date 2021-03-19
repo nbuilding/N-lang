@@ -569,6 +569,10 @@ class Scope:
 				return dividend / divisor
 			elif operation.type == "MODULO":
 				return await self.eval_expr(left) % await self.eval_expr(right)
+			elif operation.type == "SHIFTL":
+				return await self.eval_expr(left) << await self.eval_expr(right)
+			elif operation.type == "SHIFTR":
+				return await self.eval_expr(left) >> await self.eval_expr(right)
 			else:
 				raise SyntaxError("Unexpected operation for product_expression: %s" % operation)
 		elif expr.data == "exponent_expression":

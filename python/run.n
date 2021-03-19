@@ -1,13 +1,1 @@
-let apple = "hi"
-let print2 = [[a, b] a:a b:b] -> a -> b {
-  print((a, b))
-  return [_:a] -> b {
-    return b
-  }
-}
-
-print2
-("3", 4)
-(apple)
-(5)
-|> print
+print(2 << 3)
