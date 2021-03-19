@@ -9,11 +9,11 @@ from colorama import Fore, Style
 from variable import Variable
 from function import Function
 from native_function import NativeFunction
-from type import NType, NGenericType, NAliasType, NTypeVars, NModule, apply_generics, apply_generics_to, resolve_equal_types
+from type import NType, NGenericType, NAliasType, NTypeVars, NModule, apply_generics, apply_generics_to, resolve_equal_types, NClass
 from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
 from native_types import n_list_type, n_cmd_type
-from cmd import Cmd
+from ncmd import Cmd
 from type_check_error import TypeCheckError, display_type
 from display import display_value
 from operation_types import binary_operation_types, unary_operation_types, comparable_types, iterable_types, legacy_iterable_types
@@ -21,14 +21,14 @@ from file import File
 from imported_error import ImportedError
 import native_functions
 from syntax_error import format_error
-from classes import NClass, NConstructor
+from classes import NConstructor
 from modules import libraries
 
 basepath = ""
 if getattr(sys, 'frozen', False):
-    basepath = os.path.dirname(sys.executable)
+	basepath = os.path.dirname(sys.executable)
 elif __file__:
-    basepath = os.path.dirname(__file__)
+	basepath = os.path.dirname(__file__)
 
 syntaxpath = os.path.join(basepath, "syntax.lark")
 
@@ -46,6 +46,8 @@ def parse_file(file_path, base_path):
 	try:
 		tree = file.parse(n_parser)
 	except lark.exceptions.UnexpectedCharacters as e:
+		format_error(e, file)
+	except lark.exceptions.UnexpectedEOF as e:
 		format_error(e, file)
 
 	return import_scope, tree, file
@@ -832,6 +834,7 @@ class Scope:
 		if expr.data == "ifelse_expr":
 			condition, if_true, if_false = expr.children
 			scope = self.new_scope()
+			elsescope = self.new_scope()
 			if condition.data == "conditional_let":
 				pattern, value = condition.children
 				eval_type = self.type_check_expr(value)
@@ -841,7 +844,7 @@ class Scope:
 				if cond_type is not None and cond_type != "bool":
 					self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
 			if_true_type = scope.type_check_expr(if_true)
-			if_false_type = scope.type_check_expr(if_false)
+			if_false_type = elsescope.type_check_expr(if_false)
 			if if_true_type is None or if_false_type is None:
 				return None
 			return_type, incompatible = resolve_equal_types(if_true_type, if_false_type)
@@ -1093,12 +1096,22 @@ class Scope:
 			exit_point = None
 			warned = False
 			for instruction in tree.children:
-			    exit = self.type_check_command(instruction)
-			    if exit and exit_point is None:
-			        exit_point = exit
-			    elif exit_point and not warned:
-			        warned = True
-			        self.warnings.append(TypeCheckError(exit_point, "There are commands after this return statement, but I will never run them."))
+				exit = self.type_check_command(instruction)
+				if exit and exit_point is None:
+					exit_point = exit
+				elif exit_point and not warned:
+					warned = True
+					self.warnings.append(TypeCheckError(exit_point, "There are commands after this return statement, but I will never run them."))
+			parent_function = self.get_parent_function()
+			if not parent_function is None and exit_point is None:
+				_, incompatible = resolve_equal_types(parent_function.returntype, "unit")
+				if n_cmd_type.is_type(parent_function.returntype):
+					if incompatible:
+						_, incompatible = resolve_equal_types(parent_function.returntype.typevars[0], ())
+					if incompatible:
+						self.errors.append(TypeCheckError(tree, "The function return type of a %s or a %s is unable to support the default return of %s [maybe you forgot a return]." % (display_type(parent_function.returntype), display_type(parent_function.returntype.typevars[0]), display_type("unit"))))
+				elif incompatible:
+					self.errors.append(TypeCheckError(tree, "The function return type of a %s is unable to support the default return of %s [maybe you forgot a return]." % (display_type(parent_function.returntype), display_type("unit"))))
 			return exit_point
 		elif tree.data != "instruction":
 			self.errors.append(TypeCheckError(tree, "Internal problem: I only deal with instructions, not %s." % tree.data))
@@ -1223,6 +1236,7 @@ class Scope:
 		elif command.data == "ifelse":
 			condition, if_true, if_false = command.children
 			scope = self.new_scope()
+			elsescope = self.new_scope()
 			if condition.data == "conditional_let":
 				pattern, value = condition.children
 				eval_type = self.type_check_expr(value)
@@ -1237,7 +1251,7 @@ class Scope:
 				if cond_type is not None and cond_type != "bool":
 					self.errors.append(TypeCheckError(condition, "The condition here should be a boolean, not a %s." % display_type(cond_type)))
 			exit_if_true = scope.type_check_command(if_true)
-			exit_if_false = scope.type_check_command(if_false)
+			exit_if_false = elsescope.type_check_command(if_false)
 			if exit_if_true and exit_if_false:
 				return command
 		elif command.data == "enum_definition":
@@ -1293,7 +1307,7 @@ class Scope:
 				scope.assign_to_pattern(arg_pattern, arg_type, True, certain=True)
 			scope.type_check_command(class_body)
 
-			class_type = {}
+			class_type = NClass(name)
 			for prop_name, var in scope.variables.items():
 				if var.public:
 					if var.type is None:

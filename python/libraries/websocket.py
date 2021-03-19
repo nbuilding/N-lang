@@ -7,7 +7,7 @@ from colorama import Fore, Style
 from native_types import n_cmd_type, n_maybe_type, yes, none
 from native_function import NativeFunction
 from type import NAliasType
-from cmd import Cmd
+from ncmd import Cmd
 from libraries.SystemIO import inp as async_input
 
 # alias send = str -> cmd[()]

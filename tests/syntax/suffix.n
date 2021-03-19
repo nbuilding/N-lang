@@ -1,0 +1,7 @@
+// Aims to ensure that "suffix operators," such as await, record access, and
+// function calling, can be chained.
+
+print(one!.two!(3, 4)!(5, 6).seven(8, 9))
+
+
+print((((((((one!).two)!)(3, 4))!)(5, 6)).seven)(8, 9))

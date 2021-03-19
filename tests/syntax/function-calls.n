@@ -1,0 +1,63 @@
+// Since we switched to C-style function calls, we must deal with an issue
+// shared with JavaScript: newlines between a possible function and its
+// arguments.
+//
+// Remember that this file only has to parse without doing type checking, so
+// while this file isn't technically valid N, it should be valid syntax.
+
+return
+(3, 4)
+
+print
+(3, 4)
+(apple)
+(5)
+|> print
+
+let test = [a: int] -> int {
+	return
+	(3, 4)
+
+	print
+	(3, 4)
+	(5)
+	|> print
+}
+
+([_: ()] -> () {
+	let a = 3
+	// (print)(a)
+})(())
+
+let function: int -> int = main
+
+([1, 2, 3] + [4, 5, 6])
+  |> len
+  |> function
+  |> intInBase10
+  |> print
+
+
+return (3, 4)
+
+print(3, 4)(apple)
+
+(5)
+  |> print
+
+let test = [a: int] -> int {
+    return (3, 4)
+
+    print(3, 4)
+
+    (5)
+      |> print
+}
+
+([_: ()] -> () {
+    let a = 3
+
+    //(print)(a) parse error
+})(())
+
+let function: int -> int = (main([1, 2, 3] + [4, 5, 6]) |> len |> function |> intInBase10 |> print)
