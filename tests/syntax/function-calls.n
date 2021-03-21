@@ -10,6 +10,7 @@ return
 
 print
 (3, 4)
+(apple)
 (5)
 |> print
 
@@ -39,7 +40,7 @@ let function: int -> int = main
 
 return (3, 4)
 
-print(3, 4)
+print(3, 4)(apple)
 
 (5)
   |> print
@@ -55,7 +56,7 @@ let test = [a: int] -> int {
 
 ([_: ()] -> () {
     let a = 3
-    
+
     //(print)(a) parse error
 })(())
 
