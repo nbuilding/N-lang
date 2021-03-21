@@ -34,6 +34,7 @@ ifelse_expr: "if" condition "{" expression "}" "else" ("{" expression "}" | ifel
           | conditional_let
 conditional_let: "let" pattern "=" expression
 class_definition: "class" modifier NAME arguments code_block
+match: "match" "(" value ")" match_block
 
 //helpers
 name_type: pattern [":" types]
@@ -57,6 +58,8 @@ tupleval: "(" expression ("," expression)* (",")? ")"
 listval: "[" (expression ("," expression)* (",")?)? "]"
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
 enum_constructors: enum_constructor ("|" enum_constructor)*
+match_block: "{" (match_entry (";" | "\n"))* EMPTY (";" | "\n")? "}"
+match_entry: value "->" value
 enum_constructor: modifier "<" NAME types* ">"
                 | modifier NAME
 
@@ -113,6 +116,7 @@ func_type: generic_declaration? (func_inner_type "->")+ not_func_type
            | function_def
            | anonymous_func
            | function_callback_pipe
+           | match
 
 ?boolean_expression: or_expression
 ?or_expression: [or_expression OR] and_expression
@@ -153,7 +157,7 @@ value: NUMBER
      | impn
 
 // Make sure that keywords are not in NAME
-NAME: /(?!(\b(let|type|var|alias|for|in|import|imp|return|if|else|class|pub|break|continue|with|yield|do|not)\b))/ CNAME
+NAME: /(?!(\b(let|type|var|alias|for|in|import|imp|return|if|else|class|pub|break|continue|with|yield|do|not|match)\b))/ CNAME
 
 // Alias for unary_expression. Used for values that visually look tightly bound,
 // which is important for function arguments since they're separated by spaces.
@@ -188,6 +192,7 @@ EXPONENT: "^"
 AWAIT: "!"
 PUBLIC: "pub"
 UNIT: "()"
+EMPTY: "_"
 %import common.ESCAPED_STRING -> STRING
 %import common.SIGNED_NUMBER  -> NUMBER
 %import common.CNAME
