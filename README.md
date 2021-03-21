@@ -1,5 +1,9 @@
 # N
 ![Version](https://img.shields.io/github/v/release/nbuilding/N-Lang?color=Green&style=flat-square)
+![Installs](https://img.shields.io/github/downloads/nbuilding/N-Lang/total?color=Green&label=Installs&style=flat-square)
+![Memory](https://img.shields.io/github/languages/code-size/nbuilding/N-Lang?color=Green&label=Memory&style=flat-square)
+![Issues Open](https://img.shields.io/github/issues/nbuilding/N-lang?color=Green&label=Issues&style=flat-square)
+![PRs Open](https://img.shields.io/github/issues-pr/nbuilding/N-Lang?color=Green&label=PRs&style=flat-square)
 
 A programming language by N Building with features such as modular imports.
 
