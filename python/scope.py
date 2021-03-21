@@ -1103,7 +1103,7 @@ class Scope:
 				_, incompatible = resolve_equal_types(parent_function.returntype, "unit")
 				if n_cmd_type.is_type(parent_function.returntype):
 					if incompatible:
-						_, incompatible = resolve_equal_types(parent_function.returntype.typevars[0], ())
+						_, incompatible = resolve_equal_types(parent_function.returntype.typevars[0], "unit")
 					if incompatible:
 						self.errors.append(TypeCheckError(tree, "The function return type of a %s or a %s is unable to support the default return of %s [maybe you forgot a return]." % (display_type(parent_function.returntype), display_type(parent_function.returntype.typevars[0]), display_type("unit"))))
 				elif incompatible:
