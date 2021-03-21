@@ -1,2 +1,1 @@
-let record1 = { name: "Billia"; age: 18
-}
+let test: [a] b -> [c] d -> e [f] -> g = ()

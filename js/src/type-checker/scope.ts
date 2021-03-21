@@ -13,7 +13,6 @@ export class Scope extends Module {
   checker: TypeChecker
   parent?: Scope
   returnType?: NType
-  unusedModules: Map<string, ast.Base>
   unusedValues: Map<string, ast.Base>
   unusedTypes: Map<string, ast.Base>
 
@@ -22,21 +21,8 @@ export class Scope extends Module {
     this.checker = checker
     this.parent = parent
     this.returnType = returnType
-    this.unusedModules = new Map()
     this.unusedValues = new Map()
     this.unusedTypes = new Map()
-  }
-
-  getModule (moduleName: string): Module | null | undefined {
-    const module = this.modules.get(moduleName)
-    if (module !== undefined) {
-      this.unusedModules.delete(moduleName)
-      return module
-    } else if (this.parent) {
-      return this.parent.getModule(moduleName)
-    } else {
-      return null
-    }
   }
 
   resolveModuleSource (moduleNames: string[]): Module | string | null {
