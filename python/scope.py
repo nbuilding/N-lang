@@ -875,14 +875,14 @@ class Scope:
 				scope.assign_to_pattern(arg_pattern, arg_type, True, certain=True)
 			returnvalue = scope.type_check_command(codeblock)
 			if returnvalue is None:
-				_, incompatible = resolve_equal_types(dummy_function.type, "unit")
-				if n_cmd_type.is_type(dummy_function.type):
+				_, incompatible = resolve_equal_types(dummy_function.returntype, "unit")
+				if n_cmd_type.is_type(dummy_function.returntype):
 					if incompatible:
-						_, incompatible = resolve_equal_types(dummy_function.type.typevars[0], "unit")
+						_, incompatible = resolve_equal_types(dummy_function.returntype.typevars[0], "unit")
 					if incompatible:
-						self.errors.append(TypeCheckError(codeblock, "The function return type of a %s or a %s is unable to support the default return of %s [maybe you forgot a return]." % (display_type(dummy_function.type), display_type(dummy_function.type.typevars[0]), display_type("unit"))))
+						self.errors.append(TypeCheckError(codeblock, "The function return type of a %s or a %s is unable to support the default return of %s [maybe you forgot a return]." % (display_type(dummy_function.returntype), display_type(dummy_function.returntype.typevars[0]), display_type("unit"))))
 				elif incompatible:
-					self.errors.append(TypeCheckError(codeblock, "The function return type of a %s is unable to support the default return of %s [maybe you forgot a return]." % (display_type(dummy_function.type), display_type("unit"))))
+					self.errors.append(TypeCheckError(codeblock, "The function return type of a %s is unable to support the default return of %s [maybe you forgot a return]." % (display_type(dummy_function.returntype), display_type("unit"))))
 			return dummy_function.type
 		elif expr.data == "function_callback" or expr.data == "function_callback_pipe":
 			if expr.data == "function_callback":
