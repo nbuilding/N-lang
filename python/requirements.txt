@@ -9,6 +9,7 @@ colorama==0.4.4
 idna==2.10
 lark==0.11.1
 multidict==5.1.0
+pyinstaller==4.2
 requests==2.25.1
 typing-extensions==3.7.4.3
 urllib3==1.26.4
