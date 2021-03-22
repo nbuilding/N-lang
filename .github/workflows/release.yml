@@ -79,10 +79,14 @@ jobs:
       - name: Download Release Artifacts
         uses: actions/download-artifact@v2
         
+      - name: Get Tag Name
+        id: tag
+        run: echo ::set-output name=name::${GITHUB_REF#refs/*/}
+        
       - name: Create Draft Release
         uses: ncipollo/release-action@v1
         with:
-          name: "N ${GITHUB_REF#refs/*/}"
+          name: N ${{ steps.tag.outputs.name }}
           artifacts: "macos/N-MacOS.zip,windows/N.zip"
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
