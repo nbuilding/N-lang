@@ -37,47 +37,7 @@ $v="1.0.0"; iwr https://github.com/nbuilding/N-lang/raw/main/install.ps1 -useb |
 
 ## Python instructions
 
-<<<<<<< HEAD
 See [python/](./python/).
-=======
-In `python/`, run `n.py`
-
-```sh
-# Command line argument parsing
-pip install argparse
-
-# Parsing package
-pip install lark
-
-# Coloured console text
-pip install colorama
-
-# Async requests and files
-pip install aiohttp
-pip install aiofile
-
-# Websockets
-pip install websockets
-
-# Parses and interprets code
-# If there are no arguments then it will interpret run.n
-# If there is a --file [file name] flag then it will run the file in the filename
-# If there is a --check flag then it will only do compile-time and show warnings
-python n.py
-
-# Bundle
-pip install pyinstaller
-pyinstaller -y --add-data="syntax.lark;." n.py
-
-# Test syntax
-python -m unittest parse_test.py
-
-# OPTIONAL: Check the code for accidental errors
-# https://stackoverflow.com/a/31908039
-# https://stackoverflow.com/a/54488818
-pylint --disable=all --enable=F,E,unreachable,duplicate-key,unnecessary-semicolon,global-variable-not-assigned,unused-variable,binary-op-exception,bad-format-string,anomalous-backslash-in-string,bad-open-mode,dangerous-default-value *.py **/*.py
-```
->>>>>>> origin/main
 
 ### Have something cool in N?
 - Contact us or make a PR
