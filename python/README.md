@@ -47,7 +47,6 @@ python python/n.py
 ## Bundle
 
 ```sh
-pip install pyinstaller
 pyinstaller -y --add-data="syntax.lark;." n.py
 ```
 
@@ -56,6 +55,7 @@ pyinstaller -y --add-data="syntax.lark;." n.py
 Windows users should use `py`, and everyone else should use `python3`.
 
 ```sh
+# Test syntax
 python -m unittest parse_test.py
 ```
 
