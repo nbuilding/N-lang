@@ -1,14 +1,5 @@
-class Bit [value:int] {
-	let internal = value % 2
-	let pub toString = [] -> str {
-		return intInBase10(internal)
-	}
-
-	let pub toInt = [] -> int {
-		return internal
+let tester = [] -> () {
+	if (false) {
+		print("test")
 	}
 }
-
-let { return: wow }: { return: int } = { return: 3 }
-let b = Bit(wow)
-print(b.toInt())

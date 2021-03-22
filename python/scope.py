@@ -13,7 +13,7 @@ from type import NType, NGenericType, NAliasType, NTypeVars, NModule, apply_gene
 from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
 from native_types import n_list_type, n_cmd_type
-from cmd import Cmd
+from ncmd import Cmd
 from type_check_error import TypeCheckError, display_type
 from display import display_value
 from operation_types import binary_operation_types, unary_operation_types, comparable_types, iterable_types, legacy_iterable_types
@@ -873,7 +873,16 @@ class Scope:
 			scope = wrap_scope.new_scope(parent_function=dummy_function)
 			for arg_pattern, arg_type in arguments:
 				scope.assign_to_pattern(arg_pattern, arg_type, True, certain=True)
-			scope.type_check_command(codeblock)
+			returnvalue = scope.type_check_command(codeblock)
+			if returnvalue is None:
+				_, incompatible = resolve_equal_types(dummy_function.returntype, "unit")
+				if n_cmd_type.is_type(dummy_function.returntype):
+					if incompatible:
+						_, incompatible = resolve_equal_types(dummy_function.returntype.typevars[0], "unit")
+					if incompatible:
+						self.errors.append(TypeCheckError(codeblock, "The function return type of a %s or a %s is unable to support the default return of %s [maybe you forgot a return]." % (display_type(dummy_function.returntype), display_type(dummy_function.returntype.typevars[0]), display_type("unit"))))
+				elif incompatible:
+					self.errors.append(TypeCheckError(codeblock, "The function return type of a %s is unable to support the default return of %s [maybe you forgot a return]." % (display_type(dummy_function.returntype), display_type("unit"))))
 			return dummy_function.type
 		elif expr.data == "function_callback" or expr.data == "function_callback_pipe":
 			if expr.data == "function_callback":
@@ -1099,15 +1108,6 @@ class Scope:
 					warned = True
 					self.warnings.append(TypeCheckError(exit_point, "There are commands after this return statement, but I will never run them."))
 			parent_function = self.get_parent_function()
-			if not parent_function is None and exit_point is None:
-				_, incompatible = resolve_equal_types(parent_function.returntype, "unit")
-				if n_cmd_type.is_type(parent_function.returntype):
-					if incompatible:
-						_, incompatible = resolve_equal_types(parent_function.returntype.typevars[0], ())
-					if incompatible:
-						self.errors.append(TypeCheckError(tree, "The function return type of a %s or a %s is unable to support the default return of %s [maybe you forgot a return]." % (display_type(parent_function.returntype), display_type(parent_function.returntype.typevars[0]), display_type("unit"))))
-				elif incompatible:
-					self.errors.append(TypeCheckError(tree, "The function return type of a %s is unable to support the default return of %s [maybe you forgot a return]." % (display_type(parent_function.returntype), display_type("unit"))))
 			return exit_point
 		elif tree.data != "instruction":
 			self.errors.append(TypeCheckError(tree, "Internal problem: I only deal with instructions, not %s." % tree.data))
