@@ -2,11 +2,10 @@
 
 @{%
 import moo from 'moo'
-import * as ast from './ast'
+import * as ast from '../ast/index'
+import { from, includeBrackets } from './from-nearley'
 
 const {
-	from,
-	includeBrackets,
 	Operation: { operation },
 	UnaryOperation: { prefix, suffix },
 } = ast

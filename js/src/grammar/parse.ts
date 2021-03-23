@@ -1,7 +1,7 @@
 import util from 'util'
 import { Parser, Grammar } from 'nearley'
 import grammar from './n-lang.grammar'
-import { Block, Base, DiffError } from './ast'
+import { Block, Base, DiffError } from '../ast/index'
 import assert from 'assert'
 
 export class ParseError extends SyntaxError {

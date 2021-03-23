@@ -1,29 +1,29 @@
 import colours from 'colors/safe'
 
-import * as ast from '../grammar/ast'
+import { Block, Base } from '../ast/index'
 import { Module, nativeModules } from './modules'
 import NType, { display } from './n-type'
 import { TopLevelScope } from './scope'
 import { FileLines } from './display-lines'
 
 export interface Warning {
-  base: ast.Base
+  base: Base
   message: string
   options?: WarningOptions
 }
 
 interface WarningOptions {
-  exit?: ast.Base
+  exit?: Base
   tip?: string
   fix?: {
     type: 'replace-with',
     label: string,
-    replace: ast.Base,
+    replace: Base,
     with: string,
   } | {
     type: 'insert-before',
     label: string,
-    before: ast.Base,
+    before: Base,
     insert: string,
   }
 }
@@ -38,7 +38,7 @@ export interface CheckerOptions {
 }
 
 export class TypeChecker {
-  types: Map<ast.Base, NType>
+  types: Map<Base, NType>
   errors: Warning[]
   warnings: Warning[]
   options: CheckerOptions
@@ -52,15 +52,15 @@ export class TypeChecker {
     this.global = new TopLevelScope(this)
   }
 
-  err (base: ast.Base, message: string, options?: WarningOptions) {
+  err (base: Base, message: string, options?: WarningOptions) {
     this.errors.push({ base, message, options })
   }
 
-  warn (base: ast.Base, message: string, options?: WarningOptions) {
+  warn (base: Base, message: string, options?: WarningOptions) {
     this.warnings.push({ base, message, options })
   }
 
-  check (ast: ast.Block) {
+  check (ast: Block) {
     const scope = this.global.newScope()
     scope.checkStatementType(ast)
     scope.endScope()
@@ -78,7 +78,7 @@ export class TypeChecker {
     }
   }
 
-  displayBase (file: FileLines, { line, col, endLine, endCol }: ast.Base): string {
+  displayBase (file: FileLines, { line, col, endLine, endCol }: Base): string {
     const header = this.options.colours
       ? ' '.repeat(file.lineNumWidth) + colours.cyan('-->') + ' ' +
         colours.blue(`${file.name}:${line}:${col}`) + '\n'

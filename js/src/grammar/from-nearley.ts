@@ -3,7 +3,7 @@ import util from 'util'
 
 import { isToken, shouldSatisfy } from '../utils/type-guards'
 import schema, * as schem from '../utils/schema'
-import { Base, BasePosition } from './ast/base'
+import { Base, BasePosition } from '../ast/base'
 
 type NearleyArgs = (Base | moo.Token | NearleyArgs | null)[]
 function shouldBeNearleyArgs (value: any): asserts value is NearleyArgs {

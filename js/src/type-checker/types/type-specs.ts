@@ -25,35 +25,31 @@ export class TypeSpec {
   }
 }
 
-export type TypeSpecVar = TypeSpec
-  | TupleSpec
-  | RecordSpec
-  | FunctionSpec
+export class EnumTypeSpec extends TypeSpec {
+  variants: EnumVariant[]
 
-export class TupleSpec {
-  types: TypeSpecVar[]
+  constructor (name: string, typeVars: string[] = [], variants: EnumVariant[]) {
+    super(name, typeVars)
+    this.variants = variants
+  }
+}
 
-  constructor (types: TypeSpecVar[]) {
+export class EnumVariant {
+  name: string
+  types: NType[]
+
+  constructor (name: string, types: NType[] = []) {
+    this.name = name
     this.types = types
   }
 }
 
-export class RecordSpec {
-  types: Map<string, TypeSpecVar>
+export class AliasSpec {
+  name: string
+  type: NType
 
-  constructor (types: Map<string, TypeSpecVar>) {
-    this.types = types
-  }
-}
-
-export class FunctionSpec {
-  generics: TypeSpec[]
-  takes: TypeSpecVar
-  returns: TypeSpecVar
-
-  constructor (takes: TypeSpecVar, returns: TypeSpecVar, generics: TypeSpec[] = []) {
-    this.takes = takes
-    this.returns = returns
-    this.generics = generics
+  constructor (name: string, type: NType) {
+    this.name = name
+    this.type = type
   }
 }

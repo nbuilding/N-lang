@@ -1,5 +1,5 @@
 import { ParseOptions, parse } from '../grammar/parse'
-import { Block } from '../grammar/ast'
+import { Block } from '../ast/index'
 
 export interface FileLinesOptions {}
 

@@ -1,8 +1,0 @@
-export { from, includeBrackets } from './from-nearley'
-export { Base, BaseDiff, DiffError } from './ast/base'
-export * from './ast/declaration'
-export * from './ast/expressions'
-export * from './ast/literals'
-export * from './ast/patterns'
-export * from './ast/statements'
-export * from './ast/types'

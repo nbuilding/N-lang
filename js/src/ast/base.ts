@@ -1,7 +1,7 @@
 import colours from 'colors/safe'
 import util from 'util'
 
-import { displayType } from '../../utils/display-type'
+import { displayType } from '../utils/display-type'
 
 export interface BasePosition {
   line: number
