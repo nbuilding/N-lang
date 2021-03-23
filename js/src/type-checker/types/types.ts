@@ -14,13 +14,15 @@ export interface NType {
    * calling.
    */
   expectEqual(other: NType): boolean
+
+  substitute(substitutions: Map<NType, NType>): NType
 }
 
 export class Type implements NType {
   spec: TypeSpec
-  typeVars: (NType | Unknown)[]
+  typeVars: NType[]
 
-  constructor (spec: TypeSpec, typeVars: (NType | Unknown)[]) {
+  constructor (spec: TypeSpec, typeVars: NType[]) {
     this.spec = spec
     this.typeVars = typeVars
   }
@@ -28,15 +30,7 @@ export class Type implements NType {
   expectEqual (other: NType): boolean {
     if (other instanceof Type && this.spec === other.spec) {
       for (let i = 0; i < this.typeVars.length; i++) {
-        const thisVar = Unknown.resolve(this.typeVars[i])
-        const otherVar = Unknown.resolve(other.typeVars[i])
-        if (thisVar instanceof Unknown) {
-          // Does not matter whether `otherVar` is also an Unknown since they
-          // can be chained.
-          thisVar.resolved = otherVar
-        } else if (otherVar instanceof Unknown) {
-          otherVar.resolved = thisVar
-        } else if (!thisVar.expectEqual(otherVar)) {
+        if (!this.typeVars[i].expectEqual(other.typeVars[i])) {
           return false
         }
       }
@@ -45,10 +39,23 @@ export class Type implements NType {
       return false
     }
   }
+
+  substitute (substitutions: Map<NType, NType>): Type {
+    return this.spec.instance(
+      this.typeVars.map(typeVar => {
+        const substitution = substitutions.get(typeVar)
+        if (substitution) {
+          return substitution
+        } else {
+          return typeVar.substitute(substitutions)
+        }
+      }),
+    )
+  }
 }
 
-export class Unknown {
-  resolved?: NType | Unknown
+export class Unknown implements NType {
+  resolved?: NType
 
   /**
    * Returns either an NType or an Unknown that has no resolved type. Thus, if
@@ -57,7 +64,7 @@ export class Unknown {
    * Unknown returned by this method, and all the other Unknowns chained onto it
    * will also be resolved.
    */
-  resolvedType (): NType | Unknown {
+  resolvedType (): NType {
     if (this.resolved) {
       if (this.resolved instanceof Unknown) {
         return this.resolved.resolvedType()
@@ -69,7 +76,27 @@ export class Unknown {
     }
   }
 
-  static resolve (type: NType | Unknown): NType | Unknown {
+  expectEqual (other: NType): boolean {
+    const thisType = this.resolvedType()
+    const otherType = Unknown.resolve(other)
+    if (thisType instanceof Unknown) {
+      // Does not matter whether `otherType` is also an Unknown since they
+      // can be chained.
+      this.resolved = otherType
+      return true
+    } else if (otherType instanceof Unknown) {
+      otherType.resolved = thisType
+      return true
+    } else {
+      return thisType.expectEqual(otherType)
+    }
+  }
+
+  substitute (_substitutions: Map<NType, NType>): Unknown {
+    return this
+  }
+
+  static resolve (type: NType): NType {
     if (type instanceof Unknown) {
       return type.resolvedType()
     } else {
@@ -101,6 +128,19 @@ export class Tuple implements NType {
       return false
     }
   }
+
+  substitute (substitutions: Map<NType, NType>): Tuple {
+    return new Tuple(
+      this.types.map(type => {
+        const substitution = substitutions.get(type)
+        if (substitution) {
+          return substitution
+        } else {
+          return type.substitute(substitutions)
+        }
+      }),
+    )
+  }
 }
 
 export class Record implements NType {
@@ -124,6 +164,21 @@ export class Record implements NType {
       return false
     }
   }
+
+  substitute (substitutions: Map<NType, NType>): Record {
+    return new Record(
+      new Map(
+        Array.from(this.types.entries(), ([key, type]) => {
+          const substitution = substitutions.get(type)
+          if (substitution) {
+            return [key, substitution]
+          } else {
+            return [key, type.substitute(substitutions)]
+          }
+        }),
+      ),
+    )
+  }
 }
 
 export class Function implements NType {
@@ -143,5 +198,25 @@ export class Function implements NType {
       this.takes.expectEqual(other.takes) &&
       this.returns.expectEqual(other.returns)
     )
+  }
+
+  substitute (substitutions: Map<NType, NType>): Function {
+    const takesSubstitution = substitutions.get(this.takes)
+    const returnsSubstitution = substitutions.get(this.returns)
+    return new Function(
+      takesSubstitution || this.takes.substitute(substitutions),
+      returnsSubstitution || this.returns.substitute(substitutions),
+      this.generics,
+    )
+  }
+}
+
+export class Unit implements NType {
+  expectEqual (other: NType): boolean {
+    return other instanceof Unit
+  }
+
+  substitute (_substitutions: Map<NType, NType>): NType {
+    return this
   }
 }

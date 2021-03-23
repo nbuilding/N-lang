@@ -5,8 +5,8 @@ import util from 'util'
 import parseArgs from 'minimist'
 // import { compileToJS, TypeChecker, FileLines } from './index'
 import { parse } from './grammar/parse'
-import { TypeChecker } from './type-checker/checker'
 import { Block } from './ast/index'
+import { TypeChecker } from './type-checker/TypeChecker'
 
 async function main () {
   const {

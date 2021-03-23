@@ -1,5 +1,4 @@
 import { Block } from '../ast/index'
-import { CheckStatementResult, Statement } from '../ast/statements/Statement'
 import { Error as NError } from './errors/Error'
 import { Warning as NWarning } from './errors/Warning'
 import { FileGetter } from './FileGetter'

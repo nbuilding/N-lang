@@ -66,7 +66,8 @@ export enum ErrorType {
 }
 
 export type ErrorNoBase = {
-  type: ErrorType
+  type: ErrorType.UNDEFINED_VARIABLE | ErrorType.UNUSED_TYPE
+  name: string
 }
 
 export interface Error extends ErrorNoBase {

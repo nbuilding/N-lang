@@ -24,7 +24,8 @@ export class LetStmt extends Base implements Statement {
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
-    throw new Error('Method not implemented.')
+    //
+    return {}
   }
 
   toString (): string {

@@ -20,7 +20,7 @@ export class TypeSpec {
     this.typeVars = typeVars
   }
 
-  instance (typeVars: NType[]): Type {
+  instance (typeVars: NType[] = []): Type {
     return new Type(this, typeVars)
   }
 }
