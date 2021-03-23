@@ -151,7 +151,7 @@ export class Scope extends Module {
     }
   }
 
-  warnExit (exit: ast.Base, expr: ast.Base, message: string) {
+  warnExit (exit: ast.Base, expr: ast.Base, message: string): void {
     this.checker.warn(
       expr,
       `${message} because the expression will return out of the function.`,
@@ -595,7 +595,7 @@ export class Scope extends Module {
       if (expression.modules.length === 0 && expression.name.startsWith('_')) {
         this.checker.warn(
           expression,
-          `You should remove the underscore prefix from \`${expression.name}\` now that you\'re using it because the underscore denoted that you weren't using the variable yet.`,
+          `You should remove the underscore prefix from \`${expression.name}\` now that you're using it because the underscore denoted that you weren't using the variable yet.`,
         )
       }
       const value = this.getValue(expression)
@@ -699,7 +699,7 @@ export class Scope extends Module {
           `I can't iterate over ${displ(iterable)}.`,
         )
       }
-      const [bodyType, exit] = scope.getExprType(expression.body, {
+      const [_bodyType, exit] = scope.getExprType(expression.body, {
         asStatement: context.asStatement,
       })
       scope.endScope()
@@ -856,7 +856,7 @@ export class Scope extends Module {
     return new Scope(this.checker, this, returnType)
   }
 
-  endScope () {
+  endScope (): void {
     for (const [name] of this.modules) {
       const base = this.unusedModules.get(name)
       if (base) {

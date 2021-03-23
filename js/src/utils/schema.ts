@@ -12,9 +12,9 @@ export interface Guard<T> {
 export type infer<T extends Guard<any>> = T['_output']
 
 export class GuardError extends Error {
-  value: any
+  value: unknown
 
-  constructor (value: any, shouldBe: string) {
+  constructor (value: unknown, shouldBe: string) {
     super(`${value} should be ${shouldBe}, but it's ${displayType(value)}.`)
     this.name = this.constructor.name
     this.value = value

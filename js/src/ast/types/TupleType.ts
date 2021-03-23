@@ -17,7 +17,7 @@ export class TupleType extends Base implements Type {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `(${this.types.join(', ')})`
   }
 

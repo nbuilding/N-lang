@@ -1,5 +1,5 @@
 import schema, * as schem from '../../utils/schema'
-import { from } from '../../grammar/from-nearley'
+import { from, Preprocessor } from '../../grammar/from-nearley'
 import {
   Expression,
   isExpression,
@@ -74,11 +74,13 @@ export class Operation<O extends Operator> extends Base
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `(${this.a} ${operatorToString(this.type)} ${this.b})`
   }
 
-  static operation<O extends Operator> (operator: O) {
+  static operation<O extends Operator> (
+    operator: O,
+  ): Preprocessor<Operation<O>> {
     const opSchema = schema.tuple([
       schema.guard(isExpression),
       schema.any,

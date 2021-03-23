@@ -16,7 +16,7 @@ export class IfLet extends Base {
     this.expression = expression
   }
 
-  toString () {
+  toString (): string {
     return `let ${this.declaration} = ${this.expression}`
   }
 

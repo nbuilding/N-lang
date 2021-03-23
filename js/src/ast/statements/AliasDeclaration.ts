@@ -27,7 +27,7 @@ export class AliasDeclaration extends Base implements Statement {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `alias${this.public ? ' pub' : ''} ${this.typeSpec} = ${this.type}`
   }
 

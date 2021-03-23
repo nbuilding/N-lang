@@ -25,16 +25,14 @@ export class VarStmt extends Base implements Statement {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `var ${this.var} = ${this.value}`
   }
 
-  static get schema () {
-    return schema.tuple([
-      schema.any,
-      schema.instance(Identifier),
-      schema.any,
-      schema.guard(isExpression),
-    ])
-  }
+  static schema = schema.tuple([
+    schema.any,
+    schema.instance(Identifier),
+    schema.any,
+    schema.guard(isExpression),
+  ])
 }

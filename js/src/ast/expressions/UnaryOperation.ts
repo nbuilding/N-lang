@@ -1,5 +1,5 @@
 import schema, * as schem from '../../utils/schema'
-import { from } from '../../grammar/from-nearley'
+import { from, Preprocessor } from '../../grammar/from-nearley'
 import {
   Expression,
   isExpression,
@@ -49,7 +49,7 @@ export class UnaryOperation<O extends UnaryOperator> extends Base
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     switch (this.type) {
       case UnaryOperator.NEGATE:
         return `-${this.value}`
@@ -61,7 +61,9 @@ export class UnaryOperation<O extends UnaryOperator> extends Base
     return super.toString()
   }
 
-  static prefix<O extends UnaryOperator> (operator: O) {
+  static prefix<O extends UnaryOperator> (
+    operator: O,
+  ): Preprocessor<UnaryOperation<O>> {
     const prefixSchema = schema.tuple([
       schema.any,
       schema.any,
@@ -76,7 +78,9 @@ export class UnaryOperation<O extends UnaryOperator> extends Base
     return from({ schema: prefixSchema, from: fromSchema })
   }
 
-  static suffix<O extends UnaryOperator> (operator: O) {
+  static suffix<O extends UnaryOperator> (
+    operator: O,
+  ): Preprocessor<UnaryOperation<O>> {
     const suffixSchema = schema.tuple([
       schema.guard(isExpression),
       schema.any,

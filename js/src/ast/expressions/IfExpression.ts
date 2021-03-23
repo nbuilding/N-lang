@@ -27,7 +27,7 @@ export class IfExpression extends Base implements Expression {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return (
       `if ${this.condition} { ${this.then} }` +
       (this.else ? ` else { ${this.else} }` : '')

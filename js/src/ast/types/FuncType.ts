@@ -22,18 +22,16 @@ export class FuncType extends Base implements Type {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `(${this.typeVars ? this.typeVars + ' ' : ''}${this.takes} -> ${
       this.returns
     })`
   }
 
-  static get schema () {
-    return schema.tuple([
-      schema.nullable(schema.tuple([schema.instance(TypeVars), schema.any])),
-      schema.guard(isType),
-      schema.any,
-      schema.guard(isType),
-    ])
-  }
+  static schema = schema.tuple([
+    schema.nullable(schema.tuple([schema.instance(TypeVars), schema.any])),
+    schema.guard(isType),
+    schema.any,
+    schema.guard(isType),
+  ])
 }

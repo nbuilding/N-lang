@@ -25,7 +25,7 @@ export class List extends Base implements Expression {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `[${this.items.join(', ')}]`
   }
 

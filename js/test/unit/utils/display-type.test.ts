@@ -14,7 +14,7 @@ describe('displayType', () => {
   })
 
   it('should return the typeof value of a primitive type', () => {
-    expect(displayType(() => {})).to.equal('function')
+    expect(displayType(() => 3)).to.equal('function')
 
     expect(displayType(3)).to.equal('number')
   })

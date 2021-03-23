@@ -16,7 +16,7 @@ export class RecordTypeEntry extends Base {
     this.value = type
   }
 
-  toString () {
+  toString (): string {
     return `${this.key}: ${this.value}`
   }
 
@@ -45,7 +45,7 @@ export class RecordType extends Base implements Type {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `{ ${this.entries.join('; ')} }`
   }
 

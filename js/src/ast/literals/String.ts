@@ -6,7 +6,7 @@ export class String extends Literal {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return JSON.stringify(this.value)
   }
 }

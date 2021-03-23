@@ -28,26 +28,24 @@ export class IfStmt extends Base implements Statement {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return (
       `if ${this.condition} ${this.then}` +
       (this.else ? ` else ${this.else}` : '')
     )
   }
 
-  static get schema () {
-    return schema.tuple([
-      schema.any,
-      schema.guard(isCondition),
-      schema.any,
-      schema.instance(Block),
-      schema.any,
-      schema.nullable(
-        schema.tuple([
-          schema.any,
-          schema.union([schema.instance(Block), schema.guard(isStatement)]),
-        ]),
-      ),
-    ])
-  }
+  static schema = schema.tuple([
+    schema.any,
+    schema.guard(isCondition),
+    schema.any,
+    schema.instance(Block),
+    schema.any,
+    schema.nullable(
+      schema.tuple([
+        schema.any,
+        schema.union([schema.instance(Block), schema.guard(isStatement)]),
+      ]),
+    ),
+  ])
 }

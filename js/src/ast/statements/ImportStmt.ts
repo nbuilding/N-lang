@@ -22,7 +22,7 @@ export class ImportStmt extends Base implements Statement {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `import ${this.name}`
   }
 

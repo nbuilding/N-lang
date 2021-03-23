@@ -32,17 +32,15 @@ export class OldFor extends Base implements Statement {
     return `for ${this.var} ${this.value} ${this.body}`
   }
 
-  static get schema () {
-    return schema.tuple([
-      schema.any,
-      schema.instance(Declaration),
-      schema.any,
-      schema.guard(isExpression),
-      schema.any,
-      schema.instance(Block),
-      schema.any,
-    ])
-  }
+  static schema = schema.tuple([
+    schema.any,
+    schema.instance(Declaration),
+    schema.any,
+    schema.guard(isExpression),
+    schema.any,
+    schema.instance(Block),
+    schema.any,
+  ])
 }
 
 export class For extends Base implements Statement {
@@ -68,15 +66,13 @@ export class For extends Base implements Statement {
     return `for (${this.var} in ${this.value}) ${this.body}`
   }
 
-  static get schema () {
-    return schema.tuple([
-      schema.any,
-      schema.instance(Declaration),
-      schema.any,
-      schema.guard(isExpression),
-      schema.any,
-      schema.instance(Block),
-      schema.any,
-    ])
-  }
+  static schema = schema.tuple([
+    schema.any,
+    schema.instance(Declaration),
+    schema.any,
+    schema.guard(isExpression),
+    schema.any,
+    schema.instance(Block),
+    schema.any,
+  ])
 }

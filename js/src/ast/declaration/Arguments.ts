@@ -16,7 +16,7 @@ export class Arguments extends Base {
     this.params = [param, ...rawParams.map(([, param]) => param)]
   }
 
-  toString () {
+  toString (): string {
     return `[${this.typeVars ? this.typeVars + ' ' : ''}${this.params.join(
       ' ',
     )}]`

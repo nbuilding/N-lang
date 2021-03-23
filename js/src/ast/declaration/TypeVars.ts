@@ -13,7 +13,7 @@ export class TypeVars extends Base {
     this.vars = [...typeVars.map(([name]) => name.value), typeVar.value]
   }
 
-  toString () {
+  toString (): string {
     return `[${this.vars.join(', ')}]`
   }
 

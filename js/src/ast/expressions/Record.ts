@@ -21,7 +21,7 @@ export class RecordEntry extends Base {
     this.value = maybeValue ? maybeValue[1] : key
   }
 
-  toString () {
+  toString (): string {
     return `${this.key}: ${this.value}`
   }
 
@@ -49,7 +49,7 @@ export class Record extends Base implements Expression {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `{ ${this.entries.join('; ')} }`
   }
 

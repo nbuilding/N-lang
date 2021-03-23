@@ -16,7 +16,7 @@ export class TypeSpec extends Base {
     this.typeVars = maybeTypeVars
   }
 
-  toString () {
+  toString (): string {
     return `${this.name}${this.typeVars || ''}`
   }
 

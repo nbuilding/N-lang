@@ -27,17 +27,15 @@ export class LetStmt extends Base implements Statement {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `let${this.public ? ' pub' : ''} ${this.declaration} = ${this.value}`
   }
 
-  static get schema () {
-    return schema.tuple([
-      schema.any,
-      schema.nullable(schema.tuple([schema.any, schema.any])),
-      schema.instance(Declaration),
-      schema.any,
-      schema.guard(isExpression),
-    ])
-  }
+  static schema = schema.tuple([
+    schema.any,
+    schema.nullable(schema.tuple([schema.any, schema.any])),
+    schema.instance(Declaration),
+    schema.any,
+    schema.guard(isExpression),
+  ])
 }

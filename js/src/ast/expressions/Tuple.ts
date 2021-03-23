@@ -22,7 +22,7 @@ export class Tuple extends Base implements Expression {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `(${this.values.join(', ')})`
   }
 

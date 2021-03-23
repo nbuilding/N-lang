@@ -74,7 +74,7 @@ export class Base {
     return issues
   }
 
-  toString () {
+  toString (): string {
     return `[undisplayable ${this.constructor.name}]`
   }
 

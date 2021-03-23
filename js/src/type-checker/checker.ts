@@ -54,15 +54,15 @@ export class TypeChecker {
     this.global = new TopLevelScope(this)
   }
 
-  err (base: Base, message: string, options?: WarningOptions) {
+  err (base: Base, message: string, options?: WarningOptions): void {
     this.errors.push({ base, message, options })
   }
 
-  warn (base: Base, message: string, options?: WarningOptions) {
+  warn (base: Base, message: string, options?: WarningOptions): void {
     this.warnings.push({ base, message, options })
   }
 
-  check (ast: Block) {
+  check (ast: Block): void {
     const scope = this.global.newScope()
     scope.checkStatementType(ast)
     scope.endScope()
@@ -143,7 +143,7 @@ export class TypeChecker {
     file: FileLines,
     type: WarningType,
     { base, message, options = {} }: Warning,
-  ) {
+  ): string {
     let output
     switch (type) {
       case WarningType.Error: {

@@ -25,7 +25,7 @@ export class Block extends Base implements Statement {
     throw new Error('Method not implemented.')
   }
 
-  toString (topLevel = false) {
+  toString (topLevel = false): string {
     if (topLevel) {
       return this.statements.join('\n')
     }

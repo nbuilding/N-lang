@@ -21,7 +21,7 @@ export class RecordPatternEntry extends Base {
     this.value = maybeValue ? maybeValue[1] : key
   }
 
-  toString () {
+  toString (): string {
     return `${this.key}: ${this.value}`
   }
 
@@ -49,7 +49,7 @@ export class RecordPattern extends Base implements Pattern {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `{ ${this.entries.join('; ')} }`
   }
 

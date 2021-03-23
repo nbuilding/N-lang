@@ -30,7 +30,7 @@ export class ClassDeclaration extends Base implements Statement {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `class${this.public ? ' pub' : ''} ${this.name} ${this.arguments} ${
       this.body
     }`

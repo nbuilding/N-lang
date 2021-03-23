@@ -25,7 +25,7 @@ export class EnumPattern extends Base implements Pattern {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `<${this.variant}${this.patterns
       .map(pattern => ' ' + pattern)
       .join('')}>`

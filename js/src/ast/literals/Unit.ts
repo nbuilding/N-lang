@@ -15,7 +15,7 @@ export class Unit extends Base implements Expression {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return '()'
   }
 

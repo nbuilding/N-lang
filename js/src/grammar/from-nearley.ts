@@ -40,10 +40,16 @@ function getNonNullArgs (args: NearleyArgs): (Base | moo.Token)[] {
   return nonNullArgs
 }
 
+export type Preprocessor<O> = (
+  args: any[],
+  _loc?: number,
+  _reject?: Record<string, never>,
+) => O
+
 export function from<T extends Base, S> (
   hasSchema: HasSchema<T, S> | HasSchemaAlt<T, S>,
-) {
-  function preprocessor (args: any[], _loc?: number, _reject?: {}): T {
+): Preprocessor<T> {
+  return args => {
     shouldBeNearleyArgs(args)
     const nonNullArgs = getNonNullArgs(args)
     let pos
@@ -86,7 +92,6 @@ export function from<T extends Base, S> (
       throw err
     }
   }
-  return preprocessor
 }
 
 const includeBracketsSchema = schema.tuple([

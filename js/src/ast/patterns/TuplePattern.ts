@@ -22,7 +22,7 @@ export class TuplePattern extends Base implements Pattern {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `(${this.patterns.join(', ')})`
   }
 

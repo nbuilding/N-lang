@@ -17,7 +17,7 @@ export abstract class Literal extends Base implements Expression {
 
   abstract typeCheck (context: TypeCheckContext): TypeCheckResult
 
-  toString () {
+  toString (): string {
     return this.value
   }
 

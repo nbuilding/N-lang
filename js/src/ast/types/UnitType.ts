@@ -11,7 +11,7 @@ export class UnitType extends Base implements Type {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return '()'
   }
 

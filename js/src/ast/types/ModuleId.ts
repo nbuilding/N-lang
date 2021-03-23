@@ -24,7 +24,7 @@ export class ModuleId extends Base implements Type {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return (
       this.modules.map(mod => mod + '.').join('') +
       this.name +

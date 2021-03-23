@@ -36,7 +36,7 @@ export class FuncCall extends Base implements Expression, Statement {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `${this.func}(${this.params.join(', ')})`
   }
 

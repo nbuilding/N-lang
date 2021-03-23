@@ -16,7 +16,7 @@ export class Declaration extends Base {
     this.type = maybeType && maybeType[1]
   }
 
-  toString () {
+  toString (): string {
     return this.type ? `${this.pattern}: ${this.type}` : `${this.pattern}`
   }
 

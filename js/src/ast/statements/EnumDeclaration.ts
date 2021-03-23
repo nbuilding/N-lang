@@ -26,7 +26,7 @@ export class EnumVariant extends Base {
     }
   }
 
-  toString () {
+  toString (): string {
     return `<${this.variant}${this.types.map(type => ' ' + type).join('')}>`
   }
 
@@ -62,7 +62,7 @@ export class EnumDeclaration extends Base implements Statement {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `type${this.public ? ' pub' : ''} ${
       this.typeSpec
     } = ${this.variants.join(' | ')}`

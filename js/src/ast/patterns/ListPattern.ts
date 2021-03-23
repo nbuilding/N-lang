@@ -24,7 +24,7 @@ export class ListPattern extends Base implements Pattern {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `[${this.patterns.join(', ')}]`
   }
 

@@ -88,7 +88,7 @@ export class Comparisons extends Base implements Expression {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     let str = `${this.comparisons[0].a}`
     for (const { type, b } of this.comparisons) {
       str += ` ${compareToString(type)} ${b}`

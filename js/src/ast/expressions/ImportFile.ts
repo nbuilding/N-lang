@@ -2,7 +2,7 @@ import schema, * as schem from '../../utils/schema'
 import { Expression, TypeCheckContext, TypeCheckResult } from './Expression'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
-import { String } from '../literals/String'
+import { String as AstString } from '../literals/String'
 
 export class ImportFile extends Base implements Expression {
   path: string
@@ -21,15 +21,15 @@ export class ImportFile extends Base implements Expression {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `imp ${JSON.stringify(this.path)}`
   }
 
   static schema = schema.tuple([
     schema.any,
     schema.any,
-    schema.guard((value: unknown): value is Identifier | String => {
-      return value instanceof Identifier || value instanceof String
+    schema.guard((value: unknown): value is Identifier | AstString => {
+      return value instanceof Identifier || value instanceof AstString
     }),
   ])
 }

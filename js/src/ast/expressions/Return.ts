@@ -31,7 +31,7 @@ export class Return extends Base implements Expression, Statement {
     throw new Error('Method not implemented.')
   }
 
-  toString () {
+  toString (): string {
     return `return ${this.value}`
   }
 
