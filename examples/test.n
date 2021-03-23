@@ -1,1 +1,5 @@
-let test: [a] b -> [c] d -> e [f] -> g = ()
+let test: [a] b -> [c] d -> e [f] -> g = imp "lol"
+
+let wow = [a: int] -> int {
+  print((imp hey))
+}

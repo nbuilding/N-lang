@@ -5,6 +5,8 @@ import util from 'util'
 import parseArgs from 'minimist'
 // import { compileToJS, TypeChecker, FileLines } from './index'
 import { parse } from './grammar/parse'
+import { TypeChecker } from './type-checker/checker'
+import { Base } from './ast/index'
 
 async function main () {
   const {
@@ -66,11 +68,16 @@ async function main () {
 
   if (!(js || running || checksOnly)) return
 
-  /*
   const checker = new TypeChecker({
-    colours: true
+    resolvePath (basePath: string, importPath: string): string {
+      return basePath + importPath // TEMP
+    },
+    async provideFile (_path: string): Promise<Base> {
+      throw new Error('not implemented')
+    },
   })
-  checker.check(script)
+  checker.start(script)
+  /*
   console.log(checker.displayWarnings(lines))
 
   const compiled = compileToJS(script, checker.types)
