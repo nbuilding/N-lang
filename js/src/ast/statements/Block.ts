@@ -1,8 +1,8 @@
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
-import { isStatement, Statement } from './Statement'
+import { CheckStatementContext, CheckStatementResult, isStatement, Statement } from './Statement'
 
-export class Block extends Base {
+export class Block extends Base implements Statement {
   statements: Statement[]
 
   constructor (pos: BasePosition, rawStatements?: schem.infer<typeof Block.schema>) {
@@ -12,6 +12,10 @@ export class Block extends Base {
     ] : []
     super(pos, statements)
     this.statements = statements
+  }
+
+  checkStatement (context: CheckStatementContext): CheckStatementResult {
+    throw new Error('Method not implemented.')
   }
 
   toString (topLevel = false) {

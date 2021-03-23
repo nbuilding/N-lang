@@ -1,8 +1,9 @@
 import schema, * as schem from '../../utils/schema'
 import { Expression, isExpression, TypeCheckContext, TypeCheckResult } from './Expression'
 import { Base, BasePosition } from '../base'
+import { CheckStatementContext, CheckStatementResult, Statement } from '../statements/Statement'
 
-export class FuncCall extends Base implements Expression {
+export class FuncCall extends Base implements Expression, Statement {
   func: Expression
   params: Expression[]
 
@@ -17,6 +18,10 @@ export class FuncCall extends Base implements Expression {
     super(pos, [func, ...params])
     this.func = func
     this.params = params
+  }
+
+  checkStatement (context: CheckStatementContext): CheckStatementResult {
+    throw new Error('Method not implemented.')
   }
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {

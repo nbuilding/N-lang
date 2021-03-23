@@ -2,7 +2,7 @@ import schema, * as schem from '../../utils/schema'
 import { from } from '../../grammar/from-nearley'
 import { Expression, isExpression, TypeCheckContext, TypeCheckResult } from './Expression'
 import { Base, BasePosition } from '../base'
-import { Identifier } from '../literals/Identifier'
+import { CheckStatementContext, CheckStatementResult, Statement } from '../statements/Statement'
 
 export enum UnaryOperator {
   NEGATE = 'negate',
@@ -18,7 +18,7 @@ export function unaryOperatorToString (self: UnaryOperator): string {
   }
 }
 
-export class UnaryOperation<O extends UnaryOperator> extends Base implements Expression {
+export class UnaryOperation<O extends UnaryOperator> extends Base implements Expression, Statement {
   type: O
   value: Expression
 
@@ -26,6 +26,10 @@ export class UnaryOperation<O extends UnaryOperator> extends Base implements Exp
     super(pos, [value])
     this.type = operator
     this.value = value
+  }
+
+  checkStatement (context: CheckStatementContext): CheckStatementResult {
+    throw new Error('Method not implemented.')
   }
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {

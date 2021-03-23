@@ -1,8 +1,8 @@
 import schema, * as schem from '../../utils/schema'
-import { isEnum, isToken } from '../../utils/type-guards'
 import { from } from '../../grammar/from-nearley'
 import { Expression, isExpression, TypeCheckContext, TypeCheckResult } from './Expression'
 import { Base, BasePosition } from '../base'
+import { CheckStatementContext, CheckStatementResult, Statement } from '../statements/Statement'
 
 export enum Operator {
   AND = 'and',
@@ -30,7 +30,7 @@ export function operatorToString (self: Operator): string {
   }
 }
 
-export class Operation<O extends Operator> extends Base implements Expression {
+export class Operation<O extends Operator> extends Base implements Expression, Statement {
   type: O
   a: Expression
   b: Expression
@@ -45,6 +45,10 @@ export class Operation<O extends Operator> extends Base implements Expression {
     this.type = operator
     this.a = expr
     this.b = val
+  }
+
+  checkStatement (context: CheckStatementContext): CheckStatementResult {
+    throw new Error('Method not implemented.')
   }
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {
