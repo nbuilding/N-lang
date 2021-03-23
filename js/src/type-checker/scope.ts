@@ -120,14 +120,21 @@ export class Scope extends Module {
     }
   }
 
-  private _ensureMatch (a: NType, b: NType, base: ast.Base, message: string): NType {
+  private _ensureMatch (
+    a: NType,
+    b: NType,
+    base: ast.Base,
+    message: string,
+  ): NType {
     if (a === null || b === null) {
       return null
     } else if (types.is(a, b)) {
       // NOTE: If both types are number, then this will return number.
       return a
     } else if (types.isTuple(a) && types.isTuple(b) && a.length === b.length) {
-      const type = a.map((type, i) => this._ensureMatch(type, b[i], base, message))
+      const type = a.map((type, i) =>
+        this._ensureMatch(type, b[i], base, message),
+      )
       if (type.includes(null)) {
         return null
       }
@@ -145,18 +152,26 @@ export class Scope extends Module {
   }
 
   warnExit (exit: ast.Base, expr: ast.Base, message: string) {
-    this.checker.warn(expr, `${message} because the expression will return out of the function.`, {
-      exit
-    })
+    this.checker.warn(
+      expr,
+      `${message} because the expression will return out of the function.`,
+      {
+        exit,
+      },
+    )
   }
 
   private _getExprType (
     expression: ast.Expression,
-    context: ScopeContext = {}
+    context: ScopeContext = {},
   ): [NType, ast.Base?] {
     const displ = (type: NType) => this.checker.displayType(type)
     if (expression instanceof ast.Literal) {
-      if (context.asStatement) this.checker.warn(expression, 'You don\'t store the value anywhere, so this is redundant.')
+      if (context.asStatement)
+        this.checker.warn(
+          expression,
+          "You don't store the value anywhere, so this is redundant.",
+        )
       if (expression instanceof ast.Number) {
         return [types.number()]
       } else if (expression instanceof ast.Float) {
@@ -169,11 +184,20 @@ export class Scope extends Module {
         return [types.unit()]
       } else {
         console.error(expression)
-        this.checker.err(expression, `Internal problem: I wasn't expecting this kind of Literal (type ${displayType(expression)}). (This is a bug with the type checker.)`)
+        this.checker.err(
+          expression,
+          `Internal problem: I wasn't expecting this kind of Literal (type ${displayType(
+            expression,
+          )}). (This is a bug with the type checker.)`,
+        )
         return [null]
       }
     } else if (expression instanceof ast.Operation) {
-      if (context.asStatement) this.checker.warn(expression, 'You don\'t store the result anywhere, so this is redundant.')
+      if (context.asStatement)
+        this.checker.warn(
+          expression,
+          "You don't store the result anywhere, so this is redundant.",
+        )
       let [aType, aExit] = this.getExprType(expression.a)
       const [bType, bExit] = this.getExprType(expression.b)
       let returnType
@@ -191,19 +215,20 @@ export class Scope extends Module {
       }
       if (types.isNumber(aType) && types.isNumber(bType)) {
         // At this point, both operands are numbers
-        if ([
-          ast.Operator.ADD,
-          ast.Operator.MINUS,
-          ast.Operator.MULTIPLY,
-          ast.Operator.DIVIDE,
-          ast.Operator.MODULO,
-          ast.Operator.EXPONENT,
-        ].includes(expression.type)) {
+        if (
+          [
+            ast.Operator.ADD,
+            ast.Operator.MINUS,
+            ast.Operator.MULTIPLY,
+            ast.Operator.DIVIDE,
+            ast.Operator.MODULO,
+            ast.Operator.EXPONENT,
+          ].includes(expression.type)
+        ) {
           returnType = aType.merge(bType)
-        } else if ([
-          ast.Operator.AND,
-          ast.Operator.OR,
-        ].includes(expression.type)) {
+        } else if (
+          [ast.Operator.AND, ast.Operator.OR].includes(expression.type)
+        ) {
           // Only int supports these operations, so therefore both numbers are
           // ints.
           this._resolveNumberAs(aType, types.int())
@@ -211,48 +236,76 @@ export class Scope extends Module {
           returnType = types.int()
         }
       } else if (types.isInt(aType)) {
-        if (expression.type === ast.Operator.MULTIPLY && types.isString(bType)) {
+        if (
+          expression.type === ast.Operator.MULTIPLY &&
+          types.isString(bType)
+        ) {
           // String multiplication like in Python
           returnType = types.string()
-        } else if ([
-          ast.Operator.ADD,
-          ast.Operator.MINUS,
-          ast.Operator.MULTIPLY,
-          ast.Operator.DIVIDE,
-          ast.Operator.MODULO,
-          // Negative exponents shall be rounded to zero
-          ast.Operator.EXPONENT,
-          ast.Operator.AND,
-          ast.Operator.OR,
-        ].includes(expression.type)) {
+        } else if (
+          [
+            ast.Operator.ADD,
+            ast.Operator.MINUS,
+            ast.Operator.MULTIPLY,
+            ast.Operator.DIVIDE,
+            ast.Operator.MODULO,
+            // Negative exponents shall be rounded to zero
+            ast.Operator.EXPONENT,
+            ast.Operator.AND,
+            ast.Operator.OR,
+          ].includes(expression.type)
+        ) {
           // These operations are int op int, so bType must be an int.
-          returnType = this._ensureMatch(aType, bType, expression, `${displ(aType)} performs ${ast.operatorToString(expression.type)} with ${displ(types.int())}, not ${displ(bType)}.`)
+          returnType = this._ensureMatch(
+            aType,
+            bType,
+            expression,
+            `${displ(aType)} performs ${ast.operatorToString(
+              expression.type,
+            )} with ${displ(types.int())}, not ${displ(bType)}.`,
+          )
         }
       } else if (types.isFloat(aType)) {
-        if ([
-          ast.Operator.ADD,
-          ast.Operator.MINUS,
-          ast.Operator.MULTIPLY,
-          ast.Operator.DIVIDE,
-          ast.Operator.MODULO,
-          ast.Operator.EXPONENT,
-        ].includes(expression.type)) {
+        if (
+          [
+            ast.Operator.ADD,
+            ast.Operator.MINUS,
+            ast.Operator.MULTIPLY,
+            ast.Operator.DIVIDE,
+            ast.Operator.MODULO,
+            ast.Operator.EXPONENT,
+          ].includes(expression.type)
+        ) {
           // These operations are float op float, so bType must be an float.
-          returnType = this._ensureMatch(aType, bType, expression, `${displ(aType)} performs ${ast.operatorToString(expression.type)} with ${displ(types.float())}, not ${displ(bType)}.`)
+          returnType = this._ensureMatch(
+            aType,
+            bType,
+            expression,
+            `${displ(aType)} performs ${ast.operatorToString(
+              expression.type,
+            )} with ${displ(types.float())}, not ${displ(bType)}.`,
+          )
         }
       } else if (types.isBool(aType)) {
-        if ([
-          ast.Operator.AND,
-          ast.Operator.OR,
-        ].includes(expression.type)) {
+        if ([ast.Operator.AND, ast.Operator.OR].includes(expression.type)) {
           // These operations are bool op bool, so bType must be an bool.
-          returnType = this._ensureMatch(aType, bType, expression, `${displ(aType)} performs ${ast.operatorToString(expression.type)} with ${displ(types.bool())}, not ${displ(bType)}.`)
+          returnType = this._ensureMatch(
+            aType,
+            bType,
+            expression,
+            `${displ(aType)} performs ${ast.operatorToString(
+              expression.type,
+            )} with ${displ(types.bool())}, not ${displ(bType)}.`,
+          )
           shortCircuit = true
         }
       } else if (types.isString(aType)) {
         if (expression.type === ast.Operator.ADD && types.isString(bType)) {
           returnType = types.string()
-        } else if (expression.type === ast.Operator.MULTIPLY && (types.isInt(bType) || types.isNumber(bType))) {
+        } else if (
+          expression.type === ast.Operator.MULTIPLY &&
+          (types.isInt(bType) || types.isNumber(bType))
+        ) {
           if (types.isNumber(bType)) {
             this._resolveNumberAs(bType, types.int())
           }
@@ -261,22 +314,52 @@ export class Scope extends Module {
         }
       }
       if (shortCircuit) {
-        if (bExit) this.warnExit(bExit, expression, `I'll never perform this ${ast.operatorToString(expression.type)} operation`)
+        if (bExit)
+          this.warnExit(
+            bExit,
+            expression,
+            `I'll never perform this ${ast.operatorToString(
+              expression.type,
+            )} operation`,
+          )
       } else {
         const exit = aExit || bExit
-        if (exit) this.warnExit(exit, expression, `I'll never perform this ${ast.operatorToString(expression.type)} operation`)
+        if (exit)
+          this.warnExit(
+            exit,
+            expression,
+            `I'll never perform this ${ast.operatorToString(
+              expression.type,
+            )} operation`,
+          )
       }
       if (returnType === undefined) {
         if (aType && bType) {
-          this.checker.err(expression, `${displ(aType)} and ${displ(bType)} cannot perform ${ast.operatorToString(expression.type)}.`)
+          this.checker.err(
+            expression,
+            `${displ(aType)} and ${displ(
+              bType,
+            )} cannot perform ${ast.operatorToString(expression.type)}.`,
+          )
         }
         returnType = null
       }
       return [returnType]
     } else if (expression instanceof ast.UnaryOperation) {
-      if (context.asStatement) this.checker.warn(expression, 'You don\'t store the result anywhere, so this is redundant.')
+      if (context.asStatement)
+        this.checker.warn(
+          expression,
+          "You don't store the result anywhere, so this is redundant.",
+        )
       const [type, exit] = this.getExprType(expression.value)
-      if (exit) this.warnExit(exit, expression, `I'll never perform this ${ast.unaryOperatorToString(expression.type)} operation`)
+      if (exit)
+        this.warnExit(
+          exit,
+          expression,
+          `I'll never perform this ${ast.unaryOperatorToString(
+            expression.type,
+          )} operation`,
+        )
       let returnType
       // TODO: Operator overloading?
       if (types.isNumber(type)) {
@@ -287,10 +370,11 @@ export class Scope extends Module {
           returnType = types.int()
         }
       } else if (types.isInt(type)) {
-        if ([
-          ast.UnaryOperator.NEGATE,
-          ast.UnaryOperator.NOT,
-        ].includes(expression.type)) {
+        if (
+          [ast.UnaryOperator.NEGATE, ast.UnaryOperator.NOT].includes(
+            expression.type,
+          )
+        ) {
           returnType = type
         }
       } else if (types.isFloat(type)) {
@@ -304,34 +388,58 @@ export class Scope extends Module {
       }
       if (returnType === undefined) {
         if (type) {
-          this.checker.err(expression, `${displ(type)} cannot perform ${ast.unaryOperatorToString(expression.type)}.`)
+          this.checker.err(
+            expression,
+            `${displ(type)} cannot perform ${ast.unaryOperatorToString(
+              expression.type,
+            )}.`,
+          )
         }
         returnType = null
       }
       return [returnType]
     } else if (expression instanceof ast.Comparisons) {
-      if (context.asStatement) this.checker.warn(expression, 'You don\'t store the result anywhere, so this is redundant.')
+      if (context.asStatement)
+        this.checker.warn(
+          expression,
+          "You don't store the result anywhere, so this is redundant.",
+        )
       let warned = false
       for (const comparison of expression.comparisons) {
         const { type, a, b } = comparison
         const [aType, aExit] = this.getExprType(a)
         const [bType, bExit] = this.getExprType(b)
         if (aType && bType) {
-          const result = this._ensureMatch(aType, bType, comparison, `I can't compare ${displ(aType)} and ${displ(bType)} since they're different types.`)
+          const result = this._ensureMatch(
+            aType,
+            bType,
+            comparison,
+            `I can't compare ${displ(aType)} and ${displ(
+              bType,
+            )} since they're different types.`,
+          )
           if (types.isFunc(aType)) {
-            this.checker.err(comparison, `I can't compare ${displ(aType)} because it's rather complicated to compare functions.`)
+            this.checker.err(
+              comparison,
+              `I can't compare ${displ(
+                aType,
+              )} because it's rather complicated to compare functions.`,
+            )
           }
           // TODO: Custom comparisons?
           if (type !== ast.Compare.EQUAL && type !== ast.Compare.NEQ) {
             if (result && !(types.isInt(result) || types.isFloat(result))) {
-              this.checker.err(comparison, `I can't compare ${displ(result)} values.`)
+              this.checker.err(
+                comparison,
+                `I can't compare ${displ(result)} values.`,
+              )
             }
           }
         }
         const exit = aExit || bExit
         if (!warned && exit) {
           warned = true
-          this.warnExit(exit, comparison, 'I\'ll never make this comparison')
+          this.warnExit(exit, comparison, "I'll never make this comparison")
         }
       }
       return [types.bool()]
@@ -339,22 +447,34 @@ export class Scope extends Module {
       return [
         expression.values.map(value => {
           const [type, exit] = this.getExprType(value)
-          if (exit) this.warnExit(exit, expression, 'I\'ll never make this tuple')
+          if (exit)
+            this.warnExit(exit, expression, "I'll never make this tuple")
           return type
-        })
+        }),
       ]
     } else if (expression instanceof ast.CallFunc) {
       const [fnInitType, fnExit] = this.getExprType(expression.func)
-      if (fnExit) this.warnExit(fnExit, expression.func, 'I\'ll never call this function')
+      if (fnExit)
+        this.warnExit(fnExit, expression.func, "I'll never call this function")
       if (fnInitType && !types.isFunc(fnInitType)) {
-        this.checker.err(expression.func, `I cannot call ${displ(fnInitType)} because it is not a function.`)
+        this.checker.err(
+          expression.func,
+          `I cannot call ${displ(fnInitType)} because it is not a function.`,
+        )
       }
-      const argCount = types.isFunc(fnInitType) ? fnInitType.getArgs().length : 0
+      const argCount = types.isFunc(fnInitType)
+        ? fnInitType.getArgs().length
+        : 0
       let fnType = fnInitType
       let argNum = 1
       for (const param of expression.params) {
         const [type, exit] = this.getExprType(param)
-        if (exit) this.warnExit(exit, param, 'I\'ll never use this argument for this function')
+        if (exit)
+          this.warnExit(
+            exit,
+            param,
+            "I'll never use this argument for this function",
+          )
         if (fnType) {
           if (types.isFunc(fnType)) {
             const { takes, returns } = fnType
@@ -363,16 +483,22 @@ export class Scope extends Module {
               type,
               param,
               argCount === 1 && argNum === 1
-                ? `${displ(fnInitType)} takes ${displ(takes)}, not ${displ(type)}.`
-                : `${displ(fnInitType)}'s argument #${argNum} takes ${displ(takes)}, not ${displ(type)}.`
+                ? `${displ(fnInitType)} takes ${displ(takes)}, not ${displ(
+                    type,
+                  )}.`
+                : `${displ(fnInitType)}'s argument #${argNum} takes ${displ(
+                    takes,
+                  )}, not ${displ(type)}.`,
             )
             fnType = returns
           } else {
             this.checker.err(
               param,
               argCount === 1 && argNum === 1
-                ? `${displ(fnInitType)} doesn't take an argument because it's not a function.`
-                : `${displ(fnInitType)} doesn't take an argument #${argNum}.`
+                ? `${displ(
+                    fnInitType,
+                  )} doesn't take an argument because it's not a function.`
+                : `${displ(fnInitType)} doesn't take an argument #${argNum}.`,
             )
           }
         }
@@ -389,30 +515,57 @@ export class Scope extends Module {
         this.checker.err(expression, `You can't return outside a function.`)
         return [null]
       } else {
-        this._ensureMatch(type, this.returnType, expression.value, `You returned a ${displ(type)} in a function that is meant to return a ${types.display(this.returnType)}`)
+        this._ensureMatch(
+          type,
+          this.returnType,
+          expression.value,
+          `You returned a ${displ(
+            type,
+          )} in a function that is meant to return a ${types.display(
+            this.returnType,
+          )}`,
+        )
         return [types.never(), expression]
       }
     } else if (expression instanceof ast.If) {
       const [condType, exit] = this.getExprType(expression.condition)
-      if (exit) this.warnExit(exit, expression.condition, 'I\'ll never check the condition')
+      if (exit)
+        this.warnExit(
+          exit,
+          expression.condition,
+          "I'll never check the condition",
+        )
       if (condType && !types.isBool(condType)) {
-        this.checker.err(expression.condition, `The condition should return a ${displ(types.bool())}, not a ${displ(condType)}.`)
+        this.checker.err(
+          expression.condition,
+          `The condition should return a ${displ(types.bool())}, not a ${displ(
+            condType,
+          )}.`,
+        )
       }
       const [ifTrueType, ifTrueExit] = this.getExprType(expression.then, {
-        asStatement: context.asStatement
+        asStatement: context.asStatement,
       })
       if (expression.else) {
         const [ifFalseType, ifFalseExit] = this.getExprType(expression.else, {
-          asStatement: context.asStatement
+          asStatement: context.asStatement,
         })
         const exit = ifTrueExit && ifFalseExit ? expression : undefined
-        const neitherBranchNever = !types.isNever(ifTrueType) && !types.isNever(ifFalseType)
+        const neitherBranchNever =
+          !types.isNever(ifTrueType) && !types.isNever(ifFalseType)
         if (!ifTrueType || !ifFalseType || context.asStatement) {
           return [null, exit]
         } else if (neitherBranchNever) {
           return [
-            this._ensureMatch(ifTrueType, ifFalseType, expression, `The types of either branch, ${displ(ifTrueType)} and ${displ(ifFalseType)}, are not the same.`),
-            exit
+            this._ensureMatch(
+              ifTrueType,
+              ifFalseType,
+              expression,
+              `The types of either branch, ${displ(ifTrueType)} and ${displ(
+                ifFalseType,
+              )}, are not the same.`,
+            ),
+            exit,
           ]
         } else {
           return [
@@ -420,20 +573,30 @@ export class Scope extends Module {
             // There may be a good reason to have both branches exit, so we
             // aren't warning about it here.
             types.isNever(ifTrueType) ? ifFalseType : ifTrueType,
-            exit
+            exit,
           ]
         }
       } else {
         if (!context.asStatement) {
           // TODO
-          this.checker.warn(expression, 'Unimplemented: I currently cannot determine return values from conditionals without an "else" branch.')
+          this.checker.warn(
+            expression,
+            'Unimplemented: I currently cannot determine return values from conditionals without an "else" branch.',
+          )
         }
         return [null]
       }
     } else if (expression instanceof ast.Identifier) {
-      if (context.asStatement) this.checker.warn(expression, 'You don\'t store its value anywhere, so this is redundant.')
+      if (context.asStatement)
+        this.checker.warn(
+          expression,
+          "You don't store its value anywhere, so this is redundant.",
+        )
       if (expression.modules.length === 0 && expression.name.startsWith('_')) {
-        this.checker.warn(expression, `You should remove the underscore prefix from \`${expression.name}\` now that you\'re using it because the underscore denoted that you weren't using the variable yet.`)
+        this.checker.warn(
+          expression,
+          `You should remove the underscore prefix from \`${expression.name}\` now that you\'re using it because the underscore denoted that you weren't using the variable yet.`,
+        )
       }
       const value = this.getValue(expression)
       if (typeof value === 'string') {
@@ -442,14 +605,21 @@ export class Scope extends Module {
       }
       return [value]
     } else if (expression instanceof ast.Function) {
-      if (context.asStatement) this.checker.warn(expression, 'You don\'t store the function anywhere, so this is redundant.')
+      if (context.asStatement)
+        this.checker.warn(
+          expression,
+          "You don't store the function anywhere, so this is redundant.",
+        )
       const returnType = this.astToType(expression.returnType)
       const scope = this.newScope(returnType)
       const fnTypes = []
       for (const declaration of expression.params) {
         const { name, type: maybeType } = declaration
         if (!maybeType) {
-          this.checker.err(declaration, 'I need to know what type this parameter is.')
+          this.checker.err(
+            declaration,
+            'I need to know what type this parameter is.',
+          )
         }
         const type = maybeType ? this.astToType(maybeType) : null
         fnTypes.push(type)
@@ -465,19 +635,27 @@ export class Scope extends Module {
       fnTypes.push(returnType)
       this.checker.types.set(expression.returnType, returnType)
       const [actualReturnType] = scope.getExprType(expression.body, {
-        functionBody: true
+        functionBody: true,
       })
       // This only checks the implicit return value of blocks (and expressions);
       // explicit return statements are checked by the return statement, not
       // here.
       if (!types.isNever(actualReturnType)) {
-        this._ensureMatch(returnType, actualReturnType, expression.body, `The body of this function, which should return a ${displ(returnType)}, returns a ${displ(actualReturnType)}.`)
+        this._ensureMatch(
+          returnType,
+          actualReturnType,
+          expression.body,
+          `The body of this function, which should return a ${displ(
+            returnType,
+          )}, returns a ${displ(actualReturnType)}.`,
+        )
       }
       scope.endScope()
       return [fnTypes.includes(null) ? null : types.toFunc(fnTypes)]
     } else if (expression instanceof ast.For) {
       const [iterable, iterableExit] = this.getExprType(expression.value)
-      if (iterableExit) this.warnExit(iterableExit, expression, 'I\'ll never iterate')
+      if (iterableExit)
+        this.warnExit(iterableExit, expression, "I'll never iterate")
       const { name, type } = expression.var
       const scope = this.newScope()
       if (name) {
@@ -504,22 +682,33 @@ export class Scope extends Module {
             if (name) scope.values.set(name, iterated)
             this.checker.types.set(expression.var, iterated)
           } else if (resolvedType) {
-            this.checker.err(expression.var, `Iterating over ${displ(iterable)} produces values of ${displ(iterated)}, not ${displ(resolvedType)}.`)
+            this.checker.err(
+              expression.var,
+              `Iterating over ${displ(iterable)} produces values of ${displ(
+                iterated,
+              )}, not ${displ(resolvedType)}.`,
+            )
           }
         } else {
           if (name) scope.values.set(name, iterated)
           this.checker.types.set(expression.var, iterated)
         }
       } else if (iterable) {
-        this.checker.err(expression.value, `I can't iterate over ${displ(iterable)}.`)
+        this.checker.err(
+          expression.value,
+          `I can't iterate over ${displ(iterable)}.`,
+        )
       }
       const [bodyType, exit] = scope.getExprType(expression.body, {
-        asStatement: context.asStatement
+        asStatement: context.asStatement,
       })
       scope.endScope()
       if (!context.asStatement) {
         // TODO
-        this.checker.warn(expression, 'Unimplemented: I currently cannot determine return values from for loops.')
+        this.checker.warn(
+          expression,
+          'Unimplemented: I currently cannot determine return values from for loops.',
+        )
       }
       return [null, exit]
     } else if (expression instanceof ast.Block) {
@@ -529,7 +718,7 @@ export class Scope extends Module {
       let lastType
       let lastExpression: ast.Expression | null = null
       if (!context.asStatement) {
-        for (let i = expression.statements.length; i--;) {
+        for (let i = expression.statements.length; i--; ) {
           const statement = expression.statements[i]
           if (ast.isExpression(statement)) {
             lastExpression = statement
@@ -542,7 +731,10 @@ export class Scope extends Module {
         if (statement === lastExpression) {
           ;[lastType, exit] = scope.getExprType(statement as ast.Expression)
           if (context.functionBody && statement instanceof ast.Return) {
-            this.checker.warn(statement, 'You don\'t need to explicitly use return here.')
+            this.checker.warn(
+              statement,
+              "You don't need to explicitly use return here.",
+            )
           }
         } else {
           exit = scope.checkStatementType(statement)
@@ -550,9 +742,13 @@ export class Scope extends Module {
         if (exited) {
           if (!warned) {
             warned = true
-            this.checker.warn(statement, 'All code beyond here will never run because the function has returned.', {
-              exit: exited
-            })
+            this.checker.warn(
+              statement,
+              'All code beyond here will never run because the function has returned.',
+              {
+                exit: exited,
+              },
+            )
           }
         } else if (exit) {
           exited = exit
@@ -569,7 +765,12 @@ export class Scope extends Module {
       }
     } else {
       console.error(expression)
-      this.checker.err(expression, `Internal problem: I wasn't expecting this kind of Expression (type ${displayType(expression)}). (This is a bug with the type checker.)`)
+      this.checker.err(
+        expression,
+        `Internal problem: I wasn't expecting this kind of Expression (type ${displayType(
+          expression,
+        )}). (This is a bug with the type checker.)`,
+      )
       return [null]
     }
   }
@@ -577,7 +778,7 @@ export class Scope extends Module {
   // Wrapper method to cache expression types
   getExprType (
     expression: ast.Expression,
-    context: ScopeContext = {}
+    context: ScopeContext = {},
   ): [NType, ast.Base?] {
     const maybeType = this.checker.types.get(expression)
     if (maybeType !== undefined) return [maybeType]
@@ -593,7 +794,10 @@ export class Scope extends Module {
     const displ = (type: NType) => this.checker.displayType(type)
     if (statement instanceof ast.ImportStmt) {
       if (this.modules.has(statement.name)) {
-        this.checker.err(statement, `You already imported \`${statement.name}\` in this scope.`)
+        this.checker.err(
+          statement,
+          `You already imported \`${statement.name}\` in this scope.`,
+        )
       }
       const module = this.checker.getModule(statement.name)
       if (module) {
@@ -601,20 +805,34 @@ export class Scope extends Module {
         this.modules.set(statement.name, module)
       } else {
         this.modules.set(statement.name, null)
-        this.checker.err(statement, `I don't know of a module named "${statement.name}".`)
+        this.checker.err(
+          statement,
+          `I don't know of a module named "${statement.name}".`,
+        )
       }
       this.unusedModules.set(statement.name, statement)
       return
     } else if (statement instanceof ast.VarStmt) {
       const { name, type } = statement.declaration
       if (name && this.values.has(name)) {
-        this.checker.err(statement.declaration, `You already defined \`${name}\` in this scope.`)
+        this.checker.err(
+          statement.declaration,
+          `You already defined \`${name}\` in this scope.`,
+        )
       }
       const [resolvedType, exit] = this.getExprType(statement.value)
-      if (exit) this.warnExit(exit, statement, 'I will never create this variable')
+      if (exit)
+        this.warnExit(exit, statement, 'I will never create this variable')
       if (type) {
         const idealType = this.astToType(type)
-        this._ensureMatch(idealType, resolvedType, statement.value, `You set \`${name || '_'}\`, which should be ${displ(idealType)}, to a value of ${displ(resolvedType)}`)
+        this._ensureMatch(
+          idealType,
+          resolvedType,
+          statement.value,
+          `You set \`${name || '_'}\`, which should be ${displ(
+            idealType,
+          )}, to a value of ${displ(resolvedType)}`,
+        )
         if (name) this.values.set(name, idealType)
         this.checker.types.set(statement.declaration, idealType)
       } else {
@@ -628,7 +846,7 @@ export class Scope extends Module {
       return exit
     } else {
       const [, exit] = this.getExprType(statement, {
-        asStatement: true
+        asStatement: true,
       })
       return exit
     }
@@ -648,7 +866,7 @@ export class Scope extends Module {
             label: 'Remove the import.',
             replace: base,
             with: '',
-          }
+          },
         })
       }
     }
@@ -656,13 +874,14 @@ export class Scope extends Module {
       const base = this.unusedValues.get(name)
       if (base) {
         this.checker.warn(base, `You declared \`${name}\` but never used it.`, {
-          tip: 'You can prefix the variable name with an underscore to mark it as intentionally unused.',
+          tip:
+            'You can prefix the variable name with an underscore to mark it as intentionally unused.',
           fix: {
             type: 'insert-before',
             label: 'Prefix the variable name with an underscore.',
             before: base,
             insert: '_',
-          }
+          },
         })
       }
     }

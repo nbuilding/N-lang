@@ -2,7 +2,11 @@ import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { TypeSpec } from '../declaration/TypeSpec'
 import { isType, Type } from '../types/Type'
-import { CheckStatementContext, CheckStatementResult, Statement } from './Statement'
+import {
+  CheckStatementContext,
+  CheckStatementResult,
+  Statement,
+} from './Statement'
 
 export class AliasDeclaration extends Base implements Statement {
   public: boolean

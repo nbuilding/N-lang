@@ -1,5 +1,10 @@
 import schema, * as schem from '../../utils/schema'
-import { Expression, isExpression, TypeCheckContext, TypeCheckResult } from './Expression'
+import {
+  Expression,
+  isExpression,
+  TypeCheckContext,
+  TypeCheckResult,
+} from './Expression'
 import { Base, BasePosition } from '../base'
 import { Condition, isCondition } from '../condition/Condition'
 
@@ -23,8 +28,10 @@ export class IfExpression extends Base implements Expression {
   }
 
   toString () {
-    return `if ${this.condition} { ${this.then} }`
-      + (this.else ? ` else { ${this.else} }` : '')
+    return (
+      `if ${this.condition} { ${this.then} }` +
+      (this.else ? ` else { ${this.else} }` : '')
+    )
   }
 
   static schema = schema.tuple([

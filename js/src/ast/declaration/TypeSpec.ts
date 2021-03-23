@@ -7,7 +7,10 @@ export class TypeSpec extends Base {
   name: string
   typeVars: TypeVars | null
 
-  constructor (pos: BasePosition, [name, maybeTypeVars]: schem.infer<typeof TypeSpec.schema>) {
+  constructor (
+    pos: BasePosition,
+    [name, maybeTypeVars]: schem.infer<typeof TypeSpec.schema>,
+  ) {
     super(pos)
     this.name = name.value
     this.typeVars = maybeTypeVars

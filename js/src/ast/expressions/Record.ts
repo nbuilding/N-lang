@@ -1,7 +1,12 @@
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
-import { Expression, isExpression, TypeCheckContext, TypeCheckResult } from './Expression'
+import {
+  Expression,
+  isExpression,
+  TypeCheckContext,
+  TypeCheckResult,
+} from './Expression'
 
 export class RecordEntry extends Base {
   key: string
@@ -22,10 +27,7 @@ export class RecordEntry extends Base {
 
   static schema = schema.tuple([
     schema.instance(Identifier),
-    schema.nullable(schema.tuple([
-      schema.any,
-      schema.guard(isExpression),
-    ])),
+    schema.nullable(schema.tuple([schema.any, schema.guard(isExpression)])),
   ])
 }
 
@@ -36,10 +38,9 @@ export class Record extends Base implements Expression {
     pos: BasePosition,
     [, rawEntries]: schem.infer<typeof Record.schema>,
   ) {
-    const entries = rawEntries ? [
-      ...rawEntries[0].map(([entry]) => entry),
-      rawEntries[1],
-    ] : []
+    const entries = rawEntries
+      ? [...rawEntries[0].map(([entry]) => entry), rawEntries[1]]
+      : []
     super(pos, entries)
     this.entries = entries
   }
@@ -54,14 +55,13 @@ export class Record extends Base implements Expression {
 
   static schema = schema.tuple([
     schema.any,
-    schema.nullable(schema.tuple([
-      schema.array(schema.tuple([
+    schema.nullable(
+      schema.tuple([
+        schema.array(schema.tuple([schema.instance(RecordEntry), schema.any])),
         schema.instance(RecordEntry),
         schema.any,
-      ])),
-      schema.instance(RecordEntry),
-      schema.any,
-    ])),
+      ]),
+    ),
     schema.any,
   ])
 }

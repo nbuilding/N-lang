@@ -6,6 +6,7 @@
   "scripts": {
     "build:ne": "npx nearleyc src/grammar/n-lang.ne -o src/grammar/n-lang.grammar.ts",
     "build:ts": "tsc --build --pretty",
+    "lint": "eslint . --ext .ts --ignore-pattern *.grammar.ts",
     "test": "ts-mocha test/**/*.ts --colors"
   },
   "repository": {
@@ -29,7 +30,10 @@
     "@types/mocha": "^8.2.1",
     "@types/moo": "^0.5.3",
     "@types/nearley": "^2.11.1",
+    "@typescript-eslint/eslint-plugin": "^4.19.0",
+    "@typescript-eslint/parser": "^4.19.0",
     "chai": "^4.3.3",
+    "eslint": "^7.22.0",
     "minimist": "^1.2.5",
     "mocha": "^8.3.0",
     "ts-mocha": "^8.0.0",

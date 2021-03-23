@@ -55,7 +55,7 @@ The JavaScript version uses [Node](https://nodejs.org/),
 
 See how to run it in the [js/ folder](./js/).
 
-## Web editor
+### Web editor
 
 An IDE is available at https://nbuilding.github.io/N-lang/. It uses the JS
 version and [Monaco](https://microsoft.github.io/monaco-editor/), the same

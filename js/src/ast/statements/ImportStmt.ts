@@ -1,12 +1,19 @@
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
-import { CheckStatementContext, CheckStatementResult, Statement } from './Statement'
+import {
+  CheckStatementContext,
+  CheckStatementResult,
+  Statement,
+} from './Statement'
 
 export class ImportStmt extends Base implements Statement {
   name: string
 
-  constructor (pos: BasePosition, [, , id]: schem.infer<typeof ImportStmt.schema>) {
+  constructor (
+    pos: BasePosition,
+    [, , id]: schem.infer<typeof ImportStmt.schema>,
+  ) {
     super(pos)
     this.name = id.value
   }

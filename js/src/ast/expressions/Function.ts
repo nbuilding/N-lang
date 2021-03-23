@@ -12,7 +12,7 @@ export class Function extends Base implements Expression {
 
   constructor (
     pos: BasePosition,
-    [params, , returnType, , body]: schem.infer<typeof Function.schema>
+    [params, , returnType, , body]: schem.infer<typeof Function.schema>,
   ) {
     super(pos, [params, returnType, body])
     this.arguments = params

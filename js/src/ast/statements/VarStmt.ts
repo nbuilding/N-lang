@@ -2,13 +2,20 @@ import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Expression, isExpression } from '../expressions/Expression'
 import { Identifier } from '../literals/Identifier'
-import { CheckStatementContext, CheckStatementResult, Statement } from './Statement'
+import {
+  CheckStatementContext,
+  CheckStatementResult,
+  Statement,
+} from './Statement'
 
 export class VarStmt extends Base implements Statement {
   var: string
   value: Expression
 
-  constructor (pos: BasePosition, [, name, , expr]: schem.infer<typeof VarStmt.schema>) {
+  constructor (
+    pos: BasePosition,
+    [, name, , expr]: schem.infer<typeof VarStmt.schema>,
+  ) {
     super(pos, [name, expr])
     this.var = name.value
     this.value = expr

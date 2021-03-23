@@ -6,7 +6,7 @@ export interface Guard<T> {
   _output: T
   name: string
 
-  check (value: unknown): asserts value is T
+  check(value: unknown): asserts value is T
 }
 
 export type infer<T extends Guard<any>> = T['_output']
@@ -23,7 +23,8 @@ export class GuardError extends Error {
 
 type TupleGuards<T extends [any, ...any[]] | []> = {
   [index in keyof T]: Guard<T[index]>
-} & Array<Guard<any>>
+} &
+  Array<Guard<any>>
 
 class Tuple<T extends [any, ...any[]] | []> implements Guard<T> {
   guards: TupleGuards<T>
@@ -49,7 +50,8 @@ class Tuple<T extends [any, ...any[]] | []> implements Guard<T> {
   }
 }
 
-class Union<T extends [any, any, ...any[]] | []> implements Guard<T[number]['_output']> {
+class Union<T extends [any, any, ...any[]] | []>
+  implements Guard<T[number]['_output']> {
   guards: TupleGuards<T>
   name: string
   readonly _output!: T[number]['_output']
@@ -185,19 +187,25 @@ export default {
 
   instance<T> (classConstructor: Constructor<T>): Guard<T> {
     if (classConstructor === undefined) {
-      throw new Error('TypeScript is big dumb and didn\'t catch you passing in undefined as the class constructor, but I did!')
+      throw new Error(
+        "TypeScript is big dumb and didn't catch you passing in undefined as the class constructor, but I did!",
+      )
     }
     return new Instance(classConstructor)
   },
 
   guard<T> (guard: (value: unknown) => value is T, name?: string): Guard<T> {
     if (guard === undefined) {
-      throw new Error('TypeScript is big dumb and didn\'t catch you passing in undefined for the type guard function, but I did!')
+      throw new Error(
+        "TypeScript is big dumb and didn't catch you passing in undefined for the type guard function, but I did!",
+      )
     }
     return new Guarded(guard, name)
   },
 
-  union<T extends [any, any, ...any[]] | []> (validators: TupleGuards<T>): Guard<T[number]> {
+  union<T extends [any, any, ...any[]] | []> (
+    validators: TupleGuards<T>,
+  ): Guard<T[number]> {
     return new Union(validators)
   },
 }

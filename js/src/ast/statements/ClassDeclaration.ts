@@ -3,7 +3,11 @@ import { Base, BasePosition } from '../base'
 import { Arguments } from '../declaration/Arguments'
 import { Identifier } from '../literals/Identifier'
 import { Block } from './Block'
-import { CheckStatementContext, CheckStatementResult, Statement } from './Statement'
+import {
+  CheckStatementContext,
+  CheckStatementResult,
+  Statement,
+} from './Statement'
 
 export class ClassDeclaration extends Base implements Statement {
   public: boolean
@@ -27,7 +31,9 @@ export class ClassDeclaration extends Base implements Statement {
   }
 
   toString () {
-    return `class${this.public ? ' pub' : ''} ${this.name} ${this.arguments} ${this.body}`
+    return `class${this.public ? ' pub' : ''} ${this.name} ${this.arguments} ${
+      this.body
+    }`
   }
 
   static schema = schema.tuple([

@@ -1,6 +1,10 @@
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
-import { Expression, TypeCheckContext, TypeCheckResult } from '../expressions/Expression'
+import {
+  Expression,
+  TypeCheckContext,
+  TypeCheckResult,
+} from '../expressions/Expression'
 
 export class Unit extends Base implements Expression {
   constructor (pos: BasePosition, _: schem.infer<typeof Unit.schema>) {
@@ -15,9 +19,5 @@ export class Unit extends Base implements Expression {
     return '()'
   }
 
-  static schema = schema.tuple([
-    schema.any,
-    schema.any,
-    schema.any,
-  ])
+  static schema = schema.tuple([schema.any, schema.any, schema.any])
 }

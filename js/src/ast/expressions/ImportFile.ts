@@ -8,7 +8,10 @@ export class ImportFile extends Base implements Expression {
   path: string
   oldSyntax: boolean
 
-  constructor (pos: BasePosition, [, , path]: schem.infer<typeof ImportFile.schema>) {
+  constructor (
+    pos: BasePosition,
+    [, , path]: schem.infer<typeof ImportFile.schema>,
+  ) {
     super(pos)
     this.path = path instanceof Identifier ? path.value + '.n' : path.value
     this.oldSyntax = path instanceof Identifier

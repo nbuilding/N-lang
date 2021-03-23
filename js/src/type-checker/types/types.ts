@@ -1,4 +1,4 @@
-import { TypeSpec } from "./type-specs"
+import { TypeSpec } from './type-specs'
 
 /**
  * A type that represents a possible type of a variable.
@@ -13,7 +13,7 @@ export interface NType {
    * For example, this may be used in assignment, returning, and function
    * calling.
    */
-  expectEqual (other: NType): boolean
+  expectEqual(other: NType): boolean
 }
 
 export class Type implements NType {
@@ -138,8 +138,10 @@ export class Function implements NType {
   }
 
   expectEqual (other: NType): boolean {
-    return other instanceof Function
-      && this.takes.expectEqual(other.takes)
-      && this.returns.expectEqual(other.returns)
+    return (
+      other instanceof Function &&
+      this.takes.expectEqual(other.takes) &&
+      this.returns.expectEqual(other.returns)
+    )
   }
 }

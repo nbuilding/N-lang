@@ -33,7 +33,10 @@ export class Base {
   endCol: number
   children: Base[]
 
-  constructor ({ line, col, endLine, endCol }: BasePosition, children: Base[] = []) {
+  constructor (
+    { line, col, endLine, endCol }: BasePosition,
+    children: Base[] = [],
+  ) {
     this.line = line
     this.col = col
     this.endLine = endLine
@@ -80,7 +83,7 @@ export class Base {
     const obj: any = { ...this }
     // Sets a hidden value
     Object.defineProperty(obj, 'constructor', {
-      value: this.constructor
+      value: this.constructor,
     })
     delete obj.line
     delete obj.col
@@ -105,17 +108,22 @@ function diffValues (path: string, one: any, other: any): BaseDiff[] {
     if (one !== other) {
       return [{ path, this: one, other }]
     }
-  } else if (typeof one === 'boolean' && typeof other === 'boolean' || typeof one === 'number' && typeof other === 'number') {
+  } else if (
+    (typeof one === 'boolean' && typeof other === 'boolean') ||
+    (typeof one === 'number' && typeof other === 'number')
+  ) {
     if (one !== other) {
       return [{ path, this: one.toString(), other: other.toString() }]
     }
   } else if (Array.isArray(one) && Array.isArray(other)) {
     if (one.length !== other.length) {
-      return [{
-        path,
-        this: `${one.length} item(s):\n${one.join('\n')}`,
-        other: `${other.length} item(s):\n${other.join('\n')}`
-      }]
+      return [
+        {
+          path,
+          this: `${one.length} item(s):\n${one.join('\n')}`,
+          other: `${other.length} item(s):\n${other.join('\n')}`,
+        },
+      ]
     }
     for (let i = 0; i < one.length; i++) {
       issues.push(...diffValues(`${path}[${i}]`, one[i], other[i]))
@@ -125,7 +133,11 @@ function diffValues (path: string, one: any, other: any): BaseDiff[] {
   } else if (typeof one === 'function' && typeof other === 'function') {
     return []
   } else {
-    throw new TypeError(`I do not know how to diff these types: ${displayType(one)} vs ${displayType(other)}`)
+    throw new TypeError(
+      `I do not know how to diff these types: ${displayType(
+        one,
+      )} vs ${displayType(other)}`,
+    )
   }
   return issues
 }

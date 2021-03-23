@@ -8,7 +8,11 @@ export class FileLines {
   lines: string[]
   lineNumWidth: number
 
-  constructor (file: string, name: string = '<file>', _: FileLinesOptions = {}) {
+  constructor (
+    file: string,
+    name: string = '<file>',
+    _: FileLinesOptions = {},
+  ) {
     this.name = name
     this.lines = file.split(/\r?\n/)
     this.lineNumWidth = (this.lines.length + 1 + '').length

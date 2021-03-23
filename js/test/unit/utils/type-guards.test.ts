@@ -1,6 +1,13 @@
 import { expect } from 'chai'
 
-import { isString, isNumber, isEnum, isToken, shouldBe, shouldSatisfy } from '../../../src/utils/type-guards'
+import {
+  isString,
+  isNumber,
+  isEnum,
+  isToken,
+  shouldBe,
+  shouldSatisfy,
+} from '../../../src/utils/type-guards'
 
 describe('type guards', () => {
   enum SheepState {
@@ -36,14 +43,16 @@ describe('type guards', () => {
   })
 
   it('isToken should check for moo.Tokens', () => {
-    expect(isToken({
-      value: 'wow',
-      offset: 3,
-      text: 'wow',
-      lineBreaks: 2,
-      line: 3,
-      col: 4,
-    })).to.be.true
+    expect(
+      isToken({
+        value: 'wow',
+        offset: 3,
+        text: 'wow',
+        lineBreaks: 2,
+        line: 3,
+        col: 4,
+      }),
+    ).to.be.true
 
     expect(isToken({})).to.be.false
   })

@@ -3,7 +3,11 @@ import { Base, BasePosition } from '../base'
 import { Declaration } from '../declaration/Declaration'
 import { Expression, isExpression } from '../expressions/Expression'
 import { Block } from './Block'
-import { CheckStatementContext, CheckStatementResult, Statement } from './Statement'
+import {
+  CheckStatementContext,
+  CheckStatementResult,
+  Statement,
+} from './Statement'
 
 export class OldFor extends Base implements Statement {
   value: Expression

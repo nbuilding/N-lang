@@ -7,7 +7,10 @@ export class Declaration extends Base {
   pattern: Pattern
   type: Type | null
 
-  constructor (pos: BasePosition, [pattern, maybeType]: schem.infer<typeof Declaration.schema>) {
+  constructor (
+    pos: BasePosition,
+    [pattern, maybeType]: schem.infer<typeof Declaration.schema>,
+  ) {
     super(pos, maybeType && maybeType[1] ? [maybeType[1]] : [])
     this.pattern = pattern
     this.type = maybeType && maybeType[1]
@@ -19,9 +22,6 @@ export class Declaration extends Base {
 
   static schema = schema.tuple([
     schema.guard(isPattern),
-    schema.nullable(schema.tuple([
-      schema.any,
-      schema.guard(isType),
-    ])),
+    schema.nullable(schema.tuple([schema.any, schema.guard(isType)])),
   ])
 }

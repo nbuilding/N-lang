@@ -1,4 +1,4 @@
-import { TypeCheckContext, TypeCheckResult } from '../expressions/Expression';
+import { TypeCheckContext, TypeCheckResult } from '../expressions/Expression'
 import { Literal } from './Literal'
 
 export class Float extends Literal {

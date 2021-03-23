@@ -27,16 +27,26 @@ async function main () {
 
   if (help) {
     console.log('ts-node src/n-lang.ts [...OPTIONS] [FILE]')
-    console.log('Parses, compiles, and executes the specified N file with the JS compiler.')
+    console.log(
+      'Parses, compiles, and executes the specified N file with the JS compiler.',
+    )
     console.log('')
     console.log('OPTIONS:')
     console.log('\t--help (-h)\tShows this help text and exits.')
     console.log('\t--ast\tOutputs the AST.')
-    console.log('\t--repr\tOutputs the textual, N-like representation of the AST.')
-    console.log('\t--ambiguity-output=[omit|object|string] (--ao=)\tWhether to omit, show the AST objects, or the string representations of ambiguious parsings. Omits by default.')
-    console.log('\t--check-only\tOnly performs type checks without compiling to JS.')
+    console.log(
+      '\t--repr\tOutputs the textual, N-like representation of the AST.',
+    )
+    console.log(
+      '\t--ambiguity-output=[omit|object|string] (--ao=)\tWhether to omit, show the AST objects, or the string representations of ambiguious parsings. Omits by default.',
+    )
+    console.log(
+      '\t--check-only\tOnly performs type checks without compiling to JS.',
+    )
     console.log('\t--js\tOutputs the compiled JS.')
-    console.log('\t--run\tExecutes the compiled JS. This is enabled by default if none of the other flags are given.')
+    console.log(
+      '\t--run\tExecutes the compiled JS. This is enabled by default if none of the other flags are given.',
+    )
     return
   }
 
@@ -71,8 +81,7 @@ async function main () {
   */
 }
 
-main()
-  .catch(err => {
-    console.error(err)
-    process.exitCode = 1
-  })
+main().catch(err => {
+  console.error(err)
+  process.exitCode = 1
+})

@@ -2,7 +2,12 @@ import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Condition, isCondition } from '../condition/Condition'
 import { Block } from './Block'
-import { CheckStatementContext, CheckStatementResult, isStatement, Statement } from './Statement'
+import {
+  CheckStatementContext,
+  CheckStatementResult,
+  isStatement,
+  Statement,
+} from './Statement'
 
 export class IfStmt extends Base implements Statement {
   condition: Condition
@@ -24,8 +29,10 @@ export class IfStmt extends Base implements Statement {
   }
 
   toString () {
-    return `if ${this.condition} ${this.then}`
-      + (this.else ? ` else ${this.else}` : '')
+    return (
+      `if ${this.condition} ${this.then}` +
+      (this.else ? ` else ${this.else}` : '')
+    )
   }
 
   static get schema () {
@@ -35,13 +42,12 @@ export class IfStmt extends Base implements Statement {
       schema.any,
       schema.instance(Block),
       schema.any,
-      schema.nullable(schema.tuple([
-        schema.any,
-        schema.union([
-          schema.instance(Block),
-          schema.guard(isStatement),
+      schema.nullable(
+        schema.tuple([
+          schema.any,
+          schema.union([schema.instance(Block), schema.guard(isStatement)]),
         ]),
-      ])),
+      ),
     ])
   }
 }

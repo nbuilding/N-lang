@@ -7,7 +7,10 @@ export class IfLet extends Base {
   declaration: Declaration
   expression: Expression
 
-  constructor (pos: BasePosition, [, declaration, , expression]: schem.infer<typeof IfLet.schema>) {
+  constructor (
+    pos: BasePosition,
+    [, declaration, , expression]: schem.infer<typeof IfLet.schema>,
+  ) {
     super(pos, [expression])
     this.declaration = declaration
     this.expression = expression

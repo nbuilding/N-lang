@@ -1,12 +1,24 @@
 import schema, * as schem from '../../utils/schema'
-import { Expression, isExpression, TypeCheckContext, TypeCheckResult } from './Expression'
+import {
+  Expression,
+  isExpression,
+  TypeCheckContext,
+  TypeCheckResult,
+} from './Expression'
 import { Base, BasePosition } from '../base'
-import { CheckStatementContext, CheckStatementResult, Statement } from '../statements/Statement'
+import {
+  CheckStatementContext,
+  CheckStatementResult,
+  Statement,
+} from '../statements/Statement'
 
 export class Return extends Base implements Expression, Statement {
   value: Expression
 
-  constructor (pos: BasePosition, [, , expr]: schem.infer<typeof Return.schema>) {
+  constructor (
+    pos: BasePosition,
+    [, , expr]: schem.infer<typeof Return.schema>,
+  ) {
     super(pos, [expr])
     this.value = expr
   }

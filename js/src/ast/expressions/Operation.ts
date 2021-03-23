@@ -1,8 +1,17 @@
 import schema, * as schem from '../../utils/schema'
 import { from } from '../../grammar/from-nearley'
-import { Expression, isExpression, TypeCheckContext, TypeCheckResult } from './Expression'
+import {
+  Expression,
+  isExpression,
+  TypeCheckContext,
+  TypeCheckResult,
+} from './Expression'
 import { Base, BasePosition } from '../base'
-import { CheckStatementContext, CheckStatementResult, Statement } from '../statements/Statement'
+import {
+  CheckStatementContext,
+  CheckStatementResult,
+  Statement,
+} from '../statements/Statement'
 
 export enum Operator {
   AND = 'and',
@@ -18,19 +27,29 @@ export enum Operator {
 
 export function operatorToString (self: Operator): string {
   switch (self) {
-    case Operator.AND: return '&'
-    case Operator.OR: return '|'
-    case Operator.ADD: return '+'
-    case Operator.MINUS: return '-'
-    case Operator.MULTIPLY: return '*'
-    case Operator.DIVIDE: return '/'
-    case Operator.MODULO: return '%'
-    case Operator.EXPONENT: return '^'
-    case Operator.PIPE: return '|>'
+    case Operator.AND:
+      return '&'
+    case Operator.OR:
+      return '|'
+    case Operator.ADD:
+      return '+'
+    case Operator.MINUS:
+      return '-'
+    case Operator.MULTIPLY:
+      return '*'
+    case Operator.DIVIDE:
+      return '/'
+    case Operator.MODULO:
+      return '%'
+    case Operator.EXPONENT:
+      return '^'
+    case Operator.PIPE:
+      return '|>'
   }
 }
 
-export class Operation<O extends Operator> extends Base implements Expression, Statement {
+export class Operation<O extends Operator> extends Base
+  implements Expression, Statement {
   type: O
   a: Expression
   b: Expression
@@ -67,7 +86,10 @@ export class Operation<O extends Operator> extends Base implements Expression, S
       schema.any,
       schema.guard(isExpression),
     ])
-    function fromSchema (pos: BasePosition, [expr, , , , val]: schem.infer<typeof opSchema>): Operation<O> {
+    function fromSchema (
+      pos: BasePosition,
+      [expr, , , , val]: schem.infer<typeof opSchema>,
+    ): Operation<O> {
       return new Operation(pos, operator, expr, val)
     }
     return from({ schema: opSchema, from: fromSchema })

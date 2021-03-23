@@ -15,9 +15,5 @@ export class UnitType extends Base implements Type {
     return '()'
   }
 
-  static schema = schema.tuple([
-    schema.any,
-    schema.any,
-    schema.any,
-  ])
+  static schema = schema.tuple([schema.any, schema.any, schema.any])
 }

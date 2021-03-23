@@ -1,7 +1,12 @@
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
-import { CheckPatternContext, CheckPatternResult, isPattern, Pattern } from './Pattern'
+import {
+  CheckPatternContext,
+  CheckPatternResult,
+  isPattern,
+  Pattern,
+} from './Pattern'
 
 export class RecordPatternEntry extends Base {
   key: string
@@ -22,10 +27,7 @@ export class RecordPatternEntry extends Base {
 
   static schema = schema.tuple([
     schema.instance(Identifier),
-    schema.nullable(schema.tuple([
-      schema.any,
-      schema.guard(isPattern),
-    ])),
+    schema.nullable(schema.tuple([schema.any, schema.guard(isPattern)])),
   ])
 }
 
@@ -36,10 +38,9 @@ export class RecordPattern extends Base implements Pattern {
     pos: BasePosition,
     [, rawEntries]: schem.infer<typeof RecordPattern.schema>,
   ) {
-    const entries = rawEntries ? [
-      ...rawEntries[0].map(([entry]) => entry),
-      rawEntries[1],
-    ] : []
+    const entries = rawEntries
+      ? [...rawEntries[0].map(([entry]) => entry), rawEntries[1]]
+      : []
     super(pos, entries)
     this.entries = entries
   }
@@ -54,14 +55,15 @@ export class RecordPattern extends Base implements Pattern {
 
   static schema = schema.tuple([
     schema.any,
-    schema.nullable(schema.tuple([
-      schema.array(schema.tuple([
+    schema.nullable(
+      schema.tuple([
+        schema.array(
+          schema.tuple([schema.instance(RecordPatternEntry), schema.any]),
+        ),
         schema.instance(RecordPatternEntry),
         schema.any,
-      ])),
-      schema.instance(RecordPatternEntry),
-      schema.any,
-    ])),
+      ]),
+    ),
     schema.any,
   ])
 }

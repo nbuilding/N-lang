@@ -21,7 +21,7 @@ interface HasSchema<T extends Base, S> {
 }
 interface HasSchemaAlt<T extends Base, S> {
   schema: schem.Guard<S>
-  from (pos: BasePosition, args: S): T
+  from(pos: BasePosition, args: S): T
 }
 
 function getNonNullArgs (args: NearleyArgs): (Base | moo.Token)[] {
@@ -40,7 +40,9 @@ function getNonNullArgs (args: NearleyArgs): (Base | moo.Token)[] {
   return nonNullArgs
 }
 
-export function from<T extends Base, S> (hasSchema: HasSchema<T, S> | HasSchemaAlt<T, S>) {
+export function from<T extends Base, S> (
+  hasSchema: HasSchema<T, S> | HasSchemaAlt<T, S>,
+) {
   function preprocessor (args: any[], _loc?: number, _reject?: {}): T {
     shouldBeNearleyArgs(args)
     const nonNullArgs = getNonNullArgs(args)
@@ -57,7 +59,9 @@ export function from<T extends Base, S> (hasSchema: HasSchema<T, S> | HasSchemaA
       } else {
         endLine = lastTokenOrBase.line + lastTokenOrBase.lineBreaks
         const lastLine = lastTokenOrBase.text.includes('\n')
-          ? lastTokenOrBase.text.slice(lastTokenOrBase.text.lastIndexOf('\n') + 1)
+          ? lastTokenOrBase.text.slice(
+              lastTokenOrBase.text.lastIndexOf('\n') + 1,
+            )
           : lastTokenOrBase.text
         endCol = lastTokenOrBase.col + lastLine.length
       }
@@ -94,7 +98,10 @@ const includeBracketsSchema = schema.tuple([
 ])
 export const includeBrackets = from({
   schema: includeBracketsSchema,
-  from ({ line, col, endLine, endCol }: BasePosition, [, , base]: schem.infer<typeof includeBracketsSchema>): Base {
+  from (
+    { line, col, endLine, endCol }: BasePosition,
+    [, , base]: schem.infer<typeof includeBracketsSchema>,
+  ): Base {
     base.line = line
     base.col = col
     base.endLine = endLine

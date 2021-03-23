@@ -1,7 +1,11 @@
 import schema, * as schem from '../../utils/schema'
 import { isToken } from '../../utils/type-guards'
 import { Base, BasePosition } from '../base'
-import { Expression, TypeCheckContext, TypeCheckResult } from '../expressions/Expression'
+import {
+  Expression,
+  TypeCheckContext,
+  TypeCheckResult,
+} from '../expressions/Expression'
 
 export abstract class Literal extends Base implements Expression {
   value: string
@@ -17,7 +21,5 @@ export abstract class Literal extends Base implements Expression {
     return this.value
   }
 
-  static schema = schema.tuple([
-    schema.guard(isToken),
-  ])
+  static schema = schema.tuple([schema.guard(isToken)])
 }

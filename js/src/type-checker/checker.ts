@@ -15,17 +15,19 @@ export interface Warning {
 interface WarningOptions {
   exit?: Base
   tip?: string
-  fix?: {
-    type: 'replace-with',
-    label: string,
-    replace: Base,
-    with: string,
-  } | {
-    type: 'insert-before',
-    label: string,
-    before: Base,
-    insert: string,
-  }
+  fix?:
+    | {
+        type: 'replace-with'
+        label: string
+        replace: Base
+        with: string
+      }
+    | {
+        type: 'insert-before'
+        label: string
+        before: Base
+        insert: string
+      }
 }
 
 enum WarningType {
@@ -80,37 +82,54 @@ export class TypeChecker {
 
   displayBase (file: FileLines, { line, col, endLine, endCol }: Base): string {
     const header = this.options.colours
-      ? ' '.repeat(file.lineNumWidth) + colours.cyan('-->') + ' ' +
-        colours.blue(`${file.name}:${line}:${col}`) + '\n'
+      ? ' '.repeat(file.lineNumWidth) +
+        colours.cyan('-->') +
+        ' ' +
+        colours.blue(`${file.name}:${line}:${col}`) +
+        '\n'
       : ' '.repeat(file.lineNumWidth) + `--> ${file.name}:${line}:${col}\n`
     if (line === endLine) {
       const lineStr = file.getLine(line)
-      const spaces = ' '.repeat(file.lineNumWidth + 3)
-        + lineStr.slice(0, col - 1).replace(/\S/g, ' ')
+      const spaces =
+        ' '.repeat(file.lineNumWidth + 3) +
+        lineStr.slice(0, col - 1).replace(/\S/g, ' ')
       const output = this.options.colours
-        ? colours.bold(colours.cyan(`${line.toString().padStart(file.lineNumWidth, ' ')} | `))
-          + lineStr
-          + '\n'
-          + spaces
-          + colours.red('^'.repeat(endCol - col))
-        : `${line.toString().padStart(file.lineNumWidth, ' ')} | ${lineStr}\n`
-          + spaces
-          + '^'.repeat(endCol - col)
+        ? colours.bold(
+            colours.cyan(
+              `${line.toString().padStart(file.lineNumWidth, ' ')} | `,
+            ),
+          ) +
+          lineStr +
+          '\n' +
+          spaces +
+          colours.red('^'.repeat(endCol - col))
+        : `${line.toString().padStart(file.lineNumWidth, ' ')} | ${lineStr}\n` +
+          spaces +
+          '^'.repeat(endCol - col)
       return header + output
     } else {
       let lines = ''
       for (let l = line; l <= endLine; l++) {
         const lineContent = file.getLine(l)
         if (this.options.colours) {
-          const text = l === line
-            ? lineContent.slice(0, col - 1) + colours.red(lineContent.slice(col - 1))
-            : l === endLine
-            ? colours.red(lineContent.slice(0, endCol - 1)) + lineContent.slice(endCol - 1)
-            : colours.red(lineContent)
-          lines += colours.bold(colours.cyan(`${l.toString().padStart(file.lineNumWidth, ' ')} | `))
-            + text
+          const text =
+            l === line
+              ? lineContent.slice(0, col - 1) +
+                colours.red(lineContent.slice(col - 1))
+              : l === endLine
+              ? colours.red(lineContent.slice(0, endCol - 1)) +
+                lineContent.slice(endCol - 1)
+              : colours.red(lineContent)
+          lines +=
+            colours.bold(
+              colours.cyan(
+                `${l.toString().padStart(file.lineNumWidth, ' ')} | `,
+              ),
+            ) + text
         } else {
-          lines += `${l.toString().padStart(file.lineNumWidth, ' ')} | ${lineContent}`
+          lines += `${l
+            .toString()
+            .padStart(file.lineNumWidth, ' ')} | ${lineContent}`
         }
         if (l < endLine) {
           lines += '\n'
@@ -120,7 +139,11 @@ export class TypeChecker {
     }
   }
 
-  displayWarning (file: FileLines, type: WarningType, { base, message, options = {} }: Warning) {
+  displayWarning (
+    file: FileLines,
+    type: WarningType,
+    { base, message, options = {} }: Warning,
+  ) {
     let output
     switch (type) {
       case WarningType.Error: {
@@ -138,13 +161,13 @@ export class TypeChecker {
     }
     output += `: ${message}\n${this.displayBase(file, base)}`
     if (options.exit) {
-      output += '\n The function exits here:\n'
-        + this.displayBase(file, options.exit)
+      output +=
+        '\n The function exits here:\n' + this.displayBase(file, options.exit)
     }
     if (options.tip) {
-      output += `\n ${
-        this.options.colours ? colours.cyan('Tip:') : 'Tip:'
-      } ` + options.tip
+      output +=
+        `\n ${this.options.colours ? colours.cyan('Tip:') : 'Tip:'} ` +
+        options.tip
     }
     return output
   }

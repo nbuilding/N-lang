@@ -3,7 +3,11 @@ import { Base, BasePosition } from '../base'
 import { TypeSpec } from '../declaration/TypeSpec'
 import { Identifier } from '../literals/Identifier'
 import { isType, Type } from '../types/Type'
-import { CheckStatementContext, CheckStatementResult, Statement } from './Statement'
+import {
+  CheckStatementContext,
+  CheckStatementResult,
+  Statement,
+} from './Statement'
 
 export class EnumVariant extends Base {
   variant: string
@@ -30,15 +34,10 @@ export class EnumVariant extends Base {
     schema.tuple([
       schema.any,
       schema.instance(Identifier),
-      schema.array(schema.tuple([
-        schema.any,
-        schema.guard(isType),
-      ])),
+      schema.array(schema.tuple([schema.any, schema.guard(isType)])),
       schema.any,
     ]),
-    schema.tuple([
-      schema.instance(Identifier),
-    ]),
+    schema.tuple([schema.instance(Identifier)]),
   ])
 }
 
@@ -49,15 +48,14 @@ export class EnumDeclaration extends Base implements Statement {
 
   constructor (
     pos: BasePosition,
-    [, pub, typeSpec, , [, variant, variants]]: schem.infer<typeof EnumDeclaration.schema>,
+    [, pub, typeSpec, , [, variant, variants]]: schem.infer<
+      typeof EnumDeclaration.schema
+    >,
   ) {
     super(pos)
     this.public = pub !== null
     this.typeSpec = typeSpec
-    this.variants = [
-      variant,
-      ...variants.map(([, variant]) => variant),
-    ]
+    this.variants = [variant, ...variants.map(([, variant]) => variant)]
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
@@ -65,7 +63,9 @@ export class EnumDeclaration extends Base implements Statement {
   }
 
   toString () {
-    return `type${this.public ? ' pub' : ''} ${this.typeSpec} = ${this.variants.join(' | ')}`
+    return `type${this.public ? ' pub' : ''} ${
+      this.typeSpec
+    } = ${this.variants.join(' | ')}`
   }
 
   static schema = schema.tuple([
@@ -76,10 +76,7 @@ export class EnumDeclaration extends Base implements Statement {
     schema.tuple([
       schema.any,
       schema.instance(EnumVariant),
-      schema.array(schema.tuple([
-        schema.any,
-        schema.instance(EnumVariant),
-      ])),
+      schema.array(schema.tuple([schema.any, schema.instance(EnumVariant)])),
     ]),
   ])
 }

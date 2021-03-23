@@ -19,7 +19,10 @@ export interface ParseOptions {
   loud?: boolean
 }
 
-export function parse (script: string, { ambiguityOutput = 'omit', loud = false }: ParseOptions = {}): Block {
+export function parse (
+  script: string,
+  { ambiguityOutput = 'omit', loud = false }: ParseOptions = {},
+): Block {
   const parser = new Parser(Grammar.fromCompiled(grammar))
   parser.feed(script)
   const [result, ...ambiguities] = parser.results
@@ -67,7 +70,10 @@ export function parse (script: string, { ambiguityOutput = 'omit', loud = false 
         console.error(`^ Differences between results 0 and ${i}`)
       }
     }
-    throw new ParseError(parser.results, `You've discovered an ambiguity in the grammar (${parser.results.length} possibilities). This is a bug with the N parser.`)
+    throw new ParseError(
+      parser.results,
+      `You've discovered an ambiguity in the grammar (${parser.results.length} possibilities). This is a bug with the N parser.`,
+    )
   }
   return result
 }

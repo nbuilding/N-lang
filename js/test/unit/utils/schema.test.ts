@@ -8,9 +8,11 @@ describe('schema', () => {
   }
 
   function isSheep (value: any): value is Sheep {
-    return typeof value === 'object'
-      && value !== null
-      && typeof value.name === 'string'
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      typeof value.name === 'string'
+    )
   }
 
   it('should assert null', () => {

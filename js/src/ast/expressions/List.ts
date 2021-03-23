@@ -1,5 +1,10 @@
 import schema, * as schem from '../../utils/schema'
-import { Expression, isExpression, TypeCheckContext, TypeCheckResult } from './Expression'
+import {
+  Expression,
+  isExpression,
+  TypeCheckContext,
+  TypeCheckResult,
+} from './Expression'
 import { Base, BasePosition } from '../base'
 
 export class List extends Base implements Expression {
@@ -9,10 +14,9 @@ export class List extends Base implements Expression {
     pos: BasePosition,
     [, rawItems]: schem.infer<typeof List.schema>,
   ) {
-    const items = rawItems ? [
-      ...rawItems[0].map(([item]) => item),
-      rawItems[1],
-    ] : []
+    const items = rawItems
+      ? [...rawItems[0].map(([item]) => item), rawItems[1]]
+      : []
     super(pos, items)
     this.items = items
   }
@@ -27,14 +31,13 @@ export class List extends Base implements Expression {
 
   static schema = schema.tuple([
     schema.any,
-    schema.nullable(schema.tuple([
-      schema.array(schema.tuple([
+    schema.nullable(
+      schema.tuple([
+        schema.array(schema.tuple([schema.guard(isExpression), schema.any])),
         schema.guard(isExpression),
         schema.any,
-      ])),
-      schema.guard(isExpression),
-      schema.any,
-    ])),
+      ]),
+    ),
     schema.any,
   ])
 }

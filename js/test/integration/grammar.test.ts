@@ -5,7 +5,7 @@ import { FileLines } from '../../src/type-checker/display-lines'
 import { DiffError } from '../../src/grammar/ast/base'
 
 const syntaxTestsDir = resolve(__dirname, '../../../tests/syntax/')
-const files: { path: string, name: string }[] = []
+const files: { path: string; name: string }[] = []
 
 before(async () => {
   for (const name of await fs.readdir(syntaxTestsDir)) {

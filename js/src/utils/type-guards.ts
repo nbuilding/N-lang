@@ -18,21 +18,42 @@ export function isEnum<T> (enumObject: T) {
 }
 
 export function isToken (value: any): value is moo.Token {
-  return value && 'value' in value && 'offset' in value && 'text' in value &&
-    'lineBreaks' in value && 'line' in value && 'col' in value &&
-    isString(value.value) && isNumber(value.offset) && isString(value.text) &&
-    isNumber(value.lineBreaks) && isNumber(value.line) && isNumber(value.col)
+  return (
+    value &&
+    'value' in value &&
+    'offset' in value &&
+    'text' in value &&
+    'lineBreaks' in value &&
+    'line' in value &&
+    'col' in value &&
+    isString(value.value) &&
+    isNumber(value.offset) &&
+    isString(value.text) &&
+    isNumber(value.lineBreaks) &&
+    isNumber(value.line) &&
+    isNumber(value.col)
+  )
 }
 
 // https://dev.to/krumpet/generic-type-guard-in-typescript-258l
 type Constructor<T> = { new (...args: any[]): T }
-export function shouldBe<T> (ClassObject: Constructor<T>, value: any): asserts value is T {
+export function shouldBe<T> (
+  ClassObject: Constructor<T>,
+  value: any,
+): asserts value is T {
   if (!(value instanceof ClassObject)) {
-    throw new TypeError(`${value} (${displayType(value)}) is not a ${ClassObject.name}.`)
+    throw new TypeError(
+      `${value} (${displayType(value)}) is not a ${ClassObject.name}.`,
+    )
   }
 }
-export function shouldSatisfy<T> (guard: (value: any) => value is T, value: any): asserts value is T {
+export function shouldSatisfy<T> (
+  guard: (value: any) => value is T,
+  value: any,
+): asserts value is T {
   if (!guard(value)) {
-    throw new TypeError(`${value} (${displayType(value)}) does not satisfy ${guard.name}.`)
+    throw new TypeError(
+      `${value} (${displayType(value)}) does not satisfy ${guard.name}.`,
+    )
   }
 }

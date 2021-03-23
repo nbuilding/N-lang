@@ -5,7 +5,7 @@ export class Char extends Literal {
   typeCheck (context: TypeCheckContext): TypeCheckResult {
     throw new Error('Method not implemented.')
   }
-  
+
   toString () {
     return `\\{${this.value}}`
   }

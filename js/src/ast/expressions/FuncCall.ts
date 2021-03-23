@@ -1,7 +1,16 @@
 import schema, * as schem from '../../utils/schema'
-import { Expression, isExpression, TypeCheckContext, TypeCheckResult } from './Expression'
+import {
+  Expression,
+  isExpression,
+  TypeCheckContext,
+  TypeCheckResult,
+} from './Expression'
 import { Base, BasePosition } from '../base'
-import { CheckStatementContext, CheckStatementResult, Statement } from '../statements/Statement'
+import {
+  CheckStatementContext,
+  CheckStatementResult,
+  Statement,
+} from '../statements/Statement'
 
 export class FuncCall extends Base implements Expression, Statement {
   func: Expression
@@ -11,10 +20,9 @@ export class FuncCall extends Base implements Expression, Statement {
     pos: BasePosition,
     [func, , maybeParams]: schem.infer<typeof FuncCall.schema>,
   ) {
-    const params = maybeParams ? [
-      ...maybeParams[0].map(([param]) => param),
-      maybeParams[1],
-    ] : []
+    const params = maybeParams
+      ? [...maybeParams[0].map(([param]) => param), maybeParams[1]]
+      : []
     super(pos, [func, ...params])
     this.func = func
     this.params = params
@@ -35,14 +43,13 @@ export class FuncCall extends Base implements Expression, Statement {
   static schema = schema.tuple([
     schema.guard(isExpression),
     schema.any,
-    schema.nullable(schema.tuple([
-      schema.array(schema.tuple([
+    schema.nullable(
+      schema.tuple([
+        schema.array(schema.tuple([schema.guard(isExpression), schema.any])),
         schema.guard(isExpression),
         schema.any,
-      ])),
-      schema.guard(isExpression),
-      schema.any,
-    ])),
+      ]),
+    ),
     schema.any,
   ])
 }

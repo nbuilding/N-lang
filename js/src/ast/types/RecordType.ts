@@ -34,10 +34,9 @@ export class RecordType extends Base implements Type {
     pos: BasePosition,
     [, rawEntries]: schem.infer<typeof RecordType.schema>,
   ) {
-    const entries = rawEntries ? [
-      ...rawEntries[0].map(([entry]) => entry),
-      rawEntries[1],
-    ] : []
+    const entries = rawEntries
+      ? [...rawEntries[0].map(([entry]) => entry), rawEntries[1]]
+      : []
     super(pos, entries)
     this.entries = entries
   }
@@ -52,14 +51,15 @@ export class RecordType extends Base implements Type {
 
   static schema = schema.tuple([
     schema.any,
-    schema.nullable(schema.tuple([
-      schema.array(schema.tuple([
+    schema.nullable(
+      schema.tuple([
+        schema.array(
+          schema.tuple([schema.instance(RecordTypeEntry), schema.any]),
+        ),
         schema.instance(RecordTypeEntry),
         schema.any,
-      ])),
-      schema.instance(RecordTypeEntry),
-      schema.any,
-    ])),
+      ]),
+    ),
     schema.any,
   ])
 }

@@ -8,7 +8,10 @@ export class FuncType extends Base implements Type {
   returns: Type
   typeVars: TypeVars | null
 
-  constructor (pos: BasePosition, [maybeTypeVars, takes, , returns]: schem.infer<typeof FuncType.schema>) {
+  constructor (
+    pos: BasePosition,
+    [maybeTypeVars, takes, , returns]: schem.infer<typeof FuncType.schema>,
+  ) {
     super(pos)
     this.takes = takes
     this.returns = returns
@@ -20,15 +23,14 @@ export class FuncType extends Base implements Type {
   }
 
   toString () {
-    return `(${this.typeVars ? this.typeVars + ' ' : ''}${this.takes} -> ${this.returns})`
+    return `(${this.typeVars ? this.typeVars + ' ' : ''}${this.takes} -> ${
+      this.returns
+    })`
   }
 
   static get schema () {
     return schema.tuple([
-      schema.nullable(schema.tuple([
-        schema.instance(TypeVars),
-        schema.any,
-      ])),
+      schema.nullable(schema.tuple([schema.instance(TypeVars), schema.any])),
       schema.guard(isType),
       schema.any,
       schema.guard(isType),

@@ -2,14 +2,21 @@ import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Declaration } from '../declaration/Declaration'
 import { Expression, isExpression } from '../expressions/Expression'
-import { CheckStatementContext, CheckStatementResult, Statement } from './Statement'
+import {
+  CheckStatementContext,
+  CheckStatementResult,
+  Statement,
+} from './Statement'
 
 export class LetStmt extends Base implements Statement {
   public: boolean
   declaration: Declaration
   value: Expression
 
-  constructor (pos: BasePosition, [, pub, decl, , expr]: schem.infer<typeof LetStmt.schema>) {
+  constructor (
+    pos: BasePosition,
+    [, pub, decl, , expr]: schem.infer<typeof LetStmt.schema>,
+  ) {
     super(pos, [decl, expr])
     this.declaration = decl
     this.public = pub !== null
