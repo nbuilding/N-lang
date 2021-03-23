@@ -12,10 +12,11 @@ export class TuplePattern extends Base implements Pattern {
 
   constructor (
     pos: BasePosition,
-    [patterns, pattern]: schem.infer<typeof TuplePattern.schema>,
+    [rawPatterns, pattern]: schem.infer<typeof TuplePattern.schema>,
   ) {
-    super(pos)
-    this.patterns = [...patterns.map(([pattern]) => pattern), pattern]
+    const patterns = [...rawPatterns.map(([pattern]) => pattern), pattern]
+    super(pos, patterns)
+    this.patterns = patterns
   }
 
   checkPattern (context: CheckPatternContext): CheckPatternResult {

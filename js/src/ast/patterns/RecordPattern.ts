@@ -9,15 +9,15 @@ import {
 } from './Pattern'
 
 export class RecordPatternEntry extends Base {
-  key: string
+  key: Identifier
   value: Pattern
 
   constructor (
     pos: BasePosition,
     [key, maybeValue]: schem.infer<typeof RecordPatternEntry.schema>,
   ) {
-    super(pos)
-    this.key = key.value
+    super(pos, [key, maybeValue && maybeValue[1]])
+    this.key = key
     this.value = maybeValue ? maybeValue[1] : key
   }
 

@@ -18,7 +18,7 @@ export class IfStmt extends Base implements Statement {
     pos: BasePosition,
     [, condition, , ifThen, , ifElse]: schem.infer<typeof IfStmt.schema>,
   ) {
-    super(pos, [condition, ifThen, ...(ifElse ? [ifElse[1]] : [])])
+    super(pos, [condition, ifThen, ifElse && ifElse[1]])
     this.condition = condition
     this.then = ifThen
     this.else = ifElse && ifElse[1]

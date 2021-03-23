@@ -1,8 +1,6 @@
-import * as ast from '../grammar/ast'
 import { displayType } from '../utils/display-type'
 import { TypeChecker } from './checker'
 import { Module } from './modules'
-import NType, * as types from './n-type'
 
 interface ScopeContext {
   asStatement?: boolean

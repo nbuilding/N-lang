@@ -11,9 +11,10 @@ export class Declaration extends Base {
     pos: BasePosition,
     [pattern, maybeType]: schem.infer<typeof Declaration.schema>,
   ) {
-    super(pos, maybeType && maybeType[1] ? [maybeType[1]] : [])
+    const type = maybeType && maybeType[1]
+    super(pos, [pattern, type])
     this.pattern = pattern
-    this.type = maybeType && maybeType[1]
+    this.type = type
   }
 
   toString (): string {

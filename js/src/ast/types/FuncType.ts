@@ -12,7 +12,7 @@ export class FuncType extends Base implements Type {
     pos: BasePosition,
     [maybeTypeVars, takes, , returns]: schem.infer<typeof FuncType.schema>,
   ) {
-    super(pos)
+    super(pos, [takes, returns, maybeTypeVars && maybeTypeVars[0]])
     this.takes = takes
     this.returns = returns
     this.typeVars = maybeTypeVars && maybeTypeVars[0]

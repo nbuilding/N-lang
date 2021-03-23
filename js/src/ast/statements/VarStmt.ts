@@ -9,7 +9,7 @@ import {
 } from './Statement'
 
 export class VarStmt extends Base implements Statement {
-  var: string
+  var: Identifier
   value: Expression
 
   constructor (
@@ -17,7 +17,7 @@ export class VarStmt extends Base implements Statement {
     [, name, , expr]: schem.infer<typeof VarStmt.schema>,
   ) {
     super(pos, [name, expr])
-    this.var = name.value
+    this.var = name
     this.value = expr
   }
 

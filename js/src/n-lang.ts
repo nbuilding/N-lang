@@ -4,7 +4,7 @@ import fs from 'fs/promises'
 import util from 'util'
 import parseArgs from 'minimist'
 // import { compileToJS, TypeChecker, FileLines } from './index'
-import { FileLines } from './type-checker/display-lines'
+import { parse } from './grammar/parse'
 
 async function main () {
   const {
@@ -57,8 +57,7 @@ async function main () {
   const running = run || !(ast || repr || js || checksOnly)
 
   const file = await fs.readFile(fileName, 'utf8')
-  const lines = new FileLines(file, fileName)
-  const script = lines.parse({
+  const script = parse(file, {
     ambiguityOutput,
     loud: true,
   })

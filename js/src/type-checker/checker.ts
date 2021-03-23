@@ -1,204 +1,34 @@
-import colours from 'colors/safe'
-
-import { Block, Base } from '../ast/index'
-import { Module, nativeModules } from './modules'
-import NType, { display } from './n-type'
-import { TopLevelScope } from './scope'
-import { FileLines } from './display-lines'
-
-export interface Warning {
-  base: Base
-  message: string
-  options?: WarningOptions
-}
-
-interface WarningOptions {
-  exit?: Base
-  tip?: string
-  fix?:
-    | {
-        type: 'replace-with'
-        label: string
-        replace: Base
-        with: string
-      }
-    | {
-        type: 'insert-before'
-        label: string
-        before: Base
-        insert: string
-      }
-}
-
-enum WarningType {
-  Error,
-  Warning,
-}
+import { Base, ImportFile } from '../ast/index'
 
 export interface CheckerOptions {
-  colours?: boolean
+  /**
+   * Asynchronously gets an imported file and returns the parsed file and the
+   * resolved path name.
+   */
+  fileProvider(
+    basePath: string,
+    importPath: string,
+  ): Promise<[Base | null, string]>
 }
 
 export class TypeChecker {
-  types: Map<Base, NType>
-  errors: Warning[]
-  warnings: Warning[]
   options: CheckerOptions
-  global: TopLevelScope
 
-  constructor (options: CheckerOptions = {}) {
-    this.types = new Map()
-    this.errors = []
-    this.warnings = []
+  constructor (options: CheckerOptions) {
     this.options = options
-    this.global = new TopLevelScope(this)
   }
 
-  err (base: Base, message: string, options?: WarningOptions): void {
-    this.errors.push({ base, message, options })
+  private _getImports (base: Base, target: Set<string>): Set<string> {
+    if (base instanceof ImportFile) {
+      target.add(base.getImportPath())
+    }
+    for (const child of base.children) {
+      this._getImports(child, target)
+    }
+    return target
   }
 
-  warn (base: Base, message: string, options?: WarningOptions): void {
-    this.warnings.push({ base, message, options })
-  }
-
-  check (ast: Block): void {
-    const scope = this.global.newScope()
-    scope.checkStatementType(ast)
-    scope.endScope()
-  }
-
-  getModule (moduleName: string): Module | undefined {
-    return nativeModules[moduleName]
-  }
-
-  displayType (type: NType): string {
-    if (this.options.colours) {
-      return colours.yellow(display(type))
-    } else {
-      return '`' + display(type) + '`'
-    }
-  }
-
-  displayBase (file: FileLines, { line, col, endLine, endCol }: Base): string {
-    const header = this.options.colours
-      ? ' '.repeat(file.lineNumWidth) +
-        colours.cyan('-->') +
-        ' ' +
-        colours.blue(`${file.name}:${line}:${col}`) +
-        '\n'
-      : ' '.repeat(file.lineNumWidth) + `--> ${file.name}:${line}:${col}\n`
-    if (line === endLine) {
-      const lineStr = file.getLine(line)
-      const spaces =
-        ' '.repeat(file.lineNumWidth + 3) +
-        lineStr.slice(0, col - 1).replace(/\S/g, ' ')
-      const output = this.options.colours
-        ? colours.bold(
-            colours.cyan(
-              `${line.toString().padStart(file.lineNumWidth, ' ')} | `,
-            ),
-          ) +
-          lineStr +
-          '\n' +
-          spaces +
-          colours.red('^'.repeat(endCol - col))
-        : `${line.toString().padStart(file.lineNumWidth, ' ')} | ${lineStr}\n` +
-          spaces +
-          '^'.repeat(endCol - col)
-      return header + output
-    } else {
-      let lines = ''
-      for (let l = line; l <= endLine; l++) {
-        const lineContent = file.getLine(l)
-        if (this.options.colours) {
-          const text =
-            l === line
-              ? lineContent.slice(0, col - 1) +
-                colours.red(lineContent.slice(col - 1))
-              : l === endLine
-              ? colours.red(lineContent.slice(0, endCol - 1)) +
-                lineContent.slice(endCol - 1)
-              : colours.red(lineContent)
-          lines +=
-            colours.bold(
-              colours.cyan(
-                `${l.toString().padStart(file.lineNumWidth, ' ')} | `,
-              ),
-            ) + text
-        } else {
-          lines += `${l
-            .toString()
-            .padStart(file.lineNumWidth, ' ')} | ${lineContent}`
-        }
-        if (l < endLine) {
-          lines += '\n'
-        }
-      }
-      return header + lines
-    }
-  }
-
-  displayWarning (
-    file: FileLines,
-    type: WarningType,
-    { base, message, options = {} }: Warning,
-  ): string {
-    let output
-    switch (type) {
-      case WarningType.Error: {
-        output = this.options.colours
-          ? colours.bold(colours.red('Error'))
-          : 'Error'
-        break
-      }
-      case WarningType.Warning: {
-        output = this.options.colours
-          ? colours.bold(colours.yellow('Warning'))
-          : 'Warning'
-        break
-      }
-    }
-    output += `: ${message}\n${this.displayBase(file, base)}`
-    if (options.exit) {
-      output +=
-        '\n The function exits here:\n' + this.displayBase(file, options.exit)
-    }
-    if (options.tip) {
-      output +=
-        `\n ${this.options.colours ? colours.cyan('Tip:') : 'Tip:'} ` +
-        options.tip
-    }
-    return output
-  }
-
-  displayWarnings (file: FileLines): string {
-    let str = ''
-    for (const warning of this.warnings) {
-      str += this.displayWarning(file, WarningType.Warning, warning) + '\n'
-    }
-    for (const error of this.errors) {
-      str += this.displayWarning(file, WarningType.Error, error) + '\n'
-    }
-    if (this.warnings.length || this.errors.length) {
-      str += 'Compiled with '
-      if (this.errors.length) {
-        const plural = ' error' + (this.errors.length === 1 ? '' : 's')
-        str += this.options.colours
-          ? colours.red(colours.bold(this.errors.length + '') + plural)
-          : this.errors.length + plural
-      }
-      if (this.warnings.length && this.errors.length) {
-        str += ' and '
-      }
-      if (this.warnings.length) {
-        const plural = ' warning' + (this.warnings.length === 1 ? '' : 's')
-        str += this.options.colours
-          ? colours.yellow(colours.bold(this.warnings.length + '') + plural)
-          : this.warnings.length + plural
-      }
-      str += '.'
-    }
-    return str
+  async start (file: Base, filename = 'run.n') {
+    //
   }
 }

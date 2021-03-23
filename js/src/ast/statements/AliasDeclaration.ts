@@ -17,7 +17,7 @@ export class AliasDeclaration extends Base implements Statement {
     pos: BasePosition,
     [, pub, typeSpec, , type]: schem.infer<typeof AliasDeclaration.schema>,
   ) {
-    super(pos)
+    super(pos, [typeSpec, type])
     this.public = pub !== null
     this.typeSpec = typeSpec
     this.type = type

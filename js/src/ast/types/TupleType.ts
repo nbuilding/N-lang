@@ -7,10 +7,11 @@ export class TupleType extends Base implements Type {
 
   constructor (
     pos: BasePosition,
-    [types, type]: schem.infer<typeof TupleType.schema>,
+    [rawTypes, type]: schem.infer<typeof TupleType.schema>,
   ) {
-    super(pos)
-    this.types = [...types.map(([type]) => type), type]
+    const types = [...rawTypes.map(([type]) => type), type]
+    super(pos, types)
+    this.types = types
   }
 
   getType (context: GetTypeContext): GetTypeResult {

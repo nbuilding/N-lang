@@ -3,14 +3,15 @@ import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
 
 export class TypeVars extends Base {
-  vars: string[]
+  vars: Identifier[]
 
   constructor (
     pos: BasePosition,
-    [, typeVars, typeVar]: schem.infer<typeof TypeVars.schema>,
+    [, rawTypeVars, typeVar]: schem.infer<typeof TypeVars.schema>,
   ) {
-    super(pos)
-    this.vars = [...typeVars.map(([name]) => name.value), typeVar.value]
+    const typeVars = [...rawTypeVars.map(([name]) => name), typeVar]
+    super(pos, typeVars)
+    this.vars = typeVars
   }
 
   toString (): string {

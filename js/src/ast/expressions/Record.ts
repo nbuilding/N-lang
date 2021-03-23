@@ -9,15 +9,15 @@ import {
 } from './Expression'
 
 export class RecordEntry extends Base {
-  key: string
+  key: Identifier
   value: Expression
 
   constructor (
     pos: BasePosition,
     [key, maybeValue]: schem.infer<typeof RecordEntry.schema>,
   ) {
-    super(pos)
-    this.key = key.value
+    super(pos, [key, maybeValue && maybeValue[1]])
+    this.key = key
     this.value = maybeValue ? maybeValue[1] : key
   }
 

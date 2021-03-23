@@ -12,10 +12,11 @@ export class Tuple extends Base implements Expression {
 
   constructor (
     pos: BasePosition,
-    [values, value]: schem.infer<typeof Tuple.schema>,
+    [rawValues, value]: schem.infer<typeof Tuple.schema>,
   ) {
-    super(pos)
-    this.values = [...values.map(([value]) => value), value]
+    const values = [...rawValues.map(([value]) => value), value]
+    super(pos, values)
+    this.values = values
   }
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {

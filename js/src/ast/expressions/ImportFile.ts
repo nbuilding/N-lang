@@ -5,20 +5,24 @@ import { Identifier } from '../literals/Identifier'
 import { String as AstString } from '../literals/String'
 
 export class ImportFile extends Base implements Expression {
-  path: string
-  oldSyntax: boolean
+  path: Identifier | AstString
 
   constructor (
     pos: BasePosition,
     [, , path]: schem.infer<typeof ImportFile.schema>,
   ) {
-    super(pos)
-    this.path = path instanceof Identifier ? path.value + '.n' : path.value
-    this.oldSyntax = path instanceof Identifier
+    super(pos, [path])
+    this.path = path
   }
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {
     throw new Error('Method not implemented.')
+  }
+
+  getImportPath (): string {
+    return this.path instanceof Identifier
+      ? this.path.value + '.n'
+      : this.path.value
   }
 
   toString (): string {

@@ -11,7 +11,7 @@ import {
 
 export class ClassDeclaration extends Base implements Statement {
   public: boolean
-  name: string
+  name: Identifier
   arguments: Arguments
   body: Block
 
@@ -19,9 +19,9 @@ export class ClassDeclaration extends Base implements Statement {
     pos: BasePosition,
     [, pub, name, , args, , body]: schem.infer<typeof ClassDeclaration.schema>,
   ) {
-    super(pos, [body])
+    super(pos, [name, args, body])
     this.public = pub !== null
-    this.name = name.value
+    this.name = name
     this.arguments = args
     this.body = body
   }

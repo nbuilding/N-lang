@@ -33,21 +33,12 @@ function compareToString (self: Compare): string {
   }
 }
 
-export class Comparison extends Base {
+export class Comparison {
   type: Compare
   a: Expression
   b: Expression
 
   constructor (type: Compare, a: Expression, b: Expression) {
-    super(
-      {
-        line: a.line,
-        col: a.col,
-        endLine: b.endLine,
-        endCol: b.endCol,
-      },
-      [a, b],
-    )
     this.type = type
     this.a = a
     this.b = b
@@ -62,12 +53,14 @@ export class Comparisons extends Base implements Expression {
     [rawComparisons, value]: schem.infer<typeof Comparisons.schema>,
   ) {
     const comparisons: Comparison[] = []
+    const bases: Base[] = []
     let lastExpr
     for (const comparisonOperatorPair of rawComparisons) {
       const [left, , operator] = comparisonOperatorPair
       if (lastExpr) {
         comparisons.push(new Comparison(lastExpr.operator, lastExpr.left, left))
       }
+      bases.push(left)
       lastExpr = {
         left,
         operator: operator.value,
@@ -76,11 +69,12 @@ export class Comparisons extends Base implements Expression {
     if (lastExpr) {
       comparisons.push(new Comparison(lastExpr.operator, lastExpr.left, value))
     }
+    bases.push(value)
     if (comparisons.length === 0) {
       console.log(rawComparisons)
       throw new TypeError('I should have at least one comparison!')
     }
-    super(pos, comparisons)
+    super(pos, bases)
     this.comparisons = comparisons
   }
 

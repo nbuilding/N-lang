@@ -10,15 +10,15 @@ import { Identifier } from '../literals/Identifier'
 
 export class RecordAccess extends Base implements Expression {
   value: Expression
-  field: string
+  field: Identifier
 
   constructor (
     pos: BasePosition,
     [value, , field]: schem.infer<typeof RecordAccess.schema>,
   ) {
-    super(pos, [value])
+    super(pos, [value, field])
     this.value = value
-    this.field = field.value
+    this.field = field
   }
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {

@@ -12,12 +12,13 @@ export class ListPattern extends Base implements Pattern {
 
   constructor (
     pos: BasePosition,
-    [, patterns]: schem.infer<typeof ListPattern.schema>,
+    [, rawPatterns]: schem.infer<typeof ListPattern.schema>,
   ) {
-    super(pos)
-    this.patterns = patterns
-      ? [...patterns[0].map(([pattern]) => pattern), patterns[1]]
+    const patterns = rawPatterns
+      ? [...rawPatterns[0].map(([pattern]) => pattern), rawPatterns[1]]
       : []
+    super(pos, patterns)
+    this.patterns = patterns
   }
 
   checkPattern (context: CheckPatternContext): CheckPatternResult {

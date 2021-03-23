@@ -9,16 +9,17 @@ import {
 } from './Pattern'
 
 export class EnumPattern extends Base implements Pattern {
-  variant: string
+  variant: Identifier
   patterns: Pattern[]
 
   constructor (
     pos: BasePosition,
-    [, variant, patterns]: schem.infer<typeof EnumPattern.schema>,
+    [, variant, rawPatterns]: schem.infer<typeof EnumPattern.schema>,
   ) {
-    super(pos)
-    this.variant = variant.value
-    this.patterns = patterns.map(([, pattern]) => pattern)
+    const patterns = rawPatterns.map(([, pattern]) => pattern)
+    super(pos, [variant, ...patterns])
+    this.variant = variant
+    this.patterns = patterns
   }
 
   checkPattern (context: CheckPatternContext): CheckPatternResult {

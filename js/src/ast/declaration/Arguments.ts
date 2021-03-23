@@ -11,9 +11,11 @@ export class Arguments extends Base {
     pos: BasePosition,
     [, maybeTypeVars, param, rawParams]: schem.infer<typeof Arguments.schema>,
   ) {
-    super(pos)
-    this.typeVars = maybeTypeVars && maybeTypeVars[0]
-    this.params = [param, ...rawParams.map(([, param]) => param)]
+    const typeVars = maybeTypeVars && maybeTypeVars[0]
+    const params = [param, ...rawParams.map(([, param]) => param)]
+    super(pos, [typeVars, ...params])
+    this.typeVars = typeVars
+    this.params = params
   }
 
   toString (): string {

@@ -31,17 +31,21 @@ export class Base {
   col: number
   endLine: number
   endCol: number
+
+  /**
+   * Should contain every Base kept by the class.
+   */
   children: Base[]
 
   constructor (
     { line, col, endLine, endCol }: BasePosition,
-    children: Base[] = [],
+    children: (Base | null)[] = [],
   ) {
     this.line = line
     this.col = col
     this.endLine = endLine
     this.endCol = endCol
-    this.children = children
+    this.children = children.filter((item): item is Base => item !== null)
   }
 
   find (line: number, col: number): Base[] {
@@ -79,8 +83,8 @@ export class Base {
   }
 
   // Make the output of util.inspect cleaner
-  [util.inspect.custom] (): any {
-    const obj: any = { ...this }
+  [util.inspect.custom] (): unknown {
+    const obj = { ...(this as Record<string, unknown>) }
     // Sets a hidden value
     Object.defineProperty(obj, 'constructor', {
       value: this.constructor,
@@ -102,7 +106,7 @@ export interface BaseDiff {
 
 const ignoredDiffKeys = ['line', 'col', 'endLine', 'endCol', 'children']
 
-function diffValues (path: string, one: any, other: any): BaseDiff[] {
+function diffValues (path: string, one: unknown, other: unknown): BaseDiff[] {
   const issues = []
   if (typeof one === 'string' && typeof other === 'string') {
     if (one !== other) {

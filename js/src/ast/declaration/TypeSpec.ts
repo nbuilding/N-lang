@@ -4,15 +4,15 @@ import { Identifier } from '../literals/Identifier'
 import { TypeVars } from './TypeVars'
 
 export class TypeSpec extends Base {
-  name: string
+  name: Identifier
   typeVars: TypeVars | null
 
   constructor (
     pos: BasePosition,
     [name, maybeTypeVars]: schem.infer<typeof TypeSpec.schema>,
   ) {
-    super(pos)
-    this.name = name.value
+    super(pos, [name, maybeTypeVars])
+    this.name = name
     this.typeVars = maybeTypeVars
   }
 

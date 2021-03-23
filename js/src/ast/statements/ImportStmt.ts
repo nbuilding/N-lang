@@ -8,14 +8,14 @@ import {
 } from './Statement'
 
 export class ImportStmt extends Base implements Statement {
-  name: string
+  name: Identifier
 
   constructor (
     pos: BasePosition,
     [, , id]: schem.infer<typeof ImportStmt.schema>,
   ) {
-    super(pos)
-    this.name = id.value
+    super(pos, [id])
+    this.name = id
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {

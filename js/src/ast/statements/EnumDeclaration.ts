@@ -10,20 +10,20 @@ import {
 } from './Statement'
 
 export class EnumVariant extends Base {
-  variant: string
-  types: Type[] = []
+  variant: Identifier
+  types: Type[]
 
   constructor (
     pos: BasePosition,
-    variant: schem.infer<typeof EnumVariant.schema>,
+    rawVariant: schem.infer<typeof EnumVariant.schema>,
   ) {
-    super(pos)
-    if (variant.length === 1) {
-      this.variant = variant[0].value
-    } else {
-      this.variant = variant[1].value
-      this.types = variant[2].map(([, type]) => type)
-    }
+    const [variant, types] =
+      rawVariant.length === 1
+        ? [rawVariant[0], []]
+        : [rawVariant[1], rawVariant[2].map(([, type]) => type)]
+    super(pos, [variant, ...types])
+    this.variant = variant
+    this.types = types
   }
 
   toString (): string {
@@ -48,14 +48,15 @@ export class EnumDeclaration extends Base implements Statement {
 
   constructor (
     pos: BasePosition,
-    [, pub, typeSpec, , [, variant, variants]]: schem.infer<
+    [, pub, typeSpec, , [, variant, rawVariants]]: schem.infer<
       typeof EnumDeclaration.schema
     >,
   ) {
+    const variants = [variant, ...rawVariants.map(([, variant]) => variant)]
     super(pos)
     this.public = pub !== null
     this.typeSpec = typeSpec
-    this.variants = [variant, ...variants.map(([, variant]) => variant)]
+    this.variants = variants
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {

@@ -18,7 +18,7 @@ export class OldFor extends Base implements Statement {
     pos: BasePosition,
     [, decl, , value, , block]: schem.infer<typeof OldFor.schema>,
   ) {
-    super(pos, [value, decl, block])
+    super(pos, [decl, value, block])
     this.value = value
     this.var = decl
     this.body = block
@@ -52,7 +52,7 @@ export class For extends Base implements Statement {
     pos: BasePosition,
     [, decl, , value, , block]: schem.infer<typeof For.schema>,
   ) {
-    super(pos, [value, decl, block])
+    super(pos, [decl, value, block])
     this.value = value
     this.var = decl
     this.body = block

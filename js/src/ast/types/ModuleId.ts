@@ -4,20 +4,22 @@ import { Identifier } from '../literals/Identifier'
 import { GetTypeContext, GetTypeResult, isType, Type } from './Type'
 
 export class ModuleId extends Base implements Type {
-  modules: string[]
-  name: string
+  modules: Identifier[]
+  name: Identifier
   typeVars: Type[]
 
   constructor (
     pos: BasePosition,
-    [modules, typeName, maybeTypeVars]: schem.infer<typeof ModuleId.schema>,
+    [rawModules, typeName, maybeTypeVars]: schem.infer<typeof ModuleId.schema>,
   ) {
-    super(pos)
-    this.modules = modules.map(([mod]) => mod.value)
-    this.name = typeName.value
-    this.typeVars = maybeTypeVars
+    const modules = rawModules.map(([mod]) => mod)
+    const typeVars = maybeTypeVars
       ? [...maybeTypeVars[1][1].map(([type]) => type), maybeTypeVars[1][2]]
       : []
+    super(pos, [...modules, typeName, ...typeVars])
+    this.modules = modules
+    this.name = typeName
+    this.typeVars = typeVars
   }
 
   getType (context: GetTypeContext): GetTypeResult {

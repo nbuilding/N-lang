@@ -11,7 +11,7 @@ export class IfLet extends Base {
     pos: BasePosition,
     [, declaration, , expression]: schem.infer<typeof IfLet.schema>,
   ) {
-    super(pos, [expression])
+    super(pos, [declaration, expression])
     this.declaration = declaration
     this.expression = expression
   }

@@ -4,15 +4,15 @@ import { Identifier } from '../literals/Identifier'
 import { GetTypeContext, GetTypeResult, isType, Type } from './Type'
 
 export class RecordTypeEntry extends Base {
-  key: string
+  key: Identifier
   value: Type
 
   constructor (
     pos: BasePosition,
     [key, , type]: schem.infer<typeof RecordTypeEntry.schema>,
   ) {
-    super(pos)
-    this.key = key.value
+    super(pos, [key, type])
+    this.key = key
     this.value = type
   }
 
