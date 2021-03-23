@@ -1,5 +1,7 @@
+import { WarningType } from '../../type-checker/errors/Warning'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
+import { Return } from '../expressions/Return'
 import {
   CheckStatementContext,
   CheckStatementResult,
@@ -22,7 +24,30 @@ export class Block extends Base implements Statement {
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
-    throw new Error('Method not implemented.')
+    const scope = context.scope.inner()
+    let blockExitPoint: Return | undefined
+    let warned = false
+    for (const statement of this.statements) {
+      const { exitPoint, exitPointWarned } = scope.checkStatement(statement)
+      if (blockExitPoint) {
+        if (!warned) {
+          context.warn({
+            type: WarningType.STATEMENT_NEVER,
+            exitPoint: blockExitPoint,
+          })
+          warned = true
+        }
+      } else if (exitPoint) {
+        blockExitPoint = exitPoint
+        if (exitPointWarned) {
+          warned = true
+        }
+      }
+    }
+    return {
+      exitPoint: blockExitPoint,
+      exitPointWarned: warned,
+    }
   }
 
   toString (topLevel = false): string {

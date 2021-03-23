@@ -1,5 +1,3 @@
-let test: [a] b -> [c] d -> e [f] -> g = imp "lol"
+let test: str = "wow"
 
-let wow = [a: int] -> int {
-  print((imp hey))
-}
+print(test)

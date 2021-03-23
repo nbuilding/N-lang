@@ -1,60 +1,17 @@
-import { Base, ImportFile } from '../ast/index'
+import { Block } from '../ast/index'
+import { CheckStatementResult, Statement } from '../ast/statements/Statement'
+import { Error as NError } from './errors/Error'
+import { Warning as NWarning } from './errors/Warning'
+import { FileGetter } from './FileGetter'
+import { Scope } from './Scope'
 
-function getImports (base: Base, target: Set<string> = new Set()): Set<string> {
-  if (base instanceof ImportFile) {
-    target.add(base.getImportPath())
-  }
-  for (const child of base.children) {
-    getImports(child, target)
-  }
-  return target
-}
-
-interface FileImports {
-  /** Parsed file */
-  base: Base | Error
-
-  /** Absolute paths to imported files */
-  imports: string[]
-}
-
-class FileGetter {
-  files: Map<string, FileImports> = new Map()
+export class TypeCheckerResult {
   checker: TypeChecker
+  errors: NError[] = []
+  warnings: NWarning[] = []
 
   constructor (checker: TypeChecker) {
     this.checker = checker
-  }
-
-  async start (
-    file: Base,
-    filePath: string,
-  ): Promise<Map<string, FileImports>> {
-    await this._scanFile(filePath, { base: file, imports: [] })
-    return this.files
-  }
-
-  private async _scanFile (filePath: string, file: FileImports): Promise<void> {
-    this.files.set(filePath, file)
-    if (file.base instanceof Error) return
-    const promises = []
-    for (const importPath of getImports(file.base)) {
-      const path = this.checker.options.resolvePath(filePath, importPath)
-      file.imports.push(path)
-      if (!this.files.has(path)) {
-        promises.push(
-          this.checker.options
-            .provideFile(path)
-            .catch(err =>
-              err instanceof Error
-                ? err
-                : new TypeError('`provideFile` threw a non-Error.'),
-            )
-            .then(base => this._scanFile(path, { base, imports: [] })),
-        )
-      }
-    }
-    await Promise.all(promises)
   }
 }
 
@@ -67,8 +24,9 @@ export interface CheckerOptions {
 
   /**
    * Asynchronously gets an imported file and returns the parsed file.
+   * TODO: In the future, perhaps this could also return only the types.
    */
-  provideFile(path: string): Promise<Base>
+  provideFile(path: string): Promise<Block>
 }
 
 export class TypeChecker {
@@ -78,8 +36,16 @@ export class TypeChecker {
     this.options = options
   }
 
-  async start (file: Base, filePath = 'run.n') {
+  async start (file: Block, filePath = 'run.n') {
     const getter = new FileGetter(this)
-    console.log(await getter.start(file, filePath))
+    await getter.start(file, filePath)
+    this._checkFile(file)
+  }
+
+  private _checkFile (file: Block) {
+    const result = new TypeCheckerResult(this)
+    const scope = new Scope(result)
+    scope.checkStatement(file)
+    console.log(result.errors)
   }
 }

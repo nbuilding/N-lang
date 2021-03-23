@@ -6,7 +6,7 @@ import parseArgs from 'minimist'
 // import { compileToJS, TypeChecker, FileLines } from './index'
 import { parse } from './grammar/parse'
 import { TypeChecker } from './type-checker/checker'
-import { Base } from './ast/index'
+import { Block } from './ast/index'
 
 async function main () {
   const {
@@ -72,7 +72,7 @@ async function main () {
     resolvePath (basePath: string, importPath: string): string {
       return basePath + importPath // TEMP
     },
-    async provideFile (_path: string): Promise<Base> {
+    async provideFile (_path: string): Promise<Block> {
       throw new Error('not implemented')
     },
   })
