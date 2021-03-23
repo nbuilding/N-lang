@@ -3,8 +3,9 @@ import { Base, BasePosition } from '../base'
 import { Arguments } from '../declaration/Arguments'
 import { Block } from '../statements/Block'
 import { isType, Type } from '../types/Type'
+import { Expression, TypeCheckContext, TypeCheckResult } from './Expression'
 
-export class Function extends Base {
+export class Function extends Base implements Expression {
   arguments: Arguments
   returnType: Type
   body: Block
@@ -17,6 +18,10 @@ export class Function extends Base {
     this.arguments = params
     this.returnType = returnType
     this.body = body
+  }
+
+  typeCheck (context: TypeCheckContext): TypeCheckResult {
+    throw new Error('Method not implemented.')
   }
 
   toString (): string {

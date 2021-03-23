@@ -1,7 +1,6 @@
 import schema, * as schem from '../../utils/schema'
 import { isEnum, isToken } from '../../utils/type-guards'
-import { from } from '../../grammar/from-nearley'
-import { Expression, isExpression } from './Expression'
+import { Expression, isExpression, TypeCheckContext, TypeCheckResult } from './Expression'
 import { Base, BasePosition } from '../base'
 
 export enum Compare {
@@ -41,7 +40,7 @@ export class Comparison extends Base {
   }
 }
 
-export class Comparisons extends Base {
+export class Comparisons extends Base implements Expression {
   comparisons: Comparison[]
 
   constructor (pos: BasePosition, [rawComparisons, value]: schem.infer<typeof Comparisons.schema>) {
@@ -66,6 +65,10 @@ export class Comparisons extends Base {
     }
     super(pos, comparisons)
     this.comparisons = comparisons
+  }
+
+  typeCheck (context: TypeCheckContext): TypeCheckResult {
+    throw new Error('Method not implemented.')
   }
 
   toString () {

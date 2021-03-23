@@ -1,7 +1,7 @@
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { TypeVars } from '../declaration/TypeVars'
-import { isType, Type } from './Type'
+import { GetTypeContext, GetTypeResult, isType, Type } from './Type'
 
 export class FuncType extends Base implements Type {
   takes: Type
@@ -13,6 +13,10 @@ export class FuncType extends Base implements Type {
     this.takes = takes
     this.returns = returns
     this.typeVars = maybeTypeVars && maybeTypeVars[0]
+  }
+
+  getType (context: GetTypeContext): GetTypeResult {
+    throw new Error('Method not implemented.')
   }
 
   toString () {

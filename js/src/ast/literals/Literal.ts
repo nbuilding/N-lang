@@ -1,15 +1,17 @@
 import schema, * as schem from '../../utils/schema'
 import { isToken } from '../../utils/type-guards'
 import { Base, BasePosition } from '../base'
-import { Expression } from '../expressions/Expression'
+import { Expression, TypeCheckContext, TypeCheckResult } from '../expressions/Expression'
 
-export class Literal extends Base implements Expression {
+export abstract class Literal extends Base implements Expression {
   value: string
 
   constructor (pos: BasePosition, [str]: schem.infer<typeof Literal.schema>) {
     super(pos)
     this.value = str.value
   }
+
+  abstract typeCheck (context: TypeCheckContext): TypeCheckResult
 
   toString () {
     return this.value

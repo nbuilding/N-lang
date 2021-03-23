@@ -1,7 +1,5 @@
 import schema, * as schem from '../../utils/schema'
-import { isEnum, isToken } from '../../utils/type-guards'
-import { from } from '../../grammar/from-nearley'
-import { Expression } from './Expression'
+import { Expression, isExpression, TypeCheckContext, TypeCheckResult } from './Expression'
 import { Base, BasePosition } from '../base'
 
 export class Tuple extends Base implements Expression {
@@ -13,6 +11,10 @@ export class Tuple extends Base implements Expression {
       ...values.map(([value]) => value),
       value,
     ]
+  }
+
+  typeCheck (context: TypeCheckContext): TypeCheckResult {
+    throw new Error('Method not implemented.')
   }
 
   toString () {

@@ -1,8 +1,8 @@
 import schema, * as schem from '../../utils/schema'
-import { Expression, isExpression } from './Expression'
+import { Expression, isExpression, TypeCheckContext, TypeCheckResult } from './Expression'
 import { Base, BasePosition } from '../base'
 
-export class List extends Base {
+export class List extends Base implements Expression {
   items: Expression[]
 
   constructor (
@@ -15,6 +15,10 @@ export class List extends Base {
     ] : []
     super(pos, items)
     this.items = items
+  }
+
+  typeCheck (context: TypeCheckContext): TypeCheckResult {
+    throw new Error('Method not implemented.')
   }
 
   toString () {

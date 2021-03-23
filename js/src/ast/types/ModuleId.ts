@@ -1,7 +1,7 @@
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
-import { isType, Type } from './Type'
+import { GetTypeContext, GetTypeResult, isType, Type } from './Type'
 
 export class ModuleId extends Base implements Type {
   modules: string[]
@@ -16,6 +16,10 @@ export class ModuleId extends Base implements Type {
       ...maybeTypeVars[1][1].map(([type]) => type),
       maybeTypeVars[1][2],
     ] : []
+  }
+
+  getType (context: GetTypeContext): GetTypeResult {
+    throw new Error('Method not implemented.')
   }
 
   toString () {

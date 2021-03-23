@@ -1,6 +1,6 @@
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
-import { isPattern, Pattern } from './Pattern'
+import { CheckPatternContext, CheckPatternResult, isPattern, Pattern } from './Pattern'
 
 export class TuplePattern extends Base implements Pattern {
   patterns: Pattern[]
@@ -11,6 +11,10 @@ export class TuplePattern extends Base implements Pattern {
       ...patterns.map(([pattern]) => pattern),
       pattern,
     ]
+  }
+
+  checkPattern (context: CheckPatternContext): CheckPatternResult {
+    throw new Error('Method not implemented.')
   }
 
   toString () {

@@ -2,7 +2,7 @@ import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Declaration } from '../declaration/Declaration'
 import { Expression, isExpression } from '../expressions/Expression'
-import { Statement } from './Statement'
+import { CheckStatementContext, CheckStatementResult, Statement } from './Statement'
 
 export class LetStmt extends Base implements Statement {
   public: boolean
@@ -14,6 +14,10 @@ export class LetStmt extends Base implements Statement {
     this.declaration = decl
     this.public = pub !== null
     this.value = expr
+  }
+
+  checkStatement (context: CheckStatementContext): CheckStatementResult {
+    throw new Error('Method not implemented.')
   }
 
   toString () {

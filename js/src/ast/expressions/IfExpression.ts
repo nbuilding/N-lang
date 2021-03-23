@@ -1,9 +1,9 @@
 import schema, * as schem from '../../utils/schema'
-import { Expression, isExpression } from './Expression'
+import { Expression, isExpression, TypeCheckContext, TypeCheckResult } from './Expression'
 import { Base, BasePosition } from '../base'
-import { Condition, isCondition } from './condition'
+import { Condition, isCondition } from '../condition/Condition'
 
-export class IfExpression extends Base {
+export class IfExpression extends Base implements Expression {
   condition: Condition
   then: Expression
   else: Expression
@@ -16,6 +16,10 @@ export class IfExpression extends Base {
     this.condition = condition
     this.then = ifThen
     this.else = ifElse
+  }
+
+  typeCheck (context: TypeCheckContext): TypeCheckResult {
+    throw new Error('Method not implemented.')
   }
 
   toString () {

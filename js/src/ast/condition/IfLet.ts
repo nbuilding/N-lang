@@ -1,15 +1,9 @@
 import schema, * as schem from '../../utils/schema'
-import { Expression, isExpression } from './Expression'
 import { Base, BasePosition } from '../base'
 import { Declaration } from '../declaration/Declaration'
+import { Expression, isExpression } from '../expressions/Expression'
 
-export type Condition = Expression
-  | IfLet
-export function isCondition (value: any): value is Condition {
-  return value instanceof IfLet || isExpression(value)
-}
-
-export class IfLet extends Base implements Expression {
+export class IfLet extends Base {
   declaration: Declaration
   expression: Expression
 

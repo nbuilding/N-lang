@@ -1,6 +1,6 @@
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
-import { isType, Type } from './Type'
+import { GetTypeContext, GetTypeResult, isType, Type } from './Type'
 
 export class TupleType extends Base implements Type {
   types: Type[]
@@ -11,6 +11,10 @@ export class TupleType extends Base implements Type {
       ...types.map(([type]) => type),
       type,
     ]
+  }
+
+  getType (context: GetTypeContext): GetTypeResult {
+    throw new Error('Method not implemented.')
   }
 
   toString () {

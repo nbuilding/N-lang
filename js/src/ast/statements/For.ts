@@ -3,7 +3,7 @@ import { Base, BasePosition } from '../base'
 import { Declaration } from '../declaration/Declaration'
 import { Expression, isExpression } from '../expressions/Expression'
 import { Block } from './Block'
-import { Statement } from './Statement'
+import { CheckStatementContext, CheckStatementResult, Statement } from './Statement'
 
 export class OldFor extends Base implements Statement {
   value: Expression
@@ -18,6 +18,10 @@ export class OldFor extends Base implements Statement {
     this.value = value
     this.var = decl
     this.body = block
+  }
+
+  checkStatement (context: CheckStatementContext): CheckStatementResult {
+    throw new Error('Method not implemented.')
   }
 
   toString (): string {
@@ -50,6 +54,10 @@ export class For extends Base implements Statement {
     this.value = value
     this.var = decl
     this.body = block
+  }
+
+  checkStatement (context: CheckStatementContext): CheckStatementResult {
+    throw new Error('Method not implemented.')
   }
 
   toString (): string {

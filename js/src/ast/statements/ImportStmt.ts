@@ -1,7 +1,7 @@
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
-import { Statement } from './Statement'
+import { CheckStatementContext, CheckStatementResult, Statement } from './Statement'
 
 export class ImportStmt extends Base implements Statement {
   name: string
@@ -9,6 +9,10 @@ export class ImportStmt extends Base implements Statement {
   constructor (pos: BasePosition, [, , id]: schem.infer<typeof ImportStmt.schema>) {
     super(pos)
     this.name = id.value
+  }
+
+  checkStatement (context: CheckStatementContext): CheckStatementResult {
+    throw new Error('Method not implemented.')
   }
 
   toString () {

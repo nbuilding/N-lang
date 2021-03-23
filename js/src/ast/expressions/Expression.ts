@@ -1,7 +1,14 @@
 import { Base } from '../base'
 
-export interface Expression extends Base {}
+export interface TypeCheckContext {}
+
+export interface TypeCheckResult {}
+
+export interface Expression extends Base {
+  typeCheck (context: TypeCheckContext): TypeCheckResult
+}
 
 export function isExpression (value: unknown): value is Expression {
-  return false
+  return value instanceof Base && 'typeCheck' in value
+    && typeof value['typeCheck'] === 'function'
 }

@@ -1,6 +1,6 @@
 import schema, * as schem from '../../utils/schema'
 import { from } from '../../grammar/from-nearley'
-import { Expression, isExpression } from './Expression'
+import { Expression, isExpression, TypeCheckContext, TypeCheckResult } from './Expression'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
 
@@ -18,7 +18,7 @@ export function unaryOperatorToString (self: UnaryOperator): string {
   }
 }
 
-export class UnaryOperation<O extends UnaryOperator> extends Base {
+export class UnaryOperation<O extends UnaryOperator> extends Base implements Expression {
   type: O
   value: Expression
 
@@ -26,6 +26,10 @@ export class UnaryOperation<O extends UnaryOperator> extends Base {
     super(pos, [value])
     this.type = operator
     this.value = value
+  }
+
+  typeCheck (context: TypeCheckContext): TypeCheckResult {
+    throw new Error('Method not implemented.')
   }
 
   toString () {
@@ -60,28 +64,4 @@ export class UnaryOperation<O extends UnaryOperator> extends Base {
     }
     return from({ schema: suffixSchema, from: fromSchema })
   }
-}
-
-export class RecordAccess extends Base {
-  value: Expression
-  field: string
-
-  constructor (
-    pos: BasePosition,
-    [value, , field]: schem.infer<typeof RecordAccess.schema>,
-  ) {
-    super(pos, [value])
-    this.value = value
-    this.field = field.value
-  }
-
-  toString () {
-    return `${this.value}.${this.field}`
-  }
-
-  static schema = schema.tuple([
-    schema.guard(isExpression),
-    schema.any,
-    schema.instance(Identifier),
-  ])
 }

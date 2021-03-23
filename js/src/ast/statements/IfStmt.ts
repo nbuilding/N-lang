@@ -1,8 +1,8 @@
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
-import { Condition, isCondition } from '../expressions/condition'
+import { Condition, isCondition } from '../condition/Condition'
 import { Block } from './Block'
-import { isStatement, Statement } from './Statement'
+import { CheckStatementContext, CheckStatementResult, isStatement, Statement } from './Statement'
 
 export class IfStmt extends Base implements Statement {
   condition: Condition
@@ -17,6 +17,10 @@ export class IfStmt extends Base implements Statement {
     this.condition = condition
     this.then = ifThen
     this.else = ifElse && ifElse[1]
+  }
+
+  checkStatement (context: CheckStatementContext): CheckStatementResult {
+    throw new Error('Method not implemented.')
   }
 
   toString () {

@@ -1,9 +1,9 @@
 import schema, * as schem from '../../utils/schema'
-import { Expression, isExpression } from './Expression'
+import { Expression, isExpression, TypeCheckContext, TypeCheckResult } from './Expression'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
 
-export class RecordAccess extends Base {
+export class RecordAccess extends Base implements Expression {
   value: Expression
   field: string
 
@@ -14,6 +14,10 @@ export class RecordAccess extends Base {
     super(pos, [value])
     this.value = value
     this.field = field.value
+  }
+
+  typeCheck (context: TypeCheckContext): TypeCheckResult {
+    throw new Error('Method not implemented.')
   }
 
   toString () {

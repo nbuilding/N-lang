@@ -1,6 +1,6 @@
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
-import { isPattern, Pattern } from './Pattern'
+import { CheckPatternContext, CheckPatternResult, isPattern, Pattern } from './Pattern'
 
 export class ListPattern extends Base implements Pattern {
   patterns: Pattern[]
@@ -11,6 +11,10 @@ export class ListPattern extends Base implements Pattern {
       ...patterns[0].map(([pattern]) => pattern),
       patterns[1],
     ] : []
+  }
+
+  checkPattern (context: CheckPatternContext): CheckPatternResult {
+    throw new Error('Method not implemented.')
   }
 
   toString () {

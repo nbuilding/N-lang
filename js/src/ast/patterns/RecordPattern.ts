@@ -1,7 +1,7 @@
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
-import { isPattern, Pattern } from './Pattern'
+import { CheckPatternContext, CheckPatternResult, isPattern, Pattern } from './Pattern'
 
 export class RecordPatternEntry extends Base {
   key: string
@@ -42,6 +42,10 @@ export class RecordPattern extends Base implements Pattern {
     ] : []
     super(pos, entries)
     this.entries = entries
+  }
+
+  checkPattern (context: CheckPatternContext): CheckPatternResult {
+    throw new Error('Method not implemented.')
   }
 
   toString () {

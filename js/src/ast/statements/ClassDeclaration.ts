@@ -3,7 +3,7 @@ import { Base, BasePosition } from '../base'
 import { Arguments } from '../declaration/Arguments'
 import { Identifier } from '../literals/Identifier'
 import { Block } from './Block'
-import { Statement } from './Statement'
+import { CheckStatementContext, CheckStatementResult, Statement } from './Statement'
 
 export class ClassDeclaration extends Base implements Statement {
   public: boolean
@@ -20,6 +20,10 @@ export class ClassDeclaration extends Base implements Statement {
     this.name = name.value
     this.arguments = args
     this.body = body
+  }
+
+  checkStatement (context: CheckStatementContext): CheckStatementResult {
+    throw new Error('Method not implemented.')
   }
 
   toString () {

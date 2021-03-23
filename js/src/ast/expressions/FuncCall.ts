@@ -1,10 +1,8 @@
 import schema, * as schem from '../../utils/schema'
-import { isEnum, isToken } from '../../utils/type-guards'
-import { from } from '../../grammar/from-nearley'
-import { Expression, isExpression } from './Expression'
+import { Expression, isExpression, TypeCheckContext, TypeCheckResult } from './Expression'
 import { Base, BasePosition } from '../base'
 
-export class FuncCall extends Base {
+export class FuncCall extends Base implements Expression {
   func: Expression
   params: Expression[]
 
@@ -19,6 +17,10 @@ export class FuncCall extends Base {
     super(pos, [func, ...params])
     this.func = func
     this.params = params
+  }
+
+  typeCheck (context: TypeCheckContext): TypeCheckResult {
+    throw new Error('Method not implemented.')
   }
 
   toString () {

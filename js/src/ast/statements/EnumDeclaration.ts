@@ -3,9 +3,9 @@ import { Base, BasePosition } from '../base'
 import { TypeSpec } from '../declaration/TypeSpec'
 import { Identifier } from '../literals/Identifier'
 import { isType, Type } from '../types/Type'
-import { Statement } from './Statement'
+import { CheckStatementContext, CheckStatementResult, Statement } from './Statement'
 
-export class EnumVariant extends Base implements Statement {
+export class EnumVariant extends Base {
   variant: string
   types: Type[] = []
 
@@ -58,6 +58,10 @@ export class EnumDeclaration extends Base implements Statement {
       variant,
       ...variants.map(([, variant]) => variant),
     ]
+  }
+
+  checkStatement (context: CheckStatementContext): CheckStatementResult {
+    throw new Error('Method not implemented.')
   }
 
   toString () {
