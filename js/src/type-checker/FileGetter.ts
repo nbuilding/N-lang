@@ -1,5 +1,5 @@
 import { Base, Block, ImportFile } from '../ast/index'
-import { TypeChecker } from './checker'
+import { TypeChecker } from './TypeChecker'
 
 function getImports (base: Base, target: Set<string> = new Set()): Set<string> {
   if (base instanceof ImportFile) {

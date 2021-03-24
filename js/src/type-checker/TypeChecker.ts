@@ -2,7 +2,7 @@ import { Block } from '../ast/index'
 import { Error as NError } from './errors/Error'
 import { Warning as NWarning } from './errors/Warning'
 import { FileGetter } from './FileGetter'
-import { Scope } from './Scope'
+import { GlobalScope } from './GlobalScope'
 
 export class TypeCheckerResult {
   checker: TypeChecker
@@ -43,7 +43,8 @@ export class TypeChecker {
 
   private _checkFile (file: Block) {
     const result = new TypeCheckerResult(this)
-    const scope = new Scope(result)
+    const globalScope = new GlobalScope(result)
+    const scope = globalScope.inner()
     scope.checkStatement(file)
     console.log(result.errors)
   }

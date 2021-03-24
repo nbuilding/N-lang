@@ -15,7 +15,10 @@ export interface NType {
    */
   expectEqual(other: NType): boolean
 
-  substitute(substitutions: Map<NType, NType>): NType
+  /**
+   * Substitute a TypeVar (matching by pointer in memory) with an NType.
+   */
+  substitute(substitutions: Map<TypeVar, NType>): NType
 }
 
 export class Type implements NType {
@@ -40,10 +43,11 @@ export class Type implements NType {
     }
   }
 
-  substitute (substitutions: Map<NType, NType>): Type {
+  substitute (substitutions: Map<TypeVar, NType>): Type {
     return this.spec.instance(
       this.typeVars.map(typeVar => {
-        const substitution = substitutions.get(typeVar)
+        const substitution =
+          typeVar instanceof TypeVar && substitutions.get(typeVar)
         if (substitution) {
           return substitution
         } else {
@@ -52,6 +56,30 @@ export class Type implements NType {
       }),
     )
   }
+}
+
+export class TypeVar implements NType {
+  name: string
+
+  constructor (name: string) {
+    this.name = name
+  }
+
+  expectEqual (other: NType): boolean {
+    return this === other
+  }
+
+  substitute (substitutions: Map<TypeVar, NType>): NType {
+    return substitutions.get(this) || this
+  }
+
+  clone (): TypeVar {
+    return new TypeVar(this.name)
+  }
+}
+
+export function makeVar (name: string): TypeVar {
+  return new TypeVar(name)
 }
 
 export class Unknown implements NType {
@@ -92,8 +120,13 @@ export class Unknown implements NType {
     }
   }
 
-  substitute (_substitutions: Map<NType, NType>): Unknown {
-    return this
+  substitute (substitutions: Map<TypeVar, NType>): NType {
+    const resolvedType = this.resolvedType()
+    if (resolvedType) {
+      return resolvedType.substitute(substitutions)
+    } else {
+      return this
+    }
   }
 
   static resolve (type: NType): NType {
@@ -129,10 +162,10 @@ export class Tuple implements NType {
     }
   }
 
-  substitute (substitutions: Map<NType, NType>): Tuple {
+  substitute (substitutions: Map<TypeVar, NType>): Tuple {
     return new Tuple(
       this.types.map(type => {
-        const substitution = substitutions.get(type)
+        const substitution = type instanceof TypeVar && substitutions.get(type)
         if (substitution) {
           return substitution
         } else {
@@ -165,11 +198,12 @@ export class Record implements NType {
     }
   }
 
-  substitute (substitutions: Map<NType, NType>): Record {
+  substitute (substitutions: Map<TypeVar, NType>): Record {
     return new Record(
       new Map(
         Array.from(this.types.entries(), ([key, type]) => {
-          const substitution = substitutions.get(type)
+          const substitution =
+            type instanceof TypeVar && substitutions.get(type)
           if (substitution) {
             return [key, substitution]
           } else {
@@ -182,11 +216,11 @@ export class Record implements NType {
 }
 
 export class Function implements NType {
-  generics: Type[]
+  generics: TypeVar[]
   takes: NType
   returns: NType
 
-  constructor (takes: NType, returns: NType, generics: Type[] = []) {
+  constructor (takes: NType, returns: NType, generics: TypeVar[] = []) {
     this.takes = takes
     this.returns = returns
     this.generics = generics
@@ -200,13 +234,35 @@ export class Function implements NType {
     )
   }
 
-  substitute (substitutions: Map<NType, NType>): Function {
-    const takesSubstitution = substitutions.get(this.takes)
-    const returnsSubstitution = substitutions.get(this.returns)
+  substitute (substitutions: Map<TypeVar, NType>): Function {
+    const takesSubstitution =
+      this.takes instanceof TypeVar && substitutions.get(this.takes)
+    const returnsSubstitution =
+      this.returns instanceof TypeVar && substitutions.get(this.returns)
     return new Function(
       takesSubstitution || this.takes.substitute(substitutions),
       returnsSubstitution || this.returns.substitute(substitutions),
-      this.generics,
+      this.generics.filter(typeVar => !substitutions.has(typeVar)),
+    )
+  }
+
+  static make (
+    maker: (...typeVars: TypeVar[]) => [NType, NType],
+    ...typeVarNames: string[]
+  ): Function {
+    const generics = typeVarNames.map(makeVar)
+    const [takes, returns] = maker(...generics)
+    return new Function(takes, returns, generics)
+  }
+
+  static fromTypes (
+    [type, type2, ...types]: NType[],
+    generics: TypeVar[] = [],
+  ): Function {
+    return new Function(
+      type,
+      types.length > 0 ? Function.fromTypes([type2, ...types]) : type2,
+      generics,
     )
   }
 }
@@ -216,7 +272,7 @@ export class Unit implements NType {
     return other instanceof Unit
   }
 
-  substitute (_substitutions: Map<NType, NType>): NType {
+  substitute (_substitutions: Map<TypeVar, NType>): NType {
     return this
   }
 }
