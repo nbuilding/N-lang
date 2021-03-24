@@ -2,7 +2,7 @@
 
 Here is a list of features in N that we have implemented and the documents that describe them
 
-- Variables
+- [Variables](./features/variables.md)
 - Functions
 - Anonymous Functions
 - Tuples, Lists, and Records
