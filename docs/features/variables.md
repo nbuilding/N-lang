@@ -19,4 +19,4 @@ print(test)
 ## Notes:
 - The type checker cannot infer the type of `[]`
 - `var` does not need a type after the name
-- use `type` to get the type of a value
+- Use `type` to get the type of a value
