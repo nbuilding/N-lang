@@ -1,6 +1,6 @@
 # Using the executable
 
-Congradulations on installing N! Now it is time to understand more about it.
+Congratulations on installing N! Now it is time to understand more about it.
 
 If you want a quick and concise tutorial on how to use the executable simply run `n --help` and it will give you a short description of each option, here this will go into more detail.
 
