@@ -13,5 +13,4 @@ let test2:test = {a:1, b:1, c:"test"}
 ```
 
 ## Notes:
-- You are unable to add the `pub` modifier to `alias` because it is a type and cannot be exported.
 - When printing out the type of a value that uses an alias as its type, it will not print out the alias name.
