@@ -1,3 +1,4 @@
+import { Unit } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { GetTypeContext, GetTypeResult, Type } from './Type'
@@ -7,8 +8,8 @@ export class UnitType extends Base implements Type {
     super(pos)
   }
 
-  getType (context: GetTypeContext): GetTypeResult {
-    throw new Error('Method not implemented.')
+  getType (_context: GetTypeContext): GetTypeResult {
+    return { type: new Unit() }
   }
 
   toString (): string {

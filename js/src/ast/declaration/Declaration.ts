@@ -1,3 +1,5 @@
+import { ScopeBaseContext } from '../../type-checker/Scope'
+import { NType } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { isPattern, Pattern } from '../patterns/Pattern'
@@ -15,6 +17,12 @@ export class Declaration extends Base {
     super(pos, [pattern, type])
     this.pattern = pattern
     this.type = type
+  }
+
+  checkDeclaration (context: ScopeBaseContext, idealType: NType): void {
+    if (this.type) {
+      const typeAnnotation = context.scope.getTypeFrom(this.type)
+    }
   }
 
   toString (): string {

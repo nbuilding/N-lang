@@ -17,11 +17,12 @@ export enum WarningType {
   STATEMENT_NEVER,
 }
 
-export type WarningNoBase = {
+export type WarningMessage = {
   type: WarningType.EXPRESSION_NEVER | WarningType.STATEMENT_NEVER
   exitPoint: Return
 }
 
-export interface Warning extends WarningNoBase {
+export interface Warning {
+  message: WarningMessage
   base: Base
 }

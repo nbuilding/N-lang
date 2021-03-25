@@ -1,14 +1,8 @@
-import { ErrorNoBase } from '../../type-checker/errors/Error'
-import { WarningNoBase } from '../../type-checker/errors/Warning'
-import { Scope } from '../../type-checker/Scope'
+import { ScopeBaseContext } from '../../type-checker/Scope'
 import { Base } from '../base'
 import { Return } from '../expressions/Return'
 
-export interface CheckStatementContext {
-  scope: Scope
-  err: (error: ErrorNoBase) => void
-  warn: (warning: WarningNoBase) => void
-}
+export interface CheckStatementContext extends ScopeBaseContext {}
 
 export interface CheckStatementResult {
   exitPoint?: Return

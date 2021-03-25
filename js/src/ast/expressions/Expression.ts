@@ -1,17 +1,13 @@
-import { ErrorNoBase } from '../../type-checker/errors/Error'
-import { WarningNoBase } from '../../type-checker/errors/Warning'
-import { Scope } from '../../type-checker/Scope'
+import { ScopeBaseContext } from '../../type-checker/Scope'
 import { NType } from '../../type-checker/types/types'
 import { Base } from '../base'
+import { Return } from './Return'
 
-export interface TypeCheckContext {
-  scope: Scope
-  err: (error: ErrorNoBase) => void
-  warn: (warning: WarningNoBase) => void
-}
+export interface TypeCheckContext extends ScopeBaseContext {}
 
 export interface TypeCheckResult {
   type: NType | null
+  exitPoint?: Return
 }
 
 export interface Expression extends Base {

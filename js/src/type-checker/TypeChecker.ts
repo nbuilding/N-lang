@@ -1,11 +1,13 @@
-import { Block } from '../ast/index'
+import { Base, Block } from '../ast/index'
 import { Error as NError } from './errors/Error'
 import { Warning as NWarning } from './errors/Warning'
 import { FileGetter } from './FileGetter'
 import { GlobalScope } from './GlobalScope'
+import { NType } from './types/types'
 
 export class TypeCheckerResult {
   checker: TypeChecker
+  types: Map<Base, NType> = new Map()
   errors: NError[] = []
   warnings: NWarning[] = []
 

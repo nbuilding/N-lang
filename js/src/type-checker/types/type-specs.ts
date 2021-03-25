@@ -20,7 +20,7 @@ export class TypeSpec {
     this.typeVars = typeVars
   }
 
-  instance (typeVars: NType[] = []): Type {
+  instance (typeVars: (NType | null)[] = []): Type {
     if (this.typeVars.length !== typeVars.length) {
       throw new TypeError(
         `Spec has ${this.typeVars.length} type vars, but was instantiated with ${typeVars.length}.`,
@@ -71,12 +71,11 @@ export class EnumTypeSpec extends TypeSpec {
   }
 }
 
-export class AliasSpec {
-  name: string
+export class AliasSpec extends TypeSpec {
   type: NType
 
-  constructor (name: string, type: NType) {
-    this.name = name
+  constructor (name: string, typeVars: TypeVar[], type: NType) {
+    super(name, typeVars)
     this.type = type
   }
 }

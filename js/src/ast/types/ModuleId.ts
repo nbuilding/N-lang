@@ -1,3 +1,5 @@
+import { ErrorType } from '../../type-checker/errors/Error'
+import { Module } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
@@ -23,7 +25,51 @@ export class ModuleId extends Base implements Type {
   }
 
   getType (context: GetTypeContext): GetTypeResult {
-    throw new Error('Method not implemented.')
+    const [module, ...modules] = this.modules
+    if (module) {
+      const firstModuleType = context.scope.getVariable(module.value, true)
+      if (firstModuleType instanceof Module) {
+        let moduleType: Module = firstModuleType
+        for (const module of modules) {
+          const type = moduleType.types.get(module.value)
+          if (type === undefined) {
+            context.err({
+              type: ErrorType.NOT_EXPORTED,
+              name: module.value,
+              exported: 'module',
+            })
+            return { type: null }
+          } else if (type instanceof Module) {
+            moduleType = type
+          } else {
+            context.err({ type: ErrorType.NOT_MODULE, name: module.value })
+            return { type: null }
+          }
+        }
+        const typeSpec = moduleType.typeSpecs.get(this.name.value)
+        if (typeSpec !== undefined) {
+          return { type: typeSpec.instance() }
+        } else {
+          context.err({
+            type: ErrorType.NOT_EXPORTED,
+            name: this.name.value,
+            exported: 'type',
+          })
+          return { type: null }
+        }
+      } else {
+        context.err({ type: ErrorType.NOT_MODULE, name: module.value })
+        return { type: null }
+      }
+    } else {
+      const typeSpec = context.scope.getType(this.name.value, true)
+      if (typeSpec !== undefined) {
+        return { type: typeSpec.instance() }
+      } else {
+        context.err({ type: ErrorType.UNDEFINED_TYPE, name: this.name.value })
+        return { type: null }
+      }
+    }
   }
 
   toString (): string {

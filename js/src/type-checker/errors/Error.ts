@@ -4,6 +4,9 @@ export enum ErrorType {
   /** Variable is not defined in scope */
   UNDEFINED_VARIABLE,
 
+  /** Type is not defined in scope */
+  UNDEFINED_TYPE,
+
   /** The operation cannot be performed between the two types */
   OPERATION_NONE_FOR_TYPES,
 
@@ -63,13 +66,29 @@ export enum ErrorType {
 
   /** A type was never used */
   UNUSED_TYPE,
+
+  /** The given module name for a type identifier is not a module */
+  NOT_MODULE,
+
+  /** A sub module is not exported by the parent module in a type identifier */
+  NOT_EXPORTED,
 }
 
-export type ErrorNoBase = {
-  type: ErrorType.UNDEFINED_VARIABLE | ErrorType.UNUSED_TYPE
-  name: string
-}
+export type ErrorMessage =
+  | {
+      type:
+        | ErrorType.UNDEFINED_VARIABLE
+        | ErrorType.UNDEFINED_TYPE
+        | ErrorType.NOT_MODULE
+      name: string
+    }
+  | {
+      type: ErrorType.NOT_EXPORTED
+      name: string
+      exported: 'module' | 'type'
+    }
 
-export interface Error extends ErrorNoBase {
+export interface Error {
+  message: ErrorMessage
   base: Base
 }

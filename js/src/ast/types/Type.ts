@@ -1,8 +1,12 @@
+import { ScopeBaseContext } from '../../type-checker/Scope'
+import { NType } from '../../type-checker/types/types'
 import { Base } from '../base'
 
-export interface GetTypeContext {}
+export interface GetTypeContext extends ScopeBaseContext {}
 
-export interface GetTypeResult {}
+export interface GetTypeResult {
+  type: NType | null
+}
 
 export interface Type extends Base {
   getType(context: GetTypeContext): GetTypeResult

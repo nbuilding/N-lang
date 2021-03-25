@@ -24,8 +24,8 @@ export class LetStmt extends Base implements Statement {
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
-    //
-    return {}
+    const { type, exitPoint } = context.scope.typeCheck(this.value)
+    return { exitPoint }
   }
 
   toString (): string {

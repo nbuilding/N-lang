@@ -26,9 +26,15 @@ export class GlobalScope extends Scope {
 
     this.types.set('list', list)
     this.types.set('map', map)
-    this.types.set('maybe', maybe)
-    this.types.set('result', result)
     this.types.set('cmd', cmd)
+
+    this.types.set('maybe', maybe)
+    this.variables.set('yes', maybe.constructorType('yes'))
+    this.variables.set('none', maybe.constructorType('none'))
+
+    this.types.set('result', result)
+    this.variables.set('ok', maybe.constructorType('ok'))
+    this.variables.set('err', maybe.constructorType('err'))
 
     this.variables.set(
       'intInBase10',
@@ -129,14 +135,10 @@ export class GlobalScope extends Scope {
         'b',
       ),
     )
-    this.variables.set('yes', maybe.constructorType('yes'))
-    this.variables.set('none', maybe.constructorType('none'))
     this.variables.set(
       'default',
       Func.make(t => [t, Func.make(() => [maybe.instance([t]), t])], 't'),
     )
-    this.variables.set('ok', maybe.constructorType('ok'))
-    this.variables.set('err', maybe.constructorType('err'))
     this.variables.set(
       'then',
       Func.make(

@@ -1,3 +1,4 @@
+import { Tuple } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { GetTypeContext, GetTypeResult, isType, Type } from './Type'
@@ -15,7 +16,11 @@ export class TupleType extends Base implements Type {
   }
 
   getType (context: GetTypeContext): GetTypeResult {
-    throw new Error('Method not implemented.')
+    return {
+      type: new Tuple(
+        this.types.map(type => context.scope.getTypeFrom(type).type),
+      ),
+    }
   }
 
   toString (): string {

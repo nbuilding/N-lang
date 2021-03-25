@@ -9,6 +9,8 @@ export const char = new TypeSpec('char')
 
 export const list = new TypeSpec('list', ['i'].map(makeVar))
 export const map = new TypeSpec('map', ['k', 'v'].map(makeVar))
+export const cmd = new TypeSpec('cmd', ['r'].map(makeVar))
+
 export const maybe = EnumTypeSpec.make(
   'maybe',
   t => [
@@ -26,4 +28,3 @@ export const result = EnumTypeSpec.make(
   'o',
   'e',
 )
-export const cmd = new TypeSpec('cmd', ['r'].map(makeVar))
