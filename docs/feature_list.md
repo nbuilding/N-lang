@@ -15,3 +15,4 @@ Here is a list of features in N that we have implemented and the documents that 
 - [Currying and the Pipe Operater](./features/currying.md)
 - [Aliases](./features/aliases.md)
 - [Classes](./features/classes.md)
+- [Async](./features/async.md)
