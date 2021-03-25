@@ -19,6 +19,12 @@ if let i:str = 1 {
 if let i:str = "This will always run" {
 	print(i)
 }
+
+let notnone:maybe[str] = yes("This will always run")
+
+if let <yes test> = notnone {
+	print(test) // test is not a maybe anymore, it is a string
+}
 ```
 
 ## Notes:
