@@ -3,7 +3,7 @@ import { NType } from '../../type-checker/types/types'
 import { Base } from '../base'
 
 export interface CheckPatternContext extends ScopeBaseContext {
-  type: NType
+  type: NType | null
 }
 
 export interface CheckPatternResult {

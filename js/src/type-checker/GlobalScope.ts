@@ -33,8 +33,8 @@ export class GlobalScope extends Scope {
     this.variables.set('none', maybe.constructorType('none'))
 
     this.types.set('result', result)
-    this.variables.set('ok', maybe.constructorType('ok'))
-    this.variables.set('err', maybe.constructorType('err'))
+    this.variables.set('ok', result.constructorType('ok'))
+    this.variables.set('err', result.constructorType('err'))
 
     this.variables.set(
       'intInBase10',

@@ -1,4 +1,5 @@
 import { Base } from '../../ast/index'
+import { NType } from '../types/types'
 
 export enum ErrorType {
   /** Variable is not defined in scope */
@@ -61,17 +62,14 @@ export enum ErrorType {
   /** The type from a let declaration does not match its expression */
   LET_TYPE_MISMATCH,
 
-  /** A variable or import was never used */
-  UNUSED_VARIABLE,
-
-  /** A type was never used */
-  UNUSED_TYPE,
-
   /** The given module name for a type identifier is not a module */
   NOT_MODULE,
 
   /** A sub module is not exported by the parent module in a type identifier */
   NOT_EXPORTED,
+
+  /** A function argument doesn't have a type annotation */
+  TYPE_ANNOTATION_NEEDED,
 }
 
 export type ErrorMessage =
@@ -86,6 +84,12 @@ export type ErrorMessage =
       type: ErrorType.NOT_EXPORTED
       name: string
       exported: 'module' | 'type'
+    }
+  | ErrorType.TYPE_ANNOTATION_NEEDED
+  | {
+      type: ErrorType.LET_TYPE_MISMATCH
+      annotation: NType
+      expression: NType
     }
 
 export interface Error {

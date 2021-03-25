@@ -78,10 +78,10 @@ export class Scope {
     })
   }
 
-  checkPattern (base: Pattern, idealType: NType): CheckPatternResult {
+  checkPattern (base: Pattern, idealType: NType | null): CheckPatternResult {
     return base.checkPattern({
       ...this._contextFor(base),
-      type: resolve(idealType),
+      type: idealType && resolve(idealType),
     })
   }
 
