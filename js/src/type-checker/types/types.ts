@@ -88,9 +88,23 @@ export class TypeVar implements NType {
   substitute (substitutions: Map<TypeVar, NType>): NType {
     return substitutions.get(this) || this
   }
+}
 
-  clone (): TypeVar {
-    return new TypeVar(this.name)
+export class FuncTypeVar extends TypeVar {
+  func!: Function
+  resolvedType?: NType
+
+  constructor (name: string) {
+    super(name)
+  }
+
+  expectEqual (other: NType): ExpectEqualResult {
+    // I think it's possible for two FuncTypeVars
+    return this === other ? ExpectEqualResult.Equal : ExpectEqualResult.NotEqual
+  }
+
+  substitute (substitutions: Map<TypeVar, NType>): NType {
+    return substitutions.get(this) || this
   }
 }
 
@@ -278,15 +292,65 @@ export class Module extends Record {
   }
 }
 
+export interface ReturnTypeResult {
+  type: NType | 'unresolved-generic'
+  paramTypeIncompatible: boolean
+}
+
 export class Function implements NType {
-  generics: TypeVar[]
+  generics: FuncTypeVar[]
   takes: NType
   returns: NType
 
-  constructor (takes: NType, returns: NType, generics: TypeVar[] = []) {
+  constructor (takes: NType, returns: NType, generics: FuncTypeVar[] = []) {
     this.takes = takes
     this.returns = returns
     this.generics = generics
+    for (const generic of generics) {
+      generic.func = this
+    }
+  }
+
+  /**
+   * IMPURE! Will irreversibly resolve its FuncTypeVars.
+   * Returns
+   * - The return type, with resolved type vars replaced. For example, ([a, b] a ->
+   *   b -> (a, b))(str) will produce [b] b -> (str, b) (note now that ownership
+   *   of `b` has been passed down to the return value)
+   * - null if the types contain an error type (for example, [b]
+   *   undefinedTypeUsingB -> b)
+   * - 'param-not-compatible' if the function takes type is not compatible
+   * - 'unresolved-generic' for functions like `[t] str -> t`
+   *
+   * ([t] list[t] -> int)(str) is pretty clearly `int` even if the param type
+   * doesn't match.
+   */
+  returnTypeFromParam (paramType: NType): ReturnTypeResult {
+    const result = this.takes.expectEqual(paramType)
+    const substitutions = new Map()
+    const unresolvedGenerics = []
+    for (const generic of this.generics) {
+      if (generic.resolvedType) {
+        substitutions.set(generic, generic.resolvedType)
+      } else {
+        unresolvedGenerics.push(generic)
+      }
+    }
+    const returnType = resolve(this.returns.substitute(substitutions))
+    if (returnType instanceof Function) {
+      returnType.generics.push(...unresolvedGenerics)
+    } else if (unresolvedGenerics.length > 0) {
+      // `unresolvedGenerics` will get discarded for a function like `[t] str ->
+      // t`
+      return {
+        type: 'unresolved-generic',
+        paramTypeIncompatible: result === ExpectEqualResult.NotEqual,
+      }
+    }
+    return {
+      type: returnType,
+      paramTypeIncompatible: result === ExpectEqualResult.NotEqual,
+    }
   }
 
   expectEqual (other: NType): ExpectEqualResult {
@@ -322,17 +386,17 @@ export class Function implements NType {
   }
 
   static make (
-    maker: (...typeVars: TypeVar[]) => [NType, NType],
+    maker: (...typeVars: FuncTypeVar[]) => [NType, NType],
     ...typeVarNames: string[]
   ): Function {
-    const generics = typeVarNames.map(makeVar)
+    const generics = typeVarNames.map(name => new FuncTypeVar(name))
     const [takes, returns] = maker(...generics)
     return new Function(takes, returns, generics)
   }
 
   static fromTypes (
     [type, type2, ...types]: NType[],
-    generics: TypeVar[] = [],
+    generics: FuncTypeVar[] = [],
   ): Function {
     return new Function(
       type,

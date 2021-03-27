@@ -1,4 +1,11 @@
-import { Function as Func, makeVar, NType, Type, TypeVar } from './types'
+import {
+  Function as Func,
+  FuncTypeVar,
+  makeVar,
+  NType,
+  Type,
+  TypeVar,
+} from './types'
 
 /**
  * A type spec represents a declared type. For example, making an enum will make
@@ -45,7 +52,7 @@ export class EnumTypeSpec extends TypeSpec {
   /** Not safe! Throws an error if the variant does not exist. */
   constructorType (variantName: string): Func | Type {
     const variant = this.variants.get(variantName)
-    const typeVars = this.typeVars.map(typeVar => typeVar.clone())
+    const typeVars = this.typeVars.map(typeVar => new FuncTypeVar(typeVar.name))
     if (variant) {
       const product = this.instance(typeVars)
       if (variant.length > 0) {

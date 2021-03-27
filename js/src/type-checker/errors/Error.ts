@@ -8,57 +8,6 @@ export enum ErrorType {
   /** Type is not defined in scope */
   UNDEFINED_TYPE,
 
-  /** The operation cannot be performed between the two types */
-  OPERATION_NONE_FOR_TYPES,
-
-  /** The unary operation cannot be performed for the type */
-  UNARY_OPERATION_NONE_FOR_TYPE,
-
-  /** The comparison is between different types */
-  COMPARISON_DIFFERENT_TYPES,
-
-  /** The type cannot be compared for equality (eg functions) */
-  EQUALITY_UNAVAILABLE,
-
-  /** The type cannot be compared for order */
-  COMPARISON_UNAVAILABLE,
-
-  /** Performing a function call on a non-function */
-  CALLING_NON_FUNCTION,
-
-  /** Argument type does not match */
-  ARGUMENT_TYPE_MISMATCH,
-
-  /** Extra arguments */
-  ARGUMENT_EXTRA,
-
-  /** Using the return statement outside a function */
-  RETURN_OUTSIDE_FUNCTION,
-
-  /** Return statement's expression does not match with function return type */
-  RETURN_TYPE_MISMATCH,
-
-  /** The if condition is not a boolean */
-  CONDITION_NOT_BOOLEAN,
-
-  /** The if-else branch types do not match */
-  IF_ELSE_BRANCH_TYPE_MISMATCH,
-
-  /** The function argument type is omitted */
-  FUNCTION_NO_INFERRED_ARGUMENT,
-
-  /** The function argument name is already used */
-  FUNCTION_DUPLICATE_ARGUMENT,
-
-  /** The iterated type does not match the iterated type from the iterator */
-  ITERATED_TYPE_MISMATCH,
-
-  /** The iterator value in a for loop is not iterable */
-  ITERATOR_NOT_ITERABLE,
-
-  /** An import or variable has already been defined in the scope */
-  ALREADY_DEFINED_VARIBLE,
-
   /** The type from a let declaration does not match its expression */
   LET_TYPE_MISMATCH,
 
@@ -70,6 +19,18 @@ export enum ErrorType {
 
   /** A function argument doesn't have a type annotation */
   TYPE_ANNOTATION_NEEDED,
+
+  /** Calling a non-function */
+  CALL_NON_FUNCTION,
+
+  /** Giving too many arguments to a function */
+  TOO_MANY_ARGS,
+
+  /** Function parameter type does not match */
+  ARG_TYPE_MISMATCH,
+
+  /** Cannot resolve function type variable for last argument */
+  UNRESOLVED_GENERIC,
 }
 
 export type ErrorMessage =
@@ -90,6 +51,26 @@ export type ErrorMessage =
       type: ErrorType.LET_TYPE_MISMATCH
       annotation: NType
       expression: NType
+    }
+  | {
+      type: ErrorType.CALL_NON_FUNCTION
+      funcType: NType
+    }
+  | {
+      type: ErrorType.TOO_MANY_ARGS
+      funcType: NType
+      argPos: number
+    }
+  | {
+      type: ErrorType.ARG_TYPE_MISMATCH
+      expect: NType
+      given: NType
+      funcType: NType
+      argPos: number
+    }
+  | {
+      type: ErrorType.UNRESOLVED_GENERIC
+      funcType: NType
     }
 
 export interface Error {
