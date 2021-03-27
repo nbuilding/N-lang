@@ -44,8 +44,8 @@ export class Declaration extends Base {
    */
   checkDeclaration (context: ScopeBaseContext, idealType?: NType | null): void {
     if (idealType === undefined && !this.type) {
-      context.err(ErrorType.TYPE_ANNOTATION_NEEDED)
-      context.scope.checkPattern(this.pattern, null)
+      context.err({ type: ErrorType.TYPE_ANNOTATION_NEEDED })
+      context.scope.checkPattern(this.pattern, null, true)
       return
     }
     const typeAnnotation = this.type
@@ -60,12 +60,12 @@ export class Declaration extends Base {
             annotation: typeAnnotation,
             expression: idealType,
           })
-          context.scope.checkPattern(this.pattern, null)
+          context.scope.checkPattern(this.pattern, null, true)
           return
         }
       }
     }
-    context.scope.checkPattern(this.pattern, typeAnnotation)
+    context.scope.checkPattern(this.pattern, typeAnnotation, true)
   }
 
   toString (): string {

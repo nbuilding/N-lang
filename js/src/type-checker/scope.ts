@@ -11,8 +11,8 @@ import { GetTypeResult, Type } from '../ast/types/Type'
 
 export interface ScopeBaseContext {
   scope: Scope
-  err: (error: ErrorMessage) => void
-  warn: (warning: WarningMessage) => void
+  err: (error: ErrorMessage, base?: Base) => void
+  warn: (warning: WarningMessage, base?: Base) => void
 }
 
 export class Scope {
@@ -60,13 +60,13 @@ export class Scope {
     }
   }
 
-  private _contextFor (base: Base): ScopeBaseContext {
+  private _contextFor (defaultBase: Base): ScopeBaseContext {
     return {
       scope: this,
-      err: error => {
+      err: (error, base = defaultBase) => {
         this.checker.errors.push({ message: error, base })
       },
-      warn: warning => {
+      warn: (warning, base = defaultBase) => {
         this.checker.warnings.push({ message: warning, base })
       },
     }
@@ -78,10 +78,15 @@ export class Scope {
     })
   }
 
-  checkPattern (base: Pattern, idealType: NType | null): CheckPatternResult {
+  checkPattern (
+    base: Pattern,
+    idealType: NType | null,
+    definite: boolean,
+  ): CheckPatternResult {
     return base.checkPattern({
       ...this._contextFor(base),
       type: idealType && resolve(idealType),
+      definite,
     })
   }
 

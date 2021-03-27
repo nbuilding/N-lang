@@ -1,9 +1,6 @@
 import { Base, Return } from '../../ast/index'
 
 export enum WarningType {
-  /** The expression is used as a statement and not stored anywhere */
-  UNUSED_EXPRESSION,
-
   /**
    * The expression or statement will never be evaluated because the function
    * exits from an inner expression
@@ -17,10 +14,14 @@ export enum WarningType {
   STATEMENT_NEVER,
 }
 
-export type WarningMessage = {
-  type: WarningType.EXPRESSION_NEVER | WarningType.STATEMENT_NEVER
-  exitPoint: Return
-}
+export type WarningMessage =
+  | {
+      type: WarningType.EXPRESSION_NEVER | WarningType.STATEMENT_NEVER
+      exitPoint: Return
+    }
+  | {
+      type: WarningType.USED_UNDERSCORE_IDENTIFIER
+    }
 
 export interface Warning {
   message: WarningMessage

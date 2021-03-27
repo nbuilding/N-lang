@@ -10,8 +10,8 @@ export class DiscardPattern extends Base implements Pattern {
     super(pos)
   }
 
-  checkPattern (context: CheckPatternContext): CheckPatternResult {
-    throw new Error('Method not implemented.')
+  checkPattern (_context: CheckPatternContext): CheckPatternResult {
+    return {}
   }
 
   toString (): string {

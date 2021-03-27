@@ -31,6 +31,33 @@ export enum ErrorType {
 
   /** Cannot resolve function type variable for last argument */
   UNRESOLVED_GENERIC,
+
+  /** Pattern can't destructure type */
+  DESTRUCTURE_TYPE_MISMATCH,
+
+  /** Destructuring an enum with a nonexistent variant */
+  ENUM_DESTRUCTURE_NO_VARIANT,
+
+  /** Destructuring an enum with multiple variants as a definite pattern */
+  ENUM_DESTRUCTURE_DEFINITE_MULT_VARIANTS,
+
+  /** The number of destructured fields and the variant fields don't match */
+  ENUM_DESTRUCTURE_FIELD_MISMATCH,
+
+  /** Destructuring a list as a definite pattern */
+  LIST_DESTRUCTURE_DEFINITE,
+
+  /** Destructuring a nonexistent key from a record */
+  RECORD_DESTRUCTURE_NO_KEY,
+
+  /** Destructuring a duplicate key from a record; TODO: Is this an error? */
+  RECORD_DESTRUCTURE_DUPLICATE_KEY,
+
+  /** Not all fields of record destructured */
+  RECORD_DESTRUCTURE_INCOMPLETE,
+
+  /** The number of items destructured from the tuple doesn't match its length */
+  TUPLE_DESTRUCTURE_LENGTH_MISMATCH,
 }
 
 export type ErrorMessage =
@@ -46,7 +73,9 @@ export type ErrorMessage =
       name: string
       exported: 'module' | 'type'
     }
-  | ErrorType.TYPE_ANNOTATION_NEEDED
+  | {
+      type: ErrorType.TYPE_ANNOTATION_NEEDED
+    }
   | {
       type: ErrorType.LET_TYPE_MISMATCH
       annotation: NType
@@ -71,6 +100,36 @@ export type ErrorMessage =
   | {
       type: ErrorType.UNRESOLVED_GENERIC
       funcType: NType
+    }
+  | {
+      type: ErrorType.DESTRUCTURE_TYPE_MISMATCH
+      assignedTo: NType
+      destructure: 'enum' | 'list' | 'tuple' | 'record'
+    }
+  | {
+      type:
+        | ErrorType.ENUM_DESTRUCTURE_NO_VARIANT
+        | ErrorType.ENUM_DESTRUCTURE_DEFINITE_MULT_VARIANTS
+        | ErrorType.LIST_DESTRUCTURE_DEFINITE
+    }
+  | {
+      type:
+        | ErrorType.ENUM_DESTRUCTURE_FIELD_MISMATCH
+        | ErrorType.TUPLE_DESTRUCTURE_LENGTH_MISMATCH
+      assignedTo: number
+    }
+  | {
+      type: ErrorType.RECORD_DESTRUCTURE_NO_KEY
+      recordType: NType
+      key: string
+    }
+  | {
+      type: ErrorType.RECORD_DESTRUCTURE_DUPLICATE_KEY
+      key: string
+    }
+  | {
+      type: ErrorType.RECORD_DESTRUCTURE_INCOMPLETE
+      keys: string[]
     }
 
 export interface Error {

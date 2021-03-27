@@ -1,3 +1,6 @@
+import { ErrorType } from '../../type-checker/errors/Error'
+import { EnumTypeSpec } from '../../type-checker/types/type-specs'
+import { NType, Type } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
@@ -23,7 +26,48 @@ export class EnumPattern extends Base implements Pattern {
   }
 
   checkPattern (context: CheckPatternContext): CheckPatternResult {
-    throw new Error('Method not implemented.')
+    let innerTypes: NType[] | null = null
+    if (context.type) {
+      if (
+        context.type instanceof Type &&
+        context.type.spec instanceof EnumTypeSpec
+      ) {
+        if (context.type.spec.variants.size > 1 && context.definite) {
+          context.err({
+            type: ErrorType.ENUM_DESTRUCTURE_DEFINITE_MULT_VARIANTS,
+          })
+        }
+        const variant = context.type.spec.variants.get(this.variant.value)
+        if (variant) {
+          if (variant.length !== this.patterns.length) {
+            context.err({
+              type: ErrorType.ENUM_DESTRUCTURE_FIELD_MISMATCH,
+              assignedTo: variant.length,
+            })
+          }
+          innerTypes = variant
+        } else {
+          context.err(
+            { type: ErrorType.ENUM_DESTRUCTURE_NO_VARIANT },
+            this.variant,
+          )
+        }
+      } else {
+        context.err({
+          type: ErrorType.DESTRUCTURE_TYPE_MISMATCH,
+          assignedTo: context.type,
+          destructure: 'enum',
+        })
+      }
+    }
+    this.patterns.forEach((pattern, i) => {
+      context.scope.checkPattern(
+        pattern,
+        innerTypes && innerTypes[i],
+        context.definite,
+      )
+    })
+    return {}
   }
 
   toString (): string {

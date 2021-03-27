@@ -4,11 +4,10 @@ import { Base } from '../base'
 
 export interface CheckPatternContext extends ScopeBaseContext {
   type: NType | null
+  definite: boolean
 }
 
-export interface CheckPatternResult {
-  compatible: boolean
-}
+export interface CheckPatternResult {}
 
 export interface Pattern extends Base {
   checkPattern(context: CheckPatternContext): CheckPatternResult

@@ -1,4 +1,5 @@
 import { ErrorType } from '../../type-checker/errors/Error'
+import { WarningType } from '../../type-checker/errors/Warning'
 import { TypeCheckContext, TypeCheckResult } from '../expressions/Expression'
 import {
   CheckPatternContext,
@@ -9,11 +10,16 @@ import { Literal } from './Literal'
 
 export class Identifier extends Literal implements Pattern {
   checkPattern (context: CheckPatternContext): CheckPatternResult {
-    throw new Error('Method not implemented.')
+    context.scope.variables.set(this.value, context.type)
+    context.scope.unusedVariables.add(this.value)
+    return {}
   }
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {
     const type = context.scope.getVariable(this.value, true)
+    if (this.value.startsWith('_')) {
+      context.warn({ type: WarningType.USED_UNDERSCORE_IDENTIFIER })
+    }
     if (type !== undefined) {
       return { type }
     } else {

@@ -1,3 +1,6 @@
+import { ErrorType } from '../../type-checker/errors/Error'
+import { list } from '../../type-checker/types/builtins'
+import { NType, Type } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import {
@@ -22,7 +25,25 @@ export class ListPattern extends Base implements Pattern {
   }
 
   checkPattern (context: CheckPatternContext): CheckPatternResult {
-    throw new Error('Method not implemented.')
+    let innerType: NType | null = null
+    if (context.type) {
+      if (context.type instanceof Type && context.type.spec === list) {
+        innerType = context.type.typeVars[0]
+      } else {
+        context.err({
+          type: ErrorType.DESTRUCTURE_TYPE_MISMATCH,
+          assignedTo: context.type,
+          destructure: 'list',
+        })
+      }
+    }
+    if (context.definite) {
+      context.err({ type: ErrorType.LIST_DESTRUCTURE_DEFINITE })
+    }
+    for (const pattern of this.patterns) {
+      context.scope.checkPattern(pattern, innerType, context.definite)
+    }
+    return {}
   }
 
   toString (): string {
