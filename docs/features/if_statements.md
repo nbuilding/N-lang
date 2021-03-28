@@ -29,4 +29,4 @@ if let <yes test> = notnone {
 
 ## Notes:
 - There is no parenthesis in between `if` and `let` on a conditional let
-- Conditional lets can be used with destructuring or with [enums](./enums.md).
+- Conditional lets can be used with [destructuring](./destructuring.md).

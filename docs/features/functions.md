@@ -16,5 +16,5 @@ print(type(test)) // This print out `int -> int -> int`
 ```
 
 ## Notes:
-- The type of a function is `[type of argument 1] -> [type of argument 2] ... -> [return type]`
+- The type of a function is `[type of argument 1] -> [type of argument 2] -> ... -> [return type]`
 - The value of a function is an expression so this is what anonomous functions are commonly used as
