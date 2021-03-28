@@ -23,7 +23,6 @@ print(listindexvalue)
 ## Notes:
 - All of the above can be [destructured](./destructuring.md).
 - Tuples can only be [destructured](./destructuring.md) to get the values from them.
-- The type of `[]` cannot be inferred and will give an error.
 - `append` returns a list.
 - `itemAt` will return a `maybe` for null saftey, see how to deal with that [here](./enums.md).
 - Most of the list functions are intended to be used with the [pipe operator](./currying.md).
