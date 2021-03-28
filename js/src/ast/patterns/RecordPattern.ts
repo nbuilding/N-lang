@@ -1,5 +1,5 @@
 import { ErrorType } from '../../type-checker/errors/Error'
-import { NType, Record } from '../../type-checker/types/types'
+import { Record } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
@@ -48,11 +48,12 @@ export class RecordPattern extends Base implements Pattern {
   }
 
   checkPattern (context: CheckPatternContext): CheckPatternResult {
-    const keys: Set<string> = new Set()
+    let keys: Set<string> = new Set()
     let type: Record | null = null
     if (context.type) {
       if (context.type instanceof Record) {
         type = context.type
+        keys = new Set(type.types.keys())
       } else {
         context.err({
           type: ErrorType.DESTRUCTURE_TYPE_MISMATCH,
@@ -62,17 +63,7 @@ export class RecordPattern extends Base implements Pattern {
       }
     }
     for (const entry of this.entries) {
-      if (keys.has(entry.key.value)) {
-        context.err(
-          {
-            type: ErrorType.RECORD_DESTRUCTURE_DUPLICATE_KEY,
-            key: entry.key.value,
-          },
-          entry.key,
-        )
-      } else {
-        keys.add(entry.key.value)
-      }
+      keys.delete(entry.key.value)
       if (type) {
         const value = type.types.get(entry.key.value)
         if (value === undefined) {
@@ -91,14 +82,11 @@ export class RecordPattern extends Base implements Pattern {
       }
     }
     if (type) {
-      const unusedKeys = new Set(type.types.keys())
-      for (const key of keys) {
-        unusedKeys.delete(key)
-      }
-      if (unusedKeys.size > 0) {
+      if (keys.size > 0) {
         context.err({
           type: ErrorType.RECORD_DESTRUCTURE_INCOMPLETE,
-          keys: Array.from(unusedKeys),
+          recordType: type,
+          keys: Array.from(keys),
         })
       }
     }

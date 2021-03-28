@@ -42,7 +42,9 @@ export class ModuleId extends Base implements Type {
           } else if (type instanceof Module) {
             moduleType = type
           } else {
-            context.err({ type: ErrorType.NOT_MODULE, name: module.value })
+            if (type) {
+              context.err({ type: ErrorType.NOT_MODULE, modType: type })
+            }
             return { type: null }
           }
         }
@@ -58,7 +60,14 @@ export class ModuleId extends Base implements Type {
           return { type: null }
         }
       } else {
-        context.err({ type: ErrorType.NOT_MODULE, name: module.value })
+        if (firstModuleType === undefined) {
+          context.err({
+            type: ErrorType.UNDEFINED_VARIABLE,
+            name: module.value,
+          })
+        } else if (firstModuleType) {
+          context.err({ type: ErrorType.NOT_MODULE, modType: firstModuleType })
+        }
         return { type: null }
       }
     } else {

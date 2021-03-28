@@ -38,7 +38,10 @@ export class ListPattern extends Base implements Pattern {
       }
     }
     if (context.definite) {
-      context.err({ type: ErrorType.LIST_DESTRUCTURE_DEFINITE })
+      context.err({
+        type: ErrorType.LIST_DESTRUCTURE_DEFINITE,
+        items: this.patterns.length,
+      })
     }
     for (const pattern of this.patterns) {
       context.scope.checkPattern(pattern, innerType, context.definite)

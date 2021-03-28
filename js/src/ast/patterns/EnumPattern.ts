@@ -35,6 +35,11 @@ export class EnumPattern extends Base implements Pattern {
         if (context.type.spec.variants.size > 1 && context.definite) {
           context.err({
             type: ErrorType.ENUM_DESTRUCTURE_DEFINITE_MULT_VARIANTS,
+            enum: context.type,
+            variant: this.variant.value,
+            otherVariants: [...context.type.spec.variants.keys()].filter(
+              variant => variant !== this.variant.value,
+            ),
           })
         }
         const variant = context.type.spec.variants.get(this.variant.value)
@@ -42,13 +47,20 @@ export class EnumPattern extends Base implements Pattern {
           if (variant.length !== this.patterns.length) {
             context.err({
               type: ErrorType.ENUM_DESTRUCTURE_FIELD_MISMATCH,
-              assignedTo: variant.length,
+              enum: context.type,
+              variant: this.variant.value,
+              fields: variant.length,
+              given: this.patterns.length,
             })
           }
           innerTypes = variant
         } else {
           context.err(
-            { type: ErrorType.ENUM_DESTRUCTURE_NO_VARIANT },
+            {
+              type: ErrorType.ENUM_DESTRUCTURE_NO_VARIANT,
+              enum: context.type,
+              variant: this.variant.value,
+            },
             this.variant,
           )
         }

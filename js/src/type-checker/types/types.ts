@@ -6,6 +6,12 @@ export enum ExpectEqualResult {
   HasNull,
 }
 
+interface DisplayOptions {
+  tempNames: Generator<string, never>
+
+  replacements: Map<FuncTypeVar, string>
+}
+
 /**
  * A type that represents a possible type of a variable.
  */
@@ -29,6 +35,13 @@ export interface NType {
    * Substitute a TypeVar (matching by pointer in memory) with an NType.
    */
   substitute(substitutions: Map<TypeVar, NType>): NType
+
+  /**
+   * Yields all contained types. Will not yield null, Unknown, or Module.
+   */
+  innerTypes(): Generator<NType, void>
+
+  display(options: DisplayOptions): string
 }
 
 export class Type implements NType {
@@ -72,6 +85,23 @@ export class Type implements NType {
       }),
     )
   }
+
+  * innerTypes () {
+    yield this
+    for (const typeVar of this.typeVars) {
+      if (typeVar) {
+        yield * typeVar.innerTypes()
+      }
+    }
+  }
+
+  display (options: DisplayOptions): string {
+    return this.typeVars.length > 0
+      ? `${this.spec.name}[${this.typeVars
+          .map(typeVar => (typeVar ? typeVar.display(options) : '...'))
+          .join(', ')}]`
+      : this.spec.name
+  }
 }
 
 export class TypeVar implements NType {
@@ -87,6 +117,14 @@ export class TypeVar implements NType {
 
   substitute (substitutions: Map<TypeVar, NType>): NType {
     return substitutions.get(this) || this
+  }
+
+  * innerTypes () {
+    yield this
+  }
+
+  display (_options: DisplayOptions): string {
+    throw new Error('Type vars cannot be displayed')
   }
 }
 
@@ -105,6 +143,15 @@ export class FuncTypeVar extends TypeVar {
 
   substitute (substitutions: Map<TypeVar, NType>): NType {
     return substitutions.get(this) || this
+  }
+
+  display (options: DisplayOptions): string {
+    const name = options.replacements.get(this)
+    if (name) {
+      return name
+    } else {
+      throw new ReferenceError('FuncTypeVar not defined I think')
+    }
   }
 }
 
@@ -164,6 +211,16 @@ export class Unknown implements NType {
       return this
     }
   }
+
+  * innerTypes () {
+    if (this.resolved) {
+      yield * this.resolved.innerTypes()
+    }
+  }
+
+  display (options: DisplayOptions): string {
+    return this.resolved ? this.resolved.display(options) : '...'
+  }
 }
 
 export class AliasType implements NType {
@@ -181,6 +238,15 @@ export class AliasType implements NType {
 
   substitute (substitutions: Map<TypeVar, NType>): NType {
     return this.type.substitute(substitutions)
+  }
+
+  * innerTypes () {
+    yield this
+    yield * this.type.innerTypes()
+  }
+
+  display (_options: DisplayOptions): string {
+    return this.spec.name
   }
 }
 
@@ -225,6 +291,27 @@ export class Tuple implements NType {
         }
       }),
     )
+  }
+
+  * innerTypes () {
+    yield this
+    for (const type of this.types) {
+      if (type) {
+        yield * type.innerTypes()
+      }
+    }
+  }
+
+  display (options: DisplayOptions): string {
+    return this.types
+      .map(type =>
+        type instanceof Tuple
+          ? `(${type.display(options)})`
+          : type
+          ? type.display(options)
+          : '...',
+      )
+      .join(', ')
   }
 }
 
@@ -275,6 +362,22 @@ export class Record implements NType {
       ),
     )
   }
+
+  * innerTypes () {
+    yield this
+    for (const [, type] of this.types) {
+      if (type) {
+        yield * type.innerTypes()
+      }
+    }
+  }
+
+  display (options: DisplayOptions): string {
+    return `{${Array.from(
+      this.types,
+      ([key, type]) => `${key}: ${type ? type.display(options) : '...'}`,
+    ).join('; ')}}`
+  }
 }
 
 export class Module extends Record {
@@ -289,6 +392,14 @@ export class Module extends Record {
     super(types)
     this.path = path
     this.typeSpecs = typeSpecs
+  }
+
+  * innerTypes () {
+    yield this
+  }
+
+  display (_options: DisplayOptions): string {
+    return `module ${JSON.stringify(this.path)}`
   }
 }
 
@@ -385,6 +496,36 @@ export class Function implements NType {
     )
   }
 
+  * innerTypes () {
+    yield this
+    for (const generic of this.generics) {
+      yield * generic.innerTypes()
+    }
+    yield * this.takes.innerTypes()
+    yield * this.returns.innerTypes()
+  }
+
+  display (options: DisplayOptions): string {
+    for (const generic of this.generics) {
+      options.replacements.set(generic, options.tempNames.next().value)
+    }
+    return `${
+      this.generics.length > 0
+        ? `[${this.generics
+            .map(generic => generic.display(options))
+            .join(', ')}] `
+        : ''
+    }${
+      this.takes instanceof Function || this.takes instanceof Tuple
+        ? `(${this.takes.display(options)})`
+        : this.takes.display(options)
+    } -> ${
+      this.takes instanceof Tuple
+        ? `(${this.takes.display(options)})`
+        : this.takes.display(options)
+    }`
+  }
+
   static make (
     maker: (...typeVars: FuncTypeVar[]) => [NType, NType],
     ...typeVarNames: string[]
@@ -416,4 +557,47 @@ export class Unit implements NType {
   substitute (_substitutions: Map<TypeVar, NType>): NType {
     return this
   }
+
+  * innerTypes () {
+    yield this
+  }
+
+  display (_options: DisplayOptions): string {
+    return '()'
+  }
+}
+
+function * generateNames (): Generator<string, never> {
+  for (const letter of 'abcdefghijklmnopqrstuvwxyz') {
+    yield letter
+  }
+  for (const base of generateNames()) {
+    for (const letter of 'abcdefghijklmnopqrstuvwxyz') {
+      yield base + letter
+    }
+  }
+  // This should never be reached (TypeScript is a bit dumb)
+  throw new Error('names() ended!')
+}
+function * availableNames (takenNames: Set<string>): Generator<string, never> {
+  for (const name of generateNames()) {
+    if (!takenNames.has(name)) {
+      yield name
+    }
+  }
+  // This should never be reached (TypeScript is a bit dumb)
+  throw new Error('availableNames() ended!')
+}
+
+export function displayType (type: NType) {
+  const names: Set<string> = new Set()
+  for (const innerType of type.innerTypes()) {
+    if (innerType instanceof Type) {
+      names.add(innerType.spec.name)
+    }
+  }
+  return type.display({
+    replacements: new Map(),
+    tempNames: availableNames(names),
+  })
 }

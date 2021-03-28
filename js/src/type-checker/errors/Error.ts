@@ -1,4 +1,5 @@
 import { Base } from '../../ast/index'
+import { isObjectLike } from '../../utils/type-guards'
 import { NType } from '../types/types'
 
 export enum ErrorType {
@@ -50,9 +51,6 @@ export enum ErrorType {
   /** Destructuring a nonexistent key from a record */
   RECORD_DESTRUCTURE_NO_KEY,
 
-  /** Destructuring a duplicate key from a record; TODO: Is this an error? */
-  RECORD_DESTRUCTURE_DUPLICATE_KEY,
-
   /** Not all fields of record destructured */
   RECORD_DESTRUCTURE_INCOMPLETE,
 
@@ -62,11 +60,12 @@ export enum ErrorType {
 
 export type ErrorMessage =
   | {
-      type:
-        | ErrorType.UNDEFINED_VARIABLE
-        | ErrorType.UNDEFINED_TYPE
-        | ErrorType.NOT_MODULE
+      type: ErrorType.UNDEFINED_VARIABLE | ErrorType.UNDEFINED_TYPE
       name: string
+    }
+  | {
+      type: ErrorType.NOT_MODULE
+      modType: NType
     }
   | {
       type: ErrorType.NOT_EXPORTED
@@ -107,16 +106,32 @@ export type ErrorMessage =
       destructure: 'enum' | 'list' | 'tuple' | 'record'
     }
   | {
-      type:
-        | ErrorType.ENUM_DESTRUCTURE_NO_VARIANT
-        | ErrorType.ENUM_DESTRUCTURE_DEFINITE_MULT_VARIANTS
-        | ErrorType.LIST_DESTRUCTURE_DEFINITE
+      type: ErrorType.ENUM_DESTRUCTURE_NO_VARIANT
+      enum: NType
+      variant: string
     }
   | {
-      type:
-        | ErrorType.ENUM_DESTRUCTURE_FIELD_MISMATCH
-        | ErrorType.TUPLE_DESTRUCTURE_LENGTH_MISMATCH
-      assignedTo: number
+      type: ErrorType.ENUM_DESTRUCTURE_DEFINITE_MULT_VARIANTS
+      enum: NType
+      variant: string
+      otherVariants: string[]
+    }
+  | {
+      type: ErrorType.LIST_DESTRUCTURE_DEFINITE
+      items: number
+    }
+  | {
+      type: ErrorType.ENUM_DESTRUCTURE_FIELD_MISMATCH
+      enum: NType
+      variant: string
+      fields: number
+      given: number
+    }
+  | {
+      type: ErrorType.TUPLE_DESTRUCTURE_LENGTH_MISMATCH
+      tuple: NType
+      fields: number
+      given: number
     }
   | {
       type: ErrorType.RECORD_DESTRUCTURE_NO_KEY
@@ -124,15 +139,135 @@ export type ErrorMessage =
       key: string
     }
   | {
-      type: ErrorType.RECORD_DESTRUCTURE_DUPLICATE_KEY
-      key: string
-    }
-  | {
       type: ErrorType.RECORD_DESTRUCTURE_INCOMPLETE
+      recordType: NType
       keys: string[]
     }
 
 export interface Error {
   message: ErrorMessage
   base: Base
+}
+
+/**
+ * A type, a string (that will be enclosed in backticks), an ordinal, a list
+ * (with a conjunction of your choosing), or using the singular or plural form
+ * depending on the number.
+ */
+type InlineDisplay =
+  | NType
+  | string
+  | [number, 'th']
+  | ['or' | 'and', string[]]
+  | [string, number, string]
+
+// Maybe this shouldn't rely on `base`
+export function displayError (
+  { message: err }: Error,
+  display: (strings: TemplateStringsArray, ...items: InlineDisplay[]) => string,
+): string | (string | false)[] {
+  switch (err.type) {
+    case ErrorType.ARG_TYPE_MISMATCH: {
+      return display`The ${[err.argPos, 'th']} argument you give to a ${
+        err.funcType
+      } should be a ${err.expect}, but you gave a ${err.given}.`
+    }
+    case ErrorType.CALL_NON_FUNCTION: {
+      return display`You call a ${err.funcType} like a function, but it's not a function.`
+    }
+    case ErrorType.DESTRUCTURE_TYPE_MISMATCH: {
+      return err.destructure === 'enum'
+        ? display`You destructure a ${err.assignedTo} with a pattern meant for enums, but it's not an enum.`
+        : err.destructure === 'list'
+        ? display`You destructure a ${err.assignedTo} with a pattern meant for lists, but it's not a list.`
+        : err.destructure === 'record'
+        ? display`You destructure a ${err.assignedTo} with a pattern meant for records, but it's not a record.`
+        : display`You destructure a ${err.assignedTo} with a pattern meant for tuples, but it's not a tuple.`
+    }
+    case ErrorType.ENUM_DESTRUCTURE_DEFINITE_MULT_VARIANTS: {
+      return display`Here, you expect that the ${err.enum} should be the ${
+        err.variant
+      } variant. However, it could also be ${[
+        'or',
+        err.otherVariants,
+      ]}, so I don't know what to do in those scenarios.`
+    }
+    case ErrorType.ENUM_DESTRUCTURE_FIELD_MISMATCH: {
+      return [
+        display`The ${err.variant} variant of a ${err.enum} has ${[
+          'just one field',
+          err.fields,
+          'fields',
+        ]}, but you gave ${['just one field', err.given, 'fields']}.`,
+        err.given < err.fields &&
+          display`If you don't need all the fields, you can use ${'_'} to discard the fields you don't need.`,
+      ]
+    }
+    case ErrorType.ENUM_DESTRUCTURE_NO_VARIANT: {
+      return display`${err.enum} doesn't have a variant ${err.variant}, so your pattern will never match.`
+    }
+    case ErrorType.LET_TYPE_MISMATCH: {
+      return display`You assign what evaluates to a ${err.expression} to what should be a ${err.annotation}.`
+    }
+    case ErrorType.LIST_DESTRUCTURE_DEFINITE: {
+      return display`Here, you expect that the list should have ${[
+        'only one item',
+        err.items,
+        'items',
+      ]}. However, the list might not have exactly ${[
+        'one item',
+        err.items,
+        'items',
+      ]}, so I don't know what to do in those scenarios.`
+    }
+    case ErrorType.NOT_EXPORTED: {
+      return err.exported === 'module'
+        ? display`This module doesn't export a submodule named ${err.name}.`
+        : display`This module doesn't export a type named ${err.name}.`
+    }
+    case ErrorType.NOT_MODULE: {
+      return display`${err.modType} isn't a module, so you can't get any exported types from it.`
+    }
+    case ErrorType.RECORD_DESTRUCTURE_INCOMPLETE: {
+      return display`A ${err.recordType} has the keys ${[
+        'and',
+        err.keys,
+      ]}, but you didn't destructure them. If you don't need those fields, you should assign them to a ${'_'} to explicitly discard the values.`
+    }
+    case ErrorType.RECORD_DESTRUCTURE_NO_KEY: {
+      return display`A ${err.recordType} doesn't have a field named ${err.key}.`
+    }
+    case ErrorType.TOO_MANY_ARGS: {
+      return display`You gave too many arguments to a ${
+        err.funcType
+      }, which doesn't take a ${[err.argPos, 'th']} argument.`
+    }
+    case ErrorType.TUPLE_DESTRUCTURE_LENGTH_MISMATCH: {
+      // Don't worry about the singular forms; tuples should have a minimum of
+      // two fields.
+      return display`A ${err.tuple} has ${[
+        'one field',
+        err.fields,
+        'fields',
+      ]}, but you gave ${['only one field', err.given, 'fields']}.`
+    }
+    case ErrorType.TYPE_ANNOTATION_NEEDED: {
+      return display`Unfortunately, I can't figure out the type of this variable for you, so you have to specify its type here.`
+    }
+    case ErrorType.UNDEFINED_TYPE: {
+      return display`I can't find a type named ${err.name} in this scope.`
+    }
+    case ErrorType.UNDEFINED_VARIABLE: {
+      return display`I can't find a variable named ${err.name} in this scope.`
+    }
+    case ErrorType.UNRESOLVED_GENERIC: {
+      return display`I can't figure out what the return type for ${err.funcType} should be. This probably is an issue with the function type, not your function call.`
+    }
+    default: {
+      const errorMessage: unknown = err
+      return display`Error ${String(
+        isObjectLike(errorMessage) ? errorMessage.type : errorMessage,
+      )}: Unfortunately, I don't have much information about this error.`
+    }
+  }
 }

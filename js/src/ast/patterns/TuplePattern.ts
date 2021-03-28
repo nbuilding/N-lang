@@ -28,7 +28,9 @@ export class TuplePattern extends Base implements Pattern {
         if (context.type.types.length !== this.patterns.length) {
           context.err({
             type: ErrorType.TUPLE_DESTRUCTURE_LENGTH_MISMATCH,
-            assignedTo: context.type.types.length,
+            tuple: context.type,
+            fields: context.type.types.length,
+            given: this.patterns.length,
           })
         }
         types = context.type.types
