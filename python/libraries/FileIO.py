@@ -27,5 +27,8 @@ def _values():
         # append: str -> str -> cmd[()]
         "append": ("str", "str", n_cmd_type.with_typevars(["unit"])),
         # read: str -> cmd[maybe[str]]
-        "read": ("str", n_cmd_type.with_typevars([n_maybe_type.with_typevars(["str"])])),
+        "read": (
+            "str",
+            n_cmd_type.with_typevars([n_maybe_type.with_typevars(["str"])]),
+        ),
     }

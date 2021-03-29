@@ -25,10 +25,9 @@ class Cmd:
     def map(self, function):
         return type(self)(
             self.performer_getter,
-            map_functions=[
-                *self.map_functions,
-                function],
-            dependent=self.dependent)
+            map_functions=[*self.map_functions, function],
+            dependent=self.dependent,
+        )
 
     def then(self, then_command_getter):
         return type(self)(then_command_getter, dependent=self)
@@ -48,5 +47,8 @@ class Cmd:
             return maybe_awaitable
 
     def __repr__(self):
-        return 'Cmd(%s, map_functions=%s, dependent=%s)' % (
-            repr(self.performer_getter), repr(self.map_functions), repr(self.dependent))
+        return "Cmd(%s, map_functions=%s, dependent=%s)" % (
+            repr(self.performer_getter),
+            repr(self.map_functions),
+            repr(self.dependent),
+        )

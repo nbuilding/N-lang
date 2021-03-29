@@ -21,14 +21,13 @@ class SyntaxTestCases(unittest.TestCase):
 
         # Dynamically add methods to the class
         # https://stackoverflow.com/a/17930262
-        setattr(cls, 'test_' + re.sub(r"\W", '_',
-                file_name[0:-2]), test_method)
+        setattr(cls, "test_" + re.sub(r"\W", "_", file_name[0:-2]), test_method)
 
 
 # Get files in directory https://stackoverflow.com/a/3207973
 _, _, file_names = next(walk(path.join(basepath, "../tests/syntax/")))
 for file_name in file_names:
-    if not file_name.endswith('.n'):
+    if not file_name.endswith(".n"):
         continue
     SyntaxTestCases.add_syntax_test_case(file_name)
 

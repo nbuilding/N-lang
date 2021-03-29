@@ -7,7 +7,7 @@ class ImportedError:
         self.file = file.duplicate()
 
     def display(self, ty, unused_thing_to_match_type_check_error):
-        return '\n'.join([e.display(ty, self.file) for e in self.err])
+        return "\n".join([e.display(ty, self.file) for e in self.err])
 
     def compare(self, other):
         if not isinstance(other, ImportedError):

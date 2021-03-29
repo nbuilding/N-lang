@@ -29,11 +29,15 @@ def _values():
             "str",
             n_map_type.with_typevars(["str", "str"]),
             n_map_type.with_typevars(["str", "str"]),
-            n_cmd_type.with_typevars([{"code": "int", "response": "str", "text": "str"}])
+            n_cmd_type.with_typevars(
+                [{"code": "int", "response": "str", "text": "str"}]
+            ),
         ),
         "get": (
             "str",
             n_map_type.with_typevars(["str", "str"]),
-            n_cmd_type.with_typevars([{"code": "int", "response": "str", "return": json_value_type}])
-        )
+            n_cmd_type.with_typevars(
+                [{"code": "int", "response": "str", "return": json_value_type}]
+            ),
+        ),
     }

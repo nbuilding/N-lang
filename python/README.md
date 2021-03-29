@@ -68,5 +68,5 @@ We conform to the [PEP 8](https://www.python.org/dev/peps/pep-0008/) style guide
 pylint --disable=all --enable=F,E,unreachable,duplicate-key,unnecessary-semicolon,global-variable-not-assigned,unused-variable,binary-op-exception,bad-format-string,anomalous-backslash-in-string,bad-open-mode,dangerous-default-value **/*.py
 
 # Autoformatting
-autopep8 --in-place --aggressive --aggressive **/*.py
+black python/
 ```
