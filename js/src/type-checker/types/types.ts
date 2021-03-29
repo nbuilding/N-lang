@@ -137,7 +137,9 @@ export class FuncTypeVar extends TypeVar {
   }
 
   expectEqual (other: NType): ExpectEqualResult {
-    // I think it's possible for two FuncTypeVars
+    // I think it's possible for two FuncTypeVars to encounter each other if
+    // comparing the types of, say, `[a] a -> a` and `[b] b -> b`, but they
+    // should be equal.
     return this === other ? ExpectEqualResult.Equal : ExpectEqualResult.NotEqual
   }
 
@@ -435,8 +437,13 @@ export class Function implements NType {
    *
    * ([t] list[t] -> int)(str) is pretty clearly `int` even if the param type
    * doesn't match.
+   *
+   * Maybe all the type vars in the takes type should be replaced with null if
+   * it fails?
    */
   returnTypeFromParam (paramType: NType): ReturnTypeResult {
+    // TODO: If `paramType` is the typeVar it can't substitute itself. Basically
+    // this entire expectEqual is scuffed and impure and ugly, please fix.
     const result = this.takes.expectEqual(paramType)
     const substitutions = new Map()
     const unresolvedGenerics = []

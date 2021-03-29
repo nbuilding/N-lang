@@ -37,17 +37,17 @@ export class TypeChecker {
     this.options = options
   }
 
-  async start (file: Block, filePath = 'run.n') {
+  async start (file: Block, filePath = 'run.n'): Promise<TypeCheckerResult> {
     const getter = new FileGetter(this)
     await getter.start(file, filePath)
-    this._checkFile(file)
+    return this._checkFile(file)
   }
 
-  private _checkFile (file: Block) {
+  private _checkFile (file: Block): TypeCheckerResult {
     const result = new TypeCheckerResult(this)
     const globalScope = new GlobalScope(result)
     const scope = globalScope.inner()
     scope.checkStatement(file)
-    console.log(result.errors)
+    return result
   }
 }
