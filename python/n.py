@@ -1,3 +1,11 @@
+from syntax_error import format_error
+from ncmd import Cmd
+from imported_error import ImportedError
+from scope import Scope
+from type_check_error import TypeCheckError
+from native_functions import add_funcs
+from parse import n_parser
+from file import File
 from lark import Lark
 import lark
 import asyncio
@@ -10,18 +18,14 @@ from sys import exit
 
 init()
 
-from file import File
-from parse import n_parser
-from native_functions import add_funcs
-from type_check_error import TypeCheckError
-from scope import Scope
-from imported_error import ImportedError
-from ncmd import Cmd
-from syntax_error import format_error
 
-parser = argparse.ArgumentParser(description='Allows to only show warnings and choose the file location')
-parser.add_argument('--file', type=str, default="run.n",
-                    help="The file to read. (optional. if not included, it'll just run run.n)")
+parser = argparse.ArgumentParser(
+    description='Allows to only show warnings and choose the file location')
+parser.add_argument(
+    '--file',
+    type=str,
+    default="run.n",
+    help="The file to read. (optional. if not included, it'll just run run.n)")
 parser.add_argument('--check', action='store_true')
 
 args = parser.parse_args()
@@ -42,7 +46,10 @@ def type_check(file, tree):
         for child in tree.children:
             scope.type_check_command(child)
     else:
-        scope.errors.append(TypeCheckError(tree, "Internal issue: I cannot type check from a non-starting branch."))
+        scope.errors.append(
+            TypeCheckError(
+                tree,
+                "Internal issue: I cannot type check from a non-starting branch."))
 
     if len(scope.errors) > 0 or args.check:
         print('\n'.join(

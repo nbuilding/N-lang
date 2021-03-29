@@ -30,9 +30,12 @@ class NAliasType(NType):
         if typevar_defs is None:
             typevar_defs = []
         if len(self.typevars) != len(typevar_defs):
-            raise TypeError("Expected %d typevars, not %d." % (len(self.typevars), len(typevar_defs)))
-        return apply_generics_to(self.type,
-                                 {typevar: typevar_def for typevar, typevar_def in zip(self.typevars, typevar_defs)})
+            raise TypeError("Expected %d typevars, not %d." %
+                            (len(self.typevars), len(typevar_defs)))
+        return apply_generics_to(
+            self.type, {
+                typevar: typevar_def for typevar, typevar_def in zip(
+                    self.typevars, typevar_defs)})
 
 
 class NTypeVars(NType):
@@ -45,14 +48,16 @@ class NTypeVars(NType):
 
     def with_typevars(self, typevars):
         if len(self.typevars) != len(typevars):
-            raise TypeError("Expected %d typevars, not %d." % (len(self.typevars), len(typevars)))
+            raise TypeError("Expected %d typevars, not %d." %
+                            (len(self.typevars), len(typevars)))
         return self.new_child(typevars)
 
     def new_child(self, typevars):
         return type(self)(self.name, typevars, original=self.base_type)
 
     def is_type(self, other):
-        return isinstance(other, NTypeVars) and self.base_type is other.base_type
+        return isinstance(
+            other, NTypeVars) and self.base_type is other.base_type
 
     def __hash__(self):
         if self.base_type is self:
@@ -61,7 +66,9 @@ class NTypeVars(NType):
             return hash(self.base_type)
 
     def __eq__(self, other):
-        return isinstance(other, NTypeVars) and self.base_type is other.base_type and self.typevars == other.typevars
+        return isinstance(
+            other,
+            NTypeVars) and self.base_type is other.base_type and self.typevars == other.typevars
 
     def __repr__(self):
         return 'NTypeVars(%s, %s)' % (repr(self.name), repr(self.typevars))
@@ -108,7 +115,11 @@ def apply_generics(expected, actual, generics=None):
             return actual
         elif generic == "none":
             generic = None
-        if isinstance(generic, NGenericType) and not isinstance(actual, NGenericType):
+        if isinstance(
+                generic,
+                NGenericType) and not isinstance(
+                actual,
+                NGenericType):
             generics[expected] = actual
             return actual
         else:
@@ -119,16 +130,26 @@ def apply_generics(expected, actual, generics=None):
                 [apply_generics(expected_type, actual_type, generics) for expected_type, actual_type in
                  zip(expected.typevars, actual.typevars)])
     elif isinstance(expected, tuple) and isinstance(actual, tuple):
-        return tuple(
-            apply_generics(expected_arg, actual_arg, generics) for expected_arg, actual_arg in zip(expected, actual))
+        return tuple(apply_generics(expected_arg, actual_arg, generics)
+                     for expected_arg, actual_arg in zip(expected, actual))
     elif isinstance(expected, list) and isinstance(actual, list):
-        return [apply_generics(expected_item, actual_item, generics) for expected_item, actual_item in
-                zip(expected, actual)]
+        return [
+            apply_generics(
+                expected_item,
+                actual_item,
+                generics) for expected_item,
+            actual_item in zip(
+                expected,
+                actual)]
     elif isinstance(expected, dict) and not isinstance(expected, NModule) and isinstance(actual,
                                                                                          dict) and not isinstance(
             actual, NModule):
-        return {key: apply_generics(expected_type, actual[key], generics) if key in actual else expected_type for
-                key, expected_type in expected.items()}
+        return {
+            key: apply_generics(
+                expected_type,
+                actual[key],
+                generics) if key in actual else expected_type for key,
+            expected_type in expected.items()}
     return expected
 
 
@@ -151,13 +172,20 @@ def apply_generics_to(return_type, generics):
         else:
             return generic
     if isinstance(return_type, NTypeVars):
-        return return_type.with_typevars([apply_generics_to(typevar, generics) for typevar in return_type.typevars])
+        return return_type.with_typevars(
+            [apply_generics_to(typevar, generics) for typevar in return_type.typevars])
     elif isinstance(return_type, tuple):
-        return tuple(apply_generics_to(arg_type, generics) for arg_type in return_type)
+        return tuple(apply_generics_to(arg_type, generics)
+                     for arg_type in return_type)
     elif isinstance(return_type, list):
-        return [apply_generics_to(item_type, generics) for item_type in return_type]
+        return [apply_generics_to(item_type, generics)
+                for item_type in return_type]
     elif isinstance(return_type, dict) and not isinstance(return_type, NModule):
-        return {key: apply_generics_to(field_type, generics) for key, field_type in return_type.items()}
+        return {
+            key: apply_generics_to(
+                field_type,
+                generics) for key,
+            field_type in return_type.items()}
     else:
         return return_type
 
@@ -184,12 +212,16 @@ def resolve_equal_types(type_a, type_b):
     if type_a is None or type_b is None:
         return None, False
     elif isinstance(type_a, NTypeVars):
-        if not isinstance(type_b, NTypeVars) or type_a.base_type is not type_b.base_type:
+        if not isinstance(
+                type_b,
+                NTypeVars) or type_a.base_type is not type_b.base_type:
             return None, True
         base_type = type_a.base_type
         resolved_typevars = []
         for typevar_a, typevar_b in zip(type_a.typevars, type_b.typevars):
-            if isinstance(typevar_a, NGenericType) and typevar_a in base_type.typevars:
+            if isinstance(
+                    typevar_a,
+                    NGenericType) and typevar_a in base_type.typevars:
                 resolved_typevars.append(typevar_b)
             elif isinstance(typevar_b, NGenericType) and typevar_b in base_type.typevars:
                 resolved_typevars.append(typevar_a)
@@ -210,7 +242,11 @@ def resolve_equal_types(type_a, type_b):
             resolved_types.append(resolved)
         return resolved_types, False
     elif isinstance(type_a, dict) and not isinstance(type_a, NModule):
-        if not isinstance(type_b, dict) or isinstance(type_b, NModule) or type_a.keys() != type_b.keys():
+        if not isinstance(
+                type_b,
+                dict) or isinstance(
+                type_b,
+                NModule) or type_a.keys() != type_b.keys():
             return None, True
         resolved_types = {}
         for key in type_a.keys():

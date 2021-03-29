@@ -3,6 +3,7 @@ aiohttp==3.7.4.post0
 altgraph==0.17
 async-timeout==3.0.1
 attrs==20.3.0
+autopep8==1.5.6
 caio==0.8.0
 certifi==2020.12.5
 chardet==4.0.0
@@ -12,11 +13,12 @@ idna==2.10
 lark==0.11.1
 multidict==5.1.0
 pefile==2019.4.18
+pycodestyle==2.7.0
 pyinstaller==4.2
 pyinstaller-hooks-contrib==2021.1
 pywin32-ctypes==0.2.0
-pyinstaller==4.2
 requests==2.25.1
+toml==0.10.2
 typing-extensions==3.7.4.3
 urllib3==1.26.4
 websockets==8.1

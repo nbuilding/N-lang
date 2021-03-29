@@ -19,8 +19,10 @@ class SyntaxTestCases(unittest.TestCase):
                 for other_tree in other_trees:
                     self.assertEqual(tree, other_tree)
 
-        # Dynamically add methods to the class https://stackoverflow.com/a/17930262
-        setattr(cls, 'test_' + re.sub(r"\W", '_', file_name[0:-2]), test_method)
+        # Dynamically add methods to the class
+        # https://stackoverflow.com/a/17930262
+        setattr(cls, 'test_' + re.sub(r"\W", '_',
+                file_name[0:-2]), test_method)
 
 
 # Get files in directory https://stackoverflow.com/a/3207973

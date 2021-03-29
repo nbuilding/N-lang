@@ -10,7 +10,8 @@ class Cmd:
     def __init__(self, performer_getter, map_functions=None, dependent=None):
         # A non-async function that, when given the result from `dependent`,
         # returns a function (can be async or not) that performs the side
-        # effect. The function-returning function should ideally should be pure.
+        # effect. The function-returning function should ideally should be
+        # pure.
         self.performer_getter = performer_getter
 
         # Transform functions to perform on the resulting value
@@ -22,8 +23,12 @@ class Cmd:
         self.dependent = dependent
 
     def map(self, function):
-        return type(self)(self.performer_getter, map_functions=[*self.map_functions, function],
-                          dependent=self.dependent)
+        return type(self)(
+            self.performer_getter,
+            map_functions=[
+                *self.map_functions,
+                function],
+            dependent=self.dependent)
 
     def then(self, then_command_getter):
         return type(self)(then_command_getter, dependent=self)
@@ -44,4 +49,4 @@ class Cmd:
 
     def __repr__(self):
         return 'Cmd(%s, map_functions=%s, dependent=%s)' % (
-        repr(self.performer_getter), repr(self.map_functions), repr(self.dependent))
+            repr(self.performer_getter), repr(self.map_functions), repr(self.dependent))

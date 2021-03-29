@@ -10,7 +10,7 @@ class ImportedError:
         return '\n'.join([e.display(ty, self.file) for e in self.err])
 
     def compare(self, other):
-        if type(other) != ImportedError:
+        if not isinstance(other, ImportedError):
             return False
 
         return self.file == other.file

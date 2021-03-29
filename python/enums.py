@@ -9,11 +9,16 @@ class EnumType(NTypeVars):
     def get_types(self, variant_name):
         for variant, types in self.variants:
             if variant == variant_name:
-                return apply_generics_to(types, dict(zip(self.base_type.typevars, self.typevars)))
+                return apply_generics_to(types, dict(
+                    zip(self.base_type.typevars, self.typevars)))
         return None
 
     def new_child(self, typevars):
-        return type(self)(self.name, self.variants, typevars, original=self.base_type)
+        return type(self)(
+            self.name,
+            self.variants,
+            typevars,
+            original=self.base_type)
 
 
 class EnumValue:
@@ -22,7 +27,8 @@ class EnumValue:
         self.values = values or []
 
     def __repr__(self):
-        return '<' + self.variant + ''.join(' ' + repr(value) for value in self.values) + '>'
+        return '<' + self.variant + \
+            ''.join(' ' + repr(value) for value in self.values) + '>'
 
     def __eq__(self, other):
         return self.variant == other.variant and self.values == other.values

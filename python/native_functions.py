@@ -47,7 +47,7 @@ async def filter_map(transformer, lis):
 
 
 def type_display(o):
-    if type(o) == Function:
+    if isinstance(o, Function):
         return str(o)
     return type(o).__name__
 
@@ -186,29 +186,25 @@ def add_funcs(global_scope):
     )
     item_at_generic = NGenericType("t")
     global_scope.add_native_function(
-        "itemAt",
-        [("index", "int"), ("list", n_list_type.with_typevars([item_at_generic]))],
-        n_maybe_type.with_typevars([item_at_generic]),
-        item_at
-    )
+        "itemAt", [
+            ("index", "int"), ("list", n_list_type.with_typevars(
+                [item_at_generic]))], n_maybe_type.with_typevars(
+            [item_at_generic]), item_at)
     append_generic = NGenericType("t")
     global_scope.add_native_function(
-        "append",
-        [("item", append_generic), ("list", n_list_type.with_typevars([item_at_generic]))],
-        n_list_type.with_typevars([item_at_generic]),
-        lambda item, l: l.__add__([item])
-    )
+        "append", [
+            ("item", append_generic), ("list", n_list_type.with_typevars(
+                [item_at_generic]))], n_list_type.with_typevars(
+            [item_at_generic]), lambda item, l: l.__add__(
+                    [item]))
     filter_map_generic_a = NGenericType("a")
     filter_map_generic_b = NGenericType("b")
     global_scope.add_native_function(
-        "filterMap",
-        [
-            ("function", (filter_map_generic_a, n_maybe_type.with_typevars([filter_map_generic_b]))),
-            ("list", n_list_type.with_typevars([filter_map_generic_a]))
-        ],
-        n_list_type.with_typevars([filter_map_generic_b]),
-        filter_map
-    )
+        "filterMap", [
+            ("function", (filter_map_generic_a, n_maybe_type.with_typevars(
+                [filter_map_generic_b]))), ("list", n_list_type.with_typevars(
+                    [filter_map_generic_a]))], n_list_type.with_typevars(
+            [filter_map_generic_b]), filter_map)
     global_scope.add_native_function(
         "yes",
         [("value", maybe_generic)],
@@ -217,11 +213,9 @@ def add_funcs(global_scope):
     )
     default_generic = NGenericType("t")
     global_scope.add_native_function(
-        "default",
-        [("default", default_generic), ("maybeValue", n_maybe_type.with_typevars([default_generic]))],
-        default_generic,
-        with_default,
-    )
+        "default", [
+            ("default", default_generic), ("maybeValue", n_maybe_type.with_typevars(
+                [default_generic]))], default_generic, with_default, )
     global_scope.add_native_function(
         "ok",
         [("value", result_ok_generic)],
@@ -237,12 +231,11 @@ def add_funcs(global_scope):
     then_generic_in = NGenericType("a")
     then_generic_out = NGenericType("b")
     global_scope.add_native_function(
-        "then",
-        [("thenFunction", (then_generic_in, n_cmd_type.with_typevars([then_generic_out]))),
-         ("cmd", n_cmd_type.with_typevars([then_generic_in]))],
-        n_cmd_type.with_typevars([then_generic_out]),
-        cmd_then,
-    )
+        "then", [
+            ("thenFunction", (then_generic_in, n_cmd_type.with_typevars(
+                [then_generic_out]))), ("cmd", n_cmd_type.with_typevars(
+                    [then_generic_in]))], n_cmd_type.with_typevars(
+            [then_generic_out]), cmd_then, )
     map_from_generic_key = NGenericType("k")
     map_from_generic_value = NGenericType("v")
     global_scope.add_native_function(
@@ -254,11 +247,11 @@ def add_funcs(global_scope):
     map_get_generic_key = NGenericType("k")
     map_get_generic_value = NGenericType("v")
     global_scope.add_native_function(
-        "getValue",
-        [("key", map_get_generic_key), ("map", n_map_type.with_typevars([map_get_generic_key, map_get_generic_value]))],
-        n_maybe_type.with_typevars([map_get_generic_value]),
-        map_get,
-    )
+        "getValue", [
+            ("key", map_get_generic_key), ("map", n_map_type.with_typevars(
+                [
+                    map_get_generic_key, map_get_generic_value]))], n_maybe_type.with_typevars(
+            [map_get_generic_value]), map_get, )
     entries_generic_key = NGenericType("k")
     entries_generic_value = NGenericType("v")
     global_scope.add_native_function(

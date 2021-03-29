@@ -21,7 +21,12 @@ def remove_color(line):
     return ansi_escape.sub("", line)
 
 
-def display_value(value, color=True, indent="\t", indent_state="", preferred_max_len=50):
+def display_value(
+        value,
+        color=True,
+        indent="\t",
+        indent_state="",
+        preferred_max_len=50):
     multiline = False
     if isinstance(value, NModule):
         output = "[module %s]" % value.mod_name
@@ -35,8 +40,8 @@ def display_value(value, color=True, indent="\t", indent_state="", preferred_max
         if color:
             start = Fore.MAGENTA + start + Style.RESET_ALL
             end = Fore.MAGENTA + end + Style.RESET_ALL
-        display_list, multiline = display_value(list(value.items()), color=color, indent=indent,
-                                                indent_state=indent_state)
+        display_list, multiline = display_value(
+            list(value.items()), color=color, indent=indent, indent_state=indent_state)
         output = start + " " + display_list + end
     elif isinstance(value, dict):
         if len(value) == 0:
@@ -114,7 +119,8 @@ def display_value(value, color=True, indent="\t", indent_state="", preferred_max
             output = Fore.GREEN + output + Style.RESET_ALL
     elif isinstance(value, EnumValue):
         if len(value.values) == 0:
-            output = Fore.MAGENTA + value.variant + Style.RESET_ALL if color else value.variant
+            output = Fore.MAGENTA + value.variant + \
+                Style.RESET_ALL if color else value.variant
         else:
             length = len(value.variant) + 3
             parts = []
@@ -135,7 +141,8 @@ def display_value(value, color=True, indent="\t", indent_state="", preferred_max
             if color:
                 output = Fore.MAGENTA + output + Style.RESET_ALL
             if multiline or length > preferred_max_len:
-                output += "\n" + "".join(inner_indent + part + "\n" for part in parts)
+                output += "\n" + \
+                    "".join(inner_indent + part + "\n" for part in parts)
                 output += indent_state
             else:
                 output += " " + " ".join(parts)
