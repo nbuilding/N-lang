@@ -2,7 +2,7 @@ import * as fs from 'fs/promises'
 import { resolve, join } from 'path'
 
 import { FileLines } from '../../src/type-checker/display-lines'
-import { DiffError } from '../../src/grammar/ast/base'
+import { DiffError } from '../../src/ast/base'
 
 const syntaxTestsDir = resolve(__dirname, '../../../tests/syntax/')
 const files: { path: string; name: string }[] = []
