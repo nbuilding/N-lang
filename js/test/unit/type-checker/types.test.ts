@@ -10,6 +10,7 @@ import {
   ExpectEqualError,
   Function as FuncType,
   FuncTypeVar,
+  NType,
   Tuple,
   Type,
   Unknown,
@@ -243,6 +244,26 @@ FuncTypeVars.
 
 */
 
+function shouldBeInt (type: NType | null): boolean {
+  return int.isInstance(type)
+}
+
+function shouldBeStr (type: NType | null): boolean {
+  return str.isInstance(type)
+}
+
+function shouldBeListInt (type: NType | null): boolean {
+  return list.isInstance(type, shouldBeInt)
+}
+
+function shouldBeListStr (type: NType | null): boolean {
+  return list.isInstance(type, shouldBeStr)
+}
+
+function shouldBeListNull (type: NType | null): boolean {
+  return list.isInstance(type, typeVar => typeVar === null)
+}
+
 describe('type system', () => {
   it('(str -> int)(str)', () => {
     const [incompatible, returnType] = FuncType.make(() => [
@@ -250,7 +271,7 @@ describe('type system', () => {
       int.instance(),
     ]).given(str.instance())
     expect(incompatible).to.be.empty
-    expect(int.isInstance(returnType)).to.be.true
+    expect(returnType).to.satisfy(shouldBeInt)
   })
 
   it('(null -> int)(str)', () => {
@@ -258,7 +279,7 @@ describe('type system', () => {
       str.instance(),
     )
     expect(incompatible).to.be.empty
-    expect(int.isInstance(returnType)).to.be.true
+    expect(returnType).to.satisfy(shouldBeInt)
   })
 
   it('(str -> int)(bool)', () => {
@@ -273,7 +294,7 @@ describe('type system', () => {
       },
     ]
     expect(incompatible).to.have.deep.members(expectedErrors)
-    expect(int.isInstance(returnType)).to.be.true
+    expect(returnType).to.satisfy(shouldBeInt)
   })
 
   it('((int, str) -> int)((bool, str, int))', () => {
@@ -288,7 +309,7 @@ describe('type system', () => {
         errors: [
           {
             errorType: 'should-be',
-            type: bool,
+            type: int,
           },
         ],
       },
@@ -298,7 +319,7 @@ describe('type system', () => {
       },
     ]
     expect(incompatible).to.have.deep.members(expectedErrors)
-    expect(int.isInstance(returnType)).to.be.true
+    expect(returnType).to.satisfy(shouldBeInt)
   })
 
   it('(list[str] -> list[str])(list[int])', () => {
@@ -319,7 +340,7 @@ describe('type system', () => {
       },
     ]
     expect(incompatible).to.have.deep.members(expectedErrors)
-    expect(int.isInstance(returnType)).to.be.true
+    expect(returnType).to.satisfy(shouldBeListStr)
   })
 
   it('([a] list[a] -> int)(list[str])', () => {
@@ -328,7 +349,7 @@ describe('type system', () => {
       'a',
     ).given(list.instance([str.instance()]))
     expect(incompatible).to.be.empty
-    expect(int.isInstance(returnType)).to.be.true
+    expect(returnType).to.satisfy(shouldBeInt)
   })
 
   it('([a] list[a] -> a)(null)', () => {
@@ -370,8 +391,7 @@ describe('type system', () => {
       },
     ]
     expect(incompatible).to.have.deep.members(expectedErrors)
-    expect(list.isInstance(returnType, typeVar => int.isInstance(typeVar))).to
-      .be.true
+    expect(returnType).to.satisfy(shouldBeListInt)
   })
 
   it('([a] (str, list[a]) -> list[a])((null, maybe[bool]))', () => {
@@ -395,7 +415,7 @@ describe('type system', () => {
       },
     ]
     expect(incompatible).to.have.deep.members(expectedErrors)
-    expect(list.isInstance(returnType, typeVar => typeVar === null)).to.be.true
+    expect(returnType).to.satisfy(shouldBeListNull)
   })
 
   it('(([a] a -> list[a]) -> int)([b] b -> list[b])', () => {
@@ -404,8 +424,7 @@ describe('type system', () => {
       int.instance(),
     ]).given(new Tuple([null, maybe.instance([bool.instance()])]))
     expect(incompatible).to.be.empty
-    expect(list.isInstance(returnType, typeVar => int.isInstance(typeVar))).to
-      .be.true
+    expect(returnType).to.satisfy(shouldBeListInt)
   })
 
   it('(([a, b] list[(a, b)] -> list[a]) -> int)([c, d] list[(d, c)] -> list[c])', () => {
@@ -424,8 +443,7 @@ describe('type system', () => {
       ),
     )
     expect(incompatible).to.be.empty
-    expect(list.isInstance(returnType, typeVar => int.isInstance(typeVar))).to
-      .be.true
+    expect(returnType).to.satisfy(shouldBeListInt)
   })
 
   it('((str -> str) -> int)([a] a -> a)', () => {
@@ -434,7 +452,7 @@ describe('type system', () => {
       int.instance(),
     ]).given(FuncType.make(a => [a, a], 'a'))
     expect(incompatible).to.be.empty
-    expect(int.isInstance(returnType)).to.be.true
+    expect(returnType).to.satisfy(shouldBeInt)
   })
 
   it('(([a] a -> a) -> int)(str -> str)', () => {
@@ -444,10 +462,27 @@ describe('type system', () => {
       int.instance(),
     ]).given(FuncType.make(() => [str.instance(), str.instance()]))
     const expectedErrors: ExpectEqualError[] = [
-      // TODO
+      {
+        errorType: 'function-argument',
+        errors: [
+          {
+            errorType: 'should-be',
+            type: funcTypeVar,
+          },
+        ],
+      },
+      {
+        errorType: 'function-return',
+        errors: [
+          {
+            errorType: 'should-be',
+            type: funcTypeVar,
+          },
+        ],
+      },
     ]
     expect(incompatible).to.have.deep.members(expectedErrors)
-    expect(int.isInstance(returnType)).to.be.true
+    expect(returnType).to.satisfy(shouldBeInt)
   })
 
   it('([a] (a -> a) -> a)([b] b -> b)', () => {
