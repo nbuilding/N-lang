@@ -7,7 +7,9 @@ import {
   str,
 } from '../../../src/type-checker/types/builtins'
 import {
+  ExpectEqualError,
   Function as FuncType,
+  FuncTypeVar,
   Tuple,
   Type,
   Unknown,
@@ -264,9 +266,13 @@ describe('type system', () => {
       str.instance(),
       int.instance(),
     ]).given(bool.instance())
-    expect(incompatible).to.deep.equal([
-      // TODO
-    ])
+    const expectedErrors: ExpectEqualError[] = [
+      {
+        errorType: 'should-be',
+        type: str,
+      },
+    ]
+    expect(incompatible).to.have.deep.members(expectedErrors)
     expect(int.isInstance(returnType)).to.be.true
   })
 
@@ -275,9 +281,23 @@ describe('type system', () => {
       new Tuple([int.instance(), str.instance()]),
       int.instance(),
     ]).given(new Tuple([bool.instance(), str.instance(), int.instance()]))
-    expect(incompatible).to.deep.equal([
-      // TODO
-    ])
+    const expectedErrors: ExpectEqualError[] = [
+      {
+        errorType: 'tuple',
+        index: 0,
+        errors: [
+          {
+            errorType: 'should-be',
+            type: bool,
+          },
+        ],
+      },
+      {
+        errorType: 'tuple-extra',
+        fields: 2,
+      },
+    ]
+    expect(incompatible).to.have.deep.members(expectedErrors)
     expect(int.isInstance(returnType)).to.be.true
   })
 
@@ -286,9 +306,19 @@ describe('type system', () => {
       list.instance([str.instance([])]),
       list.instance([str.instance([])]),
     ]).given(list.instance([int.instance()]))
-    expect(incompatible).to.deep.equal([
-      // TODO
-    ])
+    const expectedErrors: ExpectEqualError[] = [
+      {
+        errorType: 'typevar',
+        index: 0,
+        errors: [
+          {
+            errorType: 'should-be',
+            type: str,
+          },
+        ],
+      },
+    ]
+    expect(incompatible).to.have.deep.members(expectedErrors)
     expect(int.isInstance(returnType)).to.be.true
   })
 
@@ -316,7 +346,7 @@ describe('type system', () => {
       'a',
     ).given(list.instance([str.instance()]))
     expect(incompatible).to.be.empty
-    expect(returnType).to.be.instanceof(Unknown)
+    expect(returnType).to.be.an.instanceof(Unknown)
   })
 
   it('([a] (str, null[a]) -> list[a])((bool, list[int]))', () => {
@@ -327,9 +357,19 @@ describe('type system', () => {
       ],
       'a',
     ).given(new Tuple([bool.instance(), list.instance([int.instance()])]))
-    expect(incompatible).to.deep.equal([
-      // TODO
-    ])
+    const expectedErrors: ExpectEqualError[] = [
+      {
+        errorType: 'tuple',
+        index: 0,
+        errors: [
+          {
+            errorType: 'should-be',
+            type: str,
+          },
+        ],
+      },
+    ]
+    expect(incompatible).to.have.deep.members(expectedErrors)
     expect(list.isInstance(returnType, typeVar => int.isInstance(typeVar))).to
       .be.true
   })
@@ -342,9 +382,19 @@ describe('type system', () => {
       ],
       'a',
     ).given(new Tuple([null, maybe.instance([bool.instance()])]))
-    expect(incompatible).to.deep.equal([
-      // TODO
-    ])
+    const expectedErrors: ExpectEqualError[] = [
+      {
+        errorType: 'tuple',
+        index: 1,
+        errors: [
+          {
+            errorType: 'should-be',
+            type: list,
+          },
+        ],
+      },
+    ]
+    expect(incompatible).to.have.deep.members(expectedErrors)
     expect(list.isInstance(returnType, typeVar => typeVar === null)).to.be.true
   })
 
@@ -379,14 +429,33 @@ describe('type system', () => {
   })
 
   it('((str -> str) -> int)([a] a -> a)', () => {
-    //
+    const [incompatible, returnType] = FuncType.make(() => [
+      FuncType.make(() => [str.instance(), str.instance()]),
+      int.instance(),
+    ]).given(FuncType.make(a => [a, a], 'a'))
+    expect(incompatible).to.be.empty
+    expect(int.isInstance(returnType)).to.be.true
   })
 
   it('(([a] a -> a) -> int)(str -> str)', () => {
-    //
+    const funcTypeVar = new FuncTypeVar('a')
+    const [incompatible, returnType] = FuncType.make(() => [
+      new FuncType(funcTypeVar, funcTypeVar, [funcTypeVar]),
+      int.instance(),
+    ]).given(FuncType.make(() => [str.instance(), str.instance()]))
+    const expectedErrors: ExpectEqualError[] = [
+      // TODO
+    ]
+    expect(incompatible).to.have.deep.members(expectedErrors)
+    expect(int.isInstance(returnType)).to.be.true
   })
 
   it('([a] (a -> a) -> a)([b] b -> b)', () => {
-    //
+    const [incompatible, returnType] = FuncType.make(() => [
+      FuncType.make(a => [a, a], 'a'),
+      int.instance(),
+    ]).given(FuncType.make(b => [b, b], 'b'))
+    expect(incompatible).to.be.empty
+    expect(returnType).to.be.an.instanceof(Unknown)
   })
 })

@@ -1,29 +1,32 @@
 import { AliasSpec, TypeSpec } from './type-specs'
 
-type ExpectEqualError = {
-  errorType: 'should-be'
-  type: TypeSpec | 'tuple' | 'record' | 'function'
-} | {
-  errorType: 'typevar' | 'tuple'
-  index: number
-  errors: ExpectEqualError[]
-} | {
-  errorType: 'record'
-  key: string
-  errors: ExpectEqualError[]
-} | {
-  errorType: 'function-argument' | 'function-return'
-  errors: ExpectEqualError[]
-} | {
-  errorType: 'tuple-missing' | 'tuple-extra'
-  fields: number
-} | {
-  errorType: 'record-missing' | 'record-extra'
-  key: string
-}
-
-/** `null` if no issues, or an object with issues */
-type ExpectEqualResult = ExpectEqualError[]
+export type ExpectEqualError =
+  | {
+      errorType: 'should-be'
+      type: TypeSpec | 'tuple' | 'record' | 'function' | 'unit'
+    }
+  | {
+      errorType: 'typevar' | 'tuple'
+      index: number
+      errors: ExpectEqualError[]
+    }
+  | {
+      errorType: 'record'
+      key: string
+      errors: ExpectEqualError[]
+    }
+  | {
+      errorType: 'function-argument' | 'function-return'
+      errors: ExpectEqualError[]
+    }
+  | {
+      errorType: 'tuple-missing' | 'tuple-extra'
+      fields: number
+    }
+  | {
+      errorType: 'record-missing' | 'record-extra'
+      key: string
+    }
 
 interface DisplayOptions {
   tempNames: Generator<string, never>
@@ -42,12 +45,12 @@ export interface NType {
    * This operation isn't symmetrical! `this` is the type annotation of the
    * function or `let`, and `other` is the type of the value being passed in.
    */
-  expectEqual(other: NType | null): ExpectEqualResult
+  expectEqual(other: NType | null): ExpectEqualError[]
 
   /**
    * Substitute a TypeVar (matching by pointer in memory) with an NType.
    */
-  substitute(substitutions: Map<TypeVar, NType>): NType
+  substitute(substitutions: Map<TypeVar, NType | null>): NType | null
 
   /**
    * Yields all contained types. Will not yield null, Unknown, or Module.
@@ -66,9 +69,13 @@ export class Type implements NType {
     this.typeVars = typeVars
   }
 
-  expectEqual (other: NType | null): ExpectEqualResult {
-    if (other instanceof Type && this.spec === other.spec && this.spec !== null) {
-      const errors: ExpectEqualResult = []
+  expectEqual (other: NType | null): ExpectEqualError[] {
+    if (
+      other instanceof Type &&
+      this.spec === other.spec &&
+      this.spec !== null
+    ) {
+      const errors: ExpectEqualError[] = []
       this.typeVars.forEach((thisTypeVar, i) => {
         const otherTypeVar = other.typeVars[i]
         if (thisTypeVar === null) {
@@ -79,22 +86,24 @@ export class Type implements NType {
           errors.push({
             errorType: 'typevar',
             index: i,
-            errors: typeVarErrors
+            errors: typeVarErrors,
           })
         }
       })
       return errors
     } else {
-      return other && this.spec ? [
-        {
-          errorType: 'should-be',
-          type: this.spec
-        }
-      ] : []
+      return other && this.spec
+        ? [
+            {
+              errorType: 'should-be',
+              type: this.spec,
+            },
+          ]
+        : []
     }
   }
 
-  substitute (substitutions: Map<TypeVar, NType>): Type {
+  substitute (substitutions: Map<TypeVar, NType | null>): Type {
     const typeVars = this.typeVars.map(typeVar => {
       const substitution =
         typeVar instanceof TypeVar && substitutions.get(typeVar)
@@ -132,12 +141,13 @@ export class TypeVar implements NType {
     this.name = name
   }
 
-  expectEqual (_other: NType): ExpectEqualResult {
+  expectEqual (_other: NType): ExpectEqualError[] {
     throw new Error('Type vars should never be compared in nature')
   }
 
-  substitute (substitutions: Map<TypeVar, NType>): NType {
-    return substitutions.get(this) || this
+  substitute (substitutions: Map<TypeVar, NType | null>): NType | null {
+    const substitution = substitutions.get(this)
+    return substitution === undefined ? this : substitution
   }
 
   * innerTypes () {
@@ -151,13 +161,12 @@ export class TypeVar implements NType {
 
 export class FuncTypeVar extends TypeVar {
   func!: Function
-  resolvedType?: NType
 
   constructor (name: string) {
     super(name)
   }
 
-  expectEqual (other: NType): ExpectEqualResult {
+  expectEqual (other: NType): ExpectEqualError[] {
     const mySubstitution = this.func.substitutions.get(this)
     if (other instanceof FuncTypeVar) {
       const otherSubstitution = other.func.substitutions.get(other)
@@ -166,6 +175,7 @@ export class FuncTypeVar extends TypeVar {
         return []
       } else {
         // TODO: Case where ([a, c] (a -> c) -> a)([b] b -> b)?
+        return []
       }
     } else {
       if (mySubstitution === undefined) {
@@ -223,7 +233,7 @@ export class Unknown implements NType {
     }
   }
 
-  expectEqual (other: NType): ExpectEqualResult {
+  expectEqual (other: NType): ExpectEqualError[] {
     const thisType = resolve(this)
     const otherType = resolve(other)
     if (thisType instanceof Unknown) {
@@ -239,7 +249,7 @@ export class Unknown implements NType {
     }
   }
 
-  substitute (substitutions: Map<TypeVar, NType>): NType {
+  substitute (substitutions: Map<TypeVar, NType | null>): NType | null {
     const resolvedType = this.resolvedType()
     if (resolvedType) {
       return resolvedType.substitute(substitutions)
@@ -268,12 +278,12 @@ export class AliasType implements NType {
     this.type = type
   }
 
-  expectEqual (other: NType): ExpectEqualResult {
+  expectEqual (other: NType): ExpectEqualError[] {
     const aliasedType = resolve(this)
     return aliasedType ? aliasedType.expectEqual(resolve(other)) : []
   }
 
-  substitute (substitutions: Map<TypeVar, NType>): NType {
+  substitute (substitutions: Map<TypeVar, NType | null>): NType | null {
     return this.type.substitute(substitutions)
   }
 
@@ -298,18 +308,18 @@ export class Tuple implements NType {
     this.types = types
   }
 
-  expectEqual (other: NType): ExpectEqualResult {
+  expectEqual (other: NType): ExpectEqualError[] {
     if (other instanceof Tuple) {
-      const errors: ExpectEqualResult = []
+      const errors: ExpectEqualError[] = []
       if (this.types.length < other.types.length) {
         errors.push({
           errorType: 'tuple-extra',
-          fields: this.types.length
+          fields: this.types.length,
         })
       } else if (this.types.length > other.types.length) {
         errors.push({
           errorType: 'tuple-missing',
-          fields: this.types.length
+          fields: this.types.length,
         })
       }
       this.types.forEach((thisType, i) => {
@@ -322,22 +332,24 @@ export class Tuple implements NType {
           errors.push({
             errorType: 'tuple',
             index: i,
-            errors: typeErrors
+            errors: typeErrors,
           })
         }
       })
       return errors
     } else {
-      return other ? [
-        {
-          errorType: 'should-be',
-          type: 'tuple'
-        }
-      ] : []
+      return other
+        ? [
+            {
+              errorType: 'should-be',
+              type: 'tuple',
+            },
+          ]
+        : []
     }
   }
 
-  substitute (substitutions: Map<TypeVar, NType>): Tuple {
+  substitute (substitutions: Map<TypeVar, NType | null>): Tuple {
     return new Tuple(
       this.types.map(type => {
         const substitution = type instanceof TypeVar && substitutions.get(type)
@@ -379,9 +391,9 @@ export class Record implements NType {
     this.types = types
   }
 
-  expectEqual (other: NType): ExpectEqualResult {
+  expectEqual (other: NType): ExpectEqualError[] {
     if (other instanceof Record) {
-      const errors: ExpectEqualResult = []
+      const errors: ExpectEqualError[] = []
       for (const [key, type] of this.types) {
         const otherType = other.types.get(key)
         if (type === null) {
@@ -390,7 +402,7 @@ export class Record implements NType {
         if (otherType === undefined) {
           errors.push({
             errorType: 'record-missing',
-            key
+            key,
           })
           continue
         }
@@ -399,7 +411,7 @@ export class Record implements NType {
           errors.push({
             errorType: 'record',
             key,
-            errors: fieldErrors
+            errors: fieldErrors,
           })
         }
       }
@@ -407,22 +419,24 @@ export class Record implements NType {
         if (!this.types.has(key)) {
           errors.push({
             errorType: 'record-extra',
-            key
+            key,
           })
         }
       }
       return errors
     } else {
-      return other ? [
-        {
-          errorType: 'should-be',
-          type: 'record'
-        }
-      ] : []
+      return other
+        ? [
+            {
+              errorType: 'should-be',
+              type: 'record',
+            },
+          ]
+        : []
     }
   }
 
-  substitute (substitutions: Map<TypeVar, NType>): Record {
+  substitute (substitutions: Map<TypeVar, NType | null>): Record {
     return new Record(
       new Map(
         Array.from(this.types.entries(), ([key, type]) => {
@@ -469,8 +483,8 @@ export class Module extends Record {
     this.typeSpecs = typeSpecs
   }
 
-  expectEqual (_other: NType): ExpectEqualResult {
-    throw new Error('Modules shouldn\'t be expected equal I think')
+  expectEqual (_other: NType): ExpectEqualError[] {
+    throw new Error("Modules shouldn't be expected equal I think")
   }
 
   * innerTypes () {
@@ -501,74 +515,119 @@ export class Function implements NType {
     }
   }
 
-  given (paramType: NType | null): [ExpectEqualResult, NType | null] {
-    // TODO: If `paramType` is the typeVar it can't substitute itself. Basically
-    // this entire expectEqual is scuffed and impure and ugly, please fix.
-    const result = this.takes.expectEqual(paramType)
-    const substitutions = new Map()
-    const unresolvedGenerics = []
-    for (const generic of this.generics) {
-      if (generic.resolvedType) {
-        substitutions.set(generic, generic.resolvedType)
-      } else {
-        unresolvedGenerics.push(generic)
+  private _takesUsesTypeVar (typeVar: FuncTypeVar): boolean {
+    if (this.takes === null) {
+      // QUESTION: Is it possible for ([a] null -> ...) to occur where `null` in
+      // reality does use `a`?
+      return false
+    }
+    for (const type of this.takes.innerTypes()) {
+      if (type === typeVar) {
+        return true
       }
     }
-    const returnType = resolve(this.returns.substitute(substitutions))
+    return false
+  }
+
+  given (paramType: NType | null): [ExpectEqualError[], NType | null] {
+    // Keep track of resolved generics
+    this.substitutions = new Map()
+    const errors = this.takes ? this.takes.expectEqual(paramType) : []
+    const returnType = this.returns && resolve(this.returns)
     if (returnType instanceof Function) {
-      returnType.generics.push(...unresolvedGenerics)
-    } else if (unresolvedGenerics.length > 0) {
-      // `unresolvedGenerics` will get discarded for a function like `[t] str ->
-      // t`
-      return {
-        type: 'unresolved-generic',
-        paramTypeIncompatible: result === ExpectEqualResult.NotEqual,
+      // Unresolved generics should either be
+      // - null if `this.takes` uses it
+      // - passed down to the Function otherwise
+      const newGenerics = []
+      for (const generic of this.generics) {
+        const resolvedType = this.substitutions.get(generic)
+        if (resolvedType === undefined) {
+          if (this._takesUsesTypeVar(generic)) {
+            this.substitutions.set(generic, null)
+          } else {
+            const newTypeVar = new FuncTypeVar(generic.name)
+            this.substitutions.set(generic, newTypeVar)
+            newGenerics.push(newTypeVar)
+          }
+        }
       }
-    }
-    return {
-      type: returnType,
-      paramTypeIncompatible: result === ExpectEqualResult.NotEqual,
+      for (const generic of returnType.generics) {
+        // Make a clone of the function type vars so that the same FuncTypeVar
+        // doesn't get assigned to multiple functions
+        const newGeneric = new FuncTypeVar(generic.name)
+        newGenerics.push(newGeneric)
+        this.substitutions.set(generic, newGeneric)
+      }
+      return [
+        errors,
+        new Function(
+          returnType.takes && returnType.takes.substitute(this.substitutions),
+          returnType.returns &&
+            returnType.returns.substitute(this.substitutions),
+          newGenerics,
+        ),
+      ]
+    } else {
+      // Any unresolved generics at this point should become Unknown
+      for (const generic of this.generics) {
+        const resolvedType = this.substitutions.get(generic)
+        if (resolvedType === undefined) {
+          this.substitutions.set(generic, new Unknown())
+        }
+      }
+      return [errors, returnType && returnType.substitute(this.substitutions)]
     }
   }
 
-  expectEqual (other: NType): ExpectEqualResult {
+  expectEqual (other: NType): ExpectEqualError[] {
     if (other instanceof Function) {
       this.substitutions = new Map()
-      const errors: ExpectEqualResult = []
+      const errors: ExpectEqualError[] = []
       const argErrors = this.takes ? this.takes.expectEqual(other.takes) : []
       if (argErrors.length > 0) {
         errors.push({
           errorType: 'function-argument',
-          errors: argErrors
+          errors: argErrors,
         })
       }
-      const returnErrors = this.returns ? this.returns.expectEqual(other.returns) : []
+      const returnErrors = this.returns
+        ? this.returns.expectEqual(other.returns)
+        : []
       if (argErrors.length > 0) {
         errors.push({
           errorType: 'function-return',
-          errors: returnErrors
+          errors: returnErrors,
         })
       }
       return errors
     } else {
-      return other ? [
-        {
-          errorType: 'should-be',
-          type: 'function'
-        }
-      ] : []
+      return other
+        ? [
+            {
+              errorType: 'should-be',
+              type: 'function',
+            },
+          ]
+        : []
     }
   }
 
-  substitute (substitutions: Map<TypeVar, NType>): Function {
-    const takesSubstitution =
-      this.takes instanceof TypeVar && substitutions.get(this.takes)
-    const returnsSubstitution =
-      this.returns instanceof TypeVar && substitutions.get(this.returns)
+  substitute (substitutions: Map<TypeVar, NType | null>): Function {
+    const newSubstitutions = new Map(substitutions)
+    const newGenerics = []
+    for (const generic of this.generics) {
+      if (!substitutions.has(generic)) {
+        // Make a clone of the function type vars so that the same FuncTypeVar
+        // doesn't get assigned to multiple functions
+        const newGeneric = new FuncTypeVar(generic.name)
+        newGenerics.push(newGeneric)
+        newSubstitutions.set(generic, newGeneric)
+      }
+    }
     return new Function(
-      takesSubstitution || this.takes && this.takes.substitute(substitutions),
-      returnsSubstitution || this.returns && this.returns.substitute(substitutions),
-      this.generics.filter(typeVar => !substitutions.has(typeVar)),
+      this.takes && this.takes.substitute(newSubstitutions),
+      this.returns && this.returns.substitute(newSubstitutions),
+      newGenerics,
     )
   }
 
@@ -594,11 +653,15 @@ export class Function implements NType {
     }${
       this.takes instanceof Function || this.takes instanceof Tuple
         ? `(${this.takes.display(options)})`
-        : this.takes ? this.takes.display(options) : '...'
+        : this.takes
+        ? this.takes.display(options)
+        : '...'
     } -> ${
       this.returns instanceof Tuple
         ? `(${this.returns.display(options)})`
-        : this.returns ? this.returns.display(options) : '...'
+        : this.returns
+        ? this.returns.display(options)
+        : '...'
     }`
   }
 
@@ -625,13 +688,18 @@ export class Function implements NType {
 export { Function as FuncType }
 
 export class Unit implements NType {
-  expectEqual (other: NType): ExpectEqualResult {
-    return other instanceof Unit
-      ? ExpectEqualResult.Equal
-      : ExpectEqualResult.NotEqual
+  expectEqual (other: NType): ExpectEqualError[] {
+    return other instanceof Unit || !other
+      ? []
+      : [
+          {
+            errorType: 'should-be',
+            type: 'unit',
+          },
+        ]
   }
 
-  substitute (_substitutions: Map<TypeVar, NType>): NType {
+  substitute (_substitutions: Map<TypeVar, NType | null>): NType {
     return this
   }
 
