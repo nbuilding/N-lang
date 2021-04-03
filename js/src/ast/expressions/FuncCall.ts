@@ -51,49 +51,26 @@ export class FuncCall extends Base implements Expression, Statement {
     })
     if (funcExpr.type) {
       const resolvedFuncType = resolve(funcExpr.type)
+      let returnType: NType | null = resolvedFuncType
       if (resolvedFuncType instanceof FuncType) {
-        let returnType: NType = resolvedFuncType
         let argPos = 1
         for (const [paramType, param] of paramTypes) {
           if (returnType instanceof FuncType) {
-            if (!paramType) {
-              // If param type is the error type, use the return type of the
-              // function if it can be known.
-              if (returnType.generics.length === 0) {
-                returnType = returnType.returns
-                continue
-              } else {
-                // If the function has generics, we might not be able to
-                // properly determine the return type.
-                // Example: ([t] t -> t)(null) null may not be equal to t.
-                // Maybe this could be improved in the future
-                return { type: null, exitPoint }
-              }
-            }
-            const result = returnType.returnTypeFromParam(paramType)
-            if (result.paramTypeIncompatible && paramType !== null) {
+            const [errors, resolvedReturnType] = returnType.given(paramType)
+            if (errors.length > 0 && returnType.takes && paramType) {
               context.err(
                 {
                   type: ErrorType.ARG_TYPE_MISMATCH,
                   funcType: resolvedFuncType,
                   expect: returnType.takes,
                   given: paramType,
+                  errors,
                   argPos,
                 },
                 param,
               )
-              // Do not exit because the return type of the function still might
-              // be known
             }
-            if (result.type === 'unresolved-generic') {
-              context.err({
-                type: ErrorType.UNRESOLVED_GENERIC,
-                funcType: resolvedFuncType,
-              })
-              return { type: null, exitPoint }
-            } else {
-              returnType = result.type
-            }
+            returnType = resolvedReturnType
           } else {
             context.err(
               {
@@ -111,7 +88,7 @@ export class FuncCall extends Base implements Expression, Statement {
           type: returnType,
           exitPoint,
         }
-      } else {
+      } else if (resolvedFuncType) {
         context.err(
           {
             type: ErrorType.CALL_NON_FUNCTION,

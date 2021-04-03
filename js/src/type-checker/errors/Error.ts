@@ -1,6 +1,6 @@
 import { Base } from '../../ast/index'
 import { isObjectLike } from '../../utils/type-guards'
-import { NType } from '../types/types'
+import { ExpectEqualError, NType } from '../types/types'
 
 export enum ErrorType {
   /** Variable is not defined in scope */
@@ -79,6 +79,7 @@ export type ErrorMessage =
       type: ErrorType.LET_TYPE_MISMATCH
       annotation: NType
       expression: NType
+      errors: ExpectEqualError[]
     }
   | {
       type: ErrorType.CALL_NON_FUNCTION
@@ -94,6 +95,7 @@ export type ErrorMessage =
       expect: NType
       given: NType
       funcType: NType
+      errors: ExpectEqualError[]
       argPos: number
     }
   | {

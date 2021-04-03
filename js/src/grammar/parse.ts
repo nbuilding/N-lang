@@ -1,17 +1,130 @@
 import util from 'util'
+import assert from 'assert'
 import { Parser, Grammar } from 'nearley'
 import grammar from './n-lang.grammar'
 import { Block, Base, DiffError } from '../ast/index'
-import assert from 'assert'
+import { Token } from 'moo'
+import { isToken } from '../utils/type-guards'
 
-export class ParseError extends SyntaxError {
-  results: any[]
-
-  constructor (results: any[], message: string) {
+export class ParseBaseError extends SyntaxError {
+  constructor (message: string) {
     super(message)
     this.name = this.constructor.name
+  }
+}
+
+export class ParseUnexpectedEOFError extends ParseBaseError {
+  results: unknown[]
+
+  constructor (results: unknown[]) {
+    super('Unexpected end of input.')
     this.results = results
   }
+}
+
+export class ParseAmbiguityError extends ParseBaseError {
+  results: unknown[]
+
+  constructor (results: unknown[]) {
+    super(`Ambiguous grammar detected: ${results.length} possibilities.`)
+    this.results = results
+  }
+}
+
+class ParserNearleyError extends ParseBaseError {
+  line: number
+  col: number
+  expected: string[]
+
+  constructor (message: string, line: number, col: number, expected: string[]) {
+    super(message)
+    this.line = line
+    this.col = col
+    this.expected = expected
+  }
+}
+
+export class ParserUnexpectedInputError extends ParserNearleyError {
+  constructor (line: number, col: number, expected: string[]) {
+    super('The lexer did not expect this input.', line, col, expected)
+  }
+}
+
+export class ParserTokenError extends ParserNearleyError {
+  token: Token
+
+  constructor (token: Token, line: number, col: number, expected: string[]) {
+    super(`Unexpected ${token.type} token`, line, col, expected)
+    this.token = token
+  }
+}
+
+function isNearleyError (
+  error: unknown,
+): error is Error & { offset: number; token?: Token } {
+  return (
+    error instanceof Error &&
+    'offset' in error &&
+    typeof error['offset'] === 'number' &&
+    (error['token'] === undefined || isToken(error['token']))
+  )
+}
+
+// tfw you have to parse errors from a parser
+const lineColRegex = /^(?:invalid syntax|Syntax error) at line (\d+) col (\d+):\n\n  [^\n]+\n   *\^/
+const unexpectedRegex = /Unexpected (?:input(?: ("(?:[^"]|\\")+"))? \(lexer error\)|(.+) token: "(?:[^"]|\\")+")\./
+const basedOnRegex = /A ("(?:[^"]|\\")+"|.+ token) based on:/g
+/*
+Unexpected input (lexer error).
+Unexpected input "wiggle" (lexer error). // Does this happen?
+Unexpected lbracket token: "(".
+Unexpected string token: "w\"".
+Unexpected let keyword token: "let".
+Unexpected symbol token: ".".
+*/
+function parseNearleyError (
+  error: Error & { offset: number; token?: Token },
+): ParseBaseError | null {
+  const lineColMatch = error.message.match(lineColRegex)
+  if (lineColMatch) {
+    const [, line, col] = lineColMatch
+    const nearleyMsg = error.message.replace(lineColRegex, '')
+    const expectedInstead = []
+    let match
+    while ((match = basedOnRegex.exec(nearleyMsg))) {
+      const [, expected] = match
+      expectedInstead.push(expected)
+    }
+    const unexpectedMatch = nearleyMsg.match(unexpectedRegex)
+    if (unexpectedMatch) {
+      const [, lexerInput, tokenType] = unexpectedMatch
+      if (lexerInput === undefined) {
+        if (tokenType !== undefined) {
+          if (!error.token) {
+            console.log("tokenType isn't undefined but error.token is??")
+          } else {
+            if (error.token.type !== tokenType) {
+              console.log(
+                `error.token.type=${error.token.type} but tokenType=${tokenType}`,
+              )
+            }
+            return new ParserTokenError(
+              error.token,
+              +line,
+              +col,
+              expectedInstead,
+            )
+          }
+        } else {
+          return new ParserUnexpectedInputError(+line, +col, expectedInstead)
+        }
+      } else {
+        console.log("lexerInput isn't undefined! :o")
+      }
+    }
+  }
+  console.log(error.message.slice(0, 500))
+  return null
 }
 
 export interface ParseOptions {
@@ -24,10 +137,20 @@ export function parse (
   { ambiguityOutput = 'omit', loud = false }: ParseOptions = {},
 ): Block {
   const parser = new Parser(Grammar.fromCompiled(grammar))
-  parser.feed(script)
+  try {
+    parser.feed(script)
+  } catch (err) {
+    if (isNearleyError(err)) {
+      const error = parseNearleyError(err)
+      if (error) {
+        throw error
+      }
+    }
+    throw err
+  }
   const [result, ...ambiguities] = parser.results
   if (!result) {
-    throw new ParseError(parser.results, 'Unexpected end of input.')
+    throw new ParseUnexpectedEOFError(parser.results)
   }
   if (ambiguities.length) {
     let results: string
@@ -70,10 +193,7 @@ export function parse (
         console.error(`^ Differences between results 0 and ${i}`)
       }
     }
-    throw new ParseError(
-      parser.results,
-      `You've discovered an ambiguity in the grammar (${parser.results.length} possibilities). This is a bug with the N parser.`,
-    )
+    throw new ParseAmbiguityError(parser.results)
   }
   return result
 }

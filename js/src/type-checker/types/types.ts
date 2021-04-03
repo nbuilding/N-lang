@@ -60,7 +60,7 @@ export interface NType {
   display(options: DisplayOptions): string
 }
 
-function expectEqual (
+export function expectEqual (
   annotation: NType | null,
   other: NType | null,
 ): ExpectEqualError[] {

@@ -1,10 +1,6 @@
 import { ErrorType } from '../../type-checker/errors/Error'
 import { ScopeBaseContext } from '../../type-checker/Scope'
-import {
-  ExpectEqualResult,
-  NType,
-  Unknown,
-} from '../../type-checker/types/types'
+import { expectEqual, NType, Unknown } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { isPattern, Pattern } from '../patterns/Pattern'
@@ -52,17 +48,16 @@ export class Declaration extends Base {
       ? context.scope.getTypeFrom(this.type).type
       : new Unknown()
     if (idealType && typeAnnotation) {
-      const equal = typeAnnotation.expectEqual(idealType)
-      if (equal !== ExpectEqualResult.Equal) {
-        if (equal === ExpectEqualResult.NotEqual) {
-          context.err({
-            type: ErrorType.LET_TYPE_MISMATCH,
-            annotation: typeAnnotation,
-            expression: idealType,
-          })
-          context.scope.checkPattern(this.pattern, null, true)
-          return
-        }
+      const errors = expectEqual(typeAnnotation, idealType)
+      if (errors.length > 0) {
+        context.err({
+          type: ErrorType.LET_TYPE_MISMATCH,
+          annotation: typeAnnotation,
+          expression: idealType,
+          errors,
+        })
+        context.scope.checkPattern(this.pattern, null, true)
+        return
       }
     }
     context.scope.checkPattern(this.pattern, typeAnnotation, true)

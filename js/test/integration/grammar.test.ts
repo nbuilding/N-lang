@@ -1,8 +1,8 @@
 import * as fs from 'fs/promises'
 import { resolve, join } from 'path'
 
-import { FileLines } from '../../src/type-checker/display-lines'
 import { DiffError } from '../../src/ast/base'
+import { parse } from '../../src/grammar/parse'
 
 const syntaxTestsDir = resolve(__dirname, '../../../tests/syntax/')
 const files: { path: string; name: string }[] = []
@@ -21,7 +21,7 @@ before(async () => {
         const file = await fs.readFile(path, 'utf8')
         const [firstSnippet, ...snippets] = file
           .split(/(?:\r?\n){3}/)
-          .map(snippet => new FileLines(snippet, name).parse())
+          .map(snippet => parse(snippet))
 
         for (let i = 0; i < snippets.length; i++) {
           const differences = firstSnippet.diff(snippets[i])
