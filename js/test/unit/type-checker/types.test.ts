@@ -1,6 +1,17 @@
 import { expect } from 'chai'
-import { int, list, str } from '../../../src/type-checker/types/builtins'
-import { Function as FuncType } from '../../../src/type-checker/types/types'
+import {
+  bool,
+  int,
+  list,
+  maybe,
+  str,
+} from '../../../src/type-checker/types/builtins'
+import {
+  Function as FuncType,
+  Tuple,
+  Type,
+  Unknown,
+} from '../../../src/type-checker/types/types'
 
 /*
 
@@ -122,12 +133,36 @@ Let's start simple.
   a remains unresolved, yet the function uses `a` in its take type. a=null
   returns list[null]
 
-- (([a] a -> a) -> int)([b] b -> b)
+- (([a] a -> list[a]) -> int)([b] b -> list[b])
   assignable
+  both functions, upon encountering each other, could see that they both have
+  the same number of generic types. they could create a dummy clone by
+  substituting a -> t and b -> t then comparing:
+  [t] t -> list[t] vs. [t] t -> list[t]
+  returns int
+
+- (([a, b] list[(a, b)] -> list[a]) -> int)([c, d] list[(d, c)] -> list[c])
+  the above suggested strategy won't work here, or at least it would be too
+  naïve.
+  perhaps the functions can compare each other normally, structurally, and do
+  normal substitutions:
+    a=d
+    b=c
+  then, it would be incompatible because
+    [a, b] list[(b, a)] -> list[a]
+                           ^^^^^^^
+      list[a]
+           ^ This should be `b`.
   returns int
 
 - ((str -> str) -> int)([a] a -> a)
   assignable
+  What to do when `str` encounters the function type variable `a`? I guess then
+  we should substitute a=str in the VALUE (not annotation) type and see if that
+  works? So it becomes str -> str vs. [a] a -> a
+  This can be done by having some substitution map in FuncTypeVar.func perhaps,
+  but this'll have to be cleaned by the end
+  Would this work for the previous tests? think so
   returns int
 
 - (([a] a -> a) -> int)(str -> str)
@@ -136,37 +171,244 @@ Let's start simple.
     ^^^^^^^^^^ This should be a `[a] a -> a`. `([a] a -> a) -> int` might call
     this function with a different type argument, which this function cannot
     handle.
-  How can this be systematically determined?
+  How can this be systematically determined? Probably if `a` encounters `str`,
+  then because `str` is the value type and is not a FuncTypeVar, this is an
+  error! This would probably instead produce (using a.func):
+    str -> str
+    ^^^ This should be `a` for `[a] a -> a`. It should be able to handle any
+    value, not just a `str`.
+  In summary, when comparing functions for type equality, type variables should
+  be substituted for the VALUE not annotation type
   returns int
 
 - ([a] (a -> a) -> a)([b] b -> b)
-  assignable??
-  returns unknown_1??
+  Let's follow the existing rules:
+  1. [a] a -> a vs. [b] b -> b
+  2. a vs. b (function argument type)
+  3. => b=a
+    note: just realized that this will have to distinguish between type vars for
+    the outermost function, which get resolved, and the type vars for inner
+    functions
+  4. => [a] a -> a vs. [b] b=a -> b=a
+  5. a vs. b=a (function return type) ok
+  6. both are ok, so ok
+  but the return type? ah ...
+
+  BUT it's [a] (a -> a) -> a! so `a` is actually from the outermost function.
+  thus, the steps are a bit different (see note in step 3)
+  1. a -> a vs. [b] b -> b
+  2. a vs. b (function argument type)
+  3. => a=b (because `a` belongs to outermost function)
+  4. => a=b -> a=b vs. [b] b -> b
+  5. a=b vs. b (function return type) ok
+  6. both are ok, so ok
+  HOWEVER, this results in some polution! `b` has ESCAPED from inside its
+  function because a=b, so the return value has resolved to become `b`
+
+  How can we deal with this? Should it be an error? Since resolving a function
+  typevar as another function typevar probably isn't intended?
+
+  Perhaps instead, we consistently substitute b's type vars. Thus:
+  1. a -> a vs. [b] b -> b
+  2. a vs. b (function argument type)
+  3. => b=a (because `b` is a function type var)
+  4. => a -> a vs. [b] b=a -> b=a
+  5. a vs. b=a (function return type) ok
+  6. both are ok, so ok
+  `a` remains unresolved, so it becomes `unknown_1`. Excellent!
+
+  assignable?? yes
+  returns unknown_1?? yes
+
+By the way, inside a function, the type vars are declared as Types not
+FuncTypeVars.
 
 */
 
-/** [a] a -> a */
-function identityType (): FuncType {
-  return FuncType.make(a => [a, a], 'a')
-}
-
-/** str -> str */
-function stringTransformType (): FuncType {
-  return FuncType.make(() => [str.instance(), str.instance()])
-}
-
-/** [a, b] (a -> b) -> list[a] -> list[b] */
-function listMapType (): FuncType {
-  return FuncType.make((a, b) => [FuncType.make(() => [a, b]), FuncType.make(() => [list.instance([a]), list.instance([b])])])
-}
-
 /** str -> int */
-function stringLengthType (): FuncType {
+function strToInt (): FuncType {
   return FuncType.make(() => [str.instance(), int.instance()])
 }
 
+/** null -> int */
+function nullToInt (): FuncType {
+  return new FuncType(null, int.instance())
+}
+
+/** (int, str) -> int */
+function intStrToInt (): FuncType {
+  return FuncType.make(() => [
+    new Tuple([int.instance(), str.instance()]),
+    int.instance(),
+  ])
+}
+
+/** list[str] -> list[str] */
+function listStrToListStr (): FuncType {
+  return FuncType.make(() => [
+    list.instance([str.instance([])]),
+    list.instance([str.instance([])]),
+  ])
+}
+
+/** [a] list[a] -> int */
+function listAToInt (): FuncType {
+  return FuncType.make(a => [list.instance([a]), int.instance()], 'a')
+}
+
+/** [a] list[a] -> a */
+function listAToA (): FuncType {
+  return FuncType.make(a => [list.instance([a]), a], 'a')
+}
+
+/** [a] str -> a */
+function strToA (): FuncType {
+  return FuncType.make(a => [str.instance(), a], 'a')
+}
+
+/** [a] (str, null[a]) -> list[a] */
+function strNullAToListA (): FuncType {
+  return FuncType.make(
+    a => [new Tuple([str.instance(), new Type(null, [a])]), list.instance([a])],
+    'a',
+  )
+}
+
+/** [a] (str, list[a]) -> list[a] */
+function strListAToListA (): FuncType {
+  return FuncType.make(
+    a => [new Tuple([str.instance(), list.instance([a])]), list.instance([a])],
+    'a',
+  )
+}
+
+/** ([a, b] list[(a, b)] -> list[a]) -> int */
+function listABToListA (): FuncType {
+  return FuncType.make(() => [
+    FuncType.make(
+      (a, b) => [list.instance([new Tuple([a, b])]), list.instance([a])],
+      'a',
+      'b',
+    ),
+    int.instance(),
+  ])
+}
+
 describe('type system', () => {
-  it('(str -> int)(str) should be assignable', () => {
+  it('(str -> int)(str)', () => {
+    const [incompatible, returnType] = strToInt().given(str.instance())
+    expect(incompatible).to.be.null
+    expect(int.isInstance(returnType)).to.be.true
+  })
+
+  it('(null -> int)(str)', () => {
+    const [incompatible, returnType] = nullToInt().given(str.instance())
+    expect(incompatible).to.be.null
+    expect(int.isInstance(returnType)).to.be.true
+  })
+
+  it('(str -> int)(bool)', () => {
+    const [incompatible, returnType] = strToInt().given(bool.instance())
+    expect(incompatible).to.deep.equal([
+      // TODO
+    ])
+    expect(int.isInstance(returnType)).to.be.true
+  })
+
+  it('((int, str) -> int)((bool, str, int))', () => {
+    const [incompatible, returnType] = intStrToInt().given(
+      new Tuple([bool.instance(), str.instance(), int.instance()]),
+    )
+    expect(incompatible).to.deep.equal([
+      // TODO
+    ])
+    expect(int.isInstance(returnType)).to.be.true
+  })
+
+  it('(list[str] -> list[str])(list[int])', () => {
+    const [incompatible, returnType] = listStrToListStr().given(
+      list.instance([int.instance()]),
+    )
+    expect(incompatible).to.deep.equal([
+      // TODO
+    ])
+    expect(int.isInstance(returnType)).to.be.true
+  })
+
+  it('([a] list[a] -> int)(list[str])', () => {
+    const [incompatible, returnType] = listAToInt().given(
+      list.instance([str.instance()]),
+    )
+    expect(incompatible).to.be.null
+    expect(int.isInstance(returnType)).to.be.true
+  })
+
+  it('([a] list[a] -> a)(null)', () => {
+    const [incompatible, returnType] = listAToA().given(null)
+    expect(incompatible).to.be.null
+    expect(returnType).to.be.null
+  })
+
+  it('([a] str -> a)(str)', () => {
+    const [incompatible, returnType] = strToA().given(
+      list.instance([str.instance()]),
+    )
+    expect(incompatible).to.be.null
+    expect(returnType).to.be.instanceof(Unknown)
+  })
+
+  it('([a] (str, null[a]) -> list[a])((bool, list[int]))', () => {
+    const [incompatible, returnType] = strNullAToListA().given(
+      new Tuple([bool.instance(), list.instance([int.instance()])]),
+    )
+    expect(incompatible).to.deep.equal([
+      // TODO
+    ])
+    expect(list.isInstance(returnType, typeVar => int.isInstance(typeVar))).to
+      .be.true
+  })
+
+  it('([a] (str, list[a]) -> list[a])((null, maybe[bool]))', () => {
+    const [incompatible, returnType] = strListAToListA().given(
+      new Tuple([null, maybe.instance([bool.instance()])]),
+    )
+    expect(incompatible).to.deep.equal([
+      // TODO
+    ])
+    expect(list.isInstance(returnType, typeVar => typeVar === null)).to.be.true
+  })
+
+  it('(([a] a -> list[a]) -> int)([b] b -> list[b])', () => {
+    const [incompatible, returnType] = strListAToListA().given(
+      new Tuple([null, maybe.instance([bool.instance()])]),
+    )
+    expect(incompatible).to.be.null
+    expect(list.isInstance(returnType, typeVar => int.isInstance(typeVar))).to
+      .be.true
+  })
+
+  it('(([a, b] list[(a, b)] -> list[a]) -> int)([c, d] list[(d, c)] -> list[c])', () => {
+    const [incompatible, returnType] = listABToListA().given(
+      FuncType.make(
+        (c, d) => [list.instance([new Tuple([d, c])]), list.instance([c])],
+        'c',
+        'd',
+      ),
+    )
+    expect(incompatible).to.be.null
+    expect(list.isInstance(returnType, typeVar => int.isInstance(typeVar))).to
+      .be.true
+  })
+
+  it('((str -> str) -> int)([a] a -> a)', () => {
+    //
+  })
+
+  it('(([a] a -> a) -> int)(str -> str)', () => {
+    //
+  })
+
+  it('([a] (a -> a) -> a)([b] b -> b)', () => {
     //
   })
 })

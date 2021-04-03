@@ -1,10 +1,9 @@
 import { AliasSpec, TypeSpec } from './type-specs'
 
-export enum ExpectEqualResult {
-  Equal,
-  NotEqual,
-  HasNull,
-}
+type ExpectEqualError = {}
+
+/** `null` if no issues, or an object with issues */
+type ExpectEqualResult = null | ExpectEqualError[]
 
 interface DisplayOptions {
   tempNames: Generator<string, never>
@@ -23,7 +22,7 @@ export interface NType {
    * This operation isn't symmetrical! `this` is the type annotation of the
    * function or `let`, and `other` is the type of the value being passed in.
    */
-  canAssign(other: NType): ExpectEqualResult
+  expectEqual(other: NType): ExpectEqualResult
 
   /**
    * Substitute a TypeVar (matching by pointer in memory) with an NType.
@@ -47,14 +46,14 @@ export class Type implements NType {
     this.typeVars = typeVars
   }
 
-  canAssign (other: NType): ExpectEqualResult {
+  expectEqual (other: NType): ExpectEqualResult {
     if (other instanceof Type && this.spec === other.spec) {
       const results = this.typeVars.map((thisTypeVar, i) => {
         const otherTypeVar = other.typeVars[i]
         if (thisTypeVar === null || otherTypeVar === null) {
           return ExpectEqualResult.HasNull
         }
-        return thisTypeVar.canAssign(otherTypeVar)
+        return thisTypeVar.expectEqual(otherTypeVar)
       })
       return results.includes(ExpectEqualResult.HasNull)
         ? ExpectEqualResult.HasNull
@@ -104,7 +103,7 @@ export class TypeVar implements NType {
     this.name = name
   }
 
-  canAssign (other: NType): ExpectEqualResult {
+  expectEqual (other: NType): ExpectEqualResult {
     return this === other ? ExpectEqualResult.Equal : ExpectEqualResult.NotEqual
   }
 
@@ -129,7 +128,7 @@ export class FuncTypeVar extends TypeVar {
     super(name)
   }
 
-  canAssign (other: NType): ExpectEqualResult {
+  expectEqual (other: NType): ExpectEqualResult {
     // I think it's possible for two FuncTypeVars to encounter each other if
     // comparing the types of, say, `[a] a -> a` and `[b] b -> b`, but they
     // should be equal.
@@ -182,7 +181,7 @@ export class Unknown implements NType {
     }
   }
 
-  canAssign (other: NType): ExpectEqualResult {
+  expectEqual (other: NType): ExpectEqualResult {
     const thisType = resolve(this)
     const otherType = resolve(other)
     if (thisType instanceof Unknown) {
@@ -194,7 +193,7 @@ export class Unknown implements NType {
       otherType.resolved = thisType
       return ExpectEqualResult.Equal
     } else {
-      return thisType.canAssign(otherType)
+      return thisType.expectEqual(otherType)
     }
   }
 
@@ -227,8 +226,8 @@ export class AliasType implements NType {
     this.type = type
   }
 
-  canAssign (other: NType): ExpectEqualResult {
-    return resolve(this).canAssign(resolve(other))
+  expectEqual (other: NType): ExpectEqualResult {
+    return resolve(this).expectEqual(resolve(other))
   }
 
   substitute (substitutions: Map<TypeVar, NType>): NType {
@@ -256,14 +255,14 @@ export class Tuple implements NType {
     this.types = types
   }
 
-  canAssign (other: NType): ExpectEqualResult {
+  expectEqual (other: NType): ExpectEqualResult {
     if (other instanceof Tuple && this.types.length === other.types.length) {
       const results = this.types.map((thisType, i) => {
         const otherType = other.types[i]
         if (thisType === null || otherType === null) {
           return ExpectEqualResult.HasNull
         }
-        return thisType.canAssign(otherType)
+        return thisType.expectEqual(otherType)
       })
       return results.includes(ExpectEqualResult.HasNull)
         ? ExpectEqualResult.HasNull
@@ -317,7 +316,7 @@ export class Record implements NType {
     this.types = types
   }
 
-  canAssign (other: NType): ExpectEqualResult {
+  expectEqual (other: NType): ExpectEqualResult {
     if (other instanceof Record) {
       const results = Array.from(this.types, ([key, type]) => {
         const otherType = other.types.get(key)
@@ -326,7 +325,7 @@ export class Record implements NType {
         } else if (!otherType) {
           return ExpectEqualResult.NotEqual
         }
-        return type.canAssign(otherType)
+        return type.expectEqual(otherType)
       })
       if (results.includes(ExpectEqualResult.HasNull)) {
         return ExpectEqualResult.HasNull
@@ -398,17 +397,16 @@ export class Module extends Record {
   }
 }
 
-export interface ReturnTypeResult {
-  type: NType | 'unresolved-generic'
-  paramTypeIncompatible: boolean
-}
-
 export class Function implements NType {
   generics: FuncTypeVar[]
-  takes: NType
-  returns: NType
+  takes: NType | null
+  returns: NType | null
 
-  constructor (takes: NType, returns: NType, generics: FuncTypeVar[] = []) {
+  constructor (
+    takes: NType | null,
+    returns: NType | null,
+    generics: FuncTypeVar[] = [],
+  ) {
     this.takes = takes
     this.returns = returns
     this.generics = generics
@@ -417,27 +415,10 @@ export class Function implements NType {
     }
   }
 
-  /**
-   * IMPURE! Will irreversibly resolve its FuncTypeVars.
-   * Returns
-   * - The return type, with resolved type vars replaced. For example, ([a, b] a ->
-   *   b -> (a, b))(str) will produce [b] b -> (str, b) (note now that ownership
-   *   of `b` has been passed down to the return value)
-   * - null if the types contain an error type (for example, [b]
-   *   undefinedTypeUsingB -> b)
-   * - 'param-not-compatible' if the function takes type is not compatible
-   * - 'unresolved-generic' for functions like `[t] str -> t`
-   *
-   * ([t] list[t] -> int)(str) is pretty clearly `int` even if the param type
-   * doesn't match.
-   *
-   * Maybe all the type vars in the takes type should be replaced with null if
-   * it fails?
-   */
-  returnTypeFromParam (paramType: NType): ReturnTypeResult {
+  given (paramType: NType | null): [ExpectEqualResult, NType | null] {
     // TODO: If `paramType` is the typeVar it can't substitute itself. Basically
-    // this entire canAssign is scuffed and impure and ugly, please fix.
-    const result = this.takes.canAssign(paramType)
+    // this entire expectEqual is scuffed and impure and ugly, please fix.
+    const result = this.takes.expectEqual(paramType)
     const substitutions = new Map()
     const unresolvedGenerics = []
     for (const generic of this.generics) {
@@ -464,10 +445,10 @@ export class Function implements NType {
     }
   }
 
-  canAssign (other: NType): ExpectEqualResult {
+  expectEqual (other: NType): ExpectEqualResult {
     if (other instanceof Function) {
-      const takesResult = this.takes.canAssign(other.takes)
-      const returnsResult = this.returns.canAssign(other.returns)
+      const takesResult = this.takes.expectEqual(other.takes)
+      const returnsResult = this.returns.expectEqual(other.returns)
       if (
         takesResult === ExpectEqualResult.HasNull ||
         returnsResult === ExpectEqualResult.HasNull
@@ -549,7 +530,7 @@ export class Function implements NType {
 export { Function as FuncType }
 
 export class Unit implements NType {
-  canAssign (other: NType): ExpectEqualResult {
+  expectEqual (other: NType): ExpectEqualResult {
     return other instanceof Unit
       ? ExpectEqualResult.Equal
       : ExpectEqualResult.NotEqual

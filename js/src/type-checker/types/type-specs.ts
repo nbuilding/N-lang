@@ -35,6 +35,24 @@ export class TypeSpec {
     }
     return new Type(this, typeVars)
   }
+
+  isInstance (
+    typeInstance: NType | null,
+    ...typeVarChecks: ((typeVar: NType | null) => boolean)[]
+  ): boolean {
+    if (
+      typeInstance !== null &&
+      typeInstance instanceof Type &&
+      typeInstance.spec === this
+    ) {
+      return (
+        typeInstance.typeVars.length === typeVarChecks.length &&
+        typeVarChecks.every((check, i) => check(typeInstance.typeVars[i]))
+      )
+    } else {
+      return false
+    }
+  }
 }
 
 export class EnumTypeSpec extends TypeSpec {
