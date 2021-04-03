@@ -82,6 +82,8 @@ Unexpected string token: "w\"".
 Unexpected let keyword token: "let".
 Unexpected symbol token: ".".
 */
+// https://github.com/kach/nearley/blob/master/lib/nearley.js#L367-L422
+// https://github.com/no-context/moo/blob/master/moo.js#L574-L580
 function parseNearleyError (
   error: Error & { offset: number; token?: Token },
 ): ParseBaseError | null {

@@ -139,11 +139,12 @@ Let's start simple.
   returns unknown_1 (no error!)
 
 - ([a] (str, null[a]) -> list[a])((bool, list[int]))
-  a=int
+  a=int - actually, no, this should return list[null] because they might not
+  mean list[a]
   incompatible:
     bool, list[int]
     ^^^^ This should be a `str`.
-  returns list[int]
+  returns list[null]
 
 - ([a] (str, list[a]) -> list[a])((null, maybe[bool]))
   incompatible:
@@ -238,6 +239,37 @@ Let's start simple.
 
   assignable?? yes
   returns unknown_1?? yes
+
+- (([a] a -> int) -> ())([b] b -> b)
+  `substitution` must be a FuncTypeVar from the annotation side, but the code
+  assumes FuncTypeVars on the value side are from a function on the value side
+  (and thus `.func.substitutions` must exist).
+  [a] a -> a = [b] b -> b
+  b=a gets resolved while checking the function argument, so by the time it
+  checks the function return value, it's comparing between a and b=a. I think
+  here, we can just compare the FuncTypeVars by reference.
+  What if the annotation side has a non-FuncTypeVar? Example:
+  [a] a -> int = [b] b -> b
+  When checking the function return values, it would be int vs. b=a. What error
+  should this give?
+  Ah, I know. Will just check if `annotation` is a FuncTypeVar and compare it by
+  reference, maybe, for equality, since calling `expectEquals` on a FuncTypeVar
+  will try to resolve it if possible. Otherwise, use `expectEquals` as normal.
+
+  incompatible:
+    [b] b -> b
+             ^ This should be an `int`.
+
+  returns ()
+
+- (([a, c] a -> c) -> { test: int })([b] b -> b)
+
+  incompatible: (a new error! :o)
+    [b] b -> b
+             ^ This should be a different type variable. It should be able to
+             handle any value regardless of the type of `b`.
+
+  returns { test: int } (just need a test for records somewhere :P)
 
 By the way, inside a function, the type vars are declared as Types not
 FuncTypeVars.
@@ -365,7 +397,7 @@ describe('type system', () => {
     const [incompatible, returnType] = FuncType.make(
       a => [str.instance(), a],
       'a',
-    ).given(list.instance([str.instance()]))
+    ).given(str.instance())
     expect(incompatible).to.be.empty
     expect(returnType).to.be.an.instanceof(Unknown)
   })
@@ -391,7 +423,7 @@ describe('type system', () => {
       },
     ]
     expect(incompatible).to.have.deep.members(expectedErrors)
-    expect(returnType).to.satisfy(shouldBeListInt)
+    expect(returnType).to.satisfy(shouldBeListNull)
   })
 
   it('([a] (str, list[a]) -> list[a])((null, maybe[bool]))', () => {
@@ -422,9 +454,9 @@ describe('type system', () => {
     const [incompatible, returnType] = FuncType.make(() => [
       FuncType.make(a => [a, list.instance([a])], 'a'),
       int.instance(),
-    ]).given(new Tuple([null, maybe.instance([bool.instance()])]))
+    ]).given(FuncType.make(b => [b, list.instance([b])], 'b'))
     expect(incompatible).to.be.empty
-    expect(returnType).to.satisfy(shouldBeListInt)
+    expect(returnType).to.satisfy(shouldBeInt)
   })
 
   it('(([a, b] list[(a, b)] -> list[a]) -> int)([c, d] list[(d, c)] -> list[c])', () => {
@@ -443,7 +475,7 @@ describe('type system', () => {
       ),
     )
     expect(incompatible).to.be.empty
-    expect(returnType).to.satisfy(shouldBeListInt)
+    expect(returnType).to.satisfy(shouldBeInt)
   })
 
   it('((str -> str) -> int)([a] a -> a)', () => {
@@ -486,10 +518,10 @@ describe('type system', () => {
   })
 
   it('([a] (a -> a) -> a)([b] b -> b)', () => {
-    const [incompatible, returnType] = FuncType.make(() => [
-      FuncType.make(a => [a, a], 'a'),
-      int.instance(),
-    ]).given(FuncType.make(b => [b, b], 'b'))
+    const [incompatible, returnType] = FuncType.make(
+      a => [FuncType.make(() => [a, a]), a],
+      'a',
+    ).given(FuncType.make(b => [b, b], 'b'))
     expect(incompatible).to.be.empty
     expect(returnType).to.be.an.instanceof(Unknown)
   })

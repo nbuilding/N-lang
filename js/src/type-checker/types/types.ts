@@ -27,6 +27,13 @@ export type ExpectEqualError =
       errorType: 'record-missing' | 'record-extra'
       key: string
     }
+  | {
+      errorType: 'diff-typevar'
+    }
+
+interface InnerTypesOptions {
+  excludeFunctions?: boolean
+}
 
 interface DisplayOptions {
   tempNames: Generator<string, never>
@@ -55,7 +62,7 @@ export interface NType {
   /**
    * Yields all contained types. Will not yield null, Unknown, or Module.
    */
-  innerTypes(): Generator<NType, void>
+  innerTypes(options?: InnerTypesOptions): Generator<NType, void>
 
   display(options: DisplayOptions): string
 }
@@ -71,10 +78,25 @@ export function expectEqual (
         'For some reason otherResolved.func.substitutions is undefined',
       )
     }
+    // Note: substitution may contain a FuncTypeVar from the annotation side
     const substitution = otherResolved.func.substitutions.get(otherResolved)
     if (substitution === undefined) {
       otherResolved.func.substitutions.set(otherResolved, annotation)
       return []
+    } else if (substitution instanceof FuncTypeVar) {
+      if (annotation instanceof FuncTypeVar) {
+        return annotation === substitution
+          ? []
+          : [
+              {
+                errorType: 'diff-typevar',
+              },
+            ]
+      } else if (annotation) {
+        return annotation.expectEqual(substitution)
+      } else {
+        return []
+      }
     } else {
       return expectEqual(annotation, substitution)
     }
@@ -125,23 +147,17 @@ export class Type implements NType {
   }
 
   substitute (substitutions: Map<TypeVar, NType | null>): Type {
-    const typeVars = this.typeVars.map(typeVar => {
-      const substitution =
-        typeVar instanceof TypeVar && substitutions.get(typeVar)
-      if (substitution) {
-        return substitution
-      } else {
-        return typeVar && typeVar.substitute(substitutions)
-      }
-    })
+    const typeVars = this.typeVars.map(
+      typeVar => typeVar && typeVar.substitute(substitutions),
+    )
     return this.spec ? this.spec.instance(typeVars) : new Type(null, typeVars)
   }
 
-  * innerTypes () {
+  * innerTypes (options?: InnerTypesOptions) {
     yield this
     for (const typeVar of this.typeVars) {
       if (typeVar) {
-        yield * typeVar.innerTypes()
+        yield * typeVar.innerTypes(options)
       }
     }
   }
@@ -171,7 +187,7 @@ export class TypeVar implements NType {
     return substitution === undefined ? this : substitution
   }
 
-  * innerTypes () {
+  * innerTypes (options?: InnerTypesOptions) {
     yield this
   }
 
@@ -223,10 +239,6 @@ export class FuncTypeVar extends TypeVar {
         return expectEqual(mySubstitution, other)
       }
     }
-  }
-
-  substitute (substitutions: Map<TypeVar, NType>): NType {
-    return substitutions.get(this) || this
   }
 
   display (options: DisplayOptions): string {
@@ -296,9 +308,9 @@ export class Unknown implements NType {
     }
   }
 
-  * innerTypes () {
+  * innerTypes (options?: InnerTypesOptions) {
     if (this.resolved) {
-      yield * this.resolved.innerTypes()
+      yield * this.resolved.innerTypes(options)
     }
   }
 
@@ -325,9 +337,9 @@ export class AliasType implements NType {
     return this.type.substitute(substitutions)
   }
 
-  * innerTypes () {
+  * innerTypes (options?: InnerTypesOptions) {
     yield this
-    yield * this.type.innerTypes()
+    yield * this.type.innerTypes(options)
   }
 
   display (_options: DisplayOptions): string {
@@ -387,22 +399,15 @@ export class Tuple implements NType {
 
   substitute (substitutions: Map<TypeVar, NType | null>): Tuple {
     return new Tuple(
-      this.types.map(type => {
-        const substitution = type instanceof TypeVar && substitutions.get(type)
-        if (substitution) {
-          return substitution
-        } else {
-          return type && type.substitute(substitutions)
-        }
-      }),
+      this.types.map(type => type && type.substitute(substitutions)),
     )
   }
 
-  * innerTypes () {
+  * innerTypes (options?: InnerTypesOptions) {
     yield this
     for (const type of this.types) {
       if (type) {
-        yield * type.innerTypes()
+        yield * type.innerTypes(options)
       }
     }
   }
@@ -470,24 +475,19 @@ export class Record implements NType {
   substitute (substitutions: Map<TypeVar, NType | null>): Record {
     return new Record(
       new Map(
-        Array.from(this.types.entries(), ([key, type]) => {
-          const substitution =
-            type instanceof TypeVar && substitutions.get(type)
-          if (substitution) {
-            return [key, substitution]
-          } else {
-            return [key, type && type.substitute(substitutions)]
-          }
-        }),
+        Array.from(this.types.entries(), ([key, type]) => [
+          key,
+          type && type.substitute(substitutions),
+        ]),
       ),
     )
   }
 
-  * innerTypes () {
+  * innerTypes (options?: InnerTypesOptions) {
     yield this
     for (const [, type] of this.types) {
       if (type) {
-        yield * type.innerTypes()
+        yield * type.innerTypes(options)
       }
     }
   }
@@ -518,7 +518,7 @@ export class Module extends Record {
     throw new Error("Modules shouldn't be expected equal I think")
   }
 
-  * innerTypes () {
+  * innerTypes (options?: InnerTypesOptions) {
     yield this
   }
 
@@ -552,7 +552,7 @@ export class Function implements NType {
       // reality does use `a`?
       return false
     }
-    for (const type of this.takes.innerTypes()) {
+    for (const type of this.takes.innerTypes({ excludeFunctions: true })) {
       if (type === typeVar) {
         return true
       }
@@ -664,13 +664,14 @@ export class Function implements NType {
     )
   }
 
-  * innerTypes () {
+  * innerTypes (options?: InnerTypesOptions) {
+    if (options?.excludeFunctions) return
     yield this
     for (const generic of this.generics) {
-      yield * generic.innerTypes()
+      yield * generic.innerTypes(options)
     }
-    if (this.takes) yield * this.takes.innerTypes()
-    if (this.returns) yield * this.returns.innerTypes()
+    if (this.takes) yield * this.takes.innerTypes(options)
+    if (this.returns) yield * this.returns.innerTypes(options)
   }
 
   display (options: DisplayOptions): string {
@@ -736,7 +737,7 @@ export class Unit implements NType {
     return this
   }
 
-  * innerTypes () {
+  * innerTypes (options?: InnerTypesOptions) {
     yield this
   }
 
