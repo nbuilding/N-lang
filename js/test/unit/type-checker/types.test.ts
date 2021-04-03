@@ -94,6 +94,22 @@ Let's start simple.
     bool, str, int
                ^^^ There shouldn't be a third field.
 
+  The error can be represented as
+  [
+    {
+      type: Tuple<bool, str, int>
+      index: 0
+      errors: [
+        {
+          shouldBe: Type<str>
+        }
+      ]
+    },
+    {
+      maxFields: 2
+    }
+  ]
+
   returns int
 
 - (list[str] -> list[str])(list[int]):
@@ -225,90 +241,29 @@ FuncTypeVars.
 
 */
 
-/** str -> int */
-function strToInt (): FuncType {
-  return FuncType.make(() => [str.instance(), int.instance()])
-}
-
-/** null -> int */
-function nullToInt (): FuncType {
-  return new FuncType(null, int.instance())
-}
-
-/** (int, str) -> int */
-function intStrToInt (): FuncType {
-  return FuncType.make(() => [
-    new Tuple([int.instance(), str.instance()]),
-    int.instance(),
-  ])
-}
-
-/** list[str] -> list[str] */
-function listStrToListStr (): FuncType {
-  return FuncType.make(() => [
-    list.instance([str.instance([])]),
-    list.instance([str.instance([])]),
-  ])
-}
-
-/** [a] list[a] -> int */
-function listAToInt (): FuncType {
-  return FuncType.make(a => [list.instance([a]), int.instance()], 'a')
-}
-
-/** [a] list[a] -> a */
-function listAToA (): FuncType {
-  return FuncType.make(a => [list.instance([a]), a], 'a')
-}
-
-/** [a] str -> a */
-function strToA (): FuncType {
-  return FuncType.make(a => [str.instance(), a], 'a')
-}
-
-/** [a] (str, null[a]) -> list[a] */
-function strNullAToListA (): FuncType {
-  return FuncType.make(
-    a => [new Tuple([str.instance(), new Type(null, [a])]), list.instance([a])],
-    'a',
-  )
-}
-
-/** [a] (str, list[a]) -> list[a] */
-function strListAToListA (): FuncType {
-  return FuncType.make(
-    a => [new Tuple([str.instance(), list.instance([a])]), list.instance([a])],
-    'a',
-  )
-}
-
-/** ([a, b] list[(a, b)] -> list[a]) -> int */
-function listABToListA (): FuncType {
-  return FuncType.make(() => [
-    FuncType.make(
-      (a, b) => [list.instance([new Tuple([a, b])]), list.instance([a])],
-      'a',
-      'b',
-    ),
-    int.instance(),
-  ])
-}
-
 describe('type system', () => {
   it('(str -> int)(str)', () => {
-    const [incompatible, returnType] = strToInt().given(str.instance())
-    expect(incompatible).to.be.null
+    const [incompatible, returnType] = FuncType.make(() => [
+      str.instance(),
+      int.instance(),
+    ]).given(str.instance())
+    expect(incompatible).to.be.empty
     expect(int.isInstance(returnType)).to.be.true
   })
 
   it('(null -> int)(str)', () => {
-    const [incompatible, returnType] = nullToInt().given(str.instance())
-    expect(incompatible).to.be.null
+    const [incompatible, returnType] = new FuncType(null, int.instance()).given(
+      str.instance(),
+    )
+    expect(incompatible).to.be.empty
     expect(int.isInstance(returnType)).to.be.true
   })
 
   it('(str -> int)(bool)', () => {
-    const [incompatible, returnType] = strToInt().given(bool.instance())
+    const [incompatible, returnType] = FuncType.make(() => [
+      str.instance(),
+      int.instance(),
+    ]).given(bool.instance())
     expect(incompatible).to.deep.equal([
       // TODO
     ])
@@ -316,9 +271,10 @@ describe('type system', () => {
   })
 
   it('((int, str) -> int)((bool, str, int))', () => {
-    const [incompatible, returnType] = intStrToInt().given(
-      new Tuple([bool.instance(), str.instance(), int.instance()]),
-    )
+    const [incompatible, returnType] = FuncType.make(() => [
+      new Tuple([int.instance(), str.instance()]),
+      int.instance(),
+    ]).given(new Tuple([bool.instance(), str.instance(), int.instance()]))
     expect(incompatible).to.deep.equal([
       // TODO
     ])
@@ -326,9 +282,10 @@ describe('type system', () => {
   })
 
   it('(list[str] -> list[str])(list[int])', () => {
-    const [incompatible, returnType] = listStrToListStr().given(
-      list.instance([int.instance()]),
-    )
+    const [incompatible, returnType] = FuncType.make(() => [
+      list.instance([str.instance([])]),
+      list.instance([str.instance([])]),
+    ]).given(list.instance([int.instance()]))
     expect(incompatible).to.deep.equal([
       // TODO
     ])
@@ -336,31 +293,40 @@ describe('type system', () => {
   })
 
   it('([a] list[a] -> int)(list[str])', () => {
-    const [incompatible, returnType] = listAToInt().given(
-      list.instance([str.instance()]),
-    )
-    expect(incompatible).to.be.null
+    const [incompatible, returnType] = FuncType.make(
+      a => [list.instance([a]), int.instance()],
+      'a',
+    ).given(list.instance([str.instance()]))
+    expect(incompatible).to.be.empty
     expect(int.isInstance(returnType)).to.be.true
   })
 
   it('([a] list[a] -> a)(null)', () => {
-    const [incompatible, returnType] = listAToA().given(null)
-    expect(incompatible).to.be.null
+    const [incompatible, returnType] = FuncType.make(
+      a => [list.instance([a]), a],
+      'a',
+    ).given(null)
+    expect(incompatible).to.be.empty
     expect(returnType).to.be.null
   })
 
   it('([a] str -> a)(str)', () => {
-    const [incompatible, returnType] = strToA().given(
-      list.instance([str.instance()]),
-    )
-    expect(incompatible).to.be.null
+    const [incompatible, returnType] = FuncType.make(
+      a => [str.instance(), a],
+      'a',
+    ).given(list.instance([str.instance()]))
+    expect(incompatible).to.be.empty
     expect(returnType).to.be.instanceof(Unknown)
   })
 
   it('([a] (str, null[a]) -> list[a])((bool, list[int]))', () => {
-    const [incompatible, returnType] = strNullAToListA().given(
-      new Tuple([bool.instance(), list.instance([int.instance()])]),
-    )
+    const [incompatible, returnType] = FuncType.make(
+      a => [
+        new Tuple([str.instance(), new Type(null, [a])]),
+        list.instance([a]),
+      ],
+      'a',
+    ).given(new Tuple([bool.instance(), list.instance([int.instance()])]))
     expect(incompatible).to.deep.equal([
       // TODO
     ])
@@ -369,9 +335,13 @@ describe('type system', () => {
   })
 
   it('([a] (str, list[a]) -> list[a])((null, maybe[bool]))', () => {
-    const [incompatible, returnType] = strListAToListA().given(
-      new Tuple([null, maybe.instance([bool.instance()])]),
-    )
+    const [incompatible, returnType] = FuncType.make(
+      a => [
+        new Tuple([str.instance(), list.instance([a])]),
+        list.instance([a]),
+      ],
+      'a',
+    ).given(new Tuple([null, maybe.instance([bool.instance()])]))
     expect(incompatible).to.deep.equal([
       // TODO
     ])
@@ -379,23 +349,31 @@ describe('type system', () => {
   })
 
   it('(([a] a -> list[a]) -> int)([b] b -> list[b])', () => {
-    const [incompatible, returnType] = strListAToListA().given(
-      new Tuple([null, maybe.instance([bool.instance()])]),
-    )
-    expect(incompatible).to.be.null
+    const [incompatible, returnType] = FuncType.make(() => [
+      FuncType.make(a => [a, list.instance([a])], 'a'),
+      int.instance(),
+    ]).given(new Tuple([null, maybe.instance([bool.instance()])]))
+    expect(incompatible).to.be.empty
     expect(list.isInstance(returnType, typeVar => int.isInstance(typeVar))).to
       .be.true
   })
 
   it('(([a, b] list[(a, b)] -> list[a]) -> int)([c, d] list[(d, c)] -> list[c])', () => {
-    const [incompatible, returnType] = listABToListA().given(
+    const [incompatible, returnType] = FuncType.make(() => [
+      FuncType.make(
+        (a, b) => [list.instance([new Tuple([a, b])]), list.instance([a])],
+        'a',
+        'b',
+      ),
+      int.instance(),
+    ]).given(
       FuncType.make(
         (c, d) => [list.instance([new Tuple([d, c])]), list.instance([c])],
         'c',
         'd',
       ),
     )
-    expect(incompatible).to.be.null
+    expect(incompatible).to.be.empty
     expect(list.isInstance(returnType, typeVar => int.isInstance(typeVar))).to
       .be.true
   })
