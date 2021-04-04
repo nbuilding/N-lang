@@ -16,7 +16,7 @@ export type ExpectEqualError =
       errors: ExpectEqualError[]
     }
   | {
-      errorType: 'function-argument' | 'function-return'
+      errorType: 'function-argument' | 'function-return' | 'alias'
       errors: ExpectEqualError[]
     }
   | {
@@ -71,27 +71,56 @@ export function expectEqual (
   annotation: NType | null,
   other: NType | null,
 ): ExpectEqualError[] {
-  const otherResolved = resolve(other)
-  if (otherResolved instanceof FuncTypeVar) {
-    if (!otherResolved.func.substitutions) {
-      throw new Error(
-        'For some reason otherResolved.func.substitutions is undefined',
-      )
+  // Don't resolve(other) because aliases are needed for less messy errors
+  if (other instanceof Unknown) {
+    if (other.resolved !== undefined) {
+      return expectEqual(annotation, other.resolved)
+    } else {
+      other.resolved = annotation
+      return []
+    }
+  } else if (other instanceof AliasType) {
+    const errors = expectEqual(annotation, other.type)
+    return errors.length > 0
+      ? [
+          {
+            errorType: 'alias',
+            errors: errors,
+          },
+        ]
+      : []
+  } else if (other instanceof FuncTypeVar) {
+    if (!other.func.substitutions) {
+      throw new Error('For some reason other.func.substitutions is undefined')
     }
     // Note: substitution may contain a FuncTypeVar from the annotation side
-    const substitution = otherResolved.func.substitutions.get(otherResolved)
+    const substitution = other.func.substitutions.get(other)
     if (substitution === undefined) {
-      otherResolved.func.substitutions.set(otherResolved, annotation)
+      other.func.substitutions.set(other, annotation)
       return []
     } else if (substitution instanceof FuncTypeVar) {
       if (annotation instanceof FuncTypeVar) {
-        return annotation === substitution
-          ? []
-          : [
-              {
-                errorType: 'diff-typevar',
-              },
-            ]
+        if (annotation === substitution) {
+          return []
+        } else {
+          for (const [typeVar, typeVarSubstitution] of other.func
+            .substitutions) {
+            if (annotation === typeVarSubstitution) {
+              return [
+                {
+                  errorType: 'should-be',
+                  // Note: This FuncTypeVar is from the value side
+                  type: typeVar,
+                },
+              ]
+            }
+          }
+          return [
+            {
+              errorType: 'diff-typevar',
+            },
+          ]
+        }
       } else if (annotation) {
         return annotation.expectEqual(substitution)
       } else {
@@ -100,10 +129,10 @@ export function expectEqual (
     } else {
       return expectEqual(annotation, substitution)
     }
-  } else if (annotation === null || otherResolved === null) {
+  } else if (annotation === null || other === null) {
     return []
   } else {
-    return annotation.expectEqual(otherResolved)
+    return annotation.expectEqual(other)
   }
 }
 
@@ -164,7 +193,7 @@ export class Type implements NType {
 
   display (options: DisplayOptions): string {
     return this.typeVars.length > 0
-      ? `${this.spec?.name || ''}[${this.typeVars
+      ? `${this.spec?.name || '...'}[${this.typeVars
           .map(typeVar => (typeVar ? typeVar.display(options) : '...'))
           .join(', ')}]`
       : this.spec?.name || ''
@@ -187,7 +216,7 @@ export class TypeVar implements NType {
     return substitution === undefined ? this : substitution
   }
 
-  * innerTypes (options?: InnerTypesOptions) {
+  * innerTypes (_options?: InnerTypesOptions) {
     yield this
   }
 
@@ -205,19 +234,9 @@ export class FuncTypeVar extends TypeVar {
 
   expectEqual (other: NType): ExpectEqualError[] {
     if (other instanceof FuncTypeVar) {
-      if (!other.func.substitutions) {
-        throw new Error(
-          'Value ("other") type doesn\'t have substitutions enabled',
-        )
-      }
-      const otherSubstitution = other.func.substitutions.get(other)
-      if (otherSubstitution === undefined) {
-        other.func.substitutions.set(other, this)
-        return []
-      } else {
-        // TODO: Case where ([a, c] (a -> c) -> a)([b] b -> b)?
-        return []
-      }
+      throw new Error(
+        'FuncTypeVar.expectEqual should never encounter another FuncTypeVar because expectEqual handles it.',
+      )
     } else {
       if (!this.func.substitutions) {
         // Function type variables shouldn't be resolved if they're not part of
@@ -227,6 +246,7 @@ export class FuncTypeVar extends TypeVar {
         return [
           {
             errorType: 'should-be',
+            // Note: This FuncTypeVar is from the annotation side
             type: this,
           },
         ]
@@ -285,17 +305,13 @@ export class Unknown implements NType {
 
   expectEqual (other: NType): ExpectEqualError[] {
     const thisType = resolve(this)
-    const otherType = resolve(other)
     if (thisType instanceof Unknown) {
       // Does not matter whether `otherType` is also an Unknown since they
       // can be chained.
-      this.resolved = otherType
-      return []
-    } else if (otherType instanceof Unknown) {
-      otherType.resolved = thisType
+      this.resolved = other
       return []
     } else {
-      return expectEqual(thisType, otherType)
+      return expectEqual(thisType, other)
     }
   }
 
@@ -320,30 +336,51 @@ export class Unknown implements NType {
 }
 
 export class AliasType implements NType {
-  spec: AliasSpec
-  type: NType
+  spec: AliasSpec | null
+  typeVars: (NType | null)[]
 
-  constructor (spec: AliasSpec, type: NType) {
+  constructor (spec: AliasSpec | null, typeVars: (NType | null)[]) {
     this.spec = spec
-    this.type = type
+    this.typeVars = typeVars
+  }
+
+  get type (): NType | null {
+    if (!this.spec) return null
+    const spec = this.spec
+    const substitutions = new Map()
+    this.typeVars.forEach((typeVar, i) => {
+      substitutions.set(spec.typeVars[i], typeVar)
+    })
+    return spec.type.substitute(substitutions)
   }
 
   expectEqual (other: NType): ExpectEqualError[] {
-    // TODO: Make a test to ensure aliases work
     return expectEqual(resolve(this), other)
   }
 
-  substitute (substitutions: Map<TypeVar, NType | null>): NType | null {
-    return this.type.substitute(substitutions)
+  substitute (substitutions: Map<TypeVar, NType | null>): AliasType {
+    const typeVars = this.typeVars.map(
+      typeVar => typeVar && typeVar.substitute(substitutions),
+    )
+    return this.spec
+      ? this.spec.instance(typeVars)
+      : new AliasType(null, typeVars)
   }
 
   * innerTypes (options?: InnerTypesOptions) {
     yield this
-    yield * this.type.innerTypes(options)
+    const type = this.type
+    if (type) {
+      yield * type.innerTypes(options)
+    }
   }
 
-  display (_options: DisplayOptions): string {
-    return this.spec.name
+  display (options: DisplayOptions): string {
+    return this.typeVars.length > 0
+      ? `${this.spec?.name || '...'}[${this.typeVars
+          .map(typeVar => (typeVar ? typeVar.display(options) : '...'))
+          .join(', ')}]`
+      : this.spec?.name || ''
   }
 }
 
@@ -518,7 +555,7 @@ export class Module extends Record {
     throw new Error("Modules shouldn't be expected equal I think")
   }
 
-  * innerTypes (options?: InnerTypesOptions) {
+  * innerTypes (_options?: InnerTypesOptions) {
     yield this
   }
 
@@ -628,7 +665,7 @@ export class Function implements NType {
         })
       }
       const returnErrors = expectEqual(this.returns, other.returns)
-      if (argErrors.length > 0) {
+      if (returnErrors.length > 0) {
         errors.push({
           errorType: 'function-return',
           errors: returnErrors,
@@ -737,7 +774,7 @@ export class Unit implements NType {
     return this
   }
 
-  * innerTypes (options?: InnerTypesOptions) {
+  * innerTypes (_options?: InnerTypesOptions) {
     yield this
   }
 

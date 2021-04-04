@@ -6,13 +6,16 @@ import {
   maybe,
   str,
 } from '../../../src/type-checker/types/builtins'
+import { AliasSpec } from '../../../src/type-checker/types/type-specs'
 import {
   ExpectEqualError,
   Function as FuncType,
   FuncTypeVar,
   NType,
+  Record,
   Tuple,
   Type,
+  Unit,
   Unknown,
 } from '../../../src/type-checker/types/types'
 
@@ -271,6 +274,41 @@ Let's start simple.
 
   returns { test: int } (just need a test for records somewhere :P)
 
+- ([a, c] (a -> c) -> a)([b] b -> b)
+
+  Let's follow our existing rules and see if the result makes sense:
+  1. a -> c vs. [b] b -> b
+  2. a vs. b (function argument type)
+  3. b=a (b is a function type var)
+  4. => a -> c vs. [b=a] b=a -> b=a
+  5. c vs. b=a (function return type) err...
+
+  incompatible:
+    [b] b -> b
+             ^ This should be a different type variable. It should be able to
+             handle any value regardless of the type of `b`.
+
+  This makes sense.
+
+  returns unknown_1 because `a` remains unresolved
+
+- ([a] ((), alias1[a]) -> maybe[a])(((), alias2[int]))
+  where alias1[t] = (list[t], t)
+    and alias2[t] = (list[(t, t)], (t, str))
+
+  simplified:
+  ([a] ((), (list[a], a)) -> maybe[a])(((), (list[(int, int)], (int, str))))
+
+  incompatible:
+    alias2[int]
+    ^^^^^^^^^^^
+      list[(int, int)], (int, str)
+                        ^^^^^^^^^^
+        int, str
+             ^^^ This should be an `int`.
+
+  returns maybe[(int, int)]
+
 By the way, inside a function, the type vars are declared as Types not
 FuncTypeVars.
 
@@ -284,16 +322,36 @@ function shouldBeStr (type: NType | null): boolean {
   return str.isInstance(type)
 }
 
-function shouldBeListInt (type: NType | null): boolean {
-  return list.isInstance(type, shouldBeInt)
-}
-
 function shouldBeListStr (type: NType | null): boolean {
   return list.isInstance(type, shouldBeStr)
 }
 
 function shouldBeListNull (type: NType | null): boolean {
   return list.isInstance(type, typeVar => typeVar === null)
+}
+
+function shouldBeTestIntRecord (anyType: NType | null): boolean {
+  if (anyType instanceof Record) {
+    const entries = [...anyType.types]
+    return (
+      entries.length === 1 &&
+      entries[0][0] === 'test' &&
+      shouldBeInt(entries[0][1])
+    )
+  } else {
+    return false
+  }
+}
+
+function shouldBeMaybeIntInt (type: NType | null): boolean {
+  return maybe.isInstance(
+    type,
+    typeVar =>
+      typeVar instanceof Tuple &&
+      typeVar.types.length === 2 &&
+      shouldBeInt(typeVar.types[0]) &&
+      shouldBeInt(typeVar.types[1]),
+  )
 }
 
 describe('type system', () => {
@@ -460,6 +518,8 @@ describe('type system', () => {
   })
 
   it('(([a, b] list[(a, b)] -> list[a]) -> int)([c, d] list[(d, c)] -> list[c])', () => {
+    const c = new FuncTypeVar('c')
+    const d = new FuncTypeVar('d')
     const [incompatible, returnType] = FuncType.make(() => [
       FuncType.make(
         (a, b) => [list.instance([new Tuple([a, b])]), list.instance([a])],
@@ -468,13 +528,29 @@ describe('type system', () => {
       ),
       int.instance(),
     ]).given(
-      FuncType.make(
-        (c, d) => [list.instance([new Tuple([d, c])]), list.instance([c])],
-        'c',
-        'd',
-      ),
+      new FuncType(list.instance([new Tuple([d, c])]), list.instance([c]), [
+        c,
+        d,
+      ]),
     )
-    expect(incompatible).to.be.empty
+    const expectedErrors: ExpectEqualError[] = [
+      {
+        errorType: 'function-return',
+        errors: [
+          {
+            errorType: 'typevar',
+            index: 0,
+            errors: [
+              {
+                errorType: 'should-be',
+                type: d,
+              },
+            ],
+          },
+        ],
+      },
+    ]
+    expect(incompatible).to.have.deep.members(expectedErrors)
     expect(returnType).to.satisfy(shouldBeInt)
   })
 
@@ -524,5 +600,116 @@ describe('type system', () => {
     ).given(FuncType.make(b => [b, b], 'b'))
     expect(incompatible).to.be.empty
     expect(returnType).to.be.an.instanceof(Unknown)
+  })
+
+  it('(([a] a -> int) -> ())([b] b -> b)', () => {
+    const [incompatible, returnType] = FuncType.make(() => [
+      FuncType.make(a => [a, int.instance()], 'a'),
+      new Unit(),
+    ]).given(FuncType.make(b => [b, b], 'b'))
+    const expectedErrors: ExpectEqualError[] = [
+      {
+        errorType: 'function-return',
+        errors: [
+          {
+            errorType: 'should-be',
+            type: int,
+          },
+        ],
+      },
+    ]
+    expect(incompatible).to.have.deep.members(expectedErrors)
+    expect(returnType).to.be.an.instanceof(Unit)
+  })
+
+  it('(([a, c] a -> c) -> { test: int })([b] b -> b)', () => {
+    const [incompatible, returnType] = FuncType.make(() => [
+      FuncType.make((a, c) => [a, c], 'a', 'c'),
+      new Record(new Map([['test', int.instance()]])),
+    ]).given(FuncType.make(b => [b, b], 'b'))
+    const expectedErrors: ExpectEqualError[] = [
+      {
+        errorType: 'function-return',
+        errors: [
+          {
+            errorType: 'diff-typevar',
+          },
+        ],
+      },
+    ]
+    expect(incompatible).to.have.deep.members(expectedErrors)
+    expect(returnType).to.satisfy(shouldBeTestIntRecord)
+  })
+
+  it('([a, c] (a -> c) -> a)([b] b -> b)', () => {
+    const [incompatible, returnType] = FuncType.make(
+      (a, c) => [FuncType.make(() => [a, c]), a],
+      'a',
+      'c',
+    ).given(FuncType.make(b => [b, b], 'b'))
+    const expectedErrors: ExpectEqualError[] = [
+      {
+        errorType: 'function-return',
+        errors: [
+          {
+            errorType: 'diff-typevar',
+          },
+        ],
+      },
+    ]
+    expect(incompatible).to.have.deep.members(expectedErrors)
+    expect(returnType).to.be.an.instanceof(Unknown)
+  })
+
+  it('([a] ((), alias1[a]) -> maybe[a])(((), alias2[int]))', () => {
+    const alias1 = AliasSpec.make(
+      'alias1',
+      t => new Tuple([list.instance([t]), t]),
+      't',
+    )
+    const alias2 = AliasSpec.make(
+      'alias2',
+      t =>
+        new Tuple([
+          list.instance([new Tuple([t, t])]),
+          new Tuple([t, str.instance()]),
+        ]),
+      't',
+    )
+    const [incompatible, returnType] = FuncType.make(
+      a => [new Tuple([new Unit(), alias1.instance([a])]), maybe.instance([a])],
+      'a',
+    ).given(new Tuple([new Unit(), alias2.instance([int.instance()])]))
+    const expectedErrors: ExpectEqualError[] = [
+      {
+        errorType: 'tuple',
+        index: 1,
+        errors: [
+          {
+            errorType: 'alias',
+            errors: [
+              {
+                errorType: 'tuple',
+                index: 1,
+                errors: [
+                  {
+                    errorType: 'tuple',
+                    index: 1,
+                    errors: [
+                      {
+                        errorType: 'should-be',
+                        type: int,
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ]
+    expect(incompatible).to.have.deep.members(expectedErrors)
+    expect(returnType).to.satisfy(shouldBeMaybeIntInt)
   })
 })

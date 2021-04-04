@@ -1,4 +1,5 @@
 import {
+  AliasType,
   Function as Func,
   FuncTypeVar,
   makeVar,
@@ -96,11 +97,32 @@ export class EnumTypeSpec extends TypeSpec {
   }
 }
 
-export class AliasSpec extends TypeSpec {
+export class AliasSpec {
+  name: string
   type: NType
+  typeVars: TypeVar[]
 
-  constructor (name: string, typeVars: TypeVar[], type: NType) {
-    super(name, typeVars)
+  constructor (name: string, type: NType, typeVars: TypeVar[] = []) {
+    this.name = name
     this.type = type
+    this.typeVars = typeVars
+  }
+
+  instance (typeVars: (NType | null)[] = []): AliasType {
+    if (this.typeVars.length !== typeVars.length) {
+      throw new TypeError(
+        `Spec has ${this.typeVars.length} type vars, but was instantiated with ${typeVars.length}.`,
+      )
+    }
+    return new AliasType(this, typeVars)
+  }
+
+  static make (
+    name: string,
+    maker: (...typeVars: TypeVar[]) => NType,
+    ...typeVarNames: string[]
+  ): AliasSpec {
+    const generics = typeVarNames.map(makeVar)
+    return new AliasSpec(name, maker(...generics), generics)
   }
 }
