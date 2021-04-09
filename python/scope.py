@@ -957,6 +957,21 @@ class Scope:
 			elif parent_function.returntype is not None and not n_cmd_type.is_type(parent_function.returntype):
 				self.errors.append(TypeCheckError(expr, "You can only use the await operator in a function that returns a cmd, but the surrounding function returns a %s." % display_type(parent_function.returntype)))
 			return contained_type
+		elif expr.data == "match":
+			input_value, match_block = expr.children
+			value_type = self.type_check_expr(input_value)
+			first_match, first_value = match_block.children[0].children
+			first_match_type = self.type_check_expr(first_match)
+			first_value_type = self.type_check_expr(first_value)
+			for i, match_value in enumerate(match_block.children):
+				match, value = match_value.children
+				if self.type_check_expr(match) != first_match_type and self.type_check_expr(match) != None:
+					self.errors.append(TypeCheckError(match_value, "The match check #%s's type is %s while the first check's type is %s" % (str(i), display_type(self.type_check_expr(match)), display_type(first_match_type))))
+				if self.type_check_expr(value) != first_value_type and self.type_check_expr(match) != None:
+					self.errors.append(TypeCheckError(match_value, "The match value #%s's type is %s while the first value's type is %s" % (str(i), display_type(self.type_check_expr(value)), display_type(first_value_type))))
+
+			if value_type == first_match_type:
+				self.errors.append(TypeCheckError(input_value, "The input value's type is %s while the match's type is %s" % (display_type(value_type), display_type(first_match_type))))
 
 		if len(expr.children) == 2 and type(expr.children[0]) is lark.Token:
 			operation, value = expr.children
