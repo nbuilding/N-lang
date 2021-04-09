@@ -58,7 +58,7 @@ tupleval: "(" expression ("," expression)* (",")? ")"
 listval: "[" (expression ("," expression)* (",")?)? "]"
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
 enum_constructors: enum_constructor ("|" enum_constructor)*
-match_block: "{" (match_entry (";" | "\n"))* EMPTY (";" | "\n")? "}"
+match_block: "{" (match_entry (";" | "\n"))* "}"
 match_entry: value "->" value
 enum_constructor: modifier "<" NAME types* ">"
                 | modifier NAME
