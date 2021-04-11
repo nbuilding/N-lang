@@ -1,7 +1,7 @@
-# Type Variables
+# Type Aliases
 
 ```js
-// This will create a simple variables for a record type
+// This will create a simple alias for a record type
 alias test = {
 	a:int,
 	b:int,
@@ -13,4 +13,4 @@ let test2:test = {a:1, b:1, c:"test"}
 ```
 
 ## Notes:
-- When printing out the type of a value that uses an variables as its type, it will not print out the variables name.
+- When printing out the type of a value that uses an alias as its type, it will not print out the alias' name.
