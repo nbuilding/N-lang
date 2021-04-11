@@ -1,5 +1,5 @@
 # Why use N?
-N is a strongly typed programming language that is similar to javascript with a few differences,
+N is a strongly typed programming language that is similar to JavaScript and Python with a few differences,
 - It was made to be strongly typed
 - You can either compile or interpret it based on what you want
 - It is very easy to change what functions do as they are all variables

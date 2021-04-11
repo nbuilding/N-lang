@@ -12,12 +12,12 @@ print("test")
 
 This will be `run.n`
 ```js
-// imp takes in a string or a name (depricated) and returns a record after running though the file
+// imp takes in a string or a name (deprecated) and returns a record after running though the file
 
-let importedthings = imp "./import.n" // This goes though the file so it will print out test
-// let importedthings = imp import // deprecated
+let importedThings = imp "./import.n" // This goes though the file so it will print out test
+// let importedthings = imp import // deprecated, does the sames thing as the line before it
 
-print(importedthings.test) // Prints out hello
+print(importedThings.test) // Prints out hello
 //print(importedthigns.test2) will cause an error because it is not public
 ```
 

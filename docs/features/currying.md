@@ -2,11 +2,13 @@
 
 ```js
 // Currying is when a function is called with less arguments than intended
+// When calling a function with fewer arguments than it can take, it will return a new function that calls the old function, but with the arguments already given pre-filled.
+
 let sum = [a:int b:int] -> int {
 	return a + b
 }
 
-let addOne = sum(1) // Here it is called with one less argument than inteded, this ends up return a function that is an int -> int, which when called will add one to the number
+let addOne = sum(1) // Here it is called with one less argument than intended; this ends up returning a function that is an int -> int, which when called will add one to the number
 
 print(addOne(2)) // Prints 3
 

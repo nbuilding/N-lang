@@ -3,7 +3,7 @@
 ```js
 // Simple if statement that will always be false
 
-if (1 /= 1) { // usually if (1 != 1) in other langugaes
+if (1 /= 1) { // usually if (1 != 1) in other languages
 	print("This will never run")
 } else if (false) {
 	print("This will never run")
@@ -11,19 +11,19 @@ if (1 /= 1) { // usually if (1 != 1) in other langugaes
 	print("This will always run")
 }
 
-// The condutional let will only run the block of code if the value can be assigned to the variable
-if let i:str = 1 {
-	print("This will never run")
-}
-
-if let i:str = "This will always run" {
+// The conditional let will only run the block of code if the value can be assigned to the variable
+if let i = "This will always run" {
 	print(i)
 }
 
-let notnone:maybe[str] = yes("This will always run")
+let notNone:maybe[str] = yes("This will always run")
 
-if let <yes test> = notnone {
-	print(test) // test is not a maybe anymore, it is a string
+if let <yes test> = notNone {
+	print(test) // test is not a maybe, it is a string
+}
+
+if let <yes test> = none {
+	print("This will never run")
 }
 ```
 

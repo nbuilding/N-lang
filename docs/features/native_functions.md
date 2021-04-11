@@ -13,7 +13,7 @@ len("abc") // Takes in any value and returns the length of it. For lists and tup
 split(\{b}, "abc") // Splits a string based on a character as many times as possible and returns a list[str].
 strip(" abc ") // Returns a string with removed whitespace from the end.
 range(0, 10, 1) // Returns a list of ints that takes in a start, and end, and a step value.
-//type(10) // Takes in any object and returns the type of it as a string. Depricated until new name is added.
+//type(10) // Takes in any object and returns the type of it as a string. Deprecated until new name is added.
 print("test") // Takes in any type and prints it out in a formatted way. It also returns the value printed out.
 itemAt(1, [1, 2, 3]) // Takes in an int and a list of any type and returns a maybe of the item that might be there.
 append(4, [1, 2, 3]) // Returns a list with the item added to the end, this is not a void function.

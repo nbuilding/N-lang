@@ -12,7 +12,7 @@ let asyncHelper = [] -> cmd[()] {
 	let _ = asyncFunction("test")! // ! calls an async function and awaits for it to finish
 }
 
-let _ = asyncHelper()
+let pub _ = asyncHelper()
 ```
 
 ## Notes

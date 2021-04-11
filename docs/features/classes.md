@@ -13,4 +13,4 @@ class pub Test [a:int b:int] {
 
 ## Notes:
 - There is currently no way for multiple contructors.
-- All things in a class are automatially private, this does include the values passed in.
+- All things in a class are automatically private, this does include the values passed in.
