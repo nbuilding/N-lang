@@ -16,3 +16,4 @@ Here is a list of features in N that we have implemented and the documents that 
 - [Aliases](./features/aliases.md)
 - [Classes](./features/classes.md)
 - [Async](./features/async.md)
+- [Generics](./features/generic.md)
