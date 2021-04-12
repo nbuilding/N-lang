@@ -14,7 +14,7 @@ class NConstructor(Function):
                 self.arguments,
                 self.codeblock,
                 self.public,
-                argument_cache=self.argument_cache,
+                argument_cache=arguments,
             )
 
         scope = self.scope.new_scope(parent_function=None)
