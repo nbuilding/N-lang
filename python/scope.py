@@ -57,7 +57,7 @@ def parse_file(file_path, base_path):
         parse = f.read()
     n_parser = Lark(parse, start="start", propagate_positions=True)
 
-    with open(file_path, "r") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         file = File(f, name=os.path.relpath(file_path, start=base_path))
 
     try:
