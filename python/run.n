@@ -1,1 +1,10 @@
-let test = imp "./runner.n"
+import times
+
+let run = [] -> cmd[()] {
+	let _ = times.sleep(499)!
+	print("test")
+	let _ = times.sleep(1000)!
+	print("test")
+}
+
+let pub test = run()
