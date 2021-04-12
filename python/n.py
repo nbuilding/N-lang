@@ -34,7 +34,7 @@ args = parser.parse_args()
 
 filename = args.file
 
-with open(filename, "r") as f:
+with open(filename, "r", encoding="utf-8") as f:
     file = File(f)
 
 file_path = path.abspath(filename)

@@ -1,2 +1,2 @@
-let test = 3.0
-print(-test)
+let test = \{🐑}
+print(test)
