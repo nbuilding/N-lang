@@ -18,10 +18,14 @@ cmd_generic = NGenericType("t")
 n_cmd_type = NTypeVars("cmd", [cmd_generic])
 
 maybe_generic = NGenericType("t")
-n_maybe_type = EnumType("maybe", [
-    ("yes", [maybe_generic]),
-    ("none", []),
-], [maybe_generic])
+n_maybe_type = EnumType(
+    "maybe",
+    [
+        ("yes", [maybe_generic]),
+        ("none", []),
+    ],
+    [maybe_generic],
+)
 none = EnumValue("none")
 
 
@@ -31,10 +35,14 @@ def yes(value):
 
 result_ok_generic = NGenericType("o")
 result_err_generic = NGenericType("e")
-n_result_type = EnumType("result", [
-    ("ok", [result_ok_generic]),
-    ("err", [result_err_generic]),
-], [result_ok_generic, result_err_generic])
+n_result_type = EnumType(
+    "result",
+    [
+        ("ok", [result_ok_generic]),
+        ("err", [result_err_generic]),
+    ],
+    [result_ok_generic, result_err_generic],
+)
 
 
 def ok(value):

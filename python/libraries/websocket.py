@@ -26,16 +26,22 @@ connect_options_type = {
 
 
 async def connect(options, url):
-    debug = os.environ.get('N_WS_DEBUG') == 'experimental'
+    debug = os.environ.get("N_WS_DEBUG") == "experimental"
     if debug:
-        print(f"{Fore.YELLOW}Websocket debugging is experimental and may be removed in the future.{Style.RESET_ALL}")
+        print(
+            f"{Fore.YELLOW}Websocket debugging is experimental and may be removed in the future.{Style.RESET_ALL}"
+        )
         print(f"[{url}] {Fore.BLUE}Connecting.{Style.RESET_ALL}")
 
         async def manual_send():
             try:
                 while True:
-                    message = await async_input(f"[{url}] NOTICE ME! Type a message and press enter to send.\n")
-                    print(f"[{url}] {Fore.CYAN}send*{Style.RESET_ALL} {Fore.GREEN}{message}{Style.RESET_ALL}")
+                    message = await async_input(
+                        f"[{url}] NOTICE ME! Type a message and press enter to send.\n"
+                    )
+                    print(
+                        f"[{url}] {Fore.CYAN}send*{Style.RESET_ALL} {Fore.GREEN}{message}{Style.RESET_ALL}"
+                    )
                     await websocket.send(message)
             except asyncio.CancelledError:
                 pass
@@ -47,12 +53,16 @@ async def connect(options, url):
 
         async def send_msg(message):
             if debug:
-                print(f"[{url}] {Fore.CYAN}send{Style.RESET_ALL} {Fore.GREEN}{message}{Style.RESET_ALL}")
+                print(
+                    f"[{url}] {Fore.CYAN}send{Style.RESET_ALL} {Fore.GREEN}{message}{Style.RESET_ALL}"
+                )
             await websocket.send(message)
 
         # Why is this so complicated
-        send = NativeFunction(None, [], None, lambda message: Cmd(lambda _: lambda: send_msg(message)))
-        close = await options['onOpen'].run([send])
+        send = NativeFunction(
+            None, [], None, lambda message: Cmd(lambda _: lambda: send_msg(message))
+        )
+        close = await options["onOpen"].run([send])
         if debug:
             print(f"[{url}] {Fore.BLUE}onOpen handled.{Style.RESET_ALL}")
         if isinstance(close, Cmd):
@@ -61,8 +71,10 @@ async def connect(options, url):
             try:
                 async for message in websocket:
                     if debug:
-                        print(f"[{url}] {Fore.CYAN}recv{Style.RESET_ALL} {Fore.MAGENTA}{message}{Style.RESET_ALL}")
-                    close = await options['onMessage'].run([send, message])
+                        print(
+                            f"[{url}] {Fore.CYAN}recv{Style.RESET_ALL} {Fore.MAGENTA}{message}{Style.RESET_ALL}"
+                        )
+                    close = await options["onMessage"].run([send, message])
                     if debug:
                         print(f"[{url}] {Fore.BLUE}onMessage handled.{Style.RESET_ALL}")
                     if isinstance(close, Cmd):
@@ -71,7 +83,9 @@ async def connect(options, url):
                         break
             except websockets.exceptions.ConnectionClosedError as err:
                 if debug:
-                    print(f"[{url}] {Fore.CYAN}ERROR{Style.RESET_ALL} {Fore.RED}{err}{Style.RESET_ALL}")
+                    print(
+                        f"[{url}] {Fore.CYAN}ERROR{Style.RESET_ALL} {Fore.RED}{err}{Style.RESET_ALL}"
+                    )
                 return yes(err.reason)
         # await options['onClose'].eval()
         if debug:
@@ -84,7 +98,11 @@ async def connect(options, url):
 def _values():
     return {
         # connect: connectOptions -> str -> cmd[maybe[str]]
-        "connect": (connect_options_type, "str", n_cmd_type.with_typevars([n_maybe_type.with_typevars(["str"])])),
+        "connect": (
+            connect_options_type,
+            "str",
+            n_cmd_type.with_typevars([n_maybe_type.with_typevars(["str"])]),
+        ),
     }
 
 

@@ -10,6 +10,4 @@ async def inp(question):
 
 
 def _values():
-    return {
-        "inp": ("str", n_cmd_type.with_typevars(["str"]))
-    }
+    return {"inp": ("str", n_cmd_type.with_typevars(["str"]))}

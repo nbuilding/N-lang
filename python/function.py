@@ -5,7 +5,9 @@ from type_check_error import display_type
 
 
 class Function(Variable):
-    def __init__(self, scope, arguments, returntype, codeblock, generics=None, public=False):
+    def __init__(
+        self, scope, arguments, returntype, codeblock, generics=None, public=False
+    ):
         # Tuples represent function types. (a, b, c) represents a -> b -> c.
         types = tuple([ty for _, ty in arguments] + [returntype])
         if None in types:
@@ -23,13 +25,17 @@ class Function(Variable):
         loop = asyncio.get_running_loop()
         using_await_future = loop.create_future()
         cmd_resume_future = loop.create_future()
-        scope = self.scope.new_scope(parent_function=(self, using_await_future, cmd_resume_future))
+        scope = self.scope.new_scope(
+            parent_function=(self, using_await_future, cmd_resume_future)
+        )
 
         for value, (arg_pattern, _) in zip(arguments, self.arguments):
             scope.assign_to_pattern(arg_pattern, value)
         if len(arguments) < len(self.arguments):
             # Curry :o
-            return Function(scope, self.arguments[len(arguments):], self.returntype, self.codeblock)
+            return Function(
+                scope, self.arguments[len(arguments) :], self.returntype, self.codeblock
+            )
 
         async def run_command():
             try:
@@ -49,6 +55,7 @@ class Function(Variable):
         awaiting, value = await using_await_future
 
         if awaiting:
+
             async def continue_async():
                 cmd_resume_future.set_result(True)
                 return await run_task
@@ -58,4 +65,4 @@ class Function(Variable):
             return value
 
     def __str__(self):
-        return '<function %s>' % display_type(self.arguments, False)
+        return "<function %s>" % display_type(self.arguments, False)

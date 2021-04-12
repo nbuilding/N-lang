@@ -6,8 +6,14 @@ from native_types import n_list_type, list_generic
 binary_operation_types = {
     "OR": [("bool", "bool", "bool"), ("int", "int", "int")],
     "AND": [("bool", "bool", "bool"), ("int", "int", "int")],
-    "ADD": [("int", "int", "int"), ("float", "float", "float"), ("str", "str", "str"), ("char", "char", "str"),
-            ("str", "char", "str"), (n_list_type, n_list_type, n_list_type)],
+    "ADD": [
+        ("int", "int", "int"),
+        ("float", "float", "float"),
+        ("str", "str", "str"),
+        ("char", "char", "str"),
+        ("str", "char", "str"),
+        (n_list_type, n_list_type, n_list_type),
+    ],
     "SUBTRACT": [("int", "int", "int"), ("float", "float", "float")],
     "MULTIPLY": [("int", "int", "int"), ("float", "float", "float")],
     "DIVIDE": [("int", "int", "int"), ("float", "float", "float")],

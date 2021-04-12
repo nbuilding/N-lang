@@ -3,12 +3,15 @@ import json
 from enums import EnumType, EnumValue
 from native_types import n_list_type, n_map_type, NMap, n_maybe_type, yes
 
-json_value_type = EnumType("value", [
-    ("null", []),
-    ("string", ["str"]),
-    ("number", ["float"]),
-    ("boolean", ["bool"]),
-])
+json_value_type = EnumType(
+    "value",
+    [
+        ("null", []),
+        ("string", ["str"]),
+        ("number", ["float"]),
+        ("boolean", ["bool"]),
+    ],
+)
 # These must be added separately because they're self-referencing
 json_value_type.variants += [
     ("array", [n_list_type.with_typevars([json_value_type])]),
@@ -78,9 +81,11 @@ def json_to_python(enum_value):
     elif enum_value.variant == "array":
         return [json_to_python(item) for item in enum_value.values[0]]
     elif enum_value.variant == "object":
-        return {key: json_to_python(value) for key, value in enum_value.values[0].items()}
+        return {
+            key: json_to_python(value) for key, value in enum_value.values[0].items()
+        }
     else:
-        raise TypeError('I was not given a JSON value enum!')
+        raise TypeError("I was not given a JSON value enum!")
 
 
 def parse(string):
