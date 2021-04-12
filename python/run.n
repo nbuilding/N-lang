@@ -1,10 +1,2 @@
-import times
-
-let run = [] -> cmd[()] {
-	let _ = times.sleep(499)!
-	print("test")
-	let _ = times.sleep(1000)!
-	print("test")
-}
-
-let pub test = run()
+let test = 3.0
+print(-test)

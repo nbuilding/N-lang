@@ -884,7 +884,7 @@ class Scope:
             return await self.eval_expr(left) ** await self.eval_expr(right)
         elif expr.data == "unary_expression":
             operation, value = expr.children
-            if operation.type == "NEGATE":
+            if operation.type == "SUBTRACT":
                 return -await self.eval_expr(value)
             elif operation.type == "NOT":
                 return not await self.eval_expr(value)
