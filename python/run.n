@@ -1,5 +1,1 @@
-let tester = [] -> () {
-	if (false) {
-		print("test")
-	}
-}
+let test = imp "./runner.n"
