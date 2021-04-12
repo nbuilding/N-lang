@@ -24,7 +24,7 @@ binary_operation_types = {
     "EXPONENT": [("int", "int", "float"), ("float", "float", "float")],
 }
 unary_operation_types = {
-    "NEGATE": [("int", "int"), ("float", "float")],
+    "SUBTRACT": [("int", "int"), ("float", "float")],
     "NOT": [("bool", "bool"), ("int", "int")],
 }
 comparable_types = ["int", "float"]
