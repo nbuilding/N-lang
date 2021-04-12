@@ -14,3 +14,13 @@ class ImportedError:
             return False
 
         return self.file == other.file
+
+    def __len__(self):
+    	value = 0
+    	for error in self.err:
+    		if isinstance(error, ImportedError):
+    			value += len(error)
+    		else:
+    			value += 1
+
+    	return value
