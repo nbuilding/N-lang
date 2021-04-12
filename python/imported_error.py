@@ -13,3 +13,6 @@ class ImportedError:
 			return False
 
 		return self.file == other.file
+
+	def __len__(self):
+		return len(self.err)

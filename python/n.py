@@ -47,7 +47,23 @@ def type_check(file, tree):
 			[error.display('error', file) for error in scope.errors]
 		))
 
-	return (len(scope.errors), len(scope.warnings))
+	error_len = 0
+
+	for error in scope.errors:
+		if isinstance(error, ImportedError):
+			error_len += len(error)
+		else:
+			error_len += 1
+
+	warning_len = 0
+
+	for warning in scope.warnings:
+		if isinstance(warning, ImportedError):
+			warning_len += len(warning)
+		else:
+			warning_len += 1
+
+	return (error_len, warning_len)
 
 async def parse_tree(tree):
 	if tree.data == "start":

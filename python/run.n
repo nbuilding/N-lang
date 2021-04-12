@@ -1,1 +1,1 @@
-print(2 << 3)
+let test = imp "./runner.n"
