@@ -1,10 +1,10 @@
-import time
+import time as t
 import asyncio
 from native_types import n_cmd_type
 
 
 async def sleep(time):
-    await time.sleep(time[0] / 1000)
+    await asyncio.sleep(time / 1000)
 
 
 def _values():
