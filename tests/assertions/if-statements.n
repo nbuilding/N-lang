@@ -1,0 +1,25 @@
+// Based on docs/features/if_statements.md
+
+if 1 /= 1 {
+	print("This will never run")
+} else if (false) {
+	print("This will never run")
+} else {
+	assert value true
+}
+
+if let i = "This will always run" {
+	assert value i = "This will always run"
+}
+
+let notNone: maybe[str] = yes("This will always run")
+
+if let <yes test> = notNone {
+	assert value test = "This will always run"
+}
+
+if let <yes test> = none {
+	print("This will never run")
+} else {
+	assert value true
+}

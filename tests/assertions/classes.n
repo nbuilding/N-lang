@@ -1,0 +1,19 @@
+// Based on docs/features/classes.md
+
+class pub Test [a:int b:int] {
+	let pub sum = [] -> int {
+		return a + b
+	}
+
+	let internalSum = a + b
+}
+
+assert type Test : int -> int -> Test
+
+let test = Test(1, 2)
+
+assert type test : Test
+
+assert type test.sum : int
+
+assert value test.sum = 1 + 2

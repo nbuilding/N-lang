@@ -1,0 +1,46 @@
+// Based on docs/features/enums.md
+
+{
+	type state = mainMenu | ongoing | ended
+
+	assert type mainMenu : state
+
+	let gameState = ended
+
+	assert type gameState : state
+}
+
+{
+	type state =
+		| mainMenu
+		| <ongoing int>
+		| <ended str>
+
+	assert type ongoing : int -> state
+
+	let gameState = ongoing(100)
+
+	assert value gameState = ongoing(100)
+
+	if let <ongoing health> = gameState {
+		assert value health = 100
+	}
+}
+
+let divideBy2 = [number: int] -> result[int, string] {
+	if number % 2 = 1 {
+		return err("Odd numbers are not divisible by two.")
+	} else if not number = 42 {
+		return ok(number / 2)
+	} else {
+		return err("I have decided to refuse to divide 42 by two.")
+	}
+}
+
+assert value divideBy2(3) = err("Odd numbers are not divisible by two.")
+assert value divideBy2(42) = err("I have decided to refuse to divide 42 by two.")
+assert value divideBy2(10) = ok(5)
+
+if let <yes char> = "yes" |> charAt(0) {
+	assert value char = \{y}
+}

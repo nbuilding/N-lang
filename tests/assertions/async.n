@@ -1,0 +1,4 @@
+// Based on docs/features/async.md
+
+// TODO: The async example is pretty bad at the moment because it doesn't show
+// an actual use of async
