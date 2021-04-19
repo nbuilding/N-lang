@@ -14,8 +14,8 @@ let value:json.value = json.object(mapFrom([ // This is a map[str, json.value]
 	("test", json.string("test")) // There are json.string, json.array, json.number, and json.none
 ]))
 print(json.stringify(value)) // Turns a json.value into a string
-// print(json.parse("{ test: \"test\" }")) // Turns a string into a json.value, deprecated as it is unsafe and can throw errors
-print(json.parse("{ test: \"test\" }") |> default(json.string("invalid"))) // Turns a string into a maybe[json.value]
+print(json.parse("{ test: \"test\" }")) // Turns a string into a json.value, if it fails it will return a json.none
+print(json.parseSafe("{ test: \"test\" }") |> default(json.string("invalid"))) // Turns a string into a maybe[json.value]
 
 import request // Used for http requests for websites
 request.get("github.com", mapfrom([("","")]))! // Takes in a url and a header and returns a {code: int, response: str, return: json.value}, returns a cmd
