@@ -1,3 +1,8 @@
-let test: str = "wow"
+/* wow */ let test
+  :
+  // lol
+     str
 
+     /* wee */
+ = 2.0 // weee
 print(test)

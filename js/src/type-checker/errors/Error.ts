@@ -1,6 +1,7 @@
 import { Base } from '../../ast/index'
 import { isObjectLike } from '../../utils/type-guards'
 import { ExpectEqualError, NType } from '../types/types'
+import { BlockDisplay, InlineDisplay } from './ErrorDisplayer'
 
 export enum ErrorType {
   /** Variable is not defined in scope */
@@ -151,23 +152,11 @@ export interface Error {
   base: Base
 }
 
-/**
- * A type, a string (that will be enclosed in backticks), an ordinal, a list
- * (with a conjunction of your choosing), or using the singular or plural form
- * depending on the number.
- */
-type InlineDisplay =
-  | NType
-  | string
-  | [number, 'th']
-  | ['or' | 'and', string[]]
-  | [string, number, string]
-
 // Maybe this shouldn't rely on `base`
-export function displayError (
+export function displayErrorMessage (
   { message: err }: Error,
   display: (strings: TemplateStringsArray, ...items: InlineDisplay[]) => string,
-): string | (string | false)[] {
+): string | [string, ...(BlockDisplay | false)[]] {
   switch (err.type) {
     case ErrorType.ARG_TYPE_MISMATCH: {
       return display`The ${[err.argPos, 'th']} argument you give to a ${
@@ -191,7 +180,7 @@ export function displayError (
         err.variant
       } variant. However, it could also be ${[
         'or',
-        err.otherVariants,
+        err.otherVariants.map(variant => display`${variant}`),
       ]}, so I don't know what to do in those scenarios.`
     }
     case ErrorType.ENUM_DESTRUCTURE_FIELD_MISMATCH: {
@@ -233,7 +222,7 @@ export function displayError (
     case ErrorType.RECORD_DESTRUCTURE_INCOMPLETE: {
       return display`A ${err.recordType} has the keys ${[
         'and',
-        err.keys,
+        err.keys.map(key => display`${key}`),
       ]}, but you didn't destructure them. If you don't need those fields, you should assign them to a ${'_'} to explicitly discard the values.`
     }
     case ErrorType.RECORD_DESTRUCTURE_NO_KEY: {

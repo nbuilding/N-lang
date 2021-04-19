@@ -5,6 +5,9 @@ import util from 'util'
 import parseArgs from 'minimist'
 // import { compileToJS, TypeChecker, FileLines } from './index'
 import { parse } from './grammar/parse'
+import { TypeChecker } from './type-checker/TypeChecker'
+import { Block } from './ast/statements/Block'
+import { ErrorDisplayer } from './type-checker/errors/ErrorDisplayer'
 // import { Block } from './ast/index'
 // import { TypeChecker } from './type-checker/TypeChecker'
 // import { displayError } from './type-checker/errors/Error'
@@ -69,7 +72,7 @@ async function main () {
 
   if (!(js || running || checksOnly)) return
 
-  /*
+  //*
   const checker = new TypeChecker({
     resolvePath (basePath: string, importPath: string): string {
       return basePath + importPath // TEMP
@@ -78,24 +81,13 @@ async function main () {
       throw new Error('not implemented')
     },
   })
+  const displayer = new ErrorDisplayer({ type: 'console-color' })
   const result = await checker.start(script)
+  const lines = file.split(/\r?\n/)
   console.log(
     result.errors
-      .map(error =>
-        displayError(
-          error,
-          (template: TemplateStringsArray, ...substitutions: any[]) => {
-            let str = ''
-            template.forEach((part, i) => {
-              str += part
-              if (substitutions[i])
-                str += util.inspect(substitutions[i], false, null, true)
-            })
-            return str
-          },
-        ),
-      )
-      .join('\n'),
+      .map(error =>displayer.displayError('run.n', lines, error))
+      .join('\n\n'),
   )
   /*
   console.log(checker.displayWarnings(lines))

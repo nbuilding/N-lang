@@ -76,8 +76,12 @@ export function expectEqual (
     if (other.resolved !== undefined) {
       return expectEqual(annotation, other.resolved)
     } else {
-      other.resolved = annotation
-      return []
+      if (annotation instanceof FuncTypeVar) {
+        return annotation.expectEqual(other)
+      } else {
+        other.resolved = annotation
+        return []
+      }
     }
   } else if (other instanceof AliasType) {
     const errors = expectEqual(annotation, other.type)
@@ -317,10 +321,10 @@ export class Unknown implements NType {
 
   substitute (substitutions: Map<TypeVar, NType | null>): NType | null {
     const resolvedType = this.resolvedType()
-    if (resolvedType) {
-      return resolvedType.substitute(substitutions)
-    } else {
+    if (resolvedType instanceof Unknown) {
       return this
+    } else {
+      return resolvedType && resolvedType.substitute(substitutions)
     }
   }
 
