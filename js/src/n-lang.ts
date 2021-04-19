@@ -86,7 +86,7 @@ async function main () {
   const lines = file.split(/\r?\n/)
   console.log(
     result.errors
-      .map(error =>displayer.displayError('run.n', lines, error))
+      .map(error => displayer.displayError('run.n', lines, error))
       .join('\n\n'),
   )
   /*

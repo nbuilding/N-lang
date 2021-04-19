@@ -16,9 +16,7 @@ export type InlineDisplay =
   | ['or' | 'and', string[]]
   | [string, number, string]
 
-export type BlockDisplay =
-  | string
-  | Base
+export type BlockDisplay = string | Base
 
 export interface HtmlClassOptions {
   /** CSS class to use for variable and type names; default `n-error-name` */
@@ -49,12 +47,14 @@ export interface HtmlClassOptions {
   error: string
 }
 
-type ErrorDisplayColourOptions = {
-  type?: 'plain' | 'console-color'
-} | {
-  type: 'html'
-  classes?: HtmlClassOptions
-}
+type ErrorDisplayColourOptions =
+  | {
+      type?: 'plain' | 'console-color'
+    }
+  | {
+      type: 'html'
+      classes?: HtmlClassOptions
+    }
 
 export type ErrorDisplayerOptions = ErrorDisplayColourOptions & {
   /** Minimum number of lines to show for multiline code snippets */
@@ -75,10 +75,14 @@ export class ErrorDisplayer {
       if (inline[1] === 'th') {
         const [ordinal] = inline
         switch (ordinal) {
-          case 1: return 'first'
-          case 2: return 'second'
-          case 3: return 'third'
-          default: return ordinal + 'th'
+          case 1:
+            return 'first'
+          case 2:
+            return 'second'
+          case 3:
+            return 'third'
+          default:
+            return ordinal + 'th'
         }
       } else if (inline.length === 3) {
         return inline[1] === 1 ? inline[0] : `${inline[1]} ${inline[2]}`
@@ -90,7 +94,9 @@ export class ErrorDisplayer {
           return `${items[0]} ${conjunction} ${items[1]}`
         } else {
           // OXFORD COMMA
-          return `${items.slice(0, -1).join(', ')},  ${conjunction} ${items[items.length - 1]}`
+          return `${items.slice(0, -1).join(', ')},  ${conjunction} ${
+            items[items.length - 1]
+          }`
         }
       }
     } else if (typeof inline === 'string') {
@@ -98,24 +104,27 @@ export class ErrorDisplayer {
       return this.options.type === 'console-color'
         ? colours.green(str)
         : this.options.type === 'html'
-        ? `<span class="${this.options.classes?.name ?? 'n-error-name'}">${escapeHtml(str)}</span>`
+        ? `<span class="${this.options.classes?.name ??
+            'n-error-name'}">${escapeHtml(str)}</span>`
         : str
     } else {
       const str = '`' + displayType(inline) + '`'
       return this.options.type === 'console-color'
         ? colours.yellow(str)
         : this.options.type === 'html'
-        ? `<span class="${this.options.classes?.types ?? 'n-error-types'}">${escapeHtml(str)}</span>`
+        ? `<span class="${this.options.classes?.types ??
+            'n-error-types'}">${escapeHtml(str)}</span>`
         : str
     }
   }
 
-  private _displayLine (strings: TemplateStringsArray, ...items: InlineDisplay[]): string {
+  private _displayLine (
+    strings: TemplateStringsArray,
+    ...items: InlineDisplay[]
+  ): string {
     let displayed = ''
     strings.forEach((item, i) => {
-      displayed += this.options.type === 'html'
-        ? escapeHtml(item)
-        : item
+      displayed += this.options.type === 'html' ? escapeHtml(item) : item
       if (i < strings.length - 1) {
         displayed += this._displayInline(items[i])
       }
@@ -128,20 +137,28 @@ export class ErrorDisplayer {
     return this.options.type === 'console-color'
       ? colours.cyan(displayed)
       : this.options.type === 'html'
-      ? `<span class="${this.options.classes?.lineNum ?? 'n-error-line-num'}">${displayed}</span>`
+      ? `<span class="${this.options.classes?.lineNum ??
+          'n-error-line-num'}">${displayed}</span>`
       : displayed
   }
 
-  private _displayUnderline (lines: string[], line: number, col: number | null, endCol: number | null): string {
+  private _displayUnderline (
+    lines: string[],
+    line: number,
+    col: number | null,
+    endCol: number | null,
+  ): string {
     const lineNumLength = lines.length.toString().length
-    const underline = (col !== null ? '' : '... ')
-      + '^'.repeat((endCol ?? lines[line - 1].length + 1) - (col ?? 1))
-      + (endCol !== null ? '' : ' ...')
+    const underline =
+      (col !== null ? '' : '... ') +
+      '^'.repeat((endCol ?? lines[line - 1].length + 1) - (col ?? 1)) +
+      (endCol !== null ? '' : ' ...')
     const displayed =
       this.options.type === 'console-color'
         ? colours.red(underline)
         : this.options.type === 'html'
-        ? `<span class="${this.options.classes?.underline ?? 'n-error-underline'}">${underline}</span>`
+        ? `<span class="${this.options.classes?.underline ??
+            'n-error-underline'}">${underline}</span>`
         : underline
     return ' '.repeat(lineNumLength + (col !== null ? 3 + col : 0)) + displayed
   }
@@ -150,53 +167,86 @@ export class ErrorDisplayer {
     return this.options.type === 'console-color'
       ? colours.red(text)
       : this.options.type === 'html'
-      ? `<span class="${this.options.classes?.multilineHighlight ?? 'n-error-multiline-highlight'}">${escapeHtml(text)}</span>`
+      ? `<span class="${this.options.classes?.multilineHighlight ??
+          'n-error-multiline-highlight'}">${escapeHtml(text)}</span>`
       : text
   }
 
   private _displayCode (fileName: string, lines: string[], base: Base): string {
     const lineNumLength = lines.length.toString().length
     let displayed = `  --> ${fileName}:${base.line}:${base.col}\n`
-    displayed = this.options.type === 'console-color'
-      ? colours.blue(displayed)
-      : this.options.type === 'html'
-      ? `<span class="${this.options.classes?.filePos ?? 'n-error-file-pos'}">${escapeHtml(displayed)}</span>`
-      : displayed
+    displayed =
+      this.options.type === 'console-color'
+        ? colours.blue(displayed)
+        : this.options.type === 'html'
+        ? `<span class="${this.options.classes?.filePos ??
+            'n-error-file-pos'}">${escapeHtml(displayed)}</span>`
+        : displayed
     if (base.line === base.endLine) {
-      displayed += this._displayLineNum(lineNumLength, base.line)
-        + lines[base.line - 1] + '\n'
-        + this._displayUnderline(lines, base.line, base.col, base.endCol)
+      displayed +=
+        this._displayLineNum(lineNumLength, base.line) +
+        lines[base.line - 1] +
+        '\n' +
+        this._displayUnderline(lines, base.line, base.col, base.endCol)
     } else {
-      displayed += this._displayLineNum(lineNumLength, base.line)
-        + lines[base.line - 1].slice(0, base.col - 1)
-        + this._displayMultilineHighlight(lines[base.line - 1].slice(base.col - 1))
-        + '\n' + this._displayUnderline(lines, base.line, base.col, null)
+      displayed +=
+        this._displayLineNum(lineNumLength, base.line) +
+        lines[base.line - 1].slice(0, base.col - 1) +
+        this._displayMultilineHighlight(
+          lines[base.line - 1].slice(base.col - 1),
+        ) +
+        '\n' +
+        this._displayUnderline(lines, base.line, base.col, null)
       const previewLines = this.options.previewMultiline ?? 2
       if (base.endLine - base.line + 1 > (previewLines + 1) * 2) {
-        for (let line = base.line + 1; line <= base.line + previewLines; line++) {
-          displayed += '\n' + this._displayLineNum(lineNumLength, line) +
+        for (
+          let line = base.line + 1;
+          line <= base.line + previewLines;
+          line++
+        ) {
+          displayed +=
+            '\n' +
+            this._displayLineNum(lineNumLength, line) +
             this._displayMultilineHighlight(lines[line - 1])
         }
-        const ellipses = lineNumLength > 1 ? `\n${' '.repeat(lineNumLength - 2)}... |` : '\n.. |'
-        displayed += this.options.type === 'console-color'
-          ? colours.cyan(ellipses)
-          : this.options.type === 'html'
-          ? `<span class="${this.options.classes?.lineNum ?? 'n-error-line-num'}">${ellipses}</span>`
-          : ellipses
-        for (let line = base.endLine - previewLines; line < base.endLine; line++) {
-          displayed += '\n' + this._displayLineNum(lineNumLength, line) +
+        const ellipses =
+          lineNumLength > 1
+            ? `\n${' '.repeat(lineNumLength - 2)}... |`
+            : '\n.. |'
+        displayed +=
+          this.options.type === 'console-color'
+            ? colours.cyan(ellipses)
+            : this.options.type === 'html'
+            ? `<span class="${this.options.classes?.lineNum ??
+                'n-error-line-num'}">${ellipses}</span>`
+            : ellipses
+        for (
+          let line = base.endLine - previewLines;
+          line < base.endLine;
+          line++
+        ) {
+          displayed +=
+            '\n' +
+            this._displayLineNum(lineNumLength, line) +
             this._displayMultilineHighlight(lines[line - 1])
         }
       } else {
         for (let line = base.line + 1; line < base.endLine; line++) {
-          displayed += '\n' + this._displayLineNum(lineNumLength, line) +
+          displayed +=
+            '\n' +
+            this._displayLineNum(lineNumLength, line) +
             this._displayMultilineHighlight(lines[line - 1])
         }
       }
-      displayed += '\n' + this._displayLineNum(lineNumLength, base.endLine)
-        + this._displayMultilineHighlight(lines[base.endLine - 1].slice(0, base.endCol - 1))
-        + lines[base.endLine - 1].slice(base.endCol - 1)
-        + '\n' + this._displayUnderline(lines, base.endLine, null, base.endCol)
+      displayed +=
+        '\n' +
+        this._displayLineNum(lineNumLength, base.endLine) +
+        this._displayMultilineHighlight(
+          lines[base.endLine - 1].slice(0, base.endCol - 1),
+        ) +
+        lines[base.endLine - 1].slice(base.endCol - 1) +
+        '\n' +
+        this._displayUnderline(lines, base.endLine, null, base.endCol)
     }
     return displayed
   }
@@ -206,11 +256,13 @@ export class ErrorDisplayer {
     const blocks: BlockDisplay[] = Array.isArray(rawBlocks)
       ? rawBlocks.filter((block): block is BlockDisplay => !!block)
       : [rawBlocks, error.base]
-    let str = this.options.type === 'console-color'
-      ? colours.bold(colours.red('Error'))
-      : this.options.type === 'html'
-      ? `<span class="${this.options.classes?.error ?? 'n-error-error'}">Error</span>`
-      : 'Error'
+    let str =
+      this.options.type === 'console-color'
+        ? colours.bold(colours.red('Error'))
+        : this.options.type === 'html'
+        ? `<span class="${this.options.classes?.error ??
+            'n-error-error'}">Error</span>`
+        : 'Error'
     str += ': '
     let firstLine = true
     for (const block of blocks) {

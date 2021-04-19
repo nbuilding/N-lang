@@ -354,7 +354,9 @@ function shouldBeMaybeIntInt (type: NType | null): boolean {
   )
 }
 
-function shouldBeListUnknown (unknown: Unknown): (type: NType | null) => boolean {
+function shouldBeListUnknown (
+  unknown: Unknown,
+): (type: NType | null) => boolean {
   function shouldBeListUnknown (type: NType | null): boolean {
     return list.isInstance(type, typeVar => typeVar === unknown)
   }
@@ -727,22 +729,31 @@ describe('type system', () => {
     const [incompatible, returnType] = FuncType.make(
       (a, b) => [
         FuncType.make(() => [a, b]),
-        FuncType.make(() => [list.instance([a]), list.instance([b])])
+        FuncType.make(() => [list.instance([a]), list.instance([b])]),
       ],
-      'a', 'b',
+      'a',
+      'b',
     ).given(FuncType.make(() => [unknown1, unknown2]))
     expect(incompatible).to.be.empty
     if (!(returnType instanceof FuncType)) {
       throw new TypeError('`returnType` should be a FuncType')
     }
-    expect(returnType).to.have.property('takes').that.satisfies(shouldBeListUnknown(unknown1))
-    expect(returnType).to.have.property('returns').that.satisfies(shouldBeListUnknown(unknown2))
+    expect(returnType)
+      .to.have.property('takes')
+      .that.satisfies(shouldBeListUnknown(unknown1))
+    expect(returnType)
+      .to.have.property('returns')
+      .that.satisfies(shouldBeListUnknown(unknown2))
     expect(unknown1).to.not.have.property('resolved')
     expect(unknown2).to.not.have.property('resolved')
 
-    const [incompatible2, returnType2] = returnType.given(list.instance([int.instance()]))
+    const [incompatible2, returnType2] = returnType.given(
+      list.instance([int.instance()]),
+    )
     expect(incompatible2).to.be.empty
     expect(returnType2).to.satisfy(shouldBeListUnknown(unknown2))
-    expect(unknown1).to.have.property('resolved').that.satisfies(shouldBeInt)
+    expect(unknown1)
+      .to.have.property('resolved')
+      .that.satisfies(shouldBeInt)
   })
 })
