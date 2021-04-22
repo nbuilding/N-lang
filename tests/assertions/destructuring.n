@@ -1,0 +1,17 @@
+// Based on docs/features/destructuring.md
+
+let a, b = 1, 2
+assert value a = 1
+assert value b = 2
+
+let { x; z: y } = { x: 1; z: 1 }
+assert value x = 1
+assert value z = 1
+
+if let [a, b] = [1, 2] {
+	assert value (a, b) = (1, 2)
+}
+
+if let <yes a> = yes("test") {
+	assert value a = "test"
+}

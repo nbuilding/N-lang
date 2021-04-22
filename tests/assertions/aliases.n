@@ -1,0 +1,9 @@
+// Based on docs/features/aliases.md
+
+alias test = {
+	a: int
+	b: int
+	c: str
+}
+
+assert type { a: 1; b: 1; c: "test" } : test

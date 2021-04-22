@@ -1,0 +1,13 @@
+// Based on docs/features/currying.md
+
+let sum = [a:int b:int] -> int {
+	return a + b
+}
+
+let addOne = sum(1)
+
+assert type addOne : int -> int
+
+assert value addOne(2) = 3
+
+assert value 2 |> sum(1) = 3

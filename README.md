@@ -35,6 +35,9 @@ PowerShell (Windows):
 $v="1.0.0"; iwr https://github.com/nbuilding/N-lang/raw/main/install.ps1 -useb | iex
 ```
 
+## Learn N
+See the [docs](./docs/)
+
 ## Python instructions
 
 See [python/](./python/).
