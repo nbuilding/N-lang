@@ -1,0 +1,24 @@
+// Based on docs/features/generic.md
+
+assert type print : [t] t -> t
+
+assert type print("Hello!") : str
+assert type print(3.14) : float
+
+assert type filterMap : [a, b] (a -> maybe[b]) -> list[a] -> list[b]
+
+let map: [a, b] (a -> b) -> list[a] -> list[b] = [[x, y] transform:(x -> y) list:list[x]] -> list[y] {
+	let filter: x -> maybe[y] = [item: x] -> maybe[y] {
+		return yes(item)
+	}
+	return list |> filterMap(filter)
+}
+
+assert type map : [a, b] (a -> b) -> list[a] -> list[b]
+
+assert type map(intInBase10) : list[int] -> list[str]
+
+alias triplet[t] = (t, t, t)
+assert type (0.5, -0.5, 3.14) : triplet[float]
+
+assert type err("Failure!") : result[int, str]
