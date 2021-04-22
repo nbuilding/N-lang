@@ -4,6 +4,9 @@ import { ExpectEqualError, NType } from '../types/types'
 import { BlockDisplay, InlineDisplay } from './ErrorDisplayer'
 
 export enum ErrorType {
+  /** JavaScript runtime error */
+  INTERNAL_ERROR,
+
   /** Variable is not defined in scope */
   UNDEFINED_VARIABLE,
 
@@ -57,9 +60,19 @@ export enum ErrorType {
 
   /** The number of items destructured from the tuple doesn't match its length */
   TUPLE_DESTRUCTURE_LENGTH_MISMATCH,
+
+  /** An `assert type` failed */
+  TYPE_ASSERTION_FAIL,
+
+  /** An `assert value` was given a non-bool */
+  VALUE_ASSERTION_NOT_BOOL,
 }
 
 export type ErrorMessage =
+  | {
+      type: ErrorType.INTERNAL_ERROR
+      error: Error
+    }
   | {
       type: ErrorType.UNDEFINED_VARIABLE | ErrorType.UNDEFINED_TYPE
       name: string
@@ -146,18 +159,34 @@ export type ErrorMessage =
       recordType: NType
       keys: string[]
     }
+  | {
+      type: ErrorType.TYPE_ASSERTION_FAIL
+      errors: ExpectEqualError[]
+    }
+  | {
+      type: ErrorType.VALUE_ASSERTION_NOT_BOOL
+      errors: ExpectEqualError[]
+    }
 
-export interface Error {
+interface NError {
   message: ErrorMessage
   base: Base
 }
+export { NError as Error }
 
 // Maybe this shouldn't rely on `base`
 export function displayErrorMessage (
-  { message: err }: Error,
+  { message: err }: NError,
   display: (strings: TemplateStringsArray, ...items: InlineDisplay[]) => string,
 ): string | [string, ...(BlockDisplay | false)[]] {
   switch (err.type) {
+    case ErrorType.INTERNAL_ERROR: {
+      return [
+        'An internal error occurred.',
+        err.error.stack || 'No stack trace available.',
+        'This is a bug with N. Please report this error on GitHub: <https://github.com/nbuilding/N-lang/issues/new>',
+      ]
+    }
     case ErrorType.ARG_TYPE_MISMATCH: {
       return display`The ${[err.argPos, 'th']} argument you give to a ${
         err.funcType
@@ -253,6 +282,12 @@ export function displayErrorMessage (
     }
     case ErrorType.UNRESOLVED_GENERIC: {
       return display`I can't figure out what the return type for ${err.funcType} should be. This probably is an issue with the function type, not your function call.`
+    }
+    case ErrorType.TYPE_ASSERTION_FAIL: {
+      return display`Type assertion failed.`
+    }
+    case ErrorType.VALUE_ASSERTION_NOT_BOOL: {
+      return display`You need to give a bool to a value assertion.`
     }
     default: {
       const errorMessage: unknown = err

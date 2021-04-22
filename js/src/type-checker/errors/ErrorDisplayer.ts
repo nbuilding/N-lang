@@ -102,7 +102,7 @@ export class ErrorDisplayer {
     } else if (typeof inline === 'string') {
       const str = '`' + inline + '`'
       return this.options.type === 'console-color'
-        ? colours.green(str)
+        ? colours.cyan(str)
         : this.options.type === 'html'
         ? `<span class="${this.options.classes?.name ??
             'n-error-name'}">${escapeHtml(str)}</span>`

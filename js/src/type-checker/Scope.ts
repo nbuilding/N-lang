@@ -1,13 +1,14 @@
 import { Base } from '../ast/index'
 import { Expression, TypeCheckResult } from '../ast/expressions/Expression'
 import { CheckStatementResult, Statement } from '../ast/statements/Statement'
-import { ErrorMessage } from './errors/Error'
+import { ErrorMessage, ErrorType } from './errors/Error'
 import { WarningMessage } from './errors/Warning'
 import { TypeCheckerResult } from './TypeChecker'
 import { TypeSpec } from './types/type-specs'
 import { NType, resolve } from './types/types'
 import { CheckPatternResult, Pattern } from '../ast/patterns/Pattern'
 import { GetTypeResult, Type } from '../ast/types/Type'
+import { displayType } from '../utils/display-type'
 
 export interface ScopeBaseContext {
   scope: Scope
@@ -73,9 +74,27 @@ export class Scope {
   }
 
   getTypeFrom (base: Type): GetTypeResult {
-    return base.getType({
-      ...this._contextFor(base),
-    })
+    try {
+      return base.getType({
+        ...this._contextFor(base),
+      })
+    } catch (err) {
+      this.checker.errors.push({
+        message: {
+          type: ErrorType.INTERNAL_ERROR,
+          error:
+            err instanceof Error
+              ? err
+              : new TypeError(
+                  `A non-Error of type ${displayType(err)} was thrown.`,
+                ),
+        },
+        base,
+      })
+      return {
+        type: null,
+      }
+    }
   }
 
   checkPattern (
@@ -83,26 +102,76 @@ export class Scope {
     idealType: NType | null,
     definite: boolean,
   ): CheckPatternResult {
-    return base.checkPattern({
-      ...this._contextFor(base),
-      type: idealType && resolve(idealType),
-      definite,
-    })
+    try {
+      return base.checkPattern({
+        ...this._contextFor(base),
+        type: idealType && resolve(idealType),
+        definite,
+      })
+    } catch (err) {
+      this.checker.errors.push({
+        message: {
+          type: ErrorType.INTERNAL_ERROR,
+          error:
+            err instanceof Error
+              ? err
+              : new TypeError(
+                  `A non-Error of type ${displayType(err)} was thrown.`,
+                ),
+        },
+        base,
+      })
+      return {}
+    }
   }
 
   checkStatement (base: Statement): CheckStatementResult {
-    return base.checkStatement({
-      ...this._contextFor(base),
-    })
+    try {
+      return base.checkStatement({
+        ...this._contextFor(base),
+      })
+    } catch (err) {
+      this.checker.errors.push({
+        message: {
+          type: ErrorType.INTERNAL_ERROR,
+          error:
+            err instanceof Error
+              ? err
+              : new TypeError(
+                  `A non-Error of type ${displayType(err)} was thrown.`,
+                ),
+        },
+        base,
+      })
+      return {}
+    }
   }
 
   typeCheck (base: Expression): TypeCheckResult {
-    const result = base.typeCheck({
-      ...this._contextFor(base),
-    })
-    if (result.type) {
-      this.checker.types.set(base, result.type)
+    try {
+      const result = base.typeCheck({
+        ...this._contextFor(base),
+      })
+      if (result.type) {
+        this.checker.types.set(base, result.type)
+      }
+      return result
+    } catch (err) {
+      this.checker.errors.push({
+        message: {
+          type: ErrorType.INTERNAL_ERROR,
+          error:
+            err instanceof Error
+              ? err
+              : new TypeError(
+                  `A non-Error of type ${displayType(err)} was thrown.`,
+                ),
+        },
+        base,
+      })
+      return {
+        type: null,
+      }
     }
-    return result
   }
 }

@@ -11,6 +11,8 @@ statement -> "import" _ identifier {% from(ast.ImportStmt) %}
 	| oldForLoop {% id %}
 	| forLoop {% id %}
 	| ifStatement {% id %}
+	| assertType {% id %}
+	| assertValue {% id %}
 	| postfixExpressionImpure {% id %}
 	| pipeOperation {% id %}
 	| returnExpression {% id %}
@@ -36,6 +38,10 @@ oldForLoop -> ("for" _) declaration _ value (_ "{" _) block (_ "}") {% from(ast.
 forLoop -> ("for" _ "(" _) declaration (_ "in" _) expression (_ ")" _ "{" _) block (_ "}") {% from(ast.For) %}
 
 ifStatement -> ("if" _) condition (_ "{" _) block (_ "}") ((_ "else" _) elseStatement):? {% from(ast.IfStmt) %}
+
+assertType -> ("assert" _spaces "type" _) expression (_ ":" _) type {% from(ast.AssertType) %}
+
+assertValue -> ("assert" _spaces "value" _) expression {% from(ast.AssertValue) %}
 
 elseStatement -> "{" _ block _ "}" {% includeBrackets %}
 	| ifStatement {% id %}

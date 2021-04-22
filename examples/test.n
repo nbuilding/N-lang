@@ -1,8 +1,2 @@
-/* wow */ let test
-  :
-  // lol
-     str
-
-     /* wee */
- = 2.0 // weee
-print(test)
+assert type "wow" : str
+assert value true

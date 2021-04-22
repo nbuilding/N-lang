@@ -21,12 +21,15 @@ export class GlobalScope extends Scope {
     this.types.set('str', str)
     this.types.set('int', int)
     this.types.set('float', float)
-    this.types.set('bool', bool)
     this.types.set('char', char)
 
     this.types.set('list', list)
     this.types.set('map', map)
     this.types.set('cmd', cmd)
+
+    this.types.set('bool', bool)
+    this.variables.set('true', bool.constructorType('true'))
+    this.variables.set('false', bool.constructorType('false'))
 
     this.types.set('maybe', maybe)
     this.variables.set('yes', maybe.constructorType('yes'))

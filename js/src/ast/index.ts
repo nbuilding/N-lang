@@ -33,6 +33,8 @@ export { RecordPattern, RecordPatternEntry } from './patterns/RecordPattern'
 export { TuplePattern } from './patterns/TuplePattern'
 
 export { AliasDeclaration } from './statements/AliasDeclaration'
+export { AssertType } from './statements/AssertType'
+export { AssertValue } from './statements/AssertValue'
 export { Block } from './statements/Block'
 export { ClassDeclaration } from './statements/ClassDeclaration'
 export { EnumDeclaration, EnumVariant } from './statements/EnumDeclaration'
