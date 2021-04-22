@@ -11,18 +11,18 @@ FileIO.read("test.txt")! |> default("") // This returns a maybe[str] in case the
 
 import json // JSON enum and related functions, mostly used for request
 let value:json.value = json.object(mapFrom([ // This is a map[str, json.value]
-	("test", json.string("test")) // There are json.string, json.array, json.number, and json.none
+	("test", json.string("test")) // There are json.string, json.array, json.number, and json.null
 ]))
 print(json.stringify(value)) // Turns a json.value into a string
-// print(json.parse("{ test: \"test\" }")) // Turns a string into a json.value, deprecated as it is unsafe and can throw errors
-print(json.parse("{ test: \"test\" }") |> default(json.string("invalid"))) // Turns a string into a maybe[json.value]
+print(json.parse("{ \"test\": \"test\" }")) // Turns a string into a json.value, if it fails it will return a json.null
+print(json.parseSafe("{ \"test\": \"test\" }") |> default(json.string("invalid"))) // Turns a string into a maybe[json.value]
 
 import request // Used for http requests for websites
-request.get("github.com", mapfrom([("","")]))! // Takes in a url and a header and returns a {code: int, response: str, return: json.value}, returns a cmd
-request.post("github.com", mapFrom(["hello", "hello"]), mapfrom([("","")]))! // Takes in a url, content, and a header and returns a {code: int, response: str, text: str}, returns a cmd
+request.get("https://github.com", mapfrom([("","")]))! // Takes in a url and a header and returns a {code: int, response: str, return: json.value}, returns a cmd
+request.post("https://github.com", mapFrom(["hello", "hello"]), mapfrom([("","")]))! // Takes in a url, content, and a header and returns a {code: int, response: str, text: str}, returns a cmd
 
 import SystemIO // Used for System input output with the console
-print("You said: " + SystemIO.imp("hello! ")!) // Prints the prompt then takes in the value after an enter is pressed and returns it. Returns a cmd
+print("You said: " + SystemIO.inp("hello! ")!) // Prints the prompt then takes in the value after an enter is pressed and returns it. Returns a cmd
 
 import times // Used for pausing execution
 // times.sleep(1000)! // Takes in a time in milliseconds and pauses execution for that long, deprecated as there is a bug that will always occur with this
