@@ -3,9 +3,9 @@
 ```js
 // This will create a simple alias for a record type
 alias test = {
-	a:int;
-	b:int;
-	c:str;
+	a:int
+	b:int
+	c:str
 }
 
 let test2:test = {a:1; b:1; c:"test"}
