@@ -54,7 +54,7 @@ def parse_file(file_path, base_path):
     native_functions.add_funcs(import_scope)
 
     with open(syntaxpath, "r") as f:
-        parse = f.read()
+        parse = f.read() + "\n"
     n_parser = Lark(parse, start="start", propagate_positions=True)
 
     with open(file_path, "r", encoding="utf-8") as f:
@@ -967,6 +967,8 @@ class Scope:
     """
 
     async def eval_command(self, tree):
+        if tree.data == "main_instruction" or tree.data == "last_instruction":
+            tree = lark.tree.Tree("instruction", tree.children[0].children) 
         if tree.data == "if" or tree.data == "ifelse":
             tree = lark.tree.Tree("instruction", [tree])
         elif tree.data == "code_block":
@@ -1662,6 +1664,8 @@ class Scope:
     """
 
     def type_check_command(self, tree):
+        if tree.data == "main_instruction" or tree.data == "last_instruction":
+            tree = lark.tree.Tree("instruction", tree.children[0].children)
         if tree.data == "if" or tree.data == "ifelse":
             tree = lark.tree.Tree("instruction", [tree])
         elif tree.data == "code_block":
