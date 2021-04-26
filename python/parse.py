@@ -13,6 +13,6 @@ elif __file__:
 
 syntaxpath = path.join(basepath, "syntax.lark")
 with open(syntaxpath, "r") as f:
-    parse = f.read() + "\n"
+    parse = f.read()
 
 n_parser = Lark(parse, start="start", propagate_positions=True)

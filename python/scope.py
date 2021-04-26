@@ -54,7 +54,7 @@ def parse_file(file_path, base_path):
     native_functions.add_funcs(import_scope)
 
     with open(syntaxpath, "r") as f:
-        parse = f.read() + "\n"
+        parse = f.read()
     n_parser = Lark(parse, start="start", propagate_positions=True)
 
     with open(file_path, "r", encoding="utf-8") as f:
