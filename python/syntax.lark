@@ -1,18 +1,18 @@
-start: [instruction ((";" | "\n") instruction)*]
+start: [instruction*]
 
-instruction: declare (";")?
-           | function_callback (";")?
-           | function_callback_pipe (";")?
-           | for (";")?
-           | for_legacy (";")?
-           | imp (";")?
-           | return (";")?
-           | if (";")?
-           | ifelse (";")?
-           | vary (";")?
-           | enum_definition (";")?
-           | alias_definition (";")?
-           | class_definition (";")?
+instruction: declare (";" | "\n")
+           | function_callback (";" | "\n")
+           | function_callback_pipe (";" | "\n")
+           | for (";" | "\n")?
+           | for_legacy (";" | "\n")?
+           | imp (";" | "\n")
+           | return (";" | "\n")
+           | if (";" | "\n")?
+           | ifelse (";" | "\n")?
+           | vary (";" | "\n")
+           | enum_definition (";" | "\n")
+           | alias_definition (";" | "\n")
+           | class_definition (";" | "\n")
 
 // functions
 vary: "var " NAME "=" expression

@@ -1,5 +1,5 @@
 if false {
   print("eee")
-} else if true {
+} if true {
   print("eeee")
 }
