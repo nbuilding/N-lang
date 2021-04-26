@@ -1,29 +1,5 @@
-class pub Random [mult:int mod:int seed:int] {
-    let mutator = seed
-
-    let pub getSeed = [] -> int {
-        return seed
-    }
-
-    let pub getMutator = [] -> int {
-        return mutator
-    }
-
-    let pub setSeed = [s:int] -> () {
-        var seed = s
-        var mutator = s
-    }
-
-    let pub getNext = [] -> float {
-        var mutator = (mutator * mult+1) % mod
-        return mutator^1/mod^1
-    }
+if false {
+  print("eee")
+} if true {
+  print("eeee")
 }
-
-let pub createRandom = Random(16807, floor(2^31) - 1)
-print(createRandom)
-
-let rand = createRandom(834594809538490584309)
-print(rand)
- 
-print(rand.getNext())

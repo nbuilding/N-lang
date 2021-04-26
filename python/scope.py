@@ -967,7 +967,9 @@ class Scope:
     """
 
     async def eval_command(self, tree):
-        if tree.data == "code_block":
+        if tree.data == "if" or tree.data == "ifelse":
+            tree = lark.tree.Tree("instruction", [tree])
+        elif tree.data == "code_block":
             exit, value = (False, None)
             for instruction in tree.children:
                 exit, value = await self.eval_command(instruction)
@@ -1660,7 +1662,9 @@ class Scope:
     """
 
     def type_check_command(self, tree):
-        if tree.data == "code_block":
+        if tree.data == "if" or tree.data == "ifelse":
+            tree = lark.tree.Tree("instruction", [tree])
+        elif tree.data == "code_block":
             exit_point = None
             warned = False
             for instruction in tree.children:
