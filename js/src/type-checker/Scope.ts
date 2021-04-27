@@ -1,6 +1,10 @@
 import { Base } from '../ast/index'
 import { Expression, TypeCheckResult } from '../ast/expressions/Expression'
-import { CheckStatementResult, Statement } from '../ast/statements/Statement'
+import {
+  CheckStatementContext,
+  CheckStatementResult,
+  Statement,
+} from '../ast/statements/Statement'
 import { ErrorMessage, ErrorType } from './errors/Error'
 import { WarningMessage } from './errors/Warning'
 import { TypeCheckerResult } from './TypeChecker'
@@ -125,11 +129,15 @@ export class Scope {
     }
   }
 
+  getCheckStatementContext (base: Statement): CheckStatementContext {
+    return {
+      ...this._contextFor(base),
+    }
+  }
+
   checkStatement (base: Statement): CheckStatementResult {
     try {
-      return base.checkStatement({
-        ...this._contextFor(base),
-      })
+      return base.checkStatement(this.getCheckStatementContext(base))
     } catch (err) {
       this.checker.errors.push({
         message: {

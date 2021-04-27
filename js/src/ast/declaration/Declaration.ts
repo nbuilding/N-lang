@@ -21,12 +21,12 @@ export class Declaration extends Base {
   }
 
   /**
-   * Check a declaration given an ideal type, which may be omitted if the ideal
-   * type isn't known. For example, a let statement will have an ideal type from
-   * its expression, while a function expression argument will not have an ideal
+   * Check a declaration given a value type, which may be omitted if there isn't
+   * a value type. For example, a let statement will have a value type from its
+   * expression, while a function expression argument will not have a value
    * type.
    *
-   * Type annotation | Ideal type | Result
+   * Type annotation | Value type | Result
    * --------------- | ---------- | ------
    * A               | A          | ok (pattern type is A)
    * A               | B          | LET_TYPE_MISMATCH (pattern type is null)
@@ -38,29 +38,28 @@ export class Declaration extends Base {
    * null            | omitted    | ok (pattern type is null)
    * null or omitted | null       | ok (pattern type is null)
    */
-  checkDeclaration (context: ScopeBaseContext, idealType?: NType | null): void {
-    if (idealType === undefined && !this.type) {
-      context.err({ type: ErrorType.TYPE_ANNOTATION_NEEDED })
-      context.scope.checkPattern(this.pattern, null, true)
-      return
-    }
+  checkDeclaration (
+    context: ScopeBaseContext,
+    valueType?: NType | null,
+    certain = true,
+  ): void {
     const typeAnnotation = this.type
       ? context.scope.getTypeFrom(this.type).type
       : new Unknown()
-    if (idealType && typeAnnotation) {
-      const errors = expectEqual(typeAnnotation, idealType)
+    if (valueType && typeAnnotation) {
+      const errors = expectEqual(typeAnnotation, valueType)
       if (errors.length > 0) {
         context.err({
           type: ErrorType.LET_TYPE_MISMATCH,
           annotation: typeAnnotation,
-          expression: idealType,
+          expression: valueType,
           errors,
         })
-        context.scope.checkPattern(this.pattern, null, true)
+        context.scope.checkPattern(this.pattern, null, certain)
         return
       }
     }
-    context.scope.checkPattern(this.pattern, typeAnnotation, true)
+    context.scope.checkPattern(this.pattern, typeAnnotation, certain)
   }
 
   toString (): string {

@@ -67,6 +67,19 @@ export interface NType {
   display(options: DisplayOptions): string
 }
 
+/**
+ * The first argument should be the target type, such as from a type annotation
+ * or function argument type, while the second argument is the type of the value
+ * being passed in.
+ *
+ * To figure out which should be the annotaton or value type, think about
+ * when it would NOT make sense to allow str -> str where [a] a -> a is
+ * expected.
+ *
+ * Also, in error messages, it'll say [value type] should be [annotation type],
+ * so, for example, if you expect an expression to be a bool, the bool should be
+ * the annotaton.
+ */
 export function expectEqual (
   annotation: NType | null,
   other: NType | null,
@@ -747,6 +760,19 @@ export class Function implements NType {
     const generics = typeVarNames.map(name => new FuncTypeVar(name))
     const [takes, returns] = maker(...generics)
     return new Function(takes, returns, generics)
+  }
+
+  /**
+   * Even shorter hand for `FuncType.make` for functions with two arguments like
+   * operations.
+   */
+  static make2 (
+    maker: (...typeVars: FuncTypeVar[]) => [NType, NType, NType],
+    ...typeVarNames: string[]
+  ): Function {
+    const generics = typeVarNames.map(name => new FuncTypeVar(name))
+    const [arg1, arg2, returns] = maker(...generics)
+    return new Function(arg1, new Function(arg2, returns), generics)
   }
 
   static fromTypes (

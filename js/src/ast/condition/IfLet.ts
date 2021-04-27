@@ -1,7 +1,9 @@
+import { ScopeBaseContext } from '../../type-checker/Scope'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Declaration } from '../declaration/Declaration'
 import { Expression, isExpression } from '../expressions/Expression'
+import { CheckStatementResult } from '../statements/Statement'
 
 export class IfLet extends Base {
   declaration: Declaration
@@ -14,6 +16,12 @@ export class IfLet extends Base {
     super(pos, [declaration, expression])
     this.declaration = declaration
     this.expression = expression
+  }
+
+  checkIfLet (context: ScopeBaseContext): CheckStatementResult {
+    const { type, exitPoint } = context.scope.typeCheck(this.expression)
+    this.declaration.checkDeclaration(context, type, false)
+    return { exitPoint }
   }
 
   toString (): string {

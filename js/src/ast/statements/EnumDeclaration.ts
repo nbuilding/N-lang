@@ -1,3 +1,5 @@
+import { EnumTypeSpec } from '../../type-checker/types/type-specs'
+import { TypeVar } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { TypeSpec } from '../declaration/TypeSpec'
@@ -60,7 +62,29 @@ export class EnumDeclaration extends Base implements Statement {
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
-    throw new Error('Method not implemented.')
+    // TODO: pub
+    const typeVars = this.typeSpec.typeVars
+      ? this.typeSpec.typeVars.vars.map(typeVar => new TypeVar(typeVar.value))
+      : []
+    const typeSpec = new EnumTypeSpec(
+      this.typeSpec.name.value,
+      typeVars,
+      // TODO: duplicate types
+      new Map(
+        this.variants.map(variant => [
+          variant.variant.value,
+          variant.types.map(type => context.scope.getTypeFrom(type).type),
+        ]),
+      ),
+    )
+    if (context.scope.types.has(this.typeSpec.name.value)) {
+      // TODO: error about duplicate type
+      // context.scope.types.set(this.typeSpec.name.value, null)
+    } else {
+      context.scope.types.set(this.typeSpec.name.value, typeSpec)
+      context.scope.unusedTypes.add(this.typeSpec.name.value)
+    }
+    return {}
   }
 
   toString (): string {

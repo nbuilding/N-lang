@@ -10,8 +10,14 @@ import { Literal } from './Literal'
 
 export class Identifier extends Literal implements Pattern {
   checkPattern (context: CheckPatternContext): CheckPatternResult {
-    context.scope.variables.set(this.value, context.type)
-    context.scope.unusedVariables.add(this.value)
+    if (context.scope.variables.has(this.value)) {
+      // TODO: error about duplicate variable
+      // null type because can't be sure which type it's referring to
+      context.scope.variables.set(this.value, null)
+    } else {
+      context.scope.variables.set(this.value, context.type)
+      context.scope.unusedVariables.add(this.value)
+    }
     return {}
   }
 

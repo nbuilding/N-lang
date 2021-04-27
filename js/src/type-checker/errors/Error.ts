@@ -16,6 +16,9 @@ export enum ErrorType {
   /** The type from a let declaration does not match its expression */
   LET_TYPE_MISMATCH,
 
+  /** The type from a var declaration does not match its expression */
+  VAR_TYPE_MISMATCH,
+
   /** The given module name for a type identifier is not a module */
   NOT_MODULE,
 
@@ -66,6 +69,9 @@ export enum ErrorType {
 
   /** An `assert value` was given a non-bool */
   VALUE_ASSERTION_NOT_BOOL,
+
+  /** An if statement/expression condition was given a non-bool value */
+  CONDITION_NOT_BOOL,
 }
 
 export type ErrorMessage =
@@ -90,7 +96,7 @@ export type ErrorMessage =
       type: ErrorType.TYPE_ANNOTATION_NEEDED
     }
   | {
-      type: ErrorType.LET_TYPE_MISMATCH
+      type: ErrorType.LET_TYPE_MISMATCH | ErrorType.VAR_TYPE_MISMATCH
       annotation: NType
       expression: NType
       errors: ExpectEqualError[]
@@ -165,6 +171,11 @@ export type ErrorMessage =
     }
   | {
       type: ErrorType.VALUE_ASSERTION_NOT_BOOL
+      errors: ExpectEqualError[]
+    }
+  | {
+      type: ErrorType.CONDITION_NOT_BOOL
+      expression: NType
       errors: ExpectEqualError[]
     }
 
