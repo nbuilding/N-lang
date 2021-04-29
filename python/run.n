@@ -1,5 +1,2 @@
-if false {
-  print("eee")
-} if true {
-  print("eeee")
-}
+print("eee" + \n)
+print(\n + "eee")
