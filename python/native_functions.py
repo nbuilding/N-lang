@@ -161,6 +161,12 @@ def add_funcs(global_scope):
         substr,
     )
     global_scope.add_native_function(
+        "toFloat",
+        [("number", "int")],
+        "float",
+        float,
+    )
+    global_scope.add_native_function(
         "len",
         [("obj", NGenericType("t"))],
         "int",
