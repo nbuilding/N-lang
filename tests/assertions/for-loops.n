@@ -1,0 +1,13 @@
+// Based on docs/features/for_loops.md
+
+for (i in range(0, 10, 1)) {
+	assert type i : int
+}
+
+for i 1 {
+	assert value i = 0
+}
+
+for (i in ["a", "b", "c"]) {
+	assert type i : str
+}

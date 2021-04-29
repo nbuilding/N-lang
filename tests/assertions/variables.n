@@ -1,0 +1,9 @@
+// Based on docs/features/variables.md
+
+let test: str = "test"
+assert type test : str
+assert value test = "test"
+
+let test2 = 1
+assert type test2 : int
+assert value test2 = 1
