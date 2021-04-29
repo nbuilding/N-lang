@@ -137,7 +137,7 @@ func_type: generic_declaration? (func_inner_type "->")+ not_func_type
 
 ?number_expression: sum_expression
 ?sum_expression: [sum_expression (ADD | SUBTRACT)] product_expression
-?product_expression: [product_expression (MULTIPLY | DIVIDE | MODULO)] exponent_expression
+?product_expression: [product_expression (MULTIPLY | DIVIDE | MODULO | SHIFTL | SHIFTR)] exponent_expression
 // Exponentiation right to left associative
 ?exponent_expression: unary_expression [EXPONENT exponent_expression]
 ?unary_expression: await_expression
@@ -180,6 +180,8 @@ AND: ("&&" | "&")
 EQUALS: ("==" | "=")
 GORE: ">="
 LORE: "<="
+SHIFTL: "<<"
+SHIFTR: ">>" 
 LESS: "<"
 GREATER: ">"
 NEQUALS: "/="
