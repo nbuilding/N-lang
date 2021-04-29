@@ -1,3 +1,11 @@
+import times
+
 print(2 << 3)
 
 print(toFloat(1))
+
+let thing = [] -> cmd[()] {
+	print(times.getTime!)
+}
+
+let pub test = thing()
