@@ -3,7 +3,7 @@ print(\n + "eee")
 print(split(\{.}, "this.is.a.test"))
 import json
 
-print(json.stringify(json.object(mapFrom([
+print(json.stringify(json.array([json.object(mapFrom([
     ("op", json.number(2.0)),
     ("d", json.object(mapFrom([
         ("token", json.string("dingus")),
@@ -14,6 +14,8 @@ print(json.stringify(json.object(mapFrom([
             ("$device", json.string("none"))
         ]))),
     ])))
-]))))
+])),
+json.number(1.0),
+json.string("ping")])))
 
-print(json.stringify(json.string("ping")))
+print(json.stringify(json.string("bingus")))
