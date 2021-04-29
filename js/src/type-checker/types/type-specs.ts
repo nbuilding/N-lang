@@ -57,12 +57,12 @@ export class TypeSpec {
 }
 
 export class EnumTypeSpec extends TypeSpec {
-  variants: Map<string, NType[]>
+  variants: Map<string, (NType | null)[]>
 
   constructor (
     name: string,
     typeVars: TypeVar[],
-    variants: Map<string, NType[]>,
+    variants: Map<string, (NType | null)[]>,
   ) {
     super(name, typeVars)
     this.variants = variants

@@ -35,10 +35,7 @@ export class OldFor extends Base implements Statement {
       for (const iterableFunc of legacyIterableTypes) {
         const [errors, iterateOutType] = iterableFunc.given(type)
         if (errors.length === 0) {
-          this.var.checkDeclaration(
-            scope.getCheckStatementContext(this),
-            iterateOutType,
-          )
+          scope.checkDeclaration(this.var, iterateOutType)
           return { exitPoint }
         }
       }
@@ -85,10 +82,7 @@ export class For extends Base implements Statement {
       for (const iterableFunc of iterableTypes) {
         const [errors, iterateOutType] = iterableFunc.given(type)
         if (errors.length === 0) {
-          this.var.checkDeclaration(
-            scope.getCheckStatementContext(this),
-            iterateOutType,
-          )
+          scope.checkDeclaration(this.var, iterateOutType)
           return { exitPoint }
         }
       }

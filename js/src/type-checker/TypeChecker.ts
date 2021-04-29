@@ -48,6 +48,7 @@ export class TypeChecker {
     const globalScope = new GlobalScope(result)
     const scope = globalScope.inner()
     scope.checkStatement(file)
+    scope.end()
     return result
   }
 }

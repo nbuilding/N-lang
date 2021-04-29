@@ -63,9 +63,18 @@ export class EnumDeclaration extends Base implements Statement {
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
     // TODO: pub
-    const typeVars = this.typeSpec.typeVars
-      ? this.typeSpec.typeVars.vars.map(typeVar => new TypeVar(typeVar.value))
-      : []
+    const scope = context.scope.inner()
+    const typeVars = []
+    if (this.typeSpec.typeVars) {
+      for (const { value: name } of this.typeSpec.typeVars.vars) {
+        const typeVar = new TypeVar(name)
+        typeVars.push(typeVar)
+        // TODO: duplicate type var names
+
+        // TODO: type variables are not type specs
+        // scope.types.set(name, typeVar)
+      }
+    }
     const typeSpec = new EnumTypeSpec(
       this.typeSpec.name.value,
       typeVars,
@@ -79,11 +88,13 @@ export class EnumDeclaration extends Base implements Statement {
     )
     if (context.scope.types.has(this.typeSpec.name.value)) {
       // TODO: error about duplicate type
+      // TODO: null not accessible in scope.types
       // context.scope.types.set(this.typeSpec.name.value, null)
     } else {
       context.scope.types.set(this.typeSpec.name.value, typeSpec)
       context.scope.unusedTypes.add(this.typeSpec.name.value)
     }
+    scope.end()
     return {}
   }
 

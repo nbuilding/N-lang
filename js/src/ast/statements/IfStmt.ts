@@ -29,15 +29,16 @@ export class IfStmt extends Base implements Statement {
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
-    let exitPoint
+    let exitPoint, scope
     if (this.condition instanceof IfLet) {
-      ;({ exitPoint } = this.condition.checkIfLet(context))
+      ;({ exitPoint, scope } = this.condition.checkIfLet(context))
     } else {
       const {
         type: condType,
         exitPoint: exitPointCond,
       } = context.scope.typeCheck(this.condition)
       exitPoint = exitPointCond
+      scope = context.scope.inner()
       if (condType) {
         const errors = expectEqual(bool.instance(), condType)
         if (errors.length > 0) {
@@ -50,13 +51,14 @@ export class IfStmt extends Base implements Statement {
       }
     }
     // TODO: Shouldn't there be a warning if the exit point is in the condition?
-    const { exitPoint: exitPointLeft } = context.scope.checkStatement(this.then)
+    const { exitPoint: exitPointLeft } = scope.checkStatement(this.then)
     if (!exitPoint) exitPoint = exitPointLeft
+    scope.end()
     if (this.else) {
-      const { exitPoint: exitPointRight } = context.scope.checkStatement(
-        this.else,
-      )
+      const scope = context.scope.inner()
+      const { exitPoint: exitPointRight } = scope.checkStatement(this.else)
       if (!exitPoint) exitPoint = exitPointRight
+      scope.end()
     }
     return {
       exitPoint,

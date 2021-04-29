@@ -1,10 +1,6 @@
-import { Base } from '../ast/index'
+import { Base, Declaration } from '../ast/index'
 import { Expression, TypeCheckResult } from '../ast/expressions/Expression'
-import {
-  CheckStatementContext,
-  CheckStatementResult,
-  Statement,
-} from '../ast/statements/Statement'
+import { CheckStatementResult, Statement } from '../ast/statements/Statement'
 import { ErrorMessage, ErrorType } from './errors/Error'
 import { WarningMessage } from './errors/Warning'
 import { TypeCheckerResult } from './TypeChecker'
@@ -129,15 +125,11 @@ export class Scope {
     }
   }
 
-  getCheckStatementContext (base: Statement): CheckStatementContext {
-    return {
-      ...this._contextFor(base),
-    }
-  }
-
   checkStatement (base: Statement): CheckStatementResult {
     try {
-      return base.checkStatement(this.getCheckStatementContext(base))
+      return base.checkStatement({
+        ...this._contextFor(base),
+      })
     } catch (err) {
       this.checker.errors.push({
         message: {
@@ -152,6 +144,29 @@ export class Scope {
         base,
       })
       return {}
+    }
+  }
+
+  checkDeclaration (
+    base: Declaration,
+    valueType?: NType | null,
+    certain = true,
+  ): void {
+    try {
+      base.checkDeclaration(this._contextFor(base), valueType, certain)
+    } catch (err) {
+      this.checker.errors.push({
+        message: {
+          type: ErrorType.INTERNAL_ERROR,
+          error:
+            err instanceof Error
+              ? err
+              : new TypeError(
+                  `A non-Error of type ${displayType(err)} was thrown.`,
+                ),
+        },
+        base,
+      })
     }
   }
 
@@ -181,5 +196,9 @@ export class Scope {
         type: null,
       }
     }
+  }
+
+  end () {
+    // TODO: unused variables, types
   }
 }

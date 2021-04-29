@@ -776,7 +776,7 @@ export class Function implements NType {
   }
 
   static fromTypes (
-    [type, type2, ...types]: NType[],
+    [type, type2, ...types]: (NType | null)[],
     generics: FuncTypeVar[] = [],
   ): Function {
     return new Function(
