@@ -12,6 +12,7 @@ binary_operation_types = {
         ("str", "str", "str"),
         ("char", "char", "str"),
         ("str", "char", "str"),
+        ("char", "str", "str"),
         (n_list_type, n_list_type, n_list_type),
     ],
     "SUBTRACT": [("int", "int", "int"), ("float", "float", "float")],

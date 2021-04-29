@@ -170,7 +170,7 @@ def add_funcs(global_scope):
         "split",
         [("splitter", "char"), ("string", "str")],
         n_list_type.with_typevars(["str"]),
-        lambda string, splitter: string.split(splitter),
+        lambda splitter, string: string.split(splitter),
     )
     global_scope.add_native_function(
         "strip", [("string", "str")], "str", lambda string: string.strip()
