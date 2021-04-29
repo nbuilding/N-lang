@@ -1,3 +1,19 @@
 print("eee" + \n)
 print(\n + "eee")
 print(split(\{.}, "this.is.a.test"))
+import json
+
+print(json.stringify(json.object(mapFrom([
+    ("op", json.number(2.0)),
+    ("d", json.object(mapFrom([
+        ("token", json.string("dingus")),
+        ("intents", json.number(512.0)),
+        ("properties", json.object(mapFrom([
+            ("$os", json.string("windows")),
+            ("$browser", json.string("none")),
+            ("$device", json.string("none"))
+        ]))),
+    ])))
+]))))
+
+print(json.stringify(json.string("ping")))
