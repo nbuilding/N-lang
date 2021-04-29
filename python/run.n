@@ -1,2 +1,3 @@
 print("eee" + \n)
 print(\n + "eee")
+print(split(\{.}, "this.is.a.test"))
