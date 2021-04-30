@@ -5,7 +5,7 @@ print(2 << 3)
 print(toFloat(1))
 
 let thing = [] -> cmd[()] {
-	print(times.getTime!)
+	print(times.getTimeSince(0.0)!)
 }
 
 let pub test = thing()
