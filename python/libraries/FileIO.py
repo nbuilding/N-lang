@@ -8,8 +8,11 @@ async def write(path, content):
 
 
 async def append(path, content):
-    async with async_open(path, "a+", encoding="utf-8") as f:
-        await f.write(content)
+    try:
+        async with async_open(path, "a+", encoding="utf-8") as f:
+            await f.write(content)
+    except:
+        pass
 
 
 async def read(path):
@@ -25,8 +28,11 @@ async def writeBytes(path, content):
 
 
 async def appendBytes(path, content):
-    async with async_open(path, "a+", encoding="utf-8") as f:
-        await f.write("".join([chr(c) for c in content]))
+    try:
+        async with async_open(path, "a+", encoding="utf-8") as f:
+            await f.write("".join([chr(c) for c in content]))
+    except:
+        pass
 
 
 async def readBytes(path):

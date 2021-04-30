@@ -1,5 +1,6 @@
 import times
 import FileIO
+import request
 
 print(2 << 3)
 
@@ -9,6 +10,7 @@ let thing = [] -> cmd[()] {
 	print(times.getTimeSince(0.0)!)
 	let _ = FileIO.appendBytes("test.txt", [26, 26])!
 	print(FileIO.readBytes("test.txt")!)
+	print(request.delete("https://github.com", mapFrom([("", "")]))!)
 }
 
 let pub test = thing()

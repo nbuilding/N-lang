@@ -17,9 +17,43 @@ async def get(url, headers):
             return {"code": r.status, "response": r.reason, "return": returndata}
 
 
+async def delete(url, headers):
+    async with aiohttp.ClientSession() as session:
+        async with session.delete(url, headers=headers) as r:
+            returndata = string(await r.text())
+            try:
+                returndata = python_to_json(json.loads(await r.text()))
+            except:
+                pass
+            return {"code": r.status, "response": r.reason, "return": returndata}
+
+
+async def head(url, headers):
+    async with aiohttp.ClientSession() as session:
+        async with session.head(url, headers=headers) as r:
+            returndata = string(await r.text())
+            try:
+                returndata = python_to_json(json.loads(await r.text()))
+            except:
+                pass
+            return {"code": r.status, "response": r.reason, "return": returndata}
+
+
 async def post(url, content, headers):
     async with aiohttp.ClientSession() as session:
         async with session.post(url, data=json.dumps(content), headers=headers) as r:
+            return {"code": r.status, "response": r.reason, "text": await r.text()}
+
+
+async def patch(url, content, headers):
+    async with aiohttp.ClientSession() as session:
+        async with session.patch(url, data=json.dumps(content), headers=headers) as r:
+            return {"code": r.status, "response": r.reason, "text": await r.text()}
+
+
+async def put(url, content, headers):
+    async with aiohttp.ClientSession() as session:
+        async with session.put(url, data=json.dumps(content), headers=headers) as r:
             return {"code": r.status, "response": r.reason, "text": await r.text()}
 
 
@@ -38,6 +72,36 @@ def _values():
             n_map_type.with_typevars(["str", "str"]),
             n_cmd_type.with_typevars(
                 [{"code": "int", "response": "str", "return": json_value_type}]
+            ),
+        ),
+        "delete": (
+            "str",
+            n_map_type.with_typevars(["str", "str"]),
+            n_cmd_type.with_typevars(
+                [{"code": "int", "response": "str", "return": json_value_type}]
+            ),
+        ),
+        "head": (
+            "str",
+            n_map_type.with_typevars(["str", "str"]),
+            n_cmd_type.with_typevars(
+                [{"code": "int", "response": "str", "return": json_value_type}]
+            ),
+        ),
+        "patch": (
+            "str",
+            n_map_type.with_typevars(["str", "str"]),
+            n_map_type.with_typevars(["str", "str"]),
+            n_cmd_type.with_typevars(
+                [{"code": "int", "response": "str", "text": "str"}]
+            ),
+        ),
+        "put": (
+            "str",
+            n_map_type.with_typevars(["str", "str"]),
+            n_map_type.with_typevars(["str", "str"]),
+            n_cmd_type.with_typevars(
+                [{"code": "int", "response": "str", "text": "str"}]
             ),
         ),
     }
