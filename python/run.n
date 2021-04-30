@@ -1,4 +1,5 @@
 import times
+import FileIO
 
 print(2 << 3)
 
@@ -6,6 +7,8 @@ print(toFloat(1))
 
 let thing = [] -> cmd[()] {
 	print(times.getTimeSince(0.0)!)
+	let _ = FileIO.appendBytes("test.txt", [26, 26])!
+	print(FileIO.readBytes("test.txt")!)
 }
 
 let pub test = thing()
