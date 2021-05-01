@@ -1,6 +1,7 @@
 import times
 import FileIO
 import request
+import json
 
 print(2 << 3)
 
@@ -14,3 +15,5 @@ let thing = [] -> cmd[()] {
 }
 
 let pub test = thing()
+
+print(json.stringify(json.number(30.0)))
