@@ -39,6 +39,17 @@ async def head(url, headers):
             return {"code": r.status, "response": r.reason, "return": returndata}
 
 
+async def options(url, headers):
+    async with aiohttp.ClientSession() as session:
+        async with session.options(url, headers=headers) as r:
+            returndata = string(await r.text())
+            try:
+                returndata = python_to_json(json.loads(await r.text()))
+            except:
+                pass
+            return {"code": r.status, "response": r.reason, "return": returndata}
+
+
 async def post(url, content, headers):
     async with aiohttp.ClientSession() as session:
         async with session.post(url, data=json.dumps(content), headers=headers) as r:
@@ -82,6 +93,13 @@ def _values():
             ),
         ),
         "head": (
+            "str",
+            n_map_type.with_typevars(["str", "str"]),
+            n_cmd_type.with_typevars(
+                [{"code": "int", "response": "str", "return": json_value_type}]
+            ),
+        ),
+        "options": (
             "str",
             n_map_type.with_typevars(["str", "str"]),
             n_cmd_type.with_typevars(
