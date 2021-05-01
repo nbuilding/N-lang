@@ -15,9 +15,9 @@ import argparse
 from os import path
 from colorama import init, Fore, Style
 from sys import exit
+import requests
 
 init()
-
 
 parser = argparse.ArgumentParser(
     description="Allows to only show warnings and choose the file location"
@@ -29,8 +29,15 @@ parser.add_argument(
     help="The file to read. (optional. if not included, it'll just run run.n)",
 )
 parser.add_argument("--check", action="store_true")
+parser.add_argument("--newest", action="store_true")
 
 args = parser.parse_args()
+
+
+if args.newest:
+	response = requests.get("https://api.github.com/repos/nbuilding/N-Lang/releases/latest")
+	print(response.json()["name"])
+	exit()
 
 filename = args.file
 
@@ -102,6 +109,7 @@ except lark.exceptions.UnexpectedEOF as e:
     format_error(e, file)
 
 error_count, warning_count = type_check(file, tree)
+
 if error_count > 0 or args.check:
     error_s = ""
     warning_s = ""

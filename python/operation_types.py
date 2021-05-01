@@ -18,6 +18,8 @@ binary_operation_types = {
     "SUBTRACT": [("int", "int", "int"), ("float", "float", "float")],
     "MULTIPLY": [("int", "int", "int"), ("float", "float", "float")],
     "DIVIDE": [("int", "int", "int"), ("float", "float", "float")],
+    "SHIFTL": [("int", "int", "int")],
+    "SHIFTR": [("int", "int", "int")],
     "ROUNDDIV": [("int", "int", "int"), ("float", "float", "float")],
     "MODULO": [("int", "int", "int"), ("float", "float", "float")],
     # Exponents are weird because negative powers result in non-integers.
