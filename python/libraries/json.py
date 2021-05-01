@@ -98,11 +98,31 @@ def parseSafe(string):
     except:
         return None
 
+def convert_float_to_int(value):
+    if isinstance(value, float):
+        if value % 1 == 0:
+            value = round(value)
+    elif isinstance(value, dict):
+        for i in value.keys():
+            if isinstance(value[i], dict) or isinstance(value[i], list):
+                value[i] = convert_float_to_int(value[i])
+            elif isinstance(value[i], float):
+                if value[i] % 1 == 0:
+                    value[i] = round(value[i])
+    elif isinstance(value, list):
+        for i in range(len(value)):
+            if isinstance(value[i], dict) or isinstance(value[i], list):
+                value[i] = convert_float_to_int(value[i])
+            elif isinstance(value[i], float):
+                if value[i] % 1 == 0:
+                    value[i] = round(value[i])
+
+    return value
 
 # TODO: Formatting options?
 # TODO: Convert NaN and infinities to null, per spec.
 def stringify(json_value):
-    return json.dumps(json_to_python(json_value))
+    return json.dumps(convert_float_to_int(json_to_python(json_value)))
 
 
 def _values():
