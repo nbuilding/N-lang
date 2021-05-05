@@ -162,11 +162,11 @@ type error when using `var` in these situations.
       resolve unknown types very well
   - has a return type
   - because there are multiple possible operation types, error messages will be
-    more vague (eg "cannot add a bool and a bool
+    more vague (eg "cannot add a bool and a bool")
   - might also have to define operations for the number type
 
 - if/else expression branches: Given the types of either branch of an if/else, it should try to compare them.
-  - could also be used for match expressions
+  - could also be used for match expressions and list literals
   - unlike assigning to variables, this is symmetrical:
     - if one branch is `str -> str`, and the other is `[a] a -> a`, then the
       if/else expression's return type is `str -> str`
