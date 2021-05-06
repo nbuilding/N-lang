@@ -165,3 +165,91 @@ let whatever = (return 3) + (return 4)
 Ideally, it'd at least be an unknown type, but with the currently defined
 *operations* comparison algorithm defined above, this would likely match
 whatever the first possibility is and use that return value.
+
+Maybe if one of operands is an unknown, the entire thing should be unknown? Or
+null. Maybe null is better because it may turn out later that the type isn't
+addable.
+
+## Type comparisons
+
+The type of comparisons that may be made between type instances.
+
+### Calling functions
+
+This mostly only has one main use:
+
+- Calling functions
+
+This could borrow code from assigning to variables, with the argument type as
+the annotation type, but it also needs to establish a context for resolving
+function type variables for determining the return type.
+
+### Assigning to variables
+
+If a user-given type should be a certain type, you can use the *assigning to
+variables* comparison. It should be symmetric as long as a function type isn't
+on either side.
+
+This is used in a few situations:
+
+- `let` statements with an explicit type annotation
+  - generally, any declaration where there's an explicit type annotation and the
+    type of the value being assigned; this might also include `if let` and `for`
+- `var` statements
+- `assert type` where the annotation type is the expected type
+- `assert value` and `if` conditions, where the annotation type is `bool`
+  - it *probably* doesn't matter whether `bool` is the annotation or value type
+    because it should be symmetric when one side is a simple named type
+- `return` expressions, where the function return type is the annotation type,
+  and the return value is the value type
+
+### Operations
+
+This is used in a few situations:
+
+- binary and unary operations
+- `for` loops
+
+I'm not sure what comparison operations should use.
+
+This can use code from *calling functions* because it resolves function type
+generics and . However, instead of using the generated helpful type error
+message, if there's an error, it'll try the next one. There might also be a
+special case for unknown types, as noted in the Unknown types section.
+
+### If/else expression branches
+
+This is used in a few situations:
+
+- `if`/`else` *expression* branches (not statement)
+- list literals
+- in the future, `match` expression branches
+
+The *if/else expression branches* comparison is a bit unique in that it
+determines a common type and returns it. Thus, I'm not sure if it can borrow
+code from other comparisons, or if the *assigning to variables* comparison can
+borrow *if/else expression branches* comparison code and then discard the
+determined type.
+
+## Interface
+
+The current type system implementation is janky, hard to use, and hard to read.
+
+Here's some psuedocode (in JavaScript) to explain how the API for these type
+comparisons should work.
+
+```js
+// For `assert value`
+const { type: valueType, exitPoint } = context.scope.typeCheck(this.expression)
+context.typeErrIfNecessary(
+  ErrorType.VALUE_ASSERTION_NOT_BOOL,
+  checkAssignable(bool.instance(), valueType)
+)
+return { exitPoint }
+```
+
+or maybe just
+
+```js
+return this.expression.shouldBeAssignableTo(bool)
+```
