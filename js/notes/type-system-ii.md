@@ -34,7 +34,7 @@ type annotations. Scopes should store type specs separate from the variables.
 
 Named types also keep track of their names *and* where they were declared. This
 way, if there are multiple types named `maybe` in scope, type errors can
-distinguish between them. **TODO**: Implementation?
+distinguish between them. **TODO**: How should this be stored/implemented?
 
 In summary, *type instances* need to have:
 
@@ -78,7 +78,69 @@ Comparing function type variables in functions that aren't being called (eg `[a]
 a -> a` vs `[b] b -> b`) are more complicated, especially as it demonstrates a
 case of asymmetry for most of the comparison methods:
 
-**TODO**: Comparisons
+Here's how comparison should work (when the function type variable isn't of the
+function being called):
+
+annotation type | value type | is this fine?
+--- | --- | ---
+`[a] a -> a` | `[b] b -> b` | yes
+`str -> str` | `[a] a -> a` | yes
+`[a] a -> a` | `str -> str` | no, `str -> str` is not generic enough
+`[a] a -> a` | `[a, b] a -> b` | yes
+`[a, b] a -> b` | `[a] a -> a` | no, not generic enough
+`[a] { hello: a } -> { hello: a }` | `[b] b -> b` | yes
+
+- *calling functions*, *assigning to variables*, *operations*:
+  - if the annotation type is a function type variable but the value is not,
+    then there's an error about how the given function isn't generic enough (too
+    specific)
+  - regardless or not of whether the annotation type is a function type
+    variable, using the comparison context:
+    - if a substitution does not yet exist for this type var, map the value
+      type's type var to the annotation type
+    - if a substitution does exist, compare the substituted type (which is from
+      an annotation type!) with the annotation type:
+      - this specific type of comparison can compare function type variables by
+        their type specs
+    - example: annotation `[a] { hello: a } -> { hello: a } -> { hello: a }`,
+      value `[b, c] b -> b -> c`
+      1. `b` is mapped to `{ hello: a }`
+      2. `b` is already mapped, so `{ hello: a }` is compared with `{ hello: a
+        }`. `a` has the same type spec as the other `a`, so they're equal
+      3. `c` is mapped to `{ hello: a }`
+- *if/else expression branches*:
+  - if just one type is a type variable, then map it to the other type
+  - if both types are a type variable, then map them both to a new type
+    variable, perhaps?
+    - first, however, check if their type specs are equal, which can happen
+      after substitution
+      - and what if they aren't? and it was already after substitution?
+      - example: `[a, c] a -> c -> a` and `[b, d] b -> d -> d`
+        1. `a` vs `b`: Neither have substitutions, and both are type vars.
+          Create a new type spec and a new instance of it `e`. Map `a` to `e`
+          and `b` to `e`.
+        2. `c` vs `d`: Similarly, a new type var `f` is created, and `c` and `d`
+          are mapped to it.
+        3. `a` vs `d`: Both have substitutions: `e` and `f`, respectively. A new
+          comparison is performed:
+          - Without a special case, `e` and `f` are merely more type variables
+            without substitutions, so a new type variable would be made, mapping
+            `e` and `f` to `g`.
+          - This makes sense, though; the intersection of the two original types
+            should be `[t] t -> t -> t`; the last type must be the same type as
+            the first two
+          - Thus, the only thing that I need to change is that the final
+            substitution at the end must be recursive; `a` => `e` => `g`.
+  - function types, when finished, should substitute its type variables from the
+    comparison context if it has any (this should be symmetric, so it doesn't
+    matter if it's the one with or without the type variables)
+    - don't forget to set the owner of any new type specs to this function
+    - remove duplicates
+  - if a mapping exists for a type variable, substitute and re-compare
+    - if there are two type variables but only one has a mapping, substitute
+      first
+
+Do function type variables need names? Ideally not.
 
 #### Enum type specs
 
@@ -98,6 +160,17 @@ if let <yes value> = none {
   // value : unknown
 }
 ```
+
+#### Alias types
+
+Because aliases substitute for other types, they may need to be resolved
+explicitly. The alias type itself can deal with this in comparisons, but there
+are a few situations where the alias type needs to be resolved because there's
+no comparison being made:
+
+- determining that a value is a function in function calls
+  - though perhaps this is just another operator `[a, b] (a -> b) -> a -> b`
+- determining that a function using the `!` operator returns a `cmd`
 
 ### Number type
 
@@ -138,7 +211,16 @@ Functions could be seen as two-type tuples, but they can contain type variables.
 - the argument type
 - the return type
 
-**TODO**: Comparisons
+To compare them:
+
+- *calling functions*, *assigning to variables*, *operations*: Compare the
+  argument and return type. I don't think anything else fancy needs to be done.
+  Type variables can deal with themselves maturely (see their section).
+- *if/else expression branches*: As noted in the function type variable section,
+  after comparing the argument and return type, the function type should return
+  a new function type with the resolved argument/return types, and also
+  substitute the type variables from the comparison context, removing
+  duplicates.
 
 ### Unknown type
 
@@ -235,11 +317,10 @@ determined type.
 
 The current type system implementation is janky, hard to use, and hard to read.
 
-Here's some psuedocode (in JavaScript) to explain how the API for these type
-comparisons should work.
+Here's some psuedocode (in JavaScript) for `assert value` to explain how the API
+for these type comparisons should work.
 
 ```js
-// For `assert value`
 const { type: valueType, exitPoint } = context.scope.typeCheck(this.expression)
 context.typeErrIfNecessary(
   ErrorType.VALUE_ASSERTION_NOT_BOOL,
@@ -251,5 +332,198 @@ return { exitPoint }
 or maybe just
 
 ```js
-return this.expression.shouldBeAssignableTo(bool)
+return {
+  // Returns the exit point
+  exitPoint: context.shouldBeAssignableTo(
+    // The Expression to type check
+    this.expression,
+    // A type instance or spec
+    bool,
+    // Error type to use if there's a type error
+    ErrorType.VALUE_ASSERTION_NOT_BOOL
+  )
+}
+```
+
+For `if`/`else` expressions:
+
+```js
+const condExit = context.shouldBeAssignableTo(
+  this.condition,
+  bool,
+  ErrorType.CONDITIONAL_NOT_BOOL
+)
+// Returns resolved type and the first exit point
+// If it fails, type is null
+const { type, firstExitPoint } = context.equalBranches(
+  // List of Expressions to type check and compare type instances of
+  [this.then, this.else],
+  // Error to use if there's no type error
+  ErrorType.IF_BRANCH_TYPE_MISMATCH
+)
+return {
+  type,
+  exitPoint: condExit || firstExitPoint
+}
+```
+
+## Errors
+
+How should type errors be represented? Ideally,
+
+- These errors can be serialised and reconstructed
+
+  - We might just slap the type instances in the error directly, but make
+    interfaces in the error type definition so that parsing JSON can produce a
+    valid error type still
+
+    - This also means types should be IMMUTABLE
+
+    - This also means we can't use any type helper methods
+
+- There should be sufficient information to construct a helpful error message
+  (as drafted in [type-system.md](#type-system.md))
+
+- It should be easy for the type comparisons to produce
+
+Here's how the first example could be represented in YAML:
+
+```yml
+type: ARGUMENT_TYPE_MISMATCH
+diff:
+  type: record
+  diff:
+    a:
+      type: tuple
+      types:
+        - type: type
+          name: int
+        - type: type
+          name: str
+          shouldBe:
+            type: type
+            name: float
+          hasIssue: true
+      hasIssue: true
+    b:
+      type: type
+      name: list
+      vars:
+        - type: type
+          name: bool
+          shouldBe:
+            type: type
+            name: str
+          hasIssue: true
+      hasIssue: true
+    c:
+      type: type
+      name: maybe
+      vars:
+        - type: type
+          name: int
+      shouldBe:
+        type: type
+        name: list
+        vars:
+          - type: unit
+      hasIssue: true
+    d:
+      type: function
+      argument:
+        type: type
+        name: str
+        tooSpecific: true
+        hasIssue: true
+      return:
+        type: type
+        name: str
+        tooSpecific: true
+        hasIssue: true
+      hasIssue: true
+    e:
+      type: function
+      argument:
+        type: type
+        name: int
+      return:
+        type: type
+        name: MyClass
+        shouldBe:
+          type: type
+          name: myAlias
+        hasIssue: true
+      hasIssue: true
+    f:
+      type: type
+      name: char
+    g:
+      type: type
+      name: char
+  hasIssue: true
+```
+
+There are several issues here:
+
+- How to serialise type specs so that they can be compared by memory?
+
+  - Maybe unique IDs? 😬 This could also allow deserialisation to use existing
+    types, and native types could have the IDs hardcoded?
+
+- How to encode names when there are duplicate names?
+
+  - Maybe there can be a separate definitions object for imported types. It
+    would use the import path and maybe also the name of the variable it was
+    assigned to, if that can be trivially figured out (this should be low
+    priority).
+
+  - Perhaps the scope tree could be included as well.
+
+```
+// imported.n
+
+export type maybe[t] = <cool t>
+```
+
+```
+// run.n
+
+let imported = imp "././imported.n"
+
+type maybe[t] = <whatever t>
+
+{
+  alias maybe[t] = (t, t, int)
+  alias hmm = maybe[int]
+
+  {
+    alias int = float
+
+    let value: hmm = (none, whatever, imported.cool)
+  }
+}
+```
+
+Perhaps this should produce the following type error:
+
+```
+Error: The type of the value you set `value` to doesn't match the type
+annotation you specified.
+
+  --> run.n:10:28
+ 14 |     let value: maybe[int] = (none, whatever, imported.cool, ())
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Here's the type of the value you set `value` to:
+
+(
+  <native>.maybe[...],
+  ^^^^^^^^^^^^^^^^^^^ This should be a <native>.int.
+  [a] a -> maybe@5:1[a],
+  ^^^^^^^^^^^^^^^^^^^^^ This should be a <native>.int.
+  [b] b -> imp "././imported.n".maybe[b],
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ This should be a <native>.int.
+  ... (1 more item)
+  ^^^^^^^^^^^^^^^^^ The tuple should have exactly 3 items.
+)
 ```

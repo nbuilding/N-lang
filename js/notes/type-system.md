@@ -210,7 +210,7 @@ Here is the type of the value you gave to this function:
      value, not just str.
   e: int -> MyClass
             ^^^^^^^ This should be a myAlias.
-  ...
+  ... (2 more fields)
 }
 ```
 
