@@ -1,5 +1,5 @@
 import { ParseOptions, parse } from '../grammar/parse'
-import { Block } from '../grammar/ast'
+import { Block } from '../ast/index'
 
 export interface FileLinesOptions {}
 
@@ -8,7 +8,7 @@ export class FileLines {
   lines: string[]
   lineNumWidth: number
 
-  constructor (file: string, name: string = '<file>', _: FileLinesOptions = {}) {
+  constructor (file: string, name = '<file>', _: FileLinesOptions = {}) {
     this.name = name
     this.lines = file.split(/\r?\n/)
     this.lineNumWidth = (this.lines.length + 1 + '').length
