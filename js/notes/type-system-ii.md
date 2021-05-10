@@ -253,6 +253,36 @@ Maybe if one of operands is an unknown, the entire thing should be unknown? Or
 null. Maybe null is better because it may turn out later that the type isn't
 addable.
 
+### Error (`null`) type
+
+Results from when type errors prevent determination of the return type of
+something. It should try to recover as much information as possible; for
+example, if a tuple's second item has a type error, then its type could be
+`(str, null, int)`.
+
+The error type can also result from a bad type annotation, such as an undefined
+named type.
+
+Thus, the error type can pretty much be anywhere, in all types of types, and as
+both the annotation and value type.
+
+As the alternative name suggests, the error type is represented as `null`.
+
+To avoid compounding consecutive type errors resulting from a single type error,
+the `null` type is fairly lenient, and should always be associated with some
+type error somewhere.
+
+When comparing `null`:
+
+- *calling functions*, *assigning to variables*, *operations*: If one of the
+  types is `null`, then consider them equal.
+
+  - For *calling functions*, if the annotation type isn't `null`, then get all
+    of the type variables in the annotation type and map them to `null`.
+    Presumably it should be fine if the type variable is overwritten later.
+
+Is there a difference between the error type and the unknown type? Perhaps not.
+
 ## Type comparisons
 
 The type of comparisons that may be made between type instances.
@@ -296,9 +326,24 @@ This is used in a few situations:
 I'm not sure what comparison operations should use.
 
 This can use code from *calling functions* because it resolves function type
-generics and . However, instead of using the generated helpful type error
-message, if there's an error, it'll try the next one. There might also be a
-special case for unknown types, as noted in the Unknown types section.
+generics. However, instead of using the generated helpful type error message, if
+there's an error, it'll try the next one. There might also be a special case for
+unknown types, as noted in the Unknown types section.
+
+### Comparing annotation to annotation or value to value type
+
+There are two scenarios in *assigning to variables* comparisons where types from
+the same side are compared:
+
+- In *calling functions*, comparing an already resolved function type variable
+  with another type. (Both will be from the value type side.)
+
+- Comparing a resolved function type variable in a function type. (Both will be
+  from the annotation type side.)
+
+Type variables in this type of comparison are also compared by named type.
+However, the question is then what happens if there are other function type
+variables.
 
 ### If/else expression branches
 
@@ -609,7 +654,7 @@ recursive comparison calls:
 
       - No: Map the type variable spec to the annotation type in the context.
 
-1. Is the annotation type a type variable?
+1. Is the annotation type a function type variable?
 
     - Is it of the context function (i.e. the function being called)?
 
@@ -621,6 +666,9 @@ recursive comparison calls:
           - **TODO**: Compare how? Presumably with the same method as above.
 
         - No: Map the type variable spec to the value type.
+
+      - No: The types are *not assignable*; the value type is too specific when
+        it should be able to handle any value.
 
 1. Is the annotation type a number type?
 
