@@ -568,127 +568,127 @@ recursive comparison calls:
 
 1. Is at least one of the types an unknown type?
 
-  - If the comparison context's function exists, check if the non-unknown type
-    has any function type variables for that function.
+    - If the comparison context's function exists, check if the non-unknown type
+      has any function type variables for that function.
 
-    - Map each function type variable to unknown.
+      - Map each function type variable to unknown.
 
-  - The types are *assignable*.
+    - The types are *assignable*.
 
 1. Is the value type an alias type?
 
-  - We do this step early so that the value alias can be resolved.
+    - We do this step early so that the value alias can be resolved.
 
-  - Is the annotation type an alias type with the same alias type spec?
+    - Is the annotation type an alias type with the same alias type spec?
 
-    - Yes: For each type variable:
+      - Yes: For each type variable:
 
-      - *Compare* the corresponding type variables using *assigning to a
-        variable*.
+        - *Compare* the corresponding type variables using *assigning to a
+          variable*.
 
-    - No: Resolve the value alias (i.e. determine the type instance it is an
-      alias for), then *compare* the annotation type with the resolved value
-      type using *assigning to a variable*.
+      - No: Resolve the value alias (i.e. determine the type instance it is an
+        alias for), then *compare* the annotation type with the resolved value
+        type using *assigning to a variable*.
 
 1. Is the value type a function type variable? (And is the comparison context
   not comparing two annotation types?)
 
-  - Note: This can't be a function type variable from the comparison context
-    function.
+    - Note: This can't be a function type variable from the comparison context
+      function.
 
-  - Does a substitution exist for this type variable? And is it not the unknown
-    type?
+    - Does a substitution exist for this type variable? And is it not the
+      unknown type?
 
-    - Yes: *Compare* the annotation type with the type from the substitution
-      with the context set to indicate this.
+      - Yes: *Compare* the annotation type with the type from the substitution
+        with the context set to indicate this.
 
-      - This should compare function type variables by type spec.
+        - This should compare function type variables by type spec.
 
-      - **TODO**: What about other function type variables? And if they're from
-        the comparison context function?
+        - **TODO**: What about other function type variables? And if they're
+          from the comparison context function?
 
-    - No: Map the type variable spec to the annotation type in the context.
+      - No: Map the type variable spec to the annotation type in the context.
 
 1. Is the annotation type a type variable?
 
-  - Is it of the context function (i.e. the function being called)?
+    - Is it of the context function (i.e. the function being called)?
 
-    - Yes: Does a substitution for the type variable spec exist in the context
-      substitution map?
+      - Yes: Does a substitution for the type variable spec exist in the context
+        substitution map?
 
-      - Yes: Compare the substitution with the value type.
+        - Yes: Compare the substitution with the value type.
 
-        - **TODO**: Compare how? Presumably with the same method as above.
+          - **TODO**: Compare how? Presumably with the same method as above.
 
-      - No: Map the type variable spec to the value type.
+        - No: Map the type variable spec to the value type.
 
 1. Is the annotation type a number type?
 
-  - The other type *should* be either a number, int, or float.
+    - The other type *should* be either a number, int, or float.
 
 1. Is the annotation type a tuple type?
 
-  - The value type *should* be a tuple.
+    - The value type *should* be a tuple.
 
-  - *Combine errors*.
+    - *Combine errors*.
 
-  - For each type in the annotation tuple:
+    - For each type in the annotation tuple:
 
-    - Does the value tuple have a corresponding type? If not, that's fine: just
-      break.
+      - Does the value tuple have a corresponding type? If not, that's fine:
+        just break.
 
-    - *Compare* the annotation type with the corresponding value type using
-      *assigning to variables*.
+      - *Compare* the annotation type with the corresponding value type using
+        *assigning to variables*.
 
-  - The value tuple *should* have the same number of types.
+    - The value tuple *should* have the same number of types.
 
 1. Is the annotation type a record type?
 
-  - The value type *should* be a record.
+    - The value type *should* be a record.
 
-  - *Combine errors*.
+    - *Combine errors*.
 
-  - For each key present in *both* records:
+    - For each key present in *both* records:
 
-    - *Compare* the corresponding types using *assigning to variables*.
+      - *Compare* the corresponding types using *assigning to variables*.
 
-  - The value type *should* not have extra keys.
+    - The value type *should* not have extra keys.
 
-  - The value type *should* have the missing keys that the annotation type has
-    that the value type doesn't.
+    - The value type *should* have the missing keys that the annotation type has
+      that the value type doesn't.
 
 1. Is the annotation type a function type?
 
-  - The value type *should* be a function.
+    - The value type *should* be a function.
 
-  - *Combine errors*.
+    - *Combine errors*.
 
-  - *Compare* the argument types using *assigning to variables*.
+    - *Compare* the argument types using *assigning to variables*.
 
-  - *Compare* the return types using *assigning to variables*.
+    - *Compare* the return types using *assigning to variables*.
 
 1. Is the annotation type a named type?
 
-  - Is the annotation type an alias type?
+    - Is the annotation type an alias type?
 
-    - Note: If the value type's alias type matched, it would have been matched
-      earlier on. Thus, here, the alias types must not match. Alias resolution
-      is necessary.
+      - Note: If the value type's alias type matched, it would have been matched
+        earlier on. Thus, here, the alias types must not match. Alias resolution
+        is necessary.
 
-    - Note: Either way, the value type will not be an alias type.
+      - Note: Either way, the value type will not be an alias type.
 
-    - Yes: *Compare* the resolved annotation alias using *assigning to
-      variables*.
+      - Yes: *Compare* the resolved annotation alias using *assigning to
+        variables*.
 
-    - No:
+      - No:
 
-      - The value's type spec *should* `===` that of the annotation type.
+        - The value's type spec *should* `===` that of the annotation type.
 
-      - *Combine errors*.
+        - *Combine errors*.
 
-      - For each type variable in each named type:
+        - For each type variable in each named type:
 
-        - *Compare* the corresponding types using *assigning to variables*.
+          - *Compare* the corresponding types using *assigning to variables*.
 
 #### *Calling functions* comparisons
 
@@ -702,10 +702,10 @@ value being passed into the function as the argument.
 1. *Compare* the argument type as the annotation type with the value type using
   *assigning to variables* with the function type instance as the context.
 
-  - This way, function type variables can determine whether they are of this
-    function.
+    - This way, function type variables can determine whether they are of this
+      function.
 
-  - This should also collect substitutions for its type variables.
+    - This should also collect substitutions for its type variables.
 
 2. If there are errors, the return type is null. Otherwise, substitute the type
   variables of the function in the return type with substitutions from the map,
@@ -722,8 +722,8 @@ until one succeeds with no errors.
 
 2. Otherwise, try each function type:
 
-  - Perform the *calling functions* comparison on the operands with each
-    function type. If there are no errors, return the return type.
+    - Perform the *calling functions* comparison on the operands with each
+      function type. If there are no errors, return the return type.
 
 3. If none match without errors, then raise an error and return null.
 
@@ -733,7 +733,8 @@ When dealing with branches for list items or the match expression, the type from
 each branch will be given as an array. However, the following algorithm only
 handles two types at a time.
 
-The error messages will show a given item compared to the first item in the list. For example,
+The error messages will show a given item compared to the first item in the
+list. For example,
 
 ```
 Here's how it compares with the first item:
@@ -753,103 +754,103 @@ Here's what the comparison context contains:
 
 1. Is at least one type an unknown?
 
-  - Return the other type.
+    - Return the other type.
 
 1. Are both types an alias type? Do their alias specs match?
 
-  - *Compare* each type variable using *if/else expression branches*.
+    - *Compare* each type variable using *if/else expression branches*.
 
-  - Return a new alias type instance with the resulting types.
+    - Return a new alias type instance with the resulting types.
 
 1. Is either type an alias type?
 
-  - Resolve the aliases and *compare* the resolved types using *if/else
-    expression branches*.
+    - Resolve the aliases and *compare* the resolved types using *if/else
+      expression branches*.
 
-  - Do this one at a time so nested alias specs have a chance of being compared
-    by name.
+    - Do this one at a time so nested alias specs have a chance of being
+      compared by name.
 
 1. Is either type a function type variable?
 
-  - If a substitution exists for any of the function type variables, substitute
-    them, then *compare* the substitutions and other types using *if/else
-    expression branches*. Return the result.
+    - If a substitution exists for any of the function type variables,
+      substitute them, then *compare* the substitutions and other types using
+      *if/else expression branches*. Return the result.
 
-    - For example, if there are two type variables, but only one has a
-      substitution, substitute only that one type variable, then recompare.
+      - For example, if there are two type variables, but only one has a
+        substitution, substitute only that one type variable, then recompare.
 
-  - By now, all function type variables have no substitutions.
+    - By now, all function type variables have no substitutions.
 
-  - Are both types function type variables?
+    - Are both types function type variables?
 
-    - Yes: Create a new type variable spec, and map both type variables' type
-      specs to an instance of it in the comparison context's substitution map.
+      - Yes: Create a new type variable spec, and map both type variables' type
+        specs to an instance of it in the comparison context's substitution map.
 
-    - No: Map the type variable to the other type.
+      - No: Map the type variable to the other type.
 
 1. Is the first type a tuple?
 
-  - The other type *should* be a tuple.
+    - The other type *should* be a tuple.
 
-  - Maintain a list of types for a new tuple.
+    - Maintain a list of types for a new tuple.
 
-  - For each type in the first tuple:
+    - For each type in the first tuple:
 
-    - If the other tuple doesn't have a corresponding type, break.
+      - If the other tuple doesn't have a corresponding type, break.
 
-    - *Compare* the types using *if/else expression branches* and add the result
-      to the list of types.
+      - *Compare* the types using *if/else expression branches* and add the
+        result to the list of types.
 
-  - The tuple lengths *should* match.
+    - The tuple lengths *should* match.
 
-  - Return a new tuple with the list of resulting types.
+    - Return a new tuple with the list of resulting types.
 
 1. Is the first type a record?
 
-  - The other type *should* be a record.
+    - The other type *should* be a record.
 
-  - Maintain a new mapping of keys to types for a new record.
+    - Maintain a new mapping of keys to types for a new record.
 
-  - For each key in the first record:
+    - For each key in the first record:
 
-    - The other record *should* have the key.
+      - The other record *should* have the key.
 
-    - *Compare* the types using *if/else expression branches* and add the result
-      to the map of types.
+      - *Compare* the types using *if/else expression branches* and add the
+        result to the map of types.
 
-  - The other record *should* not have extra fields.
+    - The other record *should* not have extra fields.
 
-  - Return a new record with the mapping of keys to types.
+    - Return a new record with the mapping of keys to types.
 
 1. Is the first type a function?
 
-  - The other type *should* be a function.
+    - The other type *should* be a function.
 
-  - *Compare* the corresponding argument types using *if/else expression
-    branches*.
+    - *Compare* the corresponding argument types using *if/else expression
+      branches*.
 
-  - *Compare* the corresponding return types using *if/else expression
-    branches*.
+    - *Compare* the corresponding return types using *if/else expression
+      branches*.
 
-  - *Recursively* substitute the type variables from the comparison context in
-    the function's type variable list. Remove duplicates. Set the owner of the
-    function type variable specs to a new function made from the results of the
-    previous comparisons and the new type variable list. Return the new
-    function.
+    - *Recursively* substitute the type variables from the comparison context in
+      the function's type variable list. Remove duplicates. Set the owner of the
+      function type variable specs to a new function made from the results of
+      the previous comparisons and the new type variable list. Return the new
+      function.
 
 1. Is the first type a named type?
 
-  - Note: Aliases should not have survived to this point.
+    - Note: Aliases should not have survived to this point.
 
-  - The other type *should* be a named type.
+    - The other type *should* be a named type.
 
-  - The other type's spec *should* `===` the first type's spec.
+    - The other type's spec *should* `===` the first type's spec.
 
-  - Maintain a list of types for the new type instance.
+    - Maintain a list of types for the new type instance.
 
-  - For each type variable,
+    - For each type variable,
 
-    - *Compare* the types using *if/else expression branches* and add the result
-      to the list of types.
+      - *Compare* the types using *if/else expression branches* and add the
+        result to the list of types.
 
-  - Return a new instance of the type spec with the list of resolved types.
+    - Return a new instance of the type spec with the list of resolved types.
