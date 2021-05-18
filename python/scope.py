@@ -962,6 +962,20 @@ class Scope:
                 # they don't use await. That's fine because type checking will
                 # allow it, but the interpreter doesn't know that.
                 return command
+        elif expr.data == "match":
+            input_value, match_block = expr.children
+            inp = await self.eval_expr(input_value)
+            values = {}
+            default = match_block.children[-1].children[-1]
+
+            for match_value in match_block.children[0:-1]:
+                match, value = match_value.children
+                values[await self.eval_expr(match)] = value
+
+            if inp in values:
+                return await self.eval_expr(values[inp])
+            
+            return await self.eval_expr(default)
         else:
             print("(parse tree):", expr)
             raise SyntaxError("Unexpected command/expression type %s" % expr.data)
@@ -1466,7 +1480,22 @@ class Scope:
                     )
                 )
             return contained_type
+        elif expr.data == "match":
+            input_value, match_block = expr.children
+            value_type = self.type_check_expr(input_value)
+            first_match, first_value = match_block.children[0].children
+            first_match_type = self.type_check_expr(first_match)
+            first_value_type = self.type_check_expr(first_value)
+            for i, match_value in enumerate(match_block.children):
+                match, value = match_value.children
+                if i != len(match_block.children) - 1 and self.type_check_expr(match) != first_match_type and self.type_check_expr(match) != None:
+                    self.errors.append(TypeCheckError(match_value, "The match check #%s's type is %s while the first check's type is %s" % (str(i + 1), display_type(self.type_check_expr(match)), display_type(first_match_type))))
+                if self.type_check_expr(value) != first_value_type and self.type_check_expr(match) != None:
+                    self.errors.append(TypeCheckError(match_value, "The match value #%s's type is %s while the first value's type is %s" % (str(i + 1), display_type(self.type_check_expr(value)), display_type(first_value_type))))
 
+            if value_type != first_match_type:
+                self.errors.append(TypeCheckError(input_value, "The input value's type is %s while the match's input type is %s" % (display_type(value_type), display_type(first_match_type))))
+            return first_match_type
         if len(expr.children) == 2 and isinstance(expr.children[0], lark.Token):
             operation, value = expr.children
             operation_type = operation.type
