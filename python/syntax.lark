@@ -4,12 +4,14 @@ main_instruction: instruction (";" | "\n")
                 | if (";" | "\n")?
                 | ifelse (";" | "\n")?
                 | for (";" | "\n")?
+                | while (";" | "\n")?
                 | for_legacy (";" | "\n")?
 
 last_instruction: instruction (";" | "\n")?
                 | if (";" | "\n")?
                 | ifelse (";" | "\n")?
                 | for (";" | "\n")?
+                | while (";" | "\n")?
                 | for_legacy (";" | "\n")?
 
 instruction: declare
@@ -17,6 +19,8 @@ instruction: declare
            | function_callback_pipe
            | imp
            | return
+           | continue
+           | break
            | vary
            | enum_definition
            | alias_definition
@@ -32,9 +36,12 @@ function_callback_pipe: literal "|>" pipe_function_call
                       | function_callback_pipe "|>" pipe_function_call
 for_legacy: "for" name_type NUMBER code_block
 for: "for" "(" name_type "in" value ")" code_block
+while: "while" "(" value ")" code_block
 imp: "import" NAME
 impn: "imp" (STRING | NAME)
 return: "return" expression
+continue: "continue"
+break: "break"
 if: "if" condition ("{" instruction "}" | code_block)
 ifelse: "if" condition ("{" instruction "}" | code_block) "else" ("{" instruction "}" | code_block | ifelse | if)
 ifelse_expr: "if" condition "{" expression "}" "else" ("{" expression "}" | ifelse_expr)

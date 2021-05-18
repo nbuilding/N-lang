@@ -1,0 +1,11 @@
+let test = true
+
+while (test) {
+	if test {
+		continue
+	}
+	break
+}
+
+continue
+break
