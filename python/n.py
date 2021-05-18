@@ -1,3 +1,11 @@
+from syntax_error import format_error
+from ncmd import Cmd
+from imported_error import ImportedError
+from scope import Scope
+from type_check_error import TypeCheckError
+from native_functions import add_funcs
+from parse import n_parser
+from file import File
 from lark import Lark
 import lark
 import asyncio
@@ -7,78 +15,113 @@ import argparse
 from os import path
 from colorama import init, Fore, Style
 from sys import exit
+import requests
+
 init()
 
-from file import File
-from parse import n_parser
-from native_functions import add_funcs
-from type_check_error import TypeCheckError
-from scope import Scope
-from imported_error import ImportedError
-from ncmd import Cmd
-from syntax_error import format_error
-
-parser = argparse.ArgumentParser(description='Allows to only show warnings and choose the file location')
-parser.add_argument('--file', type=str, default="run.n", help="The file to read. (optional. if not included, it'll just run run.n)")
-parser.add_argument('--check', action='store_true')
+parser = argparse.ArgumentParser(
+    description="Allows to only show warnings and choose the file location"
+)
+parser.add_argument(
+    "--file",
+    type=str,
+    default="run.n",
+    help="The file to read. (optional. if not included, it'll just run run.n)",
+)
+parser.add_argument("--check", action="store_true")
+parser.add_argument("--newest", action="store_true")
 
 args = parser.parse_args()
 
+
+if args.newest:
+	response = requests.get("https://api.github.com/repos/nbuilding/N-Lang/releases/latest")
+	print(response.json()["name"])
+	exit()
+
 filename = args.file
 
-with open(filename, "r") as f:
-	file = File(f)
+with open(filename, "r", encoding="utf-8") as f:
+    file = File(f)
 
 file_path = path.abspath(filename)
 global_scope = Scope(base_path=path.dirname(file_path), file_path=file_path)
 add_funcs(global_scope)
 
+
 def type_check(file, tree):
-	scope = global_scope.new_scope(inherit_errors=False)
-	if tree.data == "start":
-		for child in tree.children:
-			scope.type_check_command(child)
-	else:
-		scope.errors.append(TypeCheckError(tree, "Internal issue: I cannot type check from a non-starting branch."))
+    scope = global_scope.new_scope(inherit_errors=False)
+    if tree.data == "start":
+        for child in tree.children:
+            scope.type_check_command(child)
+    else:
+        scope.errors.append(
+            TypeCheckError(
+                tree, "Internal issue: I cannot type check from a non-starting branch."
+            )
+        )
 
-	if len(scope.errors) > 0 or args.check:
-		print('\n'.join(
-			[warning.display('warning', file) for warning in scope.warnings] +
-			[error.display('error', file) for error in scope.errors]
-		))
+    if len(scope.errors) > 0 or args.check:
+        print(
+            "\n".join(
+                [warning.display("warning", file) for warning in scope.warnings]
+                + [error.display("error", file) for error in scope.errors]
+            )
+        )
+        
+    error_len = 0
 
-	return (len(scope.errors), len(scope.warnings))
+    for error in scope.errors:
+        if isinstance(error, ImportedError):
+            error_len += len(error)
+        else:
+            error_len += 1
+
+    warning_len = 0
+
+    for warning in scope.warnings:
+        if isinstance(warning, ImportedError):
+            warning_len += len(warning)
+        else:
+            warning_len += 1
+
+    return (error_len, warning_len)
+
 
 async def parse_tree(tree):
-	if tree.data == "start":
-		scope = global_scope.new_scope()
-		for child in tree.children:
-			await scope.eval_command(child)
-		for variable in reversed(scope.variables.values()):
-			if variable.public and isinstance(variable.value, Cmd):
-				await variable.value.eval()
-				break
-	else:
-		raise SyntaxError("Unable to run parse_tree on non-starting branch")
+    if tree.data == "start":
+        scope = global_scope.new_scope()
+        for child in tree.children:
+            await scope.eval_command(child)
+        for variable in reversed(scope.variables.values()):
+            if variable.public and isinstance(variable.value, Cmd):
+                await variable.value.eval()
+                break
+    else:
+        raise SyntaxError("Unable to run parse_tree on non-starting branch")
+
 
 try:
-	tree = file.parse(n_parser)
+    tree = file.parse(n_parser)
 except lark.exceptions.UnexpectedCharacters as e:
-	format_error(e, file)
+    format_error(e, file)
 except lark.exceptions.UnexpectedEOF as e:
-	format_error(e, file)
+    format_error(e, file)
 
 error_count, warning_count = type_check(file, tree)
-if error_count > 0 or args.check:
-	error_s = ""
-	warning_s = ""
-	if error_count != 1:
-		error_s = "s"
-	if warning_count != 1:
-		warning_s = "s"
-	print(f"{Fore.BLUE}Ran with {Fore.RED}{error_count} error{error_s}{Fore.BLUE} and {Fore.YELLOW}{warning_count} warning{warning_s}{Fore.BLUE}.{Style.RESET_ALL}")
-	exit()
 
-if __name__ == '__main__':
-	# https://github.com/aio-libs/aiohttp/issues/4324#issuecomment-676675779
-	asyncio.get_event_loop().run_until_complete(parse_tree(tree))
+if error_count > 0 or args.check:
+    error_s = ""
+    warning_s = ""
+    if error_count != 1:
+        error_s = "s"
+    if warning_count != 1:
+        warning_s = "s"
+    print(
+        f"{Fore.BLUE}Ran with {Fore.RED}{error_count} error{error_s}{Fore.BLUE} and {Fore.YELLOW}{warning_count} warning{warning_s}{Fore.BLUE}.{Style.RESET_ALL}"
+    )
+    exit()
+
+if __name__ == "__main__":
+    # https://github.com/aio-libs/aiohttp/issues/4324#issuecomment-676675779
+    asyncio.get_event_loop().run_until_complete(parse_tree(tree))

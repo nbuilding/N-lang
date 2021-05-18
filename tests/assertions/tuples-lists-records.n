@@ -1,0 +1,9 @@
+// Based on docs/features/tuples_lists_records.md
+
+assert type 1, \{a} : int, char
+
+let recordValue = { value: 1 }
+assert type recordValue : { value: int }
+assert type recordValue.value : int
+
+assert type ["a", "b", "c"] : list[str]

@@ -1,18 +1,26 @@
-start: [instruction ((";" | "\n") instruction)*]
+start: [main_instruction* last_instruction]
 
-instruction: declare (";")?
-           | function_callback (";")?
-           | function_callback_pipe (";")?
-           | for (";")?
-           | for_legacy (";")?
-           | imp (";")?
-           | return (";")?
-           | if (";")?
-           | ifelse (";")?
-           | vary (";")?
-           | enum_definition (";")?
-           | alias_definition (";")?
-           | class_definition (";")?
+main_instruction: instruction (";" | "\n")
+                | if (";" | "\n")?
+                | ifelse (";" | "\n")?
+                | for (";" | "\n")?
+                | for_legacy (";" | "\n")?
+
+last_instruction: instruction (";" | "\n")?
+                | if (";" | "\n")?
+                | ifelse (";" | "\n")?
+                | for (";" | "\n")?
+                | for_legacy (";" | "\n")?
+
+instruction: declare
+           | function_callback
+           | function_callback_pipe
+           | imp
+           | return
+           | vary
+           | enum_definition
+           | alias_definition
+           | class_definition
 
 // functions
 vary: "var " NAME "=" expression
@@ -41,7 +49,7 @@ name_type: pattern [":" types]
 function_dec_call: NAME (" " [name_type (" " name_type)*])?
 function_call: literal "(" [expression ("," expression)*] ")"
 pipe_function_call: literal ["(" [expression ("," expression)*] ")"]
-code_block: "{" [instruction (("\n" | ";") instruction)*] "}"
+code_block: "{" [main_instruction* last_instruction] "}"
 function_def: arguments ["->" types] code_block
 arguments: "[" generic_declaration? arg_name_type* "]"
 arg_name_type: definite_pattern [":" types]

@@ -1,0 +1,4 @@
+let pub test = "Hello"
+let test2 = "Goodbye"
+
+print("test")
