@@ -173,6 +173,7 @@ class Scope:
         warnings=None,
         base_path="",
         file_path="",
+        parent_type="top",
     ):
         self.parent = parent
         self.parent_function = parent_function
@@ -186,8 +187,9 @@ class Scope:
         self.base_path = base_path
         # The path of the file the Scope is associated with.
         self.file_path = file_path
+        self.parent_type = parent_type
 
-    def new_scope(self, parent_function=None, inherit_errors=True):
+    def new_scope(self, parent_function=None, inherit_errors=True, parent_type=None):
         return Scope(
             self,
             parent_function=parent_function or self.parent_function,
@@ -195,6 +197,7 @@ class Scope:
             warnings=self.warnings if inherit_errors else [],
             base_path=self.base_path,
             file_path=self.file_path,
+            parent_type=parent_type or self.parent_type,
         )
 
     def get_variable(self, name, err=True):
@@ -230,6 +233,15 @@ class Scope:
                 return None
         else:
             return self.parent_function
+
+    def get_parent_types(self, types):
+        if self.parent_type not in types:
+            if self.parent:
+                return self.parent.get_parent_types(types)
+            else:
+                return None
+        else:
+            return self.parent_type
 
     def get_module_type(self, module_type, err=True):
         *modules, type_name = module_type.children
@@ -1808,7 +1820,7 @@ class Scope:
                             ),
                         )
                     )
-            scope = self.new_scope()
+            scope = self.new_scope(parent_type="for")
             scope.assign_to_pattern(pattern, ty, True, certain=True)
             return scope.type_check_command(code)
         elif command.data == "while":
@@ -1821,7 +1833,7 @@ class Scope:
                         "I need a bool not a %s." % display_type(bool_type),
                     )
                 )
-            scope = self.new_scope()
+            scope = self.new_scope(parent_type="while")
             return scope.type_check_command(code)
         elif command.data == "return":
             return_type = self.type_check_expr(command.children[0])
@@ -1867,7 +1879,23 @@ class Scope:
                     )
             return command
         elif command.data == "continue":
-            print(self.parent.parent)
+            if self.get_parent_types(["while", "for"]) == None:
+                self.errors.append(
+                    TypeCheckError(
+                        command,
+                        "The command continue can only be used inside while or for loops"
+                    )
+                )
+            return command
+        elif command.data == "break":
+            if self.get_parent_types(["while", "for", "if"]) == None:
+                self.errors.append(
+                    TypeCheckError(
+                        command,
+                        "The command continue can only be used inside if statements or while or for loops"
+                    )
+                )
+            return command
         elif command.data == "declare":
             modifiers, name_type, value = command.children
             pattern, ty = self.get_name_type(name_type, err=False)
@@ -1921,7 +1949,7 @@ class Scope:
                 variable.type = resolved_type
         elif command.data == "if":
             condition, body = command.children
-            scope = self.new_scope()
+            scope = self.new_scope(parent_type="if")
             if condition.data == "conditional_let":
                 pattern, value = condition.children
                 eval_type = self.type_check_expr(value)
@@ -1950,8 +1978,8 @@ class Scope:
             scope.type_check_command(body)
         elif command.data == "ifelse":
             condition, if_true, if_false = command.children
-            scope = self.new_scope()
-            elsescope = self.new_scope()
+            scope = self.new_scope(parent_type="if")
+            elsescope = self.new_scope(parent_type="if")
             if condition.data == "conditional_let":
                 pattern, value = condition.children
                 eval_type = self.type_check_expr(value)
@@ -2069,7 +2097,7 @@ class Scope:
                 )
                 return False
             arguments = [self.get_name_type(arg, err=False) for arg in class_args]
-            scope = self.new_scope(parent_function=None)
+            scope = self.new_scope(parent_function=None, parent_type="class")
             for arg_pattern, arg_type in arguments:
                 scope.assign_to_pattern(arg_pattern, arg_type, True, certain=True)
             scope.type_check_command(class_body)
