@@ -1699,7 +1699,7 @@ class Scope:
     def type_check_command(self, tree):
         if tree.data == "main_instruction" or tree.data == "last_instruction":
             tree = tree.children[0]
-        if tree.data == "if" or tree.data == "ifelse" or tree.data == "for" or tree.data == "for_legacy":
+        if tree.data == "if" or tree.data == "ifelse" or tree.data == "for" or tree.data == "for_legacy" or tree.data == "while":
             tree = lark.tree.Tree("instruction", [tree])
         elif tree.data == "code_block":
             exit_point = None
@@ -1811,6 +1811,18 @@ class Scope:
             scope = self.new_scope()
             scope.assign_to_pattern(pattern, ty, True, certain=True)
             return scope.type_check_command(code)
+        elif command.data == "while":
+            var, code = command.children
+            bool_type = self.type_check_expr(var)
+            if bool_type != "bool":
+                self.errors.append(
+                    TypeCheckError(
+                        iterable,
+                        "I need a bool not a %s." % display_type(bool_type),
+                    )
+                )
+            scope = self.new_scope()
+            return scope.type_check_command(code)
         elif command.data == "return":
             return_type = self.type_check_expr(command.children[0])
             parent_function = self.get_parent_function()
@@ -1854,6 +1866,8 @@ class Scope:
                         )
                     )
             return command
+        elif command.data == "continue":
+            print(self.parent.parent)
         elif command.data == "declare":
             modifiers, name_type, value = command.children
             pattern, ty = self.get_name_type(name_type, err=False)
