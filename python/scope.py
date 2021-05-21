@@ -1048,22 +1048,30 @@ class Scope:
 
                 scope.assign_to_pattern(pattern, i, certain=True)
                 exit, value = await scope.eval_command(code)
-                if exit:
+                if exit == True: # exit can be a string
                     return True, value
+                if exit == "continue":
+                    continue
         elif command.data == "while":
             var, code = command.children
             val = await self.eval_expr(var)
             while val:
                 scope = self.new_scope()
 
+
                 exit, value = await scope.eval_command(code)
-                if exit:
+                if exit == True: # exit can be a string
                     return True, value
+                if exit == "continue":
+                    val = await self.eval_expr(var)
+                    continue
                 val = await self.eval_expr(var)
         elif command.data == "return":
             return (True, await self.eval_expr(command.children[0]))
         elif command.data == "break":
             return (True, None)
+        elif command.data == "continue":
+            return ("continue", None)
         elif command.data == "declare":
             modifiers, name_type, value = command.children
             pattern, _ = self.get_name_type(name_type, get_type=False)

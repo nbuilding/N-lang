@@ -4,8 +4,9 @@ let i = 0
 
 while (test) {
 	var i = i + 1
-	//if i == 1 {
-	//	continue
-	//}
+	if i == 1 {
+		continue
+	}
 	print(i)
+	break
 }
