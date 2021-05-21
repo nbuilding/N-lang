@@ -582,7 +582,7 @@ There are a few types of types:
 
 - Named types, including aliases, the unit type, and type variables
   - The type spec has the name and number of type variables
-  - The type instance has a reference to the type spec and the type varaible
+  - The type instance has a reference to the type spec and the type variable
     types
 - Types that contain other types: tuples, records, and functions
 - The number type
