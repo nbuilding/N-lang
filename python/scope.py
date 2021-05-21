@@ -1052,6 +1052,8 @@ class Scope:
                     return True, value
         elif command.data == "return":
             return (True, await self.eval_expr(command.children[0]))
+        elif command.data == "break":
+            return (True, None)
         elif command.data == "declare":
             modifiers, name_type, value = command.children
             pattern, _ = self.get_name_type(name_type, get_type=False)
