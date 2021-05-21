@@ -806,6 +806,9 @@ class Scope:
         elif expr.data == "not_expression":
             _, value = expr.children
             return not await self.eval_expr(value)
+        elif expr.data == "in_expression":
+            left, _, right = expr.children
+            return await self.eval_expr(left) in await self.eval_expr(right)
         elif expr.data == "compare_expression":
             # compare_expression chains leftwards. It's rather complex because it
             # chains but doesn't accumulate a value unlike addition. Also, there's a
