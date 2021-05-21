@@ -1,7 +1,10 @@
 let test = true
 
+let i = 0
+
 while (test) {
-	if test {
+	var i = i + 1
+	if i == 1 {
 		continue
 	}
 	break
