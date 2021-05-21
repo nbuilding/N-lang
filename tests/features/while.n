@@ -1,12 +1,8 @@
-let test = true
-
-let i = 0
-
-while (test) {
-	var i = i + 1
-	if i == 1 {
-		continue
-	}
-	print(i)
-	break
+let wow = [a: int] -> int {
+  while (true) {
+    break
+  }
+  return a + 1
 }
+
+print(wow(3))

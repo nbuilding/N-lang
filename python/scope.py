@@ -1048,10 +1048,12 @@ class Scope:
 
                 scope.assign_to_pattern(pattern, i, certain=True)
                 exit, value = await scope.eval_command(code)
-                if exit == True: # exit can be a string
-                    return True, value
                 if exit == "continue":
                     continue
+                if exit:
+                    if value == None:
+                        return False, None
+                    return True, value
         elif command.data == "while":
             var, code = command.children
             val = await self.eval_expr(var)
@@ -1060,11 +1062,13 @@ class Scope:
 
 
                 exit, value = await scope.eval_command(code)
-                if exit == True: # exit can be a string
-                    return True, value
                 if exit == "continue":
                     val = await self.eval_expr(var)
                     continue
+                if exit:
+                    if value == None:
+                        return False, None
+                    return True, value
                 val = await self.eval_expr(var)
         elif command.data == "return":
             return (True, await self.eval_expr(command.children[0]))
