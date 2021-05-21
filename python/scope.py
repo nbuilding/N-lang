@@ -891,6 +891,8 @@ class Scope:
                 return await self.eval_expr(left) << await self.eval_expr(right)
             elif operation.type == "SHIFTR":
                 return await self.eval_expr(left) >> await self.eval_expr(right)
+            elif operation.type == "IN":
+                return await self.eval_expr(left) in await self.eval_expr(right)
             else:
                 raise SyntaxError(
                     "Unexpected operation for product_expression: %s" % operation

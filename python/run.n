@@ -5,3 +5,10 @@ print(match ("How are you?"){
   "Why are you?" -> "Why are *you*?"
   _ -> "I don't understand."
 })
+
+for (i in range(0, 10, 1)) {
+	print(i)
+}
+
+print(\{i} in "iiiie")
+print("est" in "test")
