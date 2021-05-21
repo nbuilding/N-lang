@@ -4,14 +4,12 @@ main_instruction: instruction (";" | "\n")
                 | if (";" | "\n")?
                 | ifelse (";" | "\n")?
                 | for (";" | "\n")?
-                | while (";" | "\n")?
                 | for_legacy (";" | "\n")?
 
 last_instruction: instruction (";" | "\n")?
                 | if (";" | "\n")?
                 | ifelse (";" | "\n")?
                 | for (";" | "\n")?
-                | while (";" | "\n")?
                 | for_legacy (";" | "\n")?
 
 instruction: declare
@@ -19,8 +17,6 @@ instruction: declare
            | function_callback_pipe
            | imp
            | return
-           | continue
-           | break
            | vary
            | enum_definition
            | alias_definition
@@ -36,12 +32,9 @@ function_callback_pipe: literal "|>" pipe_function_call
                       | function_callback_pipe "|>" pipe_function_call
 for_legacy: "for" name_type NUMBER code_block
 for: "for" "(" name_type "in" value ")" code_block
-while: "while" "(" value ")" code_block
 imp: "import" NAME
 impn: "imp" (STRING | NAME)
 return: "return" expression
-continue: "continue"
-break: "break"
 if: "if" condition ("{" instruction "}" | code_block)
 ifelse: "if" condition ("{" instruction "}" | code_block) "else" ("{" instruction "}" | code_block | ifelse | if)
 ifelse_expr: "if" condition "{" expression "}" "else" ("{" expression "}" | ifelse_expr)
@@ -136,8 +129,10 @@ func_type: generic_declaration? (func_inner_type "->")+ not_func_type
 ?boolean_expression: or_expression
 ?or_expression: [or_expression OR] and_expression
 ?and_expression: [and_expression AND] not_expression
-?not_expression: compare_expression
+?not_expression: compare_expression 
+               | in_expression
                | NOT_KW not_expression
+?in_expression: number_expression IN number_expression
 ?compare_expression: [compare_expression compare_operator] number_expression
 ?compare_operator: EQUALS
                  | GORE
@@ -148,7 +143,7 @@ func_type: generic_declaration? (func_inner_type "->")+ not_func_type
 
 ?number_expression: sum_expression
 ?sum_expression: [sum_expression (ADD | SUBTRACT)] product_expression
-?product_expression: [product_expression (MULTIPLY | DIVIDE | MODULO | SHIFTL | IN | SHIFTR)] exponent_expression
+?product_expression: [product_expression (MULTIPLY | DIVIDE | MODULO | SHIFTL | SHIFTR)] exponent_expression
 // Exponentiation right to left associative
 ?exponent_expression: unary_expression [EXPONENT exponent_expression]
 ?unary_expression: await_expression

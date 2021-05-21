@@ -10,5 +10,5 @@ for (i in range(0, 10, 1)) {
 	print(i)
 }
 
-print(\{i} in "iiiie")
+print(3 in mapFrom([(1, 3), (4, 5)]))
 print("est" in "test")
