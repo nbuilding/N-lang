@@ -1095,7 +1095,7 @@ class Scope:
             if yes:
                 exit, value = await scope.eval_command(body)
                 if exit:
-                    return (True, value)
+                    return (exit, value)
         elif command.data == "ifelse":
             condition, if_true, if_false = command.children
             scope = self.new_scope()
@@ -1111,7 +1111,7 @@ class Scope:
             else:
                 exit, value = await self.new_scope().eval_command(if_false)
             if exit:
-                return (True, value)
+                return (exit, value)
         elif command.data == "enum_definition":
             _, type_def, constructors = command.children
             type_name, *_ = type_def.children
