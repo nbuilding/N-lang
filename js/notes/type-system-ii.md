@@ -152,7 +152,7 @@ For destructuring purposes, enum type specs should know:
   the value
 
 In cases like as shown below, the type checker should set `value`'s type to
-`null` (the type error type) and create a warning that the branch will never
+unknown (the type error type) and create a warning that the branch will never
 run.
 
 ```ts
@@ -232,7 +232,7 @@ The unknown type should be compatible with any other type:
     - These substitutions can be re-resolved if a non-unknown type is found.
   - I'm not sure if the unknown type can show up on the annotation side.
   - For *operations*, at the top level, if any of the operands are unknown,
-    return null for the operation.
+    return unknown for the operation.
 - *assigning to variables*: The types are equal.
 - *if/else expression branches*: Return the other type, even if the other type
   is also an unknown.
@@ -253,12 +253,12 @@ Maybe if one of operands is an unknown, the entire thing should be unknown? Or
 null. Maybe null is better because it may turn out later that the type isn't
 addable.
 
-### Error (`null`) type
+#### Error type
 
 Results from when type errors prevent determination of the return type of
 something. It should try to recover as much information as possible; for
 example, if a tuple's second item has a type error, then its type could be
-`(str, null, int)`.
+`(str, unknown, int)`.
 
 The error type can also result from a bad type annotation, such as an undefined
 named type.
@@ -266,22 +266,12 @@ named type.
 Thus, the error type can pretty much be anywhere, in all types of types, and as
 both the annotation and value type.
 
-As the alternative name suggests, the error type is represented as `null`.
-
 To avoid compounding consecutive type errors resulting from a single type error,
-the `null` type is fairly lenient, and should always be associated with some
+the error type is fairly lenient, and should always be associated with some
 type error somewhere.
 
-When comparing `null`:
-
-- *calling functions*, *assigning to variables*, *operations*: If one of the
-  types is `null`, then consider them equal.
-
-  - For *calling functions*, if the annotation type isn't `null`, then get all
-    of the type variables in the annotation type and map them to `null`.
-    Presumably it should be fine if the type variable is overwritten later.
-
-Is there a difference between the error type and the unknown type? Perhaps not.
+Because the error type behaves so similarly to the unknown type in comparisons,
+the error type is the same as the unknown type.
 
 ## Type comparisons
 
@@ -338,12 +328,24 @@ the same side are compared:
 - In *calling functions*, comparing an already resolved function type variable
   with another type. (Both will be from the value type side.)
 
+  - Are there any type annotations from here though? Must this be symmetric?
+
 - Comparing a resolved function type variable in a function type. (Both will be
   from the annotation type side.)
 
-Type variables in this type of comparison are also compared by named type.
-However, the question is then what happens if there are other function type
-variables.
+Type variables in this type of comparison are just compared by their type spec,
+like other named types. However, the question is then what happens if there are
+other function type variables.
+
+Example: assigning `[a] a -> a` (value) to `[b] b -> b` (annotation). This maps
+`a` to `b` in the argument type. Since `a` has already been mapped, `b` is
+compared with `b`. Since they have the same type spec, they're equal.
+
+How about assigning `[a] a -> a` (value) to `([b] b -> b) -> ([c] c -> c)`
+(annotation)? Or to `(str -> str) -> ([d] d -> d)` (annotation)? In either case, `a` gets mapped to a function, which is then compared with the
+return type.
+
+- Assigning to `(str -> str) -> ([d] d -> d)` should fail. `[a] a -> a` should be able to just return whatever it is given, but if it is given `str -> str`
 
 ### If/else expression branches
 
@@ -400,7 +402,7 @@ const condExit = context.shouldBeAssignableTo(
   ErrorType.CONDITIONAL_NOT_BOOL
 )
 // Returns resolved type and the first exit point
-// If it fails, type is null
+// If it fails, type is unknown
 const { type, firstExitPoint } = context.equalBranches(
   // List of Expressions to type check and compare type instances of
   [this.then, this.else],
@@ -609,8 +611,6 @@ recursive comparison calls:
 - The function being called (for the *calling functions* comparison)
 - Whether type variables should be compared by type spec
 
-**TODO**: The error (null) type?
-
 1. Is at least one of the types an unknown type?
 
     - If the comparison context's function exists, check if the non-unknown type
@@ -755,10 +755,10 @@ value being passed into the function as the argument.
 
     - This should also collect substitutions for its type variables.
 
-2. If there are errors, the return type is null. Otherwise, substitute the type
-  variables of the function in the return type with substitutions from the map,
-  or the unknown type if the substitution doesn't exist (in the case of `[t] str
-  -> t`, for example).
+2. If there are errors, the return type is unknown. Otherwise, substitute the
+  type variables of the function in the return type with substitutions from the
+  map, or the unknown type if the substitution doesn't exist (in the case of
+  `[t] str -> t`, for example).
 
 #### *Operations* comparisons
 
@@ -766,7 +766,7 @@ value being passed into the function as the argument.
 involves a list of function types and tries each one with the given operands
 until one succeeds with no errors.
 
-1. If any of the operands is unknown or null, return null.
+1. If any of the operands is unknown, return unknown.
 
 2. Otherwise, try each function type:
 
@@ -792,13 +792,14 @@ str
 `parseInt >> default 0`.
 ```
 
-Thus, each item in the list should be compared with the first item.
+However, because of unknowns, comparing with just the first item of a list may
+not be ideal. Thus, items should be compared with the accumulated value.
 
 Here's what the comparison context contains:
 
 - A substitution map between function type variable specs and type *instances*.
 
-**It is implied that an error will make it return null.**
+**It is implied that an error will make it return unknown.**
 
 1. Is at least one type an unknown?
 
