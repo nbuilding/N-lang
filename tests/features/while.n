@@ -2,9 +2,10 @@ let test = true
 
 let i = 0
 
-for (i in range(0, 10, 1)) {
+while (test) {
+	var i = i + 1
+	//if i == 1 {
+	//	continue
+	//}
 	print(i)
-	if (i == 5) {
-		break
-	}
 }

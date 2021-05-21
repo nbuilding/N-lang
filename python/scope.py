@@ -1002,7 +1002,7 @@ class Scope:
     async def eval_command(self, tree):
         if tree.data == "main_instruction" or tree.data == "last_instruction":
             tree = tree.children[0]
-        if tree.data == "if" or tree.data == "ifelse" or tree.data == "for" or tree.data == "for_legacy":
+        if tree.data == "if" or tree.data == "ifelse" or tree.data == "for" or tree.data == "for_legacy" or tree.data == "while":
             tree = lark.tree.Tree("instruction", [tree])
         elif tree.data == "code_block":
             exit, value = (False, None)
@@ -1050,6 +1050,16 @@ class Scope:
                 exit, value = await scope.eval_command(code)
                 if exit:
                     return True, value
+        elif command.data == "while":
+            var, code = command.children
+            val = await self.eval_expr(var)
+            while val:
+                scope = self.new_scope()
+
+                exit, value = await scope.eval_command(code)
+                if exit:
+                    return True, value
+                val = await self.eval_expr(var)
         elif command.data == "return":
             return (True, await self.eval_expr(command.children[0]))
         elif command.data == "break":
