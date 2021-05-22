@@ -1,4 +1,7 @@
-import { haveSameItems } from '../../../utils/have-same-items'
+import {
+  difference,
+  isSubset,
+} from '../../../../test/unit/utils/set-operations'
 import {
   CompareAssignableContext,
   ComparisonIssue,
@@ -20,9 +23,6 @@ export function compareAssignable (
 ): ComparisonResult {
   // `return typeToResultType(value)` means that the types are assignable
   if (annotation.type === 'unknown') {
-    if (context.function && value.type !== 'unknown') {
-      // TODO: map func type vars to unknown
-    }
     return typeToResultType(value)
   } else if (value.type === 'unknown') {
     return typeToResultType(value)
@@ -88,14 +88,14 @@ export function compareAssignable (
   } else if (annotation.type === 'union') {
     if (value.type === 'union') {
       // Maybe we should take the intersection of the union?
-      if (haveSameItems(annotation.types, value.types)) {
+      if (isSubset(value.types, annotation.types)) {
         return typeToResultType(value)
       } else {
         return {
           ...typeToResultType(value),
           issue: {
-            issue: 'should-be',
-            type: typeToResultType(annotation),
+            issue: 'too-general',
+            canOnlyHandle: typeToResultType(annotation),
           },
         }
       }
@@ -145,6 +145,8 @@ export function compareAssignable (
         if (result.issue && !issue) {
           issue = 'contained'
         }
+      } else {
+        results.push(typeToResultType(type))
       }
     })
     return {
@@ -162,7 +164,36 @@ export function compareAssignable (
         },
       }
     }
-    throw new Error('TODO')
+    const [missing, extra] = difference(
+      annotation.types.keys(),
+      value.types.keys(),
+    )
+    const results: Record<string, ComparisonResult> = {}
+    let issue: ComparisonIssue | null =
+      missing.size > 0 || extra.size > 0
+        ? {
+            issue: 'record-key-mismatch',
+            missing: [...missing],
+            extra: [...extra],
+          }
+        : null
+    for (const [key, type] of value.types) {
+      const annotationType = annotation.types.get(key)
+      if (annotationType) {
+        const result = compareAssignable(context, annotationType, type)
+        results[key] = result
+        if (result.issue && !issue) {
+          issue = 'contained'
+        }
+      } else {
+        results[key] = typeToResultType(type)
+      }
+    }
+    return {
+      type: 'record',
+      types: results,
+      issue,
+    }
   } else if (annotation.type === 'function') {
     if (value.type !== 'function') {
       return {

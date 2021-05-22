@@ -87,12 +87,21 @@ export type ComparisonIssue =
       issue: 'too-specific'
     }
   | {
+      issue: 'too-general'
+      canOnlyHandle: ComparisonResultType
+    }
+  | {
       issue: 'need-extra-items'
       types: ComparisonResultType[]
     }
   | {
       issue: 'too-many-items'
       extra: number
+    }
+  | {
+      issue: 'record-key-mismatch'
+      missing: string[]
+      extra: string[]
     }
 
 export type ComparisonResult = ComparisonResultType & {
