@@ -19,7 +19,7 @@ with type variables, these could technically also replace the other types.
 - the unit type `()`
 - type variables when used in a function expression or type declaration
 
-Named types should be compared *by reference* based on their spec. For example,
+Named types should be compared _by reference_ based on their spec. For example,
 two instances of the type `maybe[str]` may not `===` each other in memory, but
 because they're both `maybe`s, they could have a base form that would remain
 identical for every instance of `maybe`. The current implementation calls this
@@ -32,16 +32,16 @@ aliases and compare again.
 Named types are the only types that depend on the types available in scope in
 type annotations. Scopes should store type specs separate from the variables.
 
-Named types also keep track of their names *and* where they were declared. This
+Named types also keep track of their names _and_ where they were declared. This
 way, if there are multiple types named `maybe` in scope, type errors can
 distinguish between them. **TODO**: How should this be stored/implemented?
 
-In summary, *type instances* need to have:
+In summary, _type instances_ need to have:
 
 - type spec
 - type variable values
 
-and *type specs* need to have:
+and _type specs_ need to have:
 
 - name
 - place of declaration
@@ -50,13 +50,13 @@ and *type specs* need to have:
 Here's how named types behave when compared in each context, ignoring function
 type variables and aliases:
 
-- *calling functions*, *operations*: Type specs must match by `===`.
-  - Function type variables *of the function being called* will populate
+- _calling functions_, _operations_: Type specs must match by `===`.
+  - Function type variables _of the function being called_ will populate
     substitution maps (type spec => other type). If a substitution is available,
     the substitution will be used for the comparison.
-- *assigning to variables*: As above, but there's
+- _assigning to variables_: As above, but there's
   no function being called.
-- *if/else expression branches*: As above; it should return an instance of the
+- _if/else expression branches_: As above; it should return an instance of the
   branches' type spec.
 
 The contained type variable types should also be compared the same way.
@@ -68,29 +68,29 @@ is used for function type variable resolution and creating constructor types for
 enums.
 
 Now that type variables are like other named types, substitution maps should map
-*type specs* (rather than type instances) to resolved types.
+_type specs_ (rather than type instances) to resolved types.
 
-Function type variable *specs* should keep a reference to their parent function.
+Function type variable _specs_ should keep a reference to their parent function.
 Type variables in type (enum or alias) declarations and function expressions
 just have normal named type specs, like `int` and `str`.
 
-Comparing function type variables in functions that aren't being called (eg `[a]
-a -> a` vs `[b] b -> b`) are more complicated, especially as it demonstrates a
-case of asymmetry for most of the comparison methods:
+Comparing function type variables in functions that aren't being called (eg
+`[a] a -> a` vs `[b] b -> b`) are more complicated, especially as it
+demonstrates a case of asymmetry for most of the comparison methods:
 
 Here's how comparison should work (when the function type variable isn't of the
 function being called):
 
-annotation type | value type | is this fine?
---- | --- | ---
-`[a] a -> a` | `[b] b -> b` | yes
-`str -> str` | `[a] a -> a` | yes
-`[a] a -> a` | `str -> str` | no, `str -> str` is not generic enough
-`[a] a -> a` | `[a, b] a -> b` | yes
-`[a, b] a -> b` | `[a] a -> a` | no, not generic enough
-`[a] { hello: a } -> { hello: a }` | `[b] b -> b` | yes
+| annotation type                    | value type      | is this fine?                          |
+| ---------------------------------- | --------------- | -------------------------------------- |
+| `[a] a -> a`                       | `[b] b -> b`    | yes                                    |
+| `str -> str`                       | `[a] a -> a`    | yes                                    |
+| `[a] a -> a`                       | `str -> str`    | no, `str -> str` is not generic enough |
+| `[a] a -> a`                       | `[a, b] a -> b` | yes                                    |
+| `[a, b] a -> b`                    | `[a] a -> a`    | no, not generic enough                 |
+| `[a] { hello: a } -> { hello: a }` | `[b] b -> b`    | yes                                    |
 
-- *calling functions*, *assigning to variables*, *operations*:
+- _calling functions_, _assigning to variables_, _operations_:
   - if the annotation type is a function type variable but the value is not,
     then there's an error about how the given function isn't generic enough (too
     specific)
@@ -105,10 +105,11 @@ annotation type | value type | is this fine?
     - example: annotation `[a] { hello: a } -> { hello: a } -> { hello: a }`,
       value `[b, c] b -> b -> c`
       1. `b` is mapped to `{ hello: a }`
-      2. `b` is already mapped, so `{ hello: a }` is compared with `{ hello: a
-        }`. `a` has the same type spec as the other `a`, so they're equal
+      2. `b` is already mapped, so `{ hello: a }` is compared with
+         `{ hello: a }`. `a` has the same type spec as the other `a`, so they're
+         equal
       3. `c` is mapped to `{ hello: a }`
-- *if/else expression branches*:
+- _if/else expression branches_:
   - if just one type is a type variable, then map it to the other type
   - if both types are a type variable, then map them both to a new type
     variable, perhaps?
@@ -117,20 +118,20 @@ annotation type | value type | is this fine?
       - and what if they aren't? and it was already after substitution?
       - example: `[a, c] a -> c -> a` and `[b, d] b -> d -> d`
         1. `a` vs `b`: Neither have substitutions, and both are type vars.
-          Create a new type spec and a new instance of it `e`. Map `a` to `e`
-          and `b` to `e`.
+           Create a new type spec and a new instance of it `e`. Map `a` to `e`
+           and `b` to `e`.
         2. `c` vs `d`: Similarly, a new type var `f` is created, and `c` and `d`
-          are mapped to it.
+           are mapped to it.
         3. `a` vs `d`: Both have substitutions: `e` and `f`, respectively. A new
-          comparison is performed:
-          - Without a special case, `e` and `f` are merely more type variables
-            without substitutions, so a new type variable would be made, mapping
-            `e` and `f` to `g`.
-          - This makes sense, though; the intersection of the two original types
-            should be `[t] t -> t -> t`; the last type must be the same type as
-            the first two
-          - Thus, the only thing that I need to change is that the final
-            substitution at the end must be recursive; `a` => `e` => `g`.
+           comparison is performed:
+           - Without a special case, `e` and `f` are merely more type variables
+             without substitutions, so a new type variable would be made,
+             mapping `e` and `f` to `g`.
+           - This makes sense, though; the intersection of the two original
+             types should be `[t] t -> t -> t`; the last type must be the same
+             type as the first two
+           - Thus, the only thing that I need to change is that the final
+             substitution at the end must be recursive; `a` => `e` => `g`.
   - function types, when finished, should substitute its type variables from the
     comparison context if it has any (this should be symmetric, so it doesn't
     matter if it's the one with or without the type variables)
@@ -181,10 +182,10 @@ Number types can match themselves or any number type.
 
 Comparisons:
 
-- *calling functions*, *assigning to variables*, *operations*: As above.
-  - Re *operations*: I might define operations specifically for the number type
+- _calling functions_, _assigning to variables_, _operations_: As above.
+  - Re _operations_: I might define operations specifically for the number type
     so that there doesn't need to be any special handling here.
-- *if/else expression branches*: If both branches are numbers, then the return
+- _if/else expression branches_: If both branches are numbers, then the return
   type is number. If one branch is a number type, then return that number type.
 
 ### Tuples and records
@@ -200,23 +201,24 @@ types.
 Note that extra fields will make record types unequal. We might loosen this
 restriction in the future.
 
-The comparisons should be symmetric. For *if/else expression branches*, it
+The comparisons should be symmetric. For _if/else expression branches_, it
 should return the combined result of the comparisons in each contained type.
 
 ### Functions
 
-Functions could be seen as two-type tuples, but they can contain type variables. Thus, a function type should have:
+Functions could be seen as two-type tuples, but they can contain type variables.
+Thus, a function type should have:
 
-- a list of function type variable *specs*
+- a list of function type variable _specs_
 - the argument type
 - the return type
 
 To compare them:
 
-- *calling functions*, *assigning to variables*, *operations*: Compare the
+- _calling functions_, _assigning to variables_, _operations_: Compare the
   argument and return type. I don't think anything else fancy needs to be done.
   Type variables can deal with themselves maturely (see their section).
-- *if/else expression branches*: As noted in the function type variable section,
+- _if/else expression branches_: As noted in the function type variable section,
   after comparing the argument and return type, the function type should return
   a new function type with the resolved argument/return types, and also
   substitute the type variables from the comparison context, removing
@@ -226,15 +228,15 @@ To compare them:
 
 The unknown type should be compatible with any other type:
 
-- *calling functions*, *operations*: The types are equal.
+- _calling functions_, _operations_: The types are equal.
   - If the other type has function type variables for the function being called,
     resolve them as unknowns.
     - These substitutions can be re-resolved if a non-unknown type is found.
   - I'm not sure if the unknown type can show up on the annotation side.
-  - For *operations*, at the top level, if any of the operands are unknown,
+  - For _operations_, at the top level, if any of the operands are unknown,
     return unknown for the operation.
-- *assigning to variables*: The types are equal.
-- *if/else expression branches*: Return the other type, even if the other type
+- _assigning to variables_: The types are equal.
+- _if/else expression branches_: Return the other type, even if the other type
   is also an unknown.
 
 I think that the never type is the same as the unknown type.
@@ -246,7 +248,7 @@ let whatever = (return 3) + (return 4)
 ```
 
 Ideally, it'd at least be an unknown type, but with the currently defined
-*operations* comparison algorithm defined above, this would likely match
+_operations_ comparison algorithm defined above, this would likely match
 whatever the first possibility is and use that return value.
 
 Maybe if one of operands is an unknown, the entire thing should be unknown? Or
@@ -289,8 +291,8 @@ function type variables for determining the return type.
 
 ### Assigning to variables
 
-If a user-given type should be a certain type, you can use the *assigning to
-variables* comparison. It should be symmetric as long as a function type isn't
+If a user-given type should be a certain type, you can use the _assigning to
+variables_ comparison. It should be symmetric as long as a function type isn't
 on either side.
 
 This is used in a few situations:
@@ -301,7 +303,7 @@ This is used in a few situations:
 - `var` statements
 - `assert type` where the annotation type is the expected type
 - `assert value` and `if` conditions, where the annotation type is `bool`
-  - it *probably* doesn't matter whether `bool` is the annotation or value type
+  - it _probably_ doesn't matter whether `bool` is the annotation or value type
     because it should be symmetric when one side is a simple named type
 - `return` expressions, where the function return type is the annotation type,
   and the return value is the value type
@@ -315,17 +317,17 @@ This is used in a few situations:
 
 I'm not sure what comparison operations should use.
 
-This can use code from *calling functions* because it resolves function type
+This can use code from _calling functions_ because it resolves function type
 generics. However, instead of using the generated helpful type error message, if
 there's an error, it'll try the next one. There might also be a special case for
 unknown types, as noted in the Unknown types section.
 
 ### Comparing annotation to annotation or value to value type
 
-There are two scenarios in *assigning to variables* comparisons where types from
+There are two scenarios in _assigning to variables_ comparisons where types from
 the same side are compared:
 
-- In *calling functions*, comparing an already resolved function type variable
+- In _calling functions_, comparing an already resolved function type variable
   with another type. (Both will be from the value type side.)
 
   - Are there any type annotations from here though? Must this be symmetric?
@@ -342,23 +344,24 @@ Example: assigning `[a] a -> a` (value) to `[b] b -> b` (annotation). This maps
 compared with `b`. Since they have the same type spec, they're equal.
 
 How about assigning `[a] a -> a` (value) to `([b] b -> b) -> ([c] c -> c)`
-(annotation)? Or to `(str -> str) -> ([d] d -> d)` (annotation)? In either case, `a` gets mapped to a function, which is then compared with the
-return type.
+(annotation)? Or to `(str -> str) -> ([d] d -> d)` (annotation)? In either case,
+`a` gets mapped to a function, which is then compared with the return type.
 
-- Assigning to `(str -> str) -> ([d] d -> d)` should fail. `[a] a -> a` should be able to just return whatever it is given, but if it is given `str -> str`
+- Assigning to `(str -> str) -> ([d] d -> d)` should fail. `[a] a -> a` should
+  be able to just return whatever it is given, but if it is given `str -> str`
 
 ### If/else expression branches
 
 This is used in a few situations:
 
-- `if`/`else` *expression* branches (not statement)
+- `if`/`else` _expression_ branches (not statement)
 - list literals
 - in the future, `match` expression branches
 
-The *if/else expression branches* comparison is a bit unique in that it
+The _if/else expression branches_ comparison is a bit unique in that it
 determines a common type and returns it. Thus, I'm not sure if it can borrow
-code from other comparisons, or if the *assigning to variables* comparison can
-borrow *if/else expression branches* comparison code and then discard the
+code from other comparisons, or if the _assigning to variables_ comparison can
+borrow _if/else expression branches_ comparison code and then discard the
 determined type.
 
 ## Interface
@@ -372,7 +375,7 @@ for these type comparisons should work.
 const { type: valueType, exitPoint } = context.scope.typeCheck(this.expression)
 context.typeErrIfNecessary(
   ErrorType.VALUE_ASSERTION_NOT_BOOL,
-  checkAssignable(bool.instance(), valueType)
+  checkAssignable(bool.instance(), valueType),
 )
 return { exitPoint }
 ```
@@ -388,8 +391,8 @@ return {
     // A type instance or spec
     bool,
     // Error type to use if there's a type error
-    ErrorType.VALUE_ASSERTION_NOT_BOOL
-  )
+    ErrorType.VALUE_ASSERTION_NOT_BOOL,
+  ),
 }
 ```
 
@@ -399,7 +402,7 @@ For `if`/`else` expressions:
 const condExit = context.shouldBeAssignableTo(
   this.condition,
   bool,
-  ErrorType.CONDITIONAL_NOT_BOOL
+  ErrorType.CONDITIONAL_NOT_BOOL,
 )
 // Returns resolved type and the first exit point
 // If it fails, type is unknown
@@ -407,11 +410,11 @@ const { type, firstExitPoint } = context.equalBranches(
   // List of Expressions to type check and compare type instances of
   [this.then, this.else],
   // Error to use if there's no type error
-  ErrorType.IF_BRANCH_TYPE_MISMATCH
+  ErrorType.IF_BRANCH_TYPE_MISMATCH,
 )
 return {
   type,
-  exitPoint: condExit || firstExitPoint
+  exitPoint: condExit || firstExitPoint,
 }
 ```
 
@@ -591,178 +594,178 @@ There are a few types of types:
 
 For comparisons, I might italicise a few key words:
 
-- *Assignable* means that it passed and nothing else needs to be done.
-- *Should* means that if it fails, there's an error, so return it and don't
+- _Assignable_ means that it passed and nothing else needs to be done.
+- _Should_ means that if it fails, there's an error, so return it and don't
   proceed.
-- *Compare* means to recursively compare two inner types, perhaps with
+- _Compare_ means to recursively compare two inner types, perhaps with
   modifications to the comparison context.
-- *Combine errors* means to collect errors that occur from the following steps,
+- _Combine errors_ means to collect errors that occur from the following steps,
   as well as noting whether each type has an error or not.
 
-### *Assigning to variables* comparisons
+### _Assigning to variables_ comparisons
 
-Also used by *calling functions* and *operations*. Assigning to variables is
-*assymmetric*, so there's a distinction between the **annotation type** and the
+Also used by _calling functions_ and _operations_. Assigning to variables is
+_assymmetric_, so there's a distinction between the **annotation type** and the
 **value type**.
 
 The comparison context contains the following information, and is passed down
 recursive comparison calls:
 
-- The function being called (for the *calling functions* comparison)
+- The function being called (for the _calling functions_ comparison)
 - Whether type variables should be compared by type spec
 
 1. Is at least one of the types an unknown type?
 
-    - If the comparison context's function exists, check if the non-unknown type
-      has any function type variables for that function.
+   - If the comparison context's function exists, check if the non-unknown type
+     has any function type variables for that function.
 
-      - Map each function type variable to unknown.
+     - Map each function type variable to unknown.
 
-    - The types are *assignable*.
+   - The types are _assignable_.
 
 1. Is the value type an alias type?
 
-    - We do this step early so that the value alias can be resolved.
+   - We do this step early so that the value alias can be resolved.
 
-    - Is the annotation type an alias type with the same alias type spec?
+   - Is the annotation type an alias type with the same alias type spec?
 
-      - Yes: For each type variable:
+     - Yes: For each type variable:
 
-        - *Compare* the corresponding type variables using *assigning to a
-          variable*.
+       - _Compare_ the corresponding type variables using _assigning to a
+         variable_.
 
-      - No: Resolve the value alias (i.e. determine the type instance it is an
-        alias for), then *compare* the annotation type with the resolved value
-        type using *assigning to a variable*.
+     - No: Resolve the value alias (i.e. determine the type instance it is an
+       alias for), then _compare_ the annotation type with the resolved value
+       type using _assigning to a variable_.
 
 1. Is the value type a function type variable? (And is the comparison context
-  not comparing two annotation types?)
+   not comparing two annotation types?)
 
-    - Note: This can't be a function type variable from the comparison context
-      function.
+   - Note: This can't be a function type variable from the comparison context
+     function.
 
-    - Does a substitution exist for this type variable? And is it not the
-      unknown type?
+   - Does a substitution exist for this type variable? And is it not the
+     unknown type?
 
-      - Yes: *Compare* the annotation type with the type from the substitution
-        with the context set to indicate this.
+     - Yes: _Compare_ the annotation type with the type from the substitution
+       with the context set to indicate this.
 
-        - This should compare function type variables by type spec.
+       - This should compare function type variables by type spec.
 
-        - **TODO**: What about other function type variables? And if they're
-          from the comparison context function?
+       - **TODO**: What about other function type variables? And if they're
+         from the comparison context function?
 
-      - No: Map the type variable spec to the annotation type in the context.
+     - No: Map the type variable spec to the annotation type in the context.
 
 1. Is the annotation type a function type variable?
 
-    - Is it of the context function (i.e. the function being called)?
+   - Is it of the context function (i.e. the function being called)?
 
-      - Yes: Does a substitution for the type variable spec exist in the context
-        substitution map?
+     - Yes: Does a substitution for the type variable spec exist in the context
+       substitution map?
 
-        - Yes: Compare the substitution with the value type.
+       - Yes: Compare the substitution with the value type.
 
-          - **TODO**: Compare how? Presumably with the same method as above.
+         - **TODO**: Compare how? Presumably with the same method as above.
 
-        - No: Map the type variable spec to the value type.
+       - No: Map the type variable spec to the value type.
 
-      - No: The types are *not assignable*; the value type is too specific when
-        it should be able to handle any value.
+     - No: The types are _not assignable_; the value type is too specific when
+       it should be able to handle any value.
 
 1. Is the annotation type a number type?
 
-    - The other type *should* be either a number, int, or float.
+   - The other type _should_ be either a number, int, or float.
 
 1. Is the annotation type a tuple type?
 
-    - The value type *should* be a tuple.
+   - The value type _should_ be a tuple.
 
-    - *Combine errors*.
+   - _Combine errors_.
 
-    - For each type in the annotation tuple:
+   - For each type in the annotation tuple:
 
-      - Does the value tuple have a corresponding type? If not, that's fine:
-        just break.
+     - Does the value tuple have a corresponding type? If not, that's fine:
+       just break.
 
-      - *Compare* the annotation type with the corresponding value type using
-        *assigning to variables*.
+     - _Compare_ the annotation type with the corresponding value type using
+       _assigning to variables_.
 
-    - The value tuple *should* have the same number of types.
+   - The value tuple _should_ have the same number of types.
 
 1. Is the annotation type a record type?
 
-    - The value type *should* be a record.
+   - The value type _should_ be a record.
 
-    - *Combine errors*.
+   - _Combine errors_.
 
-    - For each key present in *both* records:
+   - For each key present in _both_ records:
 
-      - *Compare* the corresponding types using *assigning to variables*.
+     - _Compare_ the corresponding types using _assigning to variables_.
 
-    - The value type *should* not have extra keys.
+   - The value type _should_ not have extra keys.
 
-    - The value type *should* have the missing keys that the annotation type has
-      that the value type doesn't.
+   - The value type _should_ have the missing keys that the annotation type has
+     that the value type doesn't.
 
 1. Is the annotation type a function type?
 
-    - The value type *should* be a function.
+   - The value type _should_ be a function.
 
-    - *Combine errors*.
+   - _Combine errors_.
 
-    - *Compare* the argument types using *assigning to variables*.
+   - _Compare_ the argument types using _assigning to variables_.
 
-    - *Compare* the return types using *assigning to variables*.
+   - _Compare_ the return types using _assigning to variables_.
 
 1. Is the annotation type a named type?
 
-    - Is the annotation type an alias type?
+   - Is the annotation type an alias type?
 
-      - Note: If the value type's alias type matched, it would have been matched
-        earlier on. Thus, here, the alias types must not match. Alias resolution
-        is necessary.
+     - Note: If the value type's alias type matched, it would have been matched
+       earlier on. Thus, here, the alias types must not match. Alias resolution
+       is necessary.
 
-      - Note: Either way, the value type will not be an alias type.
+     - Note: Either way, the value type will not be an alias type.
 
-      - Yes: *Compare* the resolved annotation alias using *assigning to
-        variables*.
+     - Yes: _Compare_ the resolved annotation alias using _assigning to
+       variables_.
 
-      - No:
+     - No:
 
-        - The value's type spec *should* `===` that of the annotation type.
+       - The value's type spec _should_ `===` that of the annotation type.
 
-        - *Combine errors*.
+       - _Combine errors_.
 
-        - For each type variable in each named type:
+       - For each type variable in each named type:
 
-          - *Compare* the corresponding types using *assigning to variables*.
+         - _Compare_ the corresponding types using _assigning to variables_.
 
-#### *Calling functions* comparisons
+#### _Calling functions_ comparisons
 
-*Calling functions* comparisons are a specialised form of *assigning to
-variables* comparisons.
+_Calling functions_ comparisons are a specialised form of _assigning to
+variables_ comparisons.
 
 They involve the **function type**, from which the **argument type** and the
 **return type** can be derived, as well as the **value type**: the type of the
 value being passed into the function as the argument.
 
-1. *Compare* the argument type as the annotation type with the value type using
-  *assigning to variables* with the function type instance as the context.
+1. _Compare_ the argument type as the annotation type with the value type using
+   _assigning to variables_ with the function type instance as the context.
 
-    - This way, function type variables can determine whether they are of this
-      function.
+   - This way, function type variables can determine whether they are of this
+     function.
 
-    - This should also collect substitutions for its type variables.
+   - This should also collect substitutions for its type variables.
 
 2. If there are errors, the return type is unknown. Otherwise, substitute the
-  type variables of the function in the return type with substitutions from the
-  map, or the unknown type if the substitution doesn't exist (in the case of
-  `[t] str -> t`, for example).
+   type variables of the function in the return type with substitutions from the
+   map, or the unknown type if the substitution doesn't exist (in the case of
+   `[t] str -> t`, for example).
 
-#### *Operations* comparisons
+#### _Operations_ comparisons
 
-*Operations* comparisons are a trial-and-error form of *calling functions*. It
+_Operations_ comparisons are a trial-and-error form of _calling functions_. It
 involves a list of function types and tries each one with the given operands
 until one succeeds with no errors.
 
@@ -770,12 +773,12 @@ until one succeeds with no errors.
 
 2. Otherwise, try each function type:
 
-    - Perform the *calling functions* comparison on the operands with each
-      function type. If there are no errors, return the return type.
+   - Perform the _calling functions_ comparison on the operands with each
+     function type. If there are no errors, return the return type.
 
 3. If none match without errors, then raise an error and return null.
 
-### *If/else expression branches* comparisons
+### _If/else expression branches_ comparisons
 
 When dealing with branches for list items or the match expression, the type from
 each branch will be given as an array. However, the following algorithm only
@@ -797,109 +800,109 @@ not be ideal. Thus, items should be compared with the accumulated value.
 
 Here's what the comparison context contains:
 
-- A substitution map between function type variable specs and type *instances*.
+- A substitution map between function type variable specs and type _instances_.
 
 **It is implied that an error will make it return unknown.**
 
 1. Is at least one type an unknown?
 
-    - Return the other type.
+   - Return the other type.
 
 1. Are both types an alias type? Do their alias specs match?
 
-    - *Compare* each type variable using *if/else expression branches*.
+   - _Compare_ each type variable using _if/else expression branches_.
 
-    - Return a new alias type instance with the resulting types.
+   - Return a new alias type instance with the resulting types.
 
 1. Is either type an alias type?
 
-    - Resolve the aliases and *compare* the resolved types using *if/else
-      expression branches*.
+   - Resolve the aliases and _compare_ the resolved types using _if/else
+     expression branches_.
 
-    - Do this one at a time so nested alias specs have a chance of being
-      compared by name.
+   - Do this one at a time so nested alias specs have a chance of being
+     compared by name.
 
 1. Is either type a function type variable?
 
-    - If a substitution exists for any of the function type variables,
-      substitute them, then *compare* the substitutions and other types using
-      *if/else expression branches*. Return the result.
+   - If a substitution exists for any of the function type variables,
+     substitute them, then _compare_ the substitutions and other types using
+     _if/else expression branches_. Return the result.
 
-      - For example, if there are two type variables, but only one has a
-        substitution, substitute only that one type variable, then recompare.
+     - For example, if there are two type variables, but only one has a
+       substitution, substitute only that one type variable, then recompare.
 
-    - By now, all function type variables have no substitutions.
+   - By now, all function type variables have no substitutions.
 
-    - Are both types function type variables?
+   - Are both types function type variables?
 
-      - Yes: Create a new type variable spec, and map both type variables' type
-        specs to an instance of it in the comparison context's substitution map.
+     - Yes: Create a new type variable spec, and map both type variables' type
+       specs to an instance of it in the comparison context's substitution map.
 
-      - No: Map the type variable to the other type.
+     - No: Map the type variable to the other type.
 
 1. Is the first type a tuple?
 
-    - The other type *should* be a tuple.
+   - The other type _should_ be a tuple.
 
-    - Maintain a list of types for a new tuple.
+   - Maintain a list of types for a new tuple.
 
-    - For each type in the first tuple:
+   - For each type in the first tuple:
 
-      - If the other tuple doesn't have a corresponding type, break.
+     - If the other tuple doesn't have a corresponding type, break.
 
-      - *Compare* the types using *if/else expression branches* and add the
-        result to the list of types.
+     - _Compare_ the types using _if/else expression branches_ and add the
+       result to the list of types.
 
-    - The tuple lengths *should* match.
+   - The tuple lengths _should_ match.
 
-    - Return a new tuple with the list of resulting types.
+   - Return a new tuple with the list of resulting types.
 
 1. Is the first type a record?
 
-    - The other type *should* be a record.
+   - The other type _should_ be a record.
 
-    - Maintain a new mapping of keys to types for a new record.
+   - Maintain a new mapping of keys to types for a new record.
 
-    - For each key in the first record:
+   - For each key in the first record:
 
-      - The other record *should* have the key.
+     - The other record _should_ have the key.
 
-      - *Compare* the types using *if/else expression branches* and add the
-        result to the map of types.
+     - _Compare_ the types using _if/else expression branches_ and add the
+       result to the map of types.
 
-    - The other record *should* not have extra fields.
+   - The other record _should_ not have extra fields.
 
-    - Return a new record with the mapping of keys to types.
+   - Return a new record with the mapping of keys to types.
 
 1. Is the first type a function?
 
-    - The other type *should* be a function.
+   - The other type _should_ be a function.
 
-    - *Compare* the corresponding argument types using *if/else expression
-      branches*.
+   - _Compare_ the corresponding argument types using _if/else expression
+     branches_.
 
-    - *Compare* the corresponding return types using *if/else expression
-      branches*.
+   - _Compare_ the corresponding return types using _if/else expression
+     branches_.
 
-    - *Recursively* substitute the type variables from the comparison context in
-      the function's type variable list. Remove duplicates. Set the owner of the
-      function type variable specs to a new function made from the results of
-      the previous comparisons and the new type variable list. Return the new
-      function.
+   - _Recursively_ substitute the type variables from the comparison context in
+     the function's type variable list. Remove duplicates. Set the owner of the
+     function type variable specs to a new function made from the results of
+     the previous comparisons and the new type variable list. Return the new
+     function.
 
 1. Is the first type a named type?
 
-    - Note: Aliases should not have survived to this point.
+   - Note: Aliases should not have survived to this point.
 
-    - The other type *should* be a named type.
+   - The other type _should_ be a named type.
 
-    - The other type's spec *should* `===` the first type's spec.
+   - The other type's spec _should_ `===` the first type's spec.
 
-    - Maintain a list of types for the new type instance.
+   - Maintain a list of types for the new type instance.
 
-    - For each type variable,
+   - For each type variable,
 
-      - *Compare* the types using *if/else expression branches* and add the
-        result to the list of types.
+     - _Compare_ the types using _if/else expression branches_ and add the
+       result to the list of types.
 
-    - Return a new instance of the type spec with the list of resolved types.
+   - Return a new instance of the type spec with the list of resolved types.
