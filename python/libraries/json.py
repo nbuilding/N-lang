@@ -107,11 +107,7 @@ def convert_float_to_int(value):
             value = None
     elif isinstance(value, dict):
         for i in value.keys():
-            if isinstance(value[i], dict) or isinstance(value[i], list):
-                value[i] = convert_float_to_int(value[i])
-            elif isinstance(value[i], float):
-                if value[i] % 1 == 0:
-                    value[i] = round(value[i])
+            value[i] = convert_float_to_int(value[i])
     elif isinstance(value, list):
         for i in range(len(value)):
             if isinstance(value[i], dict) or isinstance(value[i], list):
