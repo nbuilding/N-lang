@@ -1050,9 +1050,9 @@ class Scope:
                 exit, value = await scope.eval_command(code)
                 if exit == "continue":
                     continue
+                if exit == "break":
+                    return False, None
                 if exit:
-                    if value == None:
-                        return False, None
                     return True, value
         elif command.data == "while":
             var, code = command.children
@@ -1065,15 +1065,15 @@ class Scope:
                 if exit == "continue":
                     val = await self.eval_expr(var)
                     continue
+                if exit == "break":
+                    return False, None
                 if exit:
-                    if value == None:
-                        return False, None
                     return True, value
                 val = await self.eval_expr(var)
         elif command.data == "return":
             return (True, await self.eval_expr(command.children[0]))
         elif command.data == "break":
-            return (True, None)
+            return ("break", None)
         elif command.data == "continue":
             return ("continue", None)
         elif command.data == "declare":
