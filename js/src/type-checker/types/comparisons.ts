@@ -1,4 +1,4 @@
-import { FuncTypeVarSpec, NFunction, NType, NTypeKnown } from './types'
+import { NType } from './types'
 
 export type ComparisonResultType =
   | {

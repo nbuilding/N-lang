@@ -16,6 +16,12 @@ export class TypeSpec {
   }
 }
 
+type AliasType = {
+  type: 'named'
+  typeSpec: AliasSpec
+  typeVars: NType[]
+}
+
 export class AliasSpec extends TypeSpec {
   type: NType
   typeVars: TypeSpec[]
@@ -35,6 +41,16 @@ export class AliasSpec extends TypeSpec {
     })
     return substitute(this.type, substitutions)
   }
+
+  static isAlias (type: NType): type is AliasType {
+    return type.type === 'named' && type.typeSpec instanceof AliasSpec
+  }
+}
+
+type FuncTypeVar = {
+  type: 'named'
+  typeSpec: FuncTypeVarSpec
+  typeVars: NType[]
 }
 
 export class FuncTypeVarSpec extends TypeSpec {
@@ -46,6 +62,10 @@ export class FuncTypeVarSpec extends TypeSpec {
 
   clone () {
     return new FuncTypeVarSpec(this.name)
+  }
+
+  static isTypeVar (type: NType): type is FuncTypeVar {
+    return type.type === 'named' && type.typeSpec instanceof FuncTypeVarSpec
   }
 }
 

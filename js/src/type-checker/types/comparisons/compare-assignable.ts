@@ -16,7 +16,7 @@ import {
   substitute,
 } from '../types'
 
-export interface CompareAssignableContext {
+interface CompareAssignableContext {
   function?: NFunction
   substitutions: Map<FuncTypeVarSpec, NTypeKnown>
 }
@@ -37,7 +37,7 @@ export function compareAssignable (
     return typeToResultType(value)
   } else if (value.type === 'unknown') {
     return typeToResultType(value)
-  } else if (value.type === 'named' && value.typeSpec instanceof AliasSpec) {
+  } else if (AliasSpec.isAlias(value)) {
     if (annotation.type === 'named' && annotation.typeSpec === value.typeSpec) {
       const vars: ComparisonResult[] = []
       let issue: ComparisonIssue | null = null
@@ -67,8 +67,7 @@ export function compareAssignable (
       )
     }
   } else if (
-    value.type === 'named' &&
-    value.typeSpec instanceof FuncTypeVarSpec &&
+    FuncTypeVarSpec.isTypeVar(value) &&
     !(context.function && context.function.typeVars.includes(value.typeSpec))
   ) {
     const substitution = context.substitutions.get(value.typeSpec)
@@ -78,10 +77,7 @@ export function compareAssignable (
       context.substitutions.set(value.typeSpec, annotation)
       return typeToResultType(value)
     }
-  } else if (
-    annotation.type === 'named' &&
-    annotation.typeSpec instanceof FuncTypeVarSpec
-  ) {
+  } else if (FuncTypeVarSpec.isTypeVar(annotation)) {
     if (
       context.function &&
       context.function.typeVars.includes(annotation.typeSpec)
