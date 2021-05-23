@@ -18,16 +18,22 @@ export class TypeSpec {
 
 export class AliasSpec extends TypeSpec {
   type: NType
+  typeVars: TypeSpec[]
 
-  constructor (name: string, typeVarCount: number, type: NType) {
-    super(name, typeVarCount)
+  constructor (name: string, type: NType, typeVars: TypeSpec[]) {
+    super(name, typeVars.length)
 
     this.type = type
+    this.typeVars = typeVars
   }
 
   /** Expands the alias and returns the type the alias is an alias for. */
-  substitute (_typeVars: NType[]): NType {
-    throw new Error('todo')
+  substitute (typeVars: NType[]): NType {
+    const substitutions: Map<TypeSpec, NType> = new Map()
+    typeVars.forEach((typeVar, i) => {
+      substitutions.set(this.typeVars[i], typeVar)
+    })
+    return substitute(this.type, substitutions)
   }
 }
 
@@ -229,12 +235,12 @@ export function getFuncTypeVars (type: NType): Set<FuncTypeVarSpec> {
  */
 export function substitute (
   type: NType,
-  substitutions: Map<FuncTypeVarSpec, NType>,
-  trackSubstitutions?: Set<FuncTypeVarSpec>,
+  substitutions: Map<TypeSpec, NType>,
+  trackSubstitutions?: Set<TypeSpec>,
 ): NType {
   return (
     mapType(type, type => {
-      if (type.type === 'named' && type.typeSpec instanceof FuncTypeVarSpec) {
+      if (type.type === 'named') {
         const substitution = substitutions.get(type.typeSpec)
         if (trackSubstitutions && substitution) {
           trackSubstitutions.add(type.typeSpec)

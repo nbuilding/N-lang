@@ -3,12 +3,23 @@ import {
   isSubset,
 } from '../../../../test/unit/utils/set-operations'
 import {
-  CompareAssignableContext,
   ComparisonIssue,
   ComparisonResult,
   typeToResultType,
 } from '../comparisons'
-import { AliasSpec, FuncTypeVarSpec, NType } from '../types'
+import {
+  AliasSpec,
+  FuncTypeVarSpec,
+  NFunction,
+  NType,
+  NTypeKnown,
+  substitute,
+} from '../types'
+
+export interface CompareAssignableContext {
+  function?: NFunction
+  substitutions: Map<FuncTypeVarSpec, NTypeKnown>
+}
 
 /**
  * The "assigning to variables" comparison is notably asymmetric when comparing
@@ -258,4 +269,85 @@ export function compareAssignable (
       issue,
     }
   }
+}
+
+export function callFunction (
+  func: NFunction,
+  value: NType,
+): { error: false; result: NType } | { error: true; result: ComparisonResult } {
+  const context: CompareAssignableContext = {
+    function: func,
+    substitutions: new Map(),
+  }
+  const result = compareAssignable(context, func.argument, value)
+  if (result.issue) {
+    return {
+      error: true,
+      result,
+    }
+  } else {
+    const substitutions: Map<FuncTypeVarSpec, NType> = new Map()
+    const addedTypeVars = []
+    for (const typeVar of func.typeVars) {
+      const substitution = context.substitutions.get(typeVar)
+      if (substitution) {
+        substitutions.set(typeVar, substitution)
+      } else {
+        if (func.return.type === 'function') {
+          const newTypeVar = typeVar.clone()
+          substitutions.set(typeVar, {
+            type: 'named',
+            typeSpec: newTypeVar,
+            typeVars: [],
+          })
+          addedTypeVars.push(newTypeVar)
+        } else {
+          substitutions.set(typeVar, { type: 'unknown' })
+        }
+      }
+    }
+    const substituted = substitute(func.return, substitutions)
+    if (substituted.type === 'function') {
+      substituted.typeVars.push(...addedTypeVars)
+    }
+    return {
+      error: false,
+      result: substituted,
+    }
+  }
+}
+
+/**
+ * Used for binary and unary operations. Given the possible operation types and
+ * operand types, this returns the return value of the operation. `null` is
+ * returned if none of the operations match; this should be converted into an
+ * unknown type.
+ */
+export function tryFunctions (
+  functions: NFunction[],
+  operands: NType[],
+): NType | null {
+  if (operands.some(type => type.type === 'unknown')) {
+    return { type: 'unknown' }
+  }
+  const lastOperand = operands[operands.length - 1]
+  functions: for (let func of functions) {
+    for (const operand of operands.slice(0, -1)) {
+      const result = callFunction(func, operand)
+      if (result.error) {
+        continue functions
+      } else if (result.result.type === 'function') {
+        func = result.result
+      } else {
+        throw new Error('Not enough arguments for operation function')
+      }
+    }
+    const result = callFunction(func, lastOperand)
+    if (result.error) {
+      continue
+    } else {
+      return result.result
+    }
+  }
+  return null
 }

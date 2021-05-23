@@ -107,8 +107,3 @@ export type ComparisonIssue =
 export type ComparisonResult = ComparisonResultType & {
   issue?: ComparisonIssue | null
 }
-
-export interface CompareAssignableContext {
-  function?: NFunction
-  substitutions: Map<FuncTypeVarSpec, NTypeKnown>
-}
