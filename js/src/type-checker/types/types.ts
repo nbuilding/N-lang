@@ -118,6 +118,18 @@ export class AliasSpec extends TypeSpec {
   static isAlias (type: NType): type is AliasType {
     return type.type === 'named' && type.typeSpec instanceof AliasSpec
   }
+
+  /**
+   * Recursively resolve an alias type until it is no longer an alias. Useful
+   * for determining whether a type is a list/record/etc. Note that this is
+   * shallow; the type can still contain other aliases.
+   */
+  static resolve (type: NType): NType {
+    while (this.isAlias(type)) {
+      type = type.typeSpec.substitute(type.typeVars)
+    }
+    return type
+  }
 }
 
 type FuncTypeVar = {

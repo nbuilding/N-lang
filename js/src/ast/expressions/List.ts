@@ -36,12 +36,10 @@ export class List extends Base implements Expression {
       return { type: list.instance([unknown]), exitPoint }
     } else {
       const result = compareEqualTypes(types)
-      if (result.errorIndex === null) {
-        return { type: list.instance([result.result]), exitPoint }
-      } else {
+      if (result.error) {
         // TODO: error
-        return { type: list.instance([unknown]), exitPoint }
       }
+      return { type: list.instance([result.type]), exitPoint }
     }
   }
 

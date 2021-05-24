@@ -1,5 +1,5 @@
 import { ErrorType } from '../../type-checker/errors/Error'
-import { unknown } from '../../type-checker/types/types'
+import { AliasSpec, unknown } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import {
@@ -22,16 +22,17 @@ export class TuplePattern extends Base implements Pattern {
   }
 
   checkPattern (context: CheckPatternContext): CheckPatternResult {
-    if (context.type.type === 'tuple') {
-      if (context.type.types.length !== this.patterns.length) {
+    const resolved = AliasSpec.resolve(context.type)
+    if (resolved.type === 'tuple') {
+      if (resolved.types.length !== this.patterns.length) {
         context.err({
           type: ErrorType.TUPLE_DESTRUCTURE_LENGTH_MISMATCH,
-          tuple: context.type,
-          fields: context.type.types.length,
+          tuple: resolved,
+          fields: resolved.types.length,
           given: this.patterns.length,
         })
       }
-      const tupleTypes = context.type.types
+      const tupleTypes = resolved.types
       this.patterns.forEach((pattern, i) => {
         context.scope.checkPattern(
           pattern,
@@ -40,10 +41,10 @@ export class TuplePattern extends Base implements Pattern {
         )
       })
     } else {
-      if (context.type.type !== 'unknown') {
+      if (resolved.type !== 'unknown') {
         context.err({
           type: ErrorType.DESTRUCTURE_TYPE_MISMATCH,
-          assignedTo: context.type,
+          assignedTo: resolved,
           destructure: 'tuple',
         })
       }

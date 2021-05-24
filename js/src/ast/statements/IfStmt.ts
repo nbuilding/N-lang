@@ -1,9 +1,6 @@
-import { ErrorType } from '../../type-checker/errors/Error'
-import { bool } from '../../type-checker/types/builtins'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
-import { Condition, isCondition } from '../condition/Condition'
-import { IfLet } from '../condition/IfLet'
+import { checkCondition, Condition, isCondition } from '../condition/Condition'
 import { Block } from './Block'
 import {
   CheckStatementContext,
@@ -28,26 +25,18 @@ export class IfStmt extends Base implements Statement {
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
-    let exitPoint, scope
-    if (this.condition instanceof IfLet) {
-      ;({ exitPoint, scope } = this.condition.checkIfLet(context))
-    } else {
-      const {
-        type: condType,
-        exitPoint: exitPointCond,
-      } = context.scope.typeCheck(this.condition)
-      exitPoint = exitPointCond
-      scope = context.scope.inner()
-      context.isTypeError(ErrorType.CONDITION_NOT_BOOL, bool, condType)
-    }
+    const { exitPoint: condExit, scope } = checkCondition(
+      context,
+      this.condition,
+    )
     // TODO: Shouldn't there be a warning if the exit point is in the condition?
-    const { exitPoint: exitPointLeft } = scope.checkStatement(this.then)
-    if (!exitPoint) exitPoint = exitPointLeft
+    const { exitPoint: thenExit } = scope.checkStatement(this.then)
     scope.end()
+    let exitPoint = condExit || thenExit
     if (this.else) {
       const scope = context.scope.inner()
-      const { exitPoint: exitPointRight } = scope.checkStatement(this.else)
-      if (!exitPoint) exitPoint = exitPointRight
+      const { exitPoint: elseExit } = scope.checkStatement(this.else)
+      if (!exitPoint) exitPoint = elseExit
       scope.end()
     }
     return {

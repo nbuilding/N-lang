@@ -87,11 +87,10 @@ export class Comparisons extends Base implements Expression {
         comparison.b,
       )
       const result = compareEqualTypes([type, typeB])
-      if (result.errorIndex === null) {
-        // TODO: Ensure that result.result is comparable
-      } else {
+      if (result.error) {
         // TODO: error
       }
+      // TODO: Ensure that result.type is comparable
       type = typeB
       if (!exitPoint) exitPoint = exit
     }

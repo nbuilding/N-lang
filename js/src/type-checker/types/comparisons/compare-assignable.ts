@@ -291,46 +291,33 @@ export function attemptAssign (
 export function callFunction (
   func: NFunction,
   value: NType,
-): { error: false; result: NType } | { error: true; result: ComparisonResult } {
+): { error: ComparisonResult | null; return: NType } {
   const context: CompareAssignableContext = {
     function: func,
     substitutions: new Map(),
   }
   const result = compareAssignable(context, func.argument, value)
-  if (result.issue) {
-    return {
-      error: true,
-      result,
-    }
-  } else {
-    const substitutions: Map<FuncTypeVarSpec, NType> = new Map()
-    const addedTypeVars = []
-    for (const typeVar of func.typeVars) {
-      const substitution = context.substitutions.get(typeVar)
-      if (substitution) {
-        substitutions.set(typeVar, substitution)
+  const substitutions: Map<FuncTypeVarSpec, NType> = new Map()
+  const inheritedTypeVars = []
+  for (const typeVar of func.typeVars) {
+    const substitution = context.substitutions.get(typeVar)
+    if (substitution) {
+      substitutions.set(typeVar, substitution)
+    } else {
+      if (func.return.type === 'function') {
+        inheritedTypeVars.push(typeVar)
       } else {
-        if (func.return.type === 'function') {
-          const newTypeVar = typeVar.clone()
-          substitutions.set(typeVar, {
-            type: 'named',
-            typeSpec: newTypeVar,
-            typeVars: [],
-          })
-          addedTypeVars.push(newTypeVar)
-        } else {
-          substitutions.set(typeVar, unknown)
-        }
+        substitutions.set(typeVar, unknown)
       }
     }
-    const substituted = substitute(func.return, substitutions)
-    if (substituted.type === 'function') {
-      substituted.typeVars.push(...addedTypeVars)
-    }
-    return {
-      error: false,
-      result: substituted,
-    }
+  }
+  const substituted = substitute(func.return, substitutions)
+  if (substituted.type === 'function') {
+    substituted.typeVars.push(...inheritedTypeVars)
+  }
+  return {
+    error: result.issue ? result : null,
+    return: substituted,
   }
 }
 
@@ -353,8 +340,8 @@ export function tryFunctions (
       const result = callFunction(func, operand)
       if (result.error) {
         continue functions
-      } else if (result.result.type === 'function') {
-        func = result.result
+      } else if (result.return.type === 'function') {
+        func = result.return
       } else {
         throw new Error('Not enough arguments for operation function')
       }
@@ -363,7 +350,7 @@ export function tryFunctions (
     if (result.error) {
       continue
     } else {
-      return result.result
+      return result.return
     }
   }
   return null

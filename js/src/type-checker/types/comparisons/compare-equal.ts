@@ -410,9 +410,7 @@ export function compareEqual (
  */
 export function compareEqualTypes (
   types: NType[],
-):
-  | { errorIndex: null; result: NType }
-  | { errorIndex: number; result: ComparisonResult } {
+): { error: { result: ComparisonResult; index: number } | null; type: NType } {
   if (types.length === 0) {
     throw new RangeError('List of types is empty')
   }
@@ -425,15 +423,15 @@ export function compareEqualTypes (
     )
     if (result.issue) {
       return {
-        errorIndex: i,
-        result,
+        error: { result, index: i },
+        type,
       }
     } else {
       accumulated = type
     }
   }
   return {
-    errorIndex: null,
-    result: accumulated,
+    error: null,
+    type: accumulated,
   }
 }

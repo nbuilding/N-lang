@@ -1,14 +1,9 @@
-import { Scope, ScopeBaseContext } from '../../type-checker/Scope'
+import { ScopeBaseContext } from '../../type-checker/Scope'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Declaration } from '../declaration/Declaration'
 import { Expression, isExpression } from '../expressions/Expression'
-import { Return } from '../expressions/Return'
-
-interface IfLetResult {
-  scope: Scope
-  exitPoint?: Return
-}
+import { ConditionResult } from './Condition'
 
 export class IfLet extends Base {
   declaration: Declaration
@@ -23,7 +18,7 @@ export class IfLet extends Base {
     this.expression = expression
   }
 
-  checkIfLet (context: ScopeBaseContext): IfLetResult {
+  checkIfLet (context: ScopeBaseContext): ConditionResult {
     const scope = context.scope.inner()
     const { type, exitPoint } = scope.typeCheck(this.expression)
     scope.checkDeclaration(this.declaration, type, false)
