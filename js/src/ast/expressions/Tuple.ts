@@ -20,7 +20,16 @@ export class Tuple extends Base implements Expression {
   }
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {
-    throw new Error('Method not implemented.')
+    const types = []
+    let exitPoint
+    for (const value of this.values) {
+      const { type, exitPoint: exit } = context.scope.typeCheck(value)
+      types.push(type)
+      if (!exitPoint) exitPoint = exit
+    }
+    // TODO: Is it possible for a tuple to contain just one item? (i.e. is this
+    // enforced by syntax?)
+    return { type: { type: 'tuple', types }, exitPoint }
   }
 
   toString (): string {

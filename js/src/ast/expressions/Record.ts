@@ -46,7 +46,15 @@ export class Record extends Base implements Expression {
   }
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {
-    throw new Error('Method not implemented.')
+    const types = new Map()
+    let exitPoint
+    for (const entry of this.entries) {
+      const { type, exitPoint: exit } = context.scope.typeCheck(entry.value)
+      // TODO: Duplicate keys
+      types.set(entry.key.value, type)
+      if (!exitPoint) exitPoint = exit
+    }
+    return { type: { type: 'record', types }, exitPoint }
   }
 
   toString (): string {

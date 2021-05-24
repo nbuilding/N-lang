@@ -12,6 +12,10 @@ import {
   CheckStatementResult,
   Statement,
 } from '../statements/Statement'
+import { unknown } from '../../type-checker/types/types'
+import { unaryOperations } from '../../type-checker/types/operations'
+import { tryFunctions } from '../../type-checker/types/comparisons/compare-assignable'
+import { cmd } from '../../type-checker/types/builtins'
 
 export enum UnaryOperator {
   NEGATE = 'negate',
@@ -42,11 +46,28 @@ export class UnaryOperation<O extends UnaryOperator> extends Base
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
-    throw new Error('Method not implemented.')
+    const { exitPoint } = context.scope.typeCheck(this)
+    // TODO: Perhaps throw an error if the operation isn't await?
+    return { exitPoint }
   }
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {
-    throw new Error('Method not implemented.')
+    const { type, exitPoint } = context.scope.typeCheck(this.value)
+    const operationType = tryFunctions(unaryOperations[this.type], [type])
+    if (!operationType) {
+      // TODO: error about operation cannot be done
+    }
+    if (this.type === UnaryOperator.AWAIT) {
+      const returnType = context.scope.getReturnType()
+      if (
+        !returnType ||
+        returnType.type !== 'named' ||
+        returnType.typeSpec !== cmd
+      ) {
+        // TODO: Can only use await in cmd function
+      }
+    }
+    return { type: operationType || unknown, exitPoint }
   }
 
   toString (): string {

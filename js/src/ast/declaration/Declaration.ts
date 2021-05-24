@@ -42,7 +42,7 @@ export class Declaration extends Base {
     context: ScopeBaseContext,
     valueType?: NType,
     certain = true,
-  ): void {
+  ): NType {
     const typeAnnotation: NType = this.type
       ? context.scope.getTypeFrom(this.type).type
       : unknown
@@ -58,6 +58,7 @@ export class Declaration extends Base {
     } else {
       context.scope.checkPattern(this.pattern, typeAnnotation, certain)
     }
+    return typeAnnotation
   }
 
   toString (): string {

@@ -6,6 +6,9 @@ import {
   TypeCheckResult,
 } from './Expression'
 import { Base, BasePosition } from '../base'
+import { compareEqualTypes } from '../../type-checker/types/comparisons/compare-equal'
+import { list } from '../../type-checker/types/builtins'
+import { unknown } from '../../type-checker/types/types'
 
 export class List extends Base implements Expression {
   items: Expression[]
@@ -22,7 +25,24 @@ export class List extends Base implements Expression {
   }
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {
-    throw new Error('Method not implemented.')
+    const types = []
+    let exitPoint
+    for (const item of this.items) {
+      const { type, exitPoint: exit } = context.scope.typeCheck(item)
+      types.push(type)
+      if (!exitPoint) exitPoint = exit
+    }
+    if (types.length === 0) {
+      return { type: list.instance([unknown]), exitPoint }
+    } else {
+      const result = compareEqualTypes(types)
+      if (result.errorIndex === null) {
+        return { type: list.instance([result.result]), exitPoint }
+      } else {
+        // TODO: error
+        return { type: list.instance([unknown]), exitPoint }
+      }
+    }
   }
 
   toString (): string {

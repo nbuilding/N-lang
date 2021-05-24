@@ -11,12 +11,9 @@ import {
   CheckStatementResult,
   Statement,
 } from '../statements/Statement'
-import {
-  resolve,
-  Function as FuncType,
-  NType,
-} from '../../type-checker/types/types'
+import { NType, unknown } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
+import { callFunction } from '../../type-checker/types/comparisons/compare-assignable'
 
 export class FuncCall extends Base implements Expression, Statement {
   func: Expression
@@ -40,8 +37,8 @@ export class FuncCall extends Base implements Expression, Statement {
   }
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {
-    const funcExpr = context.scope.typeCheck(this.func)
-    let exitPoint = funcExpr.exitPoint
+    const funcResult = context.scope.typeCheck(this.func)
+    let exitPoint = funcResult.exitPoint
     const paramTypes: [NType, Expression][] = this.params.map(param => {
       const paramExpr = context.scope.typeCheck(param)
       if (paramExpr.exitPoint && !exitPoint) {
@@ -49,56 +46,49 @@ export class FuncCall extends Base implements Expression, Statement {
       }
       return [paramExpr.type, param]
     })
-    if (funcExpr.type) {
-      const resolvedFuncType = resolve(funcExpr.type)
-      let returnType: NType = resolvedFuncType
-      if (resolvedFuncType instanceof FuncType) {
-        let argPos = 1
-        for (const [paramType, param] of paramTypes) {
-          if (returnType instanceof FuncType) {
-            const [errors, resolvedReturnType] = returnType.given(paramType)
-            if (errors.length > 0 && returnType.takes && paramType) {
-              context.err(
-                {
-                  type: ErrorType.ARG_TYPE_MISMATCH,
-                  funcType: resolvedFuncType,
-                  expect: returnType.takes,
-                  given: paramType,
-                  errors,
-                  argPos,
-                },
-                param,
-              )
-            }
-            returnType = resolvedReturnType
-          } else {
-            context.err(
-              {
-                type: ErrorType.TOO_MANY_ARGS,
-                funcType: resolvedFuncType,
-                argPos,
-              },
-              param,
-            )
-            return { type: null, exitPoint }
-          }
-          argPos++
+    let funcType = funcResult.type
+    let argPos = 1
+    for (const [param, base] of paramTypes) {
+      // TODO: What about aliases?
+      if (funcType.type === 'function') {
+        const result = callFunction(funcType, param)
+        if (result.error) {
+          context.err(
+            {
+              type: ErrorType.ARG_TYPE_MISMATCH,
+              error: result.result,
+              argPos,
+            },
+            base,
+          )
+          // TODO: Should still try to recover the return type, perhaps?
+        } else {
+          funcType = result.result
         }
-        return {
-          type: returnType,
-          exitPoint,
+      } else {
+        if (argPos === 1) {
+          context.err(
+            {
+              type: ErrorType.CALL_NON_FUNCTION,
+              funcType,
+            },
+            this.func,
+          )
+        } else {
+          context.err(
+            {
+              type: ErrorType.TOO_MANY_ARGS,
+              funcType,
+              argPos,
+            },
+            base,
+          )
         }
-      } else if (resolvedFuncType) {
-        context.err(
-          {
-            type: ErrorType.CALL_NON_FUNCTION,
-            funcType: resolvedFuncType,
-          },
-          this.func,
-        )
+        return { type: unknown, exitPoint }
       }
+      argPos++
     }
-    return { type: null, exitPoint }
+    return { type: funcType, exitPoint }
   }
 
   toString (): string {

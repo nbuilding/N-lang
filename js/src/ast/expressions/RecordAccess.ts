@@ -7,6 +7,7 @@ import {
 } from './Expression'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
+import { unknown } from '../../type-checker/types/types'
 
 export class RecordAccess extends Base implements Expression {
   value: Expression
@@ -22,7 +23,19 @@ export class RecordAccess extends Base implements Expression {
   }
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {
-    throw new Error('Method not implemented.')
+    const { type, exitPoint } = context.scope.typeCheck(this.value)
+    if (type.type === 'record') {
+      const fieldType = type.types.get(this.field.value)
+      if (!fieldType) {
+        // TODO: Record doesn't have field
+      }
+      return { type: fieldType || unknown, exitPoint }
+    } else {
+      if (type.type !== 'unknown') {
+        // TODO: Cannot get field of non-record
+      }
+      return { type: unknown, exitPoint }
+    }
   }
 
   toString (): string {

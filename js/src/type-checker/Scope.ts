@@ -62,18 +62,30 @@ export class ScopeBaseContext {
 export class Scope {
   checker: TypeCheckerResult
   parent?: Scope
+  returnType?: NType
   variables: Map<string, NType> = new Map()
   types: Map<string, TypeSpec | null> = new Map()
   unusedVariables: Set<string> = new Set()
   unusedTypes: Set<string> = new Set()
 
-  constructor (checker: TypeCheckerResult, parent?: Scope) {
+  constructor (checker: TypeCheckerResult, parent?: Scope, returnType?: NType) {
     this.checker = checker
     this.parent = parent
+    this.returnType = returnType
   }
 
-  inner () {
-    return new Scope(this.checker, this)
+  inner (returnType?: NType) {
+    return new Scope(this.checker, this, returnType)
+  }
+
+  getReturnType (): NType | undefined {
+    if (this.returnType) {
+      return this.returnType
+    } else if (this.parent) {
+      return this.parent.getReturnType()
+    } else {
+      return undefined
+    }
   }
 
   getVariable (name: string, markAsUsed: boolean): NType | undefined {
@@ -179,9 +191,9 @@ export class Scope {
     base: Declaration,
     valueType?: NType,
     certain = true,
-  ): void {
+  ): NType {
     try {
-      base.checkDeclaration(
+      return base.checkDeclaration(
         new ScopeBaseContext(this, base),
         valueType,
         certain,
@@ -199,6 +211,7 @@ export class Scope {
         },
         base,
       })
+      return unknown
     }
   }
 

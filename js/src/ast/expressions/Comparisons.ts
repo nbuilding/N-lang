@@ -7,6 +7,8 @@ import {
   TypeCheckResult,
 } from './Expression'
 import { Base, BasePosition } from '../base'
+import { bool } from '../../type-checker/types/builtins'
+import { compareEqualTypes } from '../../type-checker/types/comparisons/compare-equal'
 
 export enum Compare {
   LESS = 'less',
@@ -79,7 +81,21 @@ export class Comparisons extends Base implements Expression {
   }
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {
-    throw new Error('Method not implemented.')
+    let { type, exitPoint } = context.scope.typeCheck(this.comparisons[0].a)
+    for (const comparison of this.comparisons) {
+      let { type: typeB, exitPoint: exit } = context.scope.typeCheck(
+        comparison.b,
+      )
+      const result = compareEqualTypes([type, typeB])
+      if (result.errorIndex === null) {
+        // TODO: Ensure that result.result is comparable
+      } else {
+        // TODO: error
+      }
+      type = typeB
+      if (!exitPoint) exitPoint = exit
+    }
+    return { type: bool, exitPoint }
   }
 
   toString (): string {

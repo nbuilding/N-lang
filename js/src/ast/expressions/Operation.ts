@@ -12,6 +12,9 @@ import {
   CheckStatementResult,
   Statement,
 } from '../statements/Statement'
+import { tryFunctions } from '../../type-checker/types/comparisons/compare-assignable'
+import { operations } from '../../type-checker/types/operations'
+import { unknown } from '../../type-checker/types/types'
 
 export enum Operator {
   AND = 'and',
@@ -67,11 +70,19 @@ export class Operation<O extends Operator> extends Base
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
-    throw new Error('Method not implemented.')
+    const { exitPoint } = context.scope.typeCheck(this)
+    // TODO: Perhaps throw an error if the operation isn't pipe?
+    return { exitPoint }
   }
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {
-    throw new Error('Method not implemented.')
+    const { type: typeA, exitPoint: exitA } = context.scope.typeCheck(this.a)
+    const { type: typeB, exitPoint: exitB } = context.scope.typeCheck(this.b)
+    const operationType = tryFunctions(operations[this.type], [typeA, typeB])
+    if (!operationType) {
+      // TODO: error about operation cannot be done
+    }
+    return { type: operationType || unknown, exitPoint: exitA || exitB }
   }
 
   toString (): string {

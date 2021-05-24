@@ -7,6 +7,8 @@ import {
 } from './Expression'
 import { Base, BasePosition } from '../base'
 import { Condition, isCondition } from '../condition/Condition'
+import { compareEqualTypes } from '../../type-checker/types/comparisons/compare-equal'
+import { unknown } from '../../type-checker/types/types'
 
 export class IfExpression extends Base implements Expression {
   condition: Condition
@@ -24,7 +26,24 @@ export class IfExpression extends Base implements Expression {
   }
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {
-    throw new Error('Method not implemented.')
+    // TODO: Unify condition to avoid repetition
+    const { type: condType, exitPoint: condExit } = context.scope.typeCheck(
+      this.condition,
+    )
+    const { type: thenType, exitPoint: thenExit } = context.scope.typeCheck(
+      this.then,
+    )
+    const { type: elseType, exitPoint: elseExit } = context.scope.typeCheck(
+      this.else,
+    )
+    const exitPoint = condExit || thenExit || elseExit
+    const result = compareEqualTypes([thenType, elseType])
+    if (result.errorIndex === null) {
+      return { type: result.result, exitPoint }
+    } else {
+      // TODO: Error
+      return { type: unknown, exitPoint }
+    }
   }
 
   toString (): string {

@@ -1,10 +1,10 @@
 import { EnumSpec, NUnion, TypeSpec } from './types'
 
-export const str = new TypeSpec('str').instance([])
-export const int = new TypeSpec('int').instance([])
-export const float = new TypeSpec('float').instance([])
-export const char = new TypeSpec('char').instance([])
-export const unit = new TypeSpec('unit').instance([])
+export const str = new TypeSpec('str').instance()
+export const int = new TypeSpec('int').instance()
+export const float = new TypeSpec('float').instance()
+export const char = new TypeSpec('char').instance()
+export const unit = new TypeSpec('unit').instance()
 
 export const number: NUnion = {
   type: 'union',
@@ -20,7 +20,7 @@ export const boolSpec = EnumSpec.make('bool', () => [
   ['false', []],
 ])
 // I usually expect bool to be a native type instance
-export const bool = boolSpec.instance([])
+export const bool = boolSpec.instance()
 export const maybe = EnumSpec.make(
   'maybe',
   t => [

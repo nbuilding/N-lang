@@ -7,7 +7,7 @@ export class TypeSpec {
     this.typeVarCount = typeVarCount
   }
 
-  instance (typeVars: NType[]): NamedType {
+  instance (typeVars: NType[] = []): NamedType {
     return {
       type: 'named',
       typeSpec: this,
@@ -40,17 +40,28 @@ export class EnumSpec extends TypeSpec {
   getConstructorType (variantName: string): NType {
     const variant = this.variants.get(variantName)
     if (variant) {
-      const funcTypeVars = []
-      const substitutions: Map<TypeSpec, NType> = new Map()
-      for (const typeVar of this.typeVars) {
-        const funcTypeVar = new FuncTypeVarSpec(typeVar.name)
-        funcTypeVars.push(funcTypeVar)
-        substitutions.set(typeVar, funcTypeVar.instance([]))
+      if (variant.length === 0) {
+        const unknowns = []
+        for (let i = 0; i < this.typeVarCount; i++) {
+          unknowns.push(unknown)
+        }
+        return this.instance(unknowns)
+      } else {
+        const funcTypeVars = []
+        const substitutions: Map<TypeSpec, NType> = new Map()
+        for (const typeVar of this.typeVars) {
+          const funcTypeVar = new FuncTypeVarSpec(typeVar.name)
+          funcTypeVars.push(funcTypeVar)
+          substitutions.set(typeVar, funcTypeVar.instance())
+        }
+        return functionFromTypes(
+          [
+            ...variant.map(field => substitute(field, substitutions)),
+            this.instance(funcTypeVars.map(typeVar => typeVar.instance())),
+          ],
+          funcTypeVars,
+        )
       }
-      return functionFromTypes(
-        variant.map(field => substitute(field, substitutions)),
-        funcTypeVars,
-      )
     } else {
       throw new ReferenceError(`Variant ${variantName} doesn't exist.`)
     }
@@ -66,7 +77,7 @@ export class EnumSpec extends TypeSpec {
       name,
       new Map(
         variantMaker(
-          ...typeVars.map((typeSpec): NamedType => typeSpec.instance([])),
+          ...typeVars.map((typeSpec): NamedType => typeSpec.instance()),
         ),
       ),
       typeVars,
@@ -174,7 +185,7 @@ export function makeFunction (
 ) {
   const typeVars = typeVarNames.map(name => new FuncTypeVarSpec(name))
   return functionFromTypes(
-    typesMaker(...typeVars.map((typeSpec): NamedType => typeSpec.instance([]))),
+    typesMaker(...typeVars.map((typeSpec): NamedType => typeSpec.instance())),
     typeVars,
   )
 }

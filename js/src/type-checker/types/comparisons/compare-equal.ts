@@ -98,7 +98,7 @@ export function compareEqual (
       )
     }
     if (FuncTypeVarSpec.isTypeVar(typeA) && FuncTypeVarSpec.isTypeVar(typeB)) {
-      const newTypeVar = new FuncTypeVarSpec(typeA.typeSpec.name).instance([])
+      const newTypeVar = new FuncTypeVarSpec(typeA.typeSpec.name).instance()
       context.substitutions.set(typeA.typeSpec, newTypeVar)
       context.substitutions.set(typeB.typeSpec, newTypeVar)
       return {
@@ -138,7 +138,7 @@ export function compareEqual (
         }
       } else if (types.length === 1) {
         return {
-          type: types[0].instance([]),
+          type: types[0].instance(),
           result: typeToResultType(typeB),
         }
       } else {
@@ -406,13 +406,16 @@ export function compareEqual (
 /**
  * Intended for list literals and match expressions. Will return the index (>=
  * 1) of the item that does not match. Accumulates the resolved type to resolve
- * unknowns.
+ * unknowns. The number of types must be nonzero.
  */
 export function compareEqualTypes (
   types: NType[],
 ):
   | { errorIndex: null; result: NType }
   | { errorIndex: number; result: ComparisonResult } {
+  if (types.length === 0) {
+    throw new RangeError('List of types is empty')
+  }
   let accumulated = types[0]
   for (let i = 1; i < types.length; i++) {
     const { type, result } = compareEqual(

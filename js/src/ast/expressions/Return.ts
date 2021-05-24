@@ -11,6 +11,7 @@ import {
   CheckStatementResult,
   Statement,
 } from '../statements/Statement'
+import { unknown } from '../../type-checker/types/types'
 
 export class Return extends Base implements Expression, Statement {
   value: Expression
@@ -24,11 +25,23 @@ export class Return extends Base implements Expression, Statement {
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
-    throw new Error('Method not implemented.')
+    const { exitPoint } = context.scope.typeCheck(this)
+    return { exitPoint }
   }
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {
-    throw new Error('Method not implemented.')
+    const { type, exitPoint } = context.scope.typeCheck(this.value)
+    const returnType = context.scope.getReturnType()
+    if (returnType) {
+      // TODO
+      // context.isTypeError(?, returnType, type)
+    } else {
+      // TODO: cannot return in non-function
+    }
+    return {
+      type: unknown,
+      exitPoint: exitPoint || this,
+    }
   }
 
   toString (): string {
