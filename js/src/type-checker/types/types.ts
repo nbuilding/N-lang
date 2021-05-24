@@ -54,6 +54,9 @@ type FuncTypeVar = {
 }
 
 export class FuncTypeVarSpec extends TypeSpec {
+  // QUESTION: Is .function used anywhere? We might as well remove this to
+  // eliminate the need substitutions every time we make a new function; the
+  // function type variable spec is already listed in the function type
   function!: NFunction
 
   constructor (name: string) {

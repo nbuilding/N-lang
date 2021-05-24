@@ -84,21 +84,31 @@ export type ComparisonIssue =
       type: ComparisonResultType | 'tuple' | 'record' | 'function'
     }
   | {
+      // Function type vars, compareAssignable
       issue: 'too-specific'
     }
   | {
+      // Union types, compareAssignable
       issue: 'too-general'
       canOnlyHandle: ComparisonResultType
     }
   | {
+      // Union types, compareEqual
+      issue: 'no-overlap'
+      with: ComparisonResultType
+    }
+  | {
+      // Tuples
       issue: 'need-extra-items'
       types: ComparisonResultType[]
     }
   | {
+      // Tuples
       issue: 'too-many-items'
       extra: number
     }
   | {
+      // Records
       issue: 'record-key-mismatch'
       missing: string[]
       extra: string[]

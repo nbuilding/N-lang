@@ -236,7 +236,15 @@ export function compareAssignable (
         value,
       )
     }
-    if (value.type !== 'named') {
+    if (value.type === 'union') {
+      return {
+        ...typeToResultType(value),
+        issue: {
+          issue: 'too-general',
+          canOnlyHandle: typeToResultType(annotation),
+        },
+      }
+    } else if (value.type !== 'named') {
       return {
         ...typeToResultType(value),
         issue: {
