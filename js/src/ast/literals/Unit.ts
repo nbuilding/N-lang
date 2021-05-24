@@ -1,4 +1,4 @@
-import { Unit as UnitType } from '../../type-checker/types/types'
+import { unit } from '../../type-checker/types/builtins'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import {
@@ -13,7 +13,7 @@ export class Unit extends Base implements Expression {
   }
 
   typeCheck (_context: TypeCheckContext): TypeCheckResult {
-    return { type: new UnitType() }
+    return { type: unit }
   }
 
   toString (): string {

@@ -1,7 +1,9 @@
+import { tryFunctions } from '../../type-checker/types/comparisons/compare-assignable'
 import {
   iterableTypes,
   legacyIterableTypes,
 } from '../../type-checker/types/operations'
+import { unknown } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Declaration } from '../declaration/Declaration'
@@ -31,17 +33,13 @@ export class OldFor extends Base implements Statement {
   checkStatement (context: CheckStatementContext): CheckStatementResult {
     const { type, exitPoint } = context.scope.typeCheck(this.value)
     const scope = context.scope.inner()
-    if (type) {
-      for (const iterableFunc of legacyIterableTypes) {
-        const [errors, iterateOutType] = iterableFunc.given(type)
-        if (errors.length === 0) {
-          scope.checkDeclaration(this.var, iterateOutType)
-          return { exitPoint }
-        }
-      }
+    const iteratedType = tryFunctions(legacyIterableTypes, [type])
+    if (!iteratedType) {
       // TODO: error about not iterable
     }
-    this.var.checkDeclaration(context, null)
+    scope.checkDeclaration(this.var, iteratedType || unknown)
+    scope.checkStatement(this.body)
+    scope.end()
     return { exitPoint }
   }
 
@@ -78,17 +76,13 @@ export class For extends Base implements Statement {
   checkStatement (context: CheckStatementContext): CheckStatementResult {
     const { type, exitPoint } = context.scope.typeCheck(this.value)
     const scope = context.scope.inner()
-    if (type) {
-      for (const iterableFunc of iterableTypes) {
-        const [errors, iterateOutType] = iterableFunc.given(type)
-        if (errors.length === 0) {
-          scope.checkDeclaration(this.var, iterateOutType)
-          return { exitPoint }
-        }
-      }
+    const iteratedType = tryFunctions(iterableTypes, [type])
+    if (!iteratedType) {
       // TODO: error about not iterable
     }
-    this.var.checkDeclaration(context, null)
+    scope.checkDeclaration(this.var, iteratedType || unknown)
+    scope.checkStatement(this.body)
+    scope.end()
     return { exitPoint }
   }
 

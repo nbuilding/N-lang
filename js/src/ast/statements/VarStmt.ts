@@ -1,6 +1,5 @@
 import { ErrorType } from '../../type-checker/errors/Error'
 import { WarningType } from '../../type-checker/errors/Warning'
-import { expectEqual } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Expression, isExpression } from '../expressions/Expression'
@@ -30,18 +29,8 @@ export class VarStmt extends Base implements Statement {
       context.warn({ type: WarningType.USED_UNDERSCORE_IDENTIFIER }, this.var)
     }
     const { type: valueType, exitPoint } = context.scope.typeCheck(this.value)
-    if (type !== undefined) {
-      if (type && valueType) {
-        const errors = expectEqual(type, valueType)
-        if (errors.length > 0) {
-          context.err({
-            type: ErrorType.VAR_TYPE_MISMATCH,
-            annotation: type,
-            expression: valueType,
-            errors,
-          })
-        }
-      }
+    if (type) {
+      context.isTypeError(ErrorType.VAR_TYPE_MISMATCH, type, valueType)
     } else {
       context.err(
         { type: ErrorType.UNDEFINED_VARIABLE, name: this.var.value },

@@ -1,5 +1,4 @@
 import { ErrorType } from '../../type-checker/errors/Error'
-import { expectEqual } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Expression, isExpression } from '../expressions/Expression'
@@ -26,13 +25,7 @@ export class AssertType extends Base implements Statement {
   checkStatement (context: CheckStatementContext): CheckStatementResult {
     const { type, exitPoint } = context.scope.typeCheck(this.expression)
     const idealType = context.scope.getTypeFrom(this.type).type
-    const errors = expectEqual(idealType, type)
-    if (errors.length > 0) {
-      context.err({
-        type: ErrorType.TYPE_ASSERTION_FAIL,
-        errors,
-      })
-    }
+    context.isTypeError(ErrorType.TYPE_ASSERTION_FAIL, idealType, type)
     return { exitPoint }
   }
 

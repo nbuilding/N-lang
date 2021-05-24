@@ -1,5 +1,5 @@
 import { ErrorType } from '../../type-checker/errors/Error'
-import { NType, Tuple } from '../../type-checker/types/types'
+import { unknown } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import {
@@ -22,29 +22,35 @@ export class TuplePattern extends Base implements Pattern {
   }
 
   checkPattern (context: CheckPatternContext): CheckPatternResult {
-    let types: NType[] | null = null
-    if (context.type) {
-      if (context.type instanceof Tuple) {
-        if (context.type.types.length !== this.patterns.length) {
-          context.err({
-            type: ErrorType.TUPLE_DESTRUCTURE_LENGTH_MISMATCH,
-            tuple: context.type,
-            fields: context.type.types.length,
-            given: this.patterns.length,
-          })
-        }
-        types = context.type.types
-      } else {
+    if (context.type.type === 'tuple') {
+      if (context.type.types.length !== this.patterns.length) {
+        context.err({
+          type: ErrorType.TUPLE_DESTRUCTURE_LENGTH_MISMATCH,
+          tuple: context.type,
+          fields: context.type.types.length,
+          given: this.patterns.length,
+        })
+      }
+      const tupleTypes = context.type.types
+      this.patterns.forEach((pattern, i) => {
+        context.scope.checkPattern(
+          pattern,
+          tupleTypes[i] || unknown,
+          context.definite,
+        )
+      })
+    } else {
+      if (context.type.type !== 'unknown') {
         context.err({
           type: ErrorType.DESTRUCTURE_TYPE_MISMATCH,
           assignedTo: context.type,
           destructure: 'tuple',
         })
       }
+      for (const pattern of this.patterns) {
+        context.scope.checkPattern(pattern, unknown, context.definite)
+      }
     }
-    this.patterns.forEach((pattern, i) => {
-      context.scope.checkPattern(pattern, types && types[i], context.definite)
-    })
     return {}
   }
 

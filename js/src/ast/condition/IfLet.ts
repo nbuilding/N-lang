@@ -27,6 +27,7 @@ export class IfLet extends Base {
     const scope = context.scope.inner()
     const { type, exitPoint } = scope.typeCheck(this.expression)
     scope.checkDeclaration(this.declaration, type, false)
+    scope.end()
     return { scope, exitPoint }
   }
 

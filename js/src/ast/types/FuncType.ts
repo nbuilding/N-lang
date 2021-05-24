@@ -1,3 +1,4 @@
+import { FuncTypeVarSpec, NFunction } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { TypeVars } from '../declaration/TypeVars'
@@ -19,7 +20,26 @@ export class FuncType extends Base implements Type {
   }
 
   getType (context: GetTypeContext): GetTypeResult {
-    throw new Error('Method not implemented.')
+    const scope = context.scope.inner()
+    const typeVars = []
+    if (this.typeVars) {
+      for (const { value: name } of this.typeVars.vars) {
+        const typeVar = new FuncTypeVarSpec(name)
+        typeVars.push(typeVar)
+        // TODO: duplicate type var names
+        scope.types.set(name, typeVar)
+      }
+    }
+    const type: NFunction = {
+      type: 'function',
+      argument: scope.getTypeFrom(this.takes).type,
+      return: scope.getTypeFrom(this.returns).type,
+      typeVars,
+    }
+    scope.end()
+    return {
+      type,
+    }
   }
 
   toString (): string {

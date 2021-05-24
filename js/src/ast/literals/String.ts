@@ -4,7 +4,7 @@ import { Literal } from './Literal'
 
 export class String extends Literal {
   typeCheck (_context: TypeCheckContext): TypeCheckResult {
-    return { type: str.instance() }
+    return { type: str }
   }
 
   toString (): string {

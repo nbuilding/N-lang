@@ -1,72 +1,77 @@
 import { Operator } from '../../ast/expressions/Operation'
 import { UnaryOperator } from '../../ast/expressions/UnaryOperation'
-import { bool, char, cmd, float, int, list, str } from './builtins'
-import { FuncType as Func, NType } from './types'
+import { bool, char, cmd, float, int, list, number, str } from './builtins'
+import { makeFunction, NFunction } from './types'
 
-export const operations: Record<Operator, Func[]> = {
+export const operations: Record<Operator, NFunction[]> = {
   [Operator.ADD]: [
-    Func.make2(() => [int.instance(), int.instance(), int.instance()]),
-    Func.make2(() => [float.instance(), float.instance(), float.instance()]),
-    Func.make2(() => [str.instance(), str.instance(), str.instance()]),
-    Func.make2(() => [str.instance(), char.instance(), str.instance()]),
-    Func.make2(() => [char.instance(), str.instance(), str.instance()]),
-    Func.make2(() => [char.instance(), char.instance(), str.instance()]),
-    Func.make2(
+    makeFunction(() => [number, number, number]),
+    makeFunction(() => [int, int, int]),
+    makeFunction(() => [float, float, float]),
+    makeFunction(() => [str, str, str]),
+    makeFunction(() => [str, char, str]),
+    makeFunction(() => [char, str, str]),
+    makeFunction(() => [char, char, str]),
+    makeFunction(
       a => [list.instance([a]), list.instance([a]), list.instance([a])],
       'a',
     ),
   ],
   [Operator.MINUS]: [
-    Func.make2(() => [int.instance(), int.instance(), int.instance()]),
-    Func.make2(() => [float.instance(), float.instance(), float.instance()]),
+    makeFunction(() => [number, number, number]),
+    makeFunction(() => [int, int, int]),
+    makeFunction(() => [float, float, float]),
   ],
   [Operator.MULTIPLY]: [
-    Func.make2(() => [int.instance(), int.instance(), int.instance()]),
-    Func.make2(() => [float.instance(), float.instance(), float.instance()]),
+    makeFunction(() => [number, number, number]),
+    makeFunction(() => [int, int, int]),
+    makeFunction(() => [float, float, float]),
   ],
   [Operator.DIVIDE]: [
-    Func.make2(() => [int.instance(), int.instance(), int.instance()]),
-    Func.make2(() => [float.instance(), float.instance(), float.instance()]),
+    makeFunction(() => [number, number, number]),
+    makeFunction(() => [int, int, int]),
+    makeFunction(() => [float, float, float]),
   ],
   [Operator.MODULO]: [
-    Func.make2(() => [int.instance(), int.instance(), int.instance()]),
-    Func.make2(() => [float.instance(), float.instance(), float.instance()]),
+    makeFunction(() => [number, number, number]),
+    makeFunction(() => [int, int, int]),
+    makeFunction(() => [float, float, float]),
   ],
   [Operator.EXPONENT]: [
+    makeFunction(() => [number, number, float]),
     // NOTE: int ^ int returns float because of negative powers
-    Func.make2(() => [int.instance(), int.instance(), float.instance()]),
-    Func.make2(() => [float.instance(), float.instance(), float.instance()]),
+    makeFunction(() => [int, int, float]),
+    makeFunction(() => [float, float, float]),
   ],
 
   [Operator.AND]: [
-    Func.make2(() => [int.instance(), int.instance(), int.instance()]),
-    Func.make2(() => [bool.instance(), bool.instance(), bool.instance()]),
+    makeFunction(() => [int, int, int]),
+    makeFunction(() => [bool, bool, bool]),
   ],
   [Operator.OR]: [
-    Func.make2(() => [int.instance(), int.instance(), int.instance()]),
-    Func.make2(() => [bool.instance(), bool.instance(), bool.instance()]),
+    makeFunction(() => [int, int, int]),
+    makeFunction(() => [bool, bool, bool]),
   ],
 
   [Operator.PIPE]: [
-    Func.make2((a, b) => [a, Func.make(() => [a, b]), b], 'a', 'b'),
+    makeFunction((a, b) => [a, makeFunction(() => [a, b]), b], 'a', 'b'),
   ],
 }
 
-export const unaryOperations: Record<UnaryOperator, Func[]> = {
+export const unaryOperations: Record<UnaryOperator, NFunction[]> = {
   [UnaryOperator.NEGATE]: [
-    Func.make(() => [int.instance(), int.instance()]),
-    Func.make(() => [float.instance(), float.instance()]),
+    makeFunction(() => [number, number]),
+    makeFunction(() => [int, int]),
+    makeFunction(() => [float, float]),
   ],
   [UnaryOperator.NOT]: [
-    Func.make(() => [int.instance(), int.instance()]),
-    Func.make(() => [bool.instance(), bool.instance()]),
+    makeFunction(() => [int, int]),
+    makeFunction(() => [bool, bool]),
   ],
-  [UnaryOperator.AWAIT]: [Func.make(a => [cmd.instance([a]), a], 'a')],
+  [UnaryOperator.AWAIT]: [makeFunction(a => [cmd.instance([a]), a], 'a')],
 }
 
-export const iterableTypes: Func[] = [
-  Func.make(a => [list.instance([a]), a], 'a'),
+export const iterableTypes: NFunction[] = [
+  makeFunction(a => [list.instance([a]), a], 'a'),
 ]
-export const legacyIterableTypes: Func[] = [
-  Func.make(() => [int.instance(), int.instance()]),
-]
+export const legacyIterableTypes: NFunction[] = [makeFunction(() => [int, int])]

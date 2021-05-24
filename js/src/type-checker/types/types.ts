@@ -16,7 +16,13 @@ export class TypeSpec {
   }
 }
 
-export class EnumTypeSpec extends TypeSpec {
+type EnumType = {
+  type: 'named'
+  typeSpec: EnumSpec
+  typeVars: NType[]
+}
+
+export class EnumSpec extends TypeSpec {
   variants: Map<string, NType[]>
   typeVars: TypeSpec[]
 
@@ -56,7 +62,7 @@ export class EnumTypeSpec extends TypeSpec {
     ...typeVarNames: string[]
   ) {
     const typeVars = typeVarNames.map(name => new TypeSpec(name))
-    return new EnumTypeSpec(
+    return new EnumSpec(
       name,
       new Map(
         variantMaker(
@@ -65,6 +71,10 @@ export class EnumTypeSpec extends TypeSpec {
       ),
       typeVars,
     )
+  }
+
+  static isEnum (type: NType): type is EnumType {
+    return type.type === 'named' && type.typeSpec instanceof EnumSpec
   }
 }
 

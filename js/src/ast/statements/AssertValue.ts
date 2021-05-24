@@ -1,6 +1,5 @@
 import { ErrorType } from '../../type-checker/errors/Error'
 import { bool } from '../../type-checker/types/builtins'
-import { expectEqual } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Expression, isExpression } from '../expressions/Expression'
@@ -23,13 +22,7 @@ export class AssertValue extends Base implements Statement {
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
     const { type, exitPoint } = context.scope.typeCheck(this.expression)
-    const errors = expectEqual(bool.instance(), type)
-    if (errors.length > 0) {
-      context.err({
-        type: ErrorType.VALUE_ASSERTION_NOT_BOOL,
-        errors,
-      })
-    }
+    context.isTypeError(ErrorType.VALUE_ASSERTION_NOT_BOOL, bool, type)
     return { exitPoint }
   }
 

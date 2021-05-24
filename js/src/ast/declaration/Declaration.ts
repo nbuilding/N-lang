@@ -46,19 +46,18 @@ export class Declaration extends Base {
     const typeAnnotation: NType = this.type
       ? context.scope.getTypeFrom(this.type).type
       : unknown
-    if (valueType && typeAnnotation) {
-      if (
-        context.isTypeError(
-          ErrorType.LET_TYPE_MISMATCH,
-          typeAnnotation,
-          valueType,
-        )
-      ) {
-        context.scope.checkPattern(this.pattern, unknown, certain)
-        return
-      }
+    if (
+      valueType &&
+      context.isTypeError(
+        ErrorType.LET_TYPE_MISMATCH,
+        typeAnnotation,
+        valueType,
+      )
+    ) {
+      context.scope.checkPattern(this.pattern, unknown, certain)
+    } else {
+      context.scope.checkPattern(this.pattern, typeAnnotation, certain)
     }
-    context.scope.checkPattern(this.pattern, typeAnnotation, certain)
   }
 
   toString (): string {

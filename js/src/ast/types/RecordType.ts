@@ -42,7 +42,18 @@ export class RecordType extends Base implements Type {
   }
 
   getType (context: GetTypeContext): GetTypeResult {
-    throw new Error('Method not implemented.')
+    // TODO: Warn about duplicate keys
+    return {
+      type: {
+        type: 'record',
+        types: new Map(
+          this.entries.map(entry => [
+            entry.key.value,
+            context.scope.getTypeFrom(entry.value).type,
+          ]),
+        ),
+      },
+    }
   }
 
   toString (): string {

@@ -4,6 +4,6 @@ import { Literal } from './Literal'
 
 export class Float extends Literal {
   typeCheck (_context: TypeCheckContext): TypeCheckResult {
-    return { type: float.instance() }
+    return { type: float }
   }
 }

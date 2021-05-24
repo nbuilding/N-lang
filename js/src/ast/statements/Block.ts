@@ -44,6 +44,7 @@ export class Block extends Base implements Statement {
         }
       }
     }
+    scope.end()
     return {
       exitPoint: blockExitPoint,
       exitPointWarned: warned,

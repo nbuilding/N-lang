@@ -1,7 +1,7 @@
 import { Scope } from './Scope'
 import { TypeCheckerResult } from './TypeChecker'
 import {
-  bool,
+  boolSpec,
   char,
   cmd,
   float,
@@ -27,9 +27,9 @@ export class GlobalScope extends Scope {
     this.types.set('map', map)
     this.types.set('cmd', cmd)
 
-    this.types.set('bool', bool)
-    this.variables.set('true', bool.getConstructorType('true'))
-    this.variables.set('false', bool.getConstructorType('false'))
+    this.types.set('bool', boolSpec)
+    this.variables.set('true', boolSpec.getConstructorType('true'))
+    this.variables.set('false', boolSpec.getConstructorType('false'))
 
     this.types.set('maybe', maybe)
     this.variables.set('yes', maybe.getConstructorType('yes'))

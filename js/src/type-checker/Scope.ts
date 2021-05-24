@@ -63,7 +63,7 @@ export class Scope {
   checker: TypeCheckerResult
   parent?: Scope
   variables: Map<string, NType> = new Map()
-  types: Map<string, TypeSpec> = new Map()
+  types: Map<string, TypeSpec | null> = new Map()
   unusedVariables: Set<string> = new Set()
   unusedTypes: Set<string> = new Set()
 
@@ -90,7 +90,10 @@ export class Scope {
     }
   }
 
-  getType (name: string, markAsUsed: boolean): TypeSpec | undefined {
+  /**
+   * null is the error type spec while undefined means it's not in scope
+   */
+  getType (name: string, markAsUsed: boolean): TypeSpec | null | undefined {
     const type = this.types.get(name)
     if (type === undefined) {
       if (this.parent) {

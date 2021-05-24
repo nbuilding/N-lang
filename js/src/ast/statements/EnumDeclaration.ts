@@ -1,5 +1,7 @@
-import { EnumTypeSpec } from '../../type-checker/types/type-specs'
-import { TypeVar } from '../../type-checker/types/types'
+import {
+  EnumSpec,
+  TypeSpec as NamedTypeSpec,
+} from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { TypeSpec } from '../declaration/TypeSpec'
@@ -67,29 +69,26 @@ export class EnumDeclaration extends Base implements Statement {
     const typeVars = []
     if (this.typeSpec.typeVars) {
       for (const { value: name } of this.typeSpec.typeVars.vars) {
-        const typeVar = new TypeVar(name)
+        const typeVar = new NamedTypeSpec(name)
         typeVars.push(typeVar)
         // TODO: duplicate type var names
-
-        // TODO: type variables are not type specs
-        // scope.types.set(name, typeVar)
+        scope.types.set(name, typeVar)
       }
     }
-    const typeSpec = new EnumTypeSpec(
+    const typeSpec = new EnumSpec(
       this.typeSpec.name.value,
-      typeVars,
-      // TODO: duplicate types
+      // TODO: duplicate variants
       new Map(
         this.variants.map(variant => [
           variant.variant.value,
           variant.types.map(type => context.scope.getTypeFrom(type).type),
         ]),
       ),
+      typeVars,
     )
     if (context.scope.types.has(this.typeSpec.name.value)) {
       // TODO: error about duplicate type
-      // TODO: null not accessible in scope.types
-      // context.scope.types.set(this.typeSpec.name.value, null)
+      context.scope.types.set(this.typeSpec.name.value, null)
     } else {
       context.scope.types.set(this.typeSpec.name.value, typeSpec)
       context.scope.unusedTypes.add(this.typeSpec.name.value)
