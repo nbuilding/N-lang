@@ -54,11 +54,6 @@ type FuncTypeVar = {
 }
 
 export class FuncTypeVarSpec extends TypeSpec {
-  // QUESTION: Is .function used anywhere? We might as well remove this to
-  // eliminate the need substitutions every time we make a new function; the
-  // function type variable spec is already listed in the function type
-  function!: NFunction
-
   constructor (name: string) {
     super(name, 0)
   }
@@ -143,93 +138,48 @@ function * iterateType (type: NType): Generator<NType> {
  * Calls `mapFn` on every contained type. If `mapFn` returns a type, then the
  * function will return the type. Otherwise, it'll map over all the contained
  * types in the type.
- *
- * `mapType` will avoid creating new instances if no changes were made from
- * mapping. If there were no changes, it returns null.
- *
- * Functions will create new type variables and substitute them if their
- * argument/return type changed.
  */
 function mapType (
   type: NType,
   mapFn: (type: NType) => NType | undefined,
-): NType | null {
+): NType {
   const result = mapFn(type)
   if (result) {
     return result
   }
   switch (type.type) {
     case 'named': {
-      const typeVars = type.typeVars.map(type => mapType(type, mapFn))
-      if (typeVars.every(item => item === null)) {
-        return null
-      }
       return {
         type: 'named',
         typeSpec: type.typeSpec,
-        typeVars: typeVars.map((typeVar, i) => typeVar || type.typeVars[i]),
+        typeVars: type.typeVars.map(type => mapType(type, mapFn)),
       }
     }
     case 'tuple': {
-      const types = type.types.map(type => mapType(type, mapFn))
-      if (types.every(item => item === null)) {
-        return null
-      }
       return {
         type: 'tuple',
-        types: types.map((item, i) => item || type.types[i]),
+        types: type.types.map(type => mapType(type, mapFn)),
       }
     }
     case 'record': {
-      const types: [string, NType, NType | null][] = Array.from(
-        type.types,
-        ([key, type]) => [key, type, mapType(type, mapFn)],
-      )
-      if (types.every(tuple => tuple[2] === null)) {
-        return null
-      }
       return {
         type: 'record',
         types: new Map(
-          types.map(([key, type, newType]) => [key, newType || type]),
+          Array.from(type.types, ([key, type]) => [key, mapType(type, mapFn)]),
         ),
       }
     }
     case 'function': {
-      const argumentType = mapType(type.argument, mapFn)
-      const returnType = mapType(type.return, mapFn)
-      if (argumentType === null && returnType === null) {
-        return null
-      }
       const newType: NFunction = {
         type: 'function',
-        argument: argumentType || type.argument,
-        return: returnType || type.return,
-        typeVars: [],
-      }
-      if (type.typeVars.length > 0) {
-        const substitutions = new Map()
-        for (const typeVar of type.typeVars) {
-          const newTypeVar = typeVar.clone()
-          newTypeVar.function = newType
-          substitutions.set(typeVar, newTypeVar)
-        }
-        const tracker: Set<FuncTypeVarSpec> = new Set()
-        // Since `substitute` uses `mapType`, hopefully this doesn't cause too
-        // much recursion, especially in the case of nested functions
-        newType.argument = substitute(newType.argument, substitutions, tracker)
-        newType.return = substitute(newType.return, substitutions, tracker)
-        for (const typeVar of substitutions.keys()) {
-          if (!tracker.has(typeVar)) {
-            substitutions.delete(typeVar)
-          }
-        }
-        newType.typeVars = [...substitutions.values()]
+        argument: mapType(type.argument, mapFn),
+        return: mapType(type.return, mapFn),
+        typeVars: type.typeVars,
       }
       return newType
     }
     default: {
-      return null
+      return type
     }
   }
 }

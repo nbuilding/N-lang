@@ -335,7 +335,6 @@ export function compareEqual (
               break
             }
           } else {
-            typeSpec.function = funcType
             funcType.typeVars.push(typeSpec)
             // The function type variable doesn't map to anything, so it's the
             // map target
@@ -400,5 +399,39 @@ export function compareEqual (
         issue,
       },
     }
+  }
+}
+
+/**
+ * Intended for list literals and match expressions. Will return the index (>=
+ * 1) of the item that does not match. Accumulates the resolved type to resolve
+ * unknowns.
+ */
+export function compareEqualTypes (
+  types: NType[],
+):
+  | { errorIndex: null; result: NType }
+  | { errorIndex: number; result: ComparisonResult } {
+  let accumulated = types[0]
+  for (let i = 1; i < types.length; i++) {
+    const { type, result } = compareEqual(
+      {
+        substitutions: new Map(),
+      },
+      accumulated,
+      types[i],
+    )
+    if (result.issue) {
+      return {
+        errorIndex: i,
+        result,
+      }
+    } else {
+      accumulated = type
+    }
+  }
+  return {
+    errorIndex: null,
+    result: accumulated,
   }
 }
