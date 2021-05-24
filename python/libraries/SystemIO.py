@@ -13,12 +13,12 @@ async def inp(question):
 def run(command):
     can_run = os.environ.get("COMMAND_ALLOW") == "true"
     if not can_run:
-        return 1
+        return False
 
-    return os.system(COMMAND_ALLOW)
+    return os.system(COMMAND_ALLOW) == 0
 
 def _values():
     return {
         "inp": ("str", n_cmd_type.with_typevars(["str"])),
-        "run": ("str", "int"),
+        "run": ("str", n_cmd_type.with_typevars(["bool"])),
     }
