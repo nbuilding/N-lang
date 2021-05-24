@@ -15,7 +15,7 @@ def run(command):
     if not can_run:
         return False
 
-    return os.system(COMMAND_ALLOW) == 0
+    return os.system(command) == 0
 
 def _values():
     return {
