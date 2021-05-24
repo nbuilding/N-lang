@@ -1,8 +1,12 @@
-import { ScopeBaseContext } from '../../type-checker/Scope'
+import { Scope, ScopeBaseContext } from '../../type-checker/Scope'
 import { Base } from '../base'
 import { Return } from '../expressions/Return'
 
-export interface CheckStatementContext extends ScopeBaseContext {}
+export class CheckStatementContext extends ScopeBaseContext {
+  constructor (scope: Scope, base: Statement) {
+    super(scope, base)
+  }
+}
 
 export interface CheckStatementResult {
   exitPoint?: Return

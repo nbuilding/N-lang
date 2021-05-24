@@ -22,7 +22,7 @@ export class TuplePattern extends Base implements Pattern {
   }
 
   checkPattern (context: CheckPatternContext): CheckPatternResult {
-    let types: (NType | null)[] | null = null
+    let types: NType[] | null = null
     if (context.type) {
       if (context.type instanceof Tuple) {
         if (context.type.types.length !== this.patterns.length) {

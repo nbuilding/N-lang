@@ -42,7 +42,7 @@ export class FuncCall extends Base implements Expression, Statement {
   typeCheck (context: TypeCheckContext): TypeCheckResult {
     const funcExpr = context.scope.typeCheck(this.func)
     let exitPoint = funcExpr.exitPoint
-    const paramTypes: [NType | null, Expression][] = this.params.map(param => {
+    const paramTypes: [NType, Expression][] = this.params.map(param => {
       const paramExpr = context.scope.typeCheck(param)
       if (paramExpr.exitPoint && !exitPoint) {
         exitPoint = paramExpr.exitPoint
@@ -51,7 +51,7 @@ export class FuncCall extends Base implements Expression, Statement {
     })
     if (funcExpr.type) {
       const resolvedFuncType = resolve(funcExpr.type)
-      let returnType: NType | null = resolvedFuncType
+      let returnType: NType = resolvedFuncType
       if (resolvedFuncType instanceof FuncType) {
         let argPos = 1
         for (const [paramType, param] of paramTypes) {

@@ -14,6 +14,7 @@ import {
   NType,
   NTypeKnown,
   substitute,
+  unknown,
 } from '../types'
 
 interface CompareEqualContext {
@@ -54,7 +55,7 @@ export function compareEqual (
     })
     return {
       type: issue
-        ? { type: 'unknown' }
+        ? unknown
         : {
             type: 'named',
             typeSpec: typeA.typeSpec,
@@ -126,7 +127,7 @@ export function compareEqual (
       const types = [...intersection(typeA.types, typeB.types)]
       if (types.length === 0) {
         return {
-          type: { type: 'unknown' },
+          type: unknown,
           result: {
             ...typeToResultType(typeB),
             issue: {
@@ -137,7 +138,7 @@ export function compareEqual (
         }
       } else if (types.length === 1) {
         return {
-          type: { type: 'named', typeSpec: types[0], typeVars: [] },
+          type: types[0].instance([]),
           result: typeToResultType(typeB),
         }
       } else {
@@ -153,7 +154,7 @@ export function compareEqual (
       }
     } else {
       return {
-        type: { type: 'unknown' },
+        type: unknown,
         result: {
           ...typeToResultType(typeB),
           issue: {
@@ -171,7 +172,7 @@ export function compareEqual (
       }
     } else {
       return {
-        type: { type: 'unknown' },
+        type: unknown,
         result: {
           ...typeToResultType(typeB),
           issue: {
@@ -184,7 +185,7 @@ export function compareEqual (
   } else if (typeA.type === 'tuple') {
     if (typeB.type !== 'tuple') {
       return {
-        type: { type: 'unknown' },
+        type: unknown,
         result: {
           ...typeToResultType(typeB),
           issue: {
@@ -216,14 +217,14 @@ export function compareEqual (
         }
       } else {
         results.push({
-          type: { type: 'unknown' },
+          type: unknown,
           result: typeToResultType(type),
         })
       }
     })
     return {
       type: issue
-        ? { type: 'unknown' }
+        ? unknown
         : {
             type: 'tuple',
             types: results.map(result => result.type),
@@ -237,7 +238,7 @@ export function compareEqual (
   } else if (typeA.type === 'record') {
     if (typeB.type !== 'record') {
       return {
-        type: { type: 'unknown' },
+        type: unknown,
         result: {
           ...typeToResultType(typeB),
           issue: {
@@ -267,14 +268,14 @@ export function compareEqual (
         }
       } else {
         results[key] = {
-          type: { type: 'unknown' },
+          type: unknown,
           result: typeToResultType(type),
         }
       }
     }
     return {
       type: issue
-        ? { type: 'unknown' }
+        ? unknown
         : {
             type: 'record',
             types: new Map(
@@ -296,7 +297,7 @@ export function compareEqual (
   } else if (typeA.type === 'function') {
     if (typeB.type !== 'function') {
       return {
-        type: { type: 'unknown' },
+        type: unknown,
         result: {
           ...typeToResultType(typeB),
           issue: {
@@ -353,7 +354,7 @@ export function compareEqual (
       funcType.return = substitute(funcType.return, substitutions)
     }
     return {
-      type: hasIssue ? { type: 'unknown' } : funcType,
+      type: hasIssue ? unknown : funcType,
       result: {
         type: 'function',
         argument: argumentResult.result,
@@ -365,7 +366,7 @@ export function compareEqual (
   } else {
     if (typeB.type !== 'named') {
       return {
-        type: { type: 'unknown' },
+        type: unknown,
         result: {
           ...typeToResultType(typeB),
           issue: {
@@ -386,7 +387,7 @@ export function compareEqual (
     })
     return {
       type: issue
-        ? { type: 'unknown' }
+        ? unknown
         : {
             type: 'named',
             typeSpec: typeA.typeSpec,
@@ -415,9 +416,7 @@ export function compareEqualTypes (
   let accumulated = types[0]
   for (let i = 1; i < types.length; i++) {
     const { type, result } = compareEqual(
-      {
-        substitutions: new Map(),
-      },
+      { substitutions: new Map() },
       accumulated,
       types[i],
     )

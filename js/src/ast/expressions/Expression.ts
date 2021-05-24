@@ -1,12 +1,16 @@
-import { ScopeBaseContext } from '../../type-checker/Scope'
+import { Scope, ScopeBaseContext } from '../../type-checker/Scope'
 import { NType } from '../../type-checker/types/types'
 import { Base } from '../base'
 import { Return } from './Return'
 
-export interface TypeCheckContext extends ScopeBaseContext {}
+export class TypeCheckContext extends ScopeBaseContext {
+  constructor (scope: Scope, base: Expression) {
+    super(scope, base)
+  }
+}
 
 export interface TypeCheckResult {
-  type: NType | null
+  type: NType
   exitPoint?: Return
 }
 

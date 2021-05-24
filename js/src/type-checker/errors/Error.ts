@@ -1,6 +1,7 @@
 import { Base } from '../../ast/index'
 import { isObjectLike } from '../../utils/type-guards'
-import { ExpectEqualError, NType } from '../types/types'
+import { ComparisonResult } from '../types/comparisons'
+import { NType } from '../types/types'
 import { BlockDisplay, InlineDisplay } from './ErrorDisplayer'
 
 export enum ErrorType {
@@ -74,6 +75,13 @@ export enum ErrorType {
   CONDITION_NOT_BOOL,
 }
 
+export type TypeErrorType =
+  | ErrorType.LET_TYPE_MISMATCH
+  | ErrorType.VAR_TYPE_MISMATCH
+  | ErrorType.TYPE_ASSERTION_FAIL
+  | ErrorType.VALUE_ASSERTION_NOT_BOOL
+  | ErrorType.CONDITION_NOT_BOOL
+
 export type ErrorMessage =
   | {
       type: ErrorType.INTERNAL_ERROR
@@ -96,10 +104,8 @@ export type ErrorMessage =
       type: ErrorType.TYPE_ANNOTATION_NEEDED
     }
   | {
-      type: ErrorType.LET_TYPE_MISMATCH | ErrorType.VAR_TYPE_MISMATCH
-      annotation: NType
-      expression: NType
-      errors: ExpectEqualError[]
+      type: TypeErrorType
+      error: ComparisonResult
     }
   | {
       type: ErrorType.CALL_NON_FUNCTION
@@ -112,10 +118,7 @@ export type ErrorMessage =
     }
   | {
       type: ErrorType.ARG_TYPE_MISMATCH
-      expect: NType
-      given: NType
-      funcType: NType
-      errors: ExpectEqualError[]
+      error: ComparisonResult
       argPos: number
     }
   | {
@@ -165,19 +168,6 @@ export type ErrorMessage =
       recordType: NType
       keys: string[]
     }
-  | {
-      type: ErrorType.TYPE_ASSERTION_FAIL
-      errors: ExpectEqualError[]
-    }
-  | {
-      type: ErrorType.VALUE_ASSERTION_NOT_BOOL
-      errors: ExpectEqualError[]
-    }
-  | {
-      type: ErrorType.CONDITION_NOT_BOOL
-      expression: NType
-      errors: ExpectEqualError[]
-    }
 
 interface NError {
   message: ErrorMessage
@@ -199,9 +189,7 @@ export function displayErrorMessage (
       ]
     }
     case ErrorType.ARG_TYPE_MISMATCH: {
-      return display`The ${[err.argPos, 'th']} argument you give to a ${
-        err.funcType
-      } should be a ${err.expect}, but you gave a ${err.given}.`
+      return display`The ${[err.argPos, 'th']} argument you give to a TODO.`
     }
     case ErrorType.CALL_NON_FUNCTION: {
       return display`You call a ${err.funcType} like a function, but it's not a function.`
@@ -238,7 +226,7 @@ export function displayErrorMessage (
       return display`${err.enum} doesn't have a variant ${err.variant}, so your pattern will never match.`
     }
     case ErrorType.LET_TYPE_MISMATCH: {
-      return display`You assign what evaluates to a ${err.expression} to what should be a ${err.annotation}.`
+      return display`You assign what evaluates to a TODO.`
     }
     case ErrorType.LIST_DESTRUCTURE_DEFINITE: {
       return display`Here, you expect that the list should have ${[

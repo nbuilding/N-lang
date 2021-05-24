@@ -1,10 +1,21 @@
-import { ScopeBaseContext } from '../../type-checker/Scope'
+import { Scope, ScopeBaseContext } from '../../type-checker/Scope'
 import { NType } from '../../type-checker/types/types'
 import { Base } from '../base'
 
-export interface CheckPatternContext extends ScopeBaseContext {
-  type: NType | null
+export class CheckPatternContext extends ScopeBaseContext {
+  type: NType
   definite: boolean
+
+  constructor (
+    scope: Scope,
+    base: Pattern,
+    idealType: NType,
+    definite: boolean,
+  ) {
+    super(scope, base)
+    this.type = idealType
+    this.definite = definite
+  }
 }
 
 export interface CheckPatternResult {}

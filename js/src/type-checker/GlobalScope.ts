@@ -12,127 +12,101 @@ import {
   result,
   str,
 } from './types/builtins'
-import { Function as Func, Tuple } from './types/types'
+import { makeFunction } from './types/types'
 
 export class GlobalScope extends Scope {
   constructor (checker: TypeCheckerResult) {
     super(checker)
 
-    this.types.set('str', str)
-    this.types.set('int', int)
-    this.types.set('float', float)
-    this.types.set('char', char)
+    this.types.set('str', str.typeSpec)
+    this.types.set('int', int.typeSpec)
+    this.types.set('float', float.typeSpec)
+    this.types.set('char', char.typeSpec)
 
     this.types.set('list', list)
     this.types.set('map', map)
     this.types.set('cmd', cmd)
 
     this.types.set('bool', bool)
-    this.variables.set('true', bool.constructorType('true'))
-    this.variables.set('false', bool.constructorType('false'))
+    this.variables.set('true', bool.getConstructorType('true'))
+    this.variables.set('false', bool.getConstructorType('false'))
 
     this.types.set('maybe', maybe)
-    this.variables.set('yes', maybe.constructorType('yes'))
-    this.variables.set('none', maybe.constructorType('none'))
+    this.variables.set('yes', maybe.getConstructorType('yes'))
+    this.variables.set('none', maybe.getConstructorType('none'))
 
     this.types.set('result', result)
-    this.variables.set('ok', result.constructorType('ok'))
-    this.variables.set('err', result.constructorType('err'))
+    this.variables.set('ok', result.getConstructorType('ok'))
+    this.variables.set('err', result.getConstructorType('err'))
 
     this.variables.set(
       'intInBase10',
-      Func.make(() => [int.instance(), str.instance()]),
+      makeFunction(() => [int, str]),
     )
     this.variables.set(
       'round',
-      Func.make(() => [float.instance(), int.instance()]),
+      makeFunction(() => [float, int]),
     )
     this.variables.set(
       'floor',
-      Func.make(() => [float.instance(), int.instance()]),
+      makeFunction(() => [float, int]),
     )
     this.variables.set(
       'ceil',
-      Func.make(() => [float.instance(), int.instance()]),
+      makeFunction(() => [float, int]),
     )
     this.variables.set(
       'charCode',
-      Func.make(() => [char.instance(), int.instance()]),
+      makeFunction(() => [char, int]),
     )
     this.variables.set(
       'intCode',
-      Func.make(() => [int.instance(), char.instance()]),
+      makeFunction(() => [int, char]),
     )
     this.variables.set(
       'charAt',
-      Func.make(() => [
-        int.instance(),
-        Func.make(() => [str.instance(), maybe.instance([char.instance()])]),
-      ]),
+      makeFunction(() => [int, str, maybe.instance([char])]),
     )
     this.variables.set(
       'substring',
-      Func.make(() => [
-        int.instance(),
-        Func.make(() => [
-          int.instance(),
-          Func.make(() => [str.instance(), str.instance()]),
-        ]),
-      ]),
+      makeFunction(() => [int, int, str, str]),
     )
     this.variables.set(
       'len',
-      Func.make(t => [t, int.instance()], 't'),
+      makeFunction(t => [t, int], 't'),
     )
     this.variables.set(
       'split',
-      Func.make(() => [
-        char.instance(),
-        Func.make(() => [str.instance(), list.instance([char.instance()])]),
-      ]),
+      makeFunction(() => [char, str, list.instance([char])]),
     )
     this.variables.set(
       'strip',
-      Func.make(() => [str.instance(), str.instance()]),
+      makeFunction(() => [str, str]),
     )
     this.variables.set(
       'range',
-      Func.make(() => [
-        int.instance(),
-        Func.make(() => [
-          int.instance(),
-          Func.make(() => [int.instance(), list.instance([int.instance()])]),
-        ]),
-      ]),
+      makeFunction(() => [int, int, int, list.instance([int])]),
     )
-    // TODO: type?
+    // TODO: The type "function"?
     this.variables.set(
       'print',
-      Func.make(t => [t, t], 't'),
+      makeFunction(t => [t, t], 't'),
     )
     this.variables.set(
       'itemAt',
-      Func.make(
-        t => [
-          int.instance(),
-          Func.make(() => [list.instance([t]), maybe.instance([t])]),
-        ],
-        't',
-      ),
+      makeFunction(t => [int, list.instance([t]), maybe.instance([t])], 't'),
     )
     this.variables.set(
       'append',
-      Func.make(
-        t => [t, Func.make(() => [list.instance([t]), list.instance([t])])],
-        't',
-      ),
+      makeFunction(t => [t, list.instance([t]), list.instance([t])]),
     )
     this.variables.set(
       'filterMap',
-      Func.make(
+      makeFunction(
         (a, b) => [
-          Func.make(() => [a, b]),
-          Func.make(() => [list.instance([a]), list.instance([b])]),
+          makeFunction(() => [a, maybe.instance([b])]),
+          list.instance([a]),
+          list.instance([b]),
         ],
         'a',
         'b',
@@ -140,42 +114,46 @@ export class GlobalScope extends Scope {
     )
     this.variables.set(
       'default',
-      Func.make(t => [t, Func.make(() => [maybe.instance([t]), t])], 't'),
+      makeFunction(t => [t, maybe.instance([t]), t], 't'),
     )
     this.variables.set(
       'then',
-      Func.make(
+      makeFunction(
         (a, b) => [
-          Func.make(() => [a, cmd.instance([b])]),
-          Func.make(() => [cmd.instance([a]), cmd.instance([b])]),
+          makeFunction(() => [a, cmd.instance([b])]),
+          cmd.instance([a]),
+          cmd.instance([b]),
         ],
-        'a',
-        'b',
+        'k',
+        'v',
       ),
     )
     this.variables.set(
       'mapFrom',
-      Func.make(
-        (k, v) => [list.instance([new Tuple([k, v])]), map.instance([k, v])],
+      makeFunction(
+        (k, v) => [
+          list.instance([{ type: 'tuple', types: [k, v] }]),
+          map.instance([k, v]),
+        ],
         'k',
         'v',
       ),
     )
     this.variables.set(
       'getValue',
-      Func.make(
-        (k, v) => [
-          k,
-          Func.make(() => [map.instance([k, v]), maybe.instance([v])]),
-        ],
+      makeFunction(
+        (k, v) => [k, map.instance([k, v]), maybe.instance([v])],
         'k',
         'v',
       ),
     )
     this.variables.set(
       'entries',
-      Func.make(
-        (k, v) => [map.instance([k, v]), list.instance([new Tuple([k, v])])],
+      makeFunction(
+        (k, v) => [
+          map.instance([k, v]),
+          list.instance([{ type: 'tuple', types: [k, v] }]),
+        ],
         'k',
         'v',
       ),

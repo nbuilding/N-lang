@@ -1,6 +1,6 @@
 import { ErrorType } from '../../type-checker/errors/Error'
 import { list } from '../../type-checker/types/builtins'
-import { NType, Type } from '../../type-checker/types/types'
+import { NType, unknown } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import {
@@ -25,17 +25,15 @@ export class ListPattern extends Base implements Pattern {
   }
 
   checkPattern (context: CheckPatternContext): CheckPatternResult {
-    let innerType: NType | null = null
-    if (context.type) {
-      if (context.type instanceof Type && context.type.spec === list) {
-        innerType = context.type.typeVars[0]
-      } else {
-        context.err({
-          type: ErrorType.DESTRUCTURE_TYPE_MISMATCH,
-          assignedTo: context.type,
-          destructure: 'list',
-        })
-      }
+    let innerType: NType = unknown
+    if (context.type.type === 'named' && context.type.typeSpec === list) {
+      innerType = context.type.typeVars[0]
+    } else if (context.type.type !== 'unknown') {
+      context.err({
+        type: ErrorType.DESTRUCTURE_TYPE_MISMATCH,
+        assignedTo: context.type,
+        destructure: 'list',
+      })
     }
     if (context.definite) {
       context.err({

@@ -1,14 +1,14 @@
-import { EnumTypeSpec, TypeSpec } from './type-specs'
-import { makeVar } from './types'
+import { EnumTypeSpec, TypeSpec } from './types'
 
-export const str = new TypeSpec('str')
-export const int = new TypeSpec('int')
-export const float = new TypeSpec('float')
-export const char = new TypeSpec('char')
+export const str = new TypeSpec('str').instance([])
+export const int = new TypeSpec('int').instance([])
+export const float = new TypeSpec('float').instance([])
+export const char = new TypeSpec('char').instance([])
+export const unit = new TypeSpec('unit').instance([])
 
-export const list = new TypeSpec('list', ['i'].map(makeVar))
-export const map = new TypeSpec('map', ['k', 'v'].map(makeVar))
-export const cmd = new TypeSpec('cmd', ['r'].map(makeVar))
+export const list = new TypeSpec('list', 1)
+export const map = new TypeSpec('map', 2)
+export const cmd = new TypeSpec('cmd', 1)
 
 export const bool = EnumTypeSpec.make('bool', () => [
   ['true', []],

@@ -2,7 +2,7 @@ export class TypeSpec {
   name: string
   typeVarCount: number
 
-  constructor (name: string, typeVarCount: number) {
+  constructor (name: string, typeVarCount: number = 0) {
     this.name = name
     this.typeVarCount = typeVarCount
   }
@@ -13,6 +13,58 @@ export class TypeSpec {
       typeSpec: this,
       typeVars,
     }
+  }
+}
+
+export class EnumTypeSpec extends TypeSpec {
+  variants: Map<string, NType[]>
+  typeVars: TypeSpec[]
+
+  constructor (
+    name: string,
+    variants: Map<string, NType[]>,
+    typeVars: TypeSpec[],
+  ) {
+    super(name, typeVars.length)
+
+    this.variants = variants
+    this.typeVars = typeVars
+  }
+
+  getConstructorType (variantName: string): NType {
+    const variant = this.variants.get(variantName)
+    if (variant) {
+      const funcTypeVars = []
+      const substitutions: Map<TypeSpec, NType> = new Map()
+      for (const typeVar of this.typeVars) {
+        const funcTypeVar = new FuncTypeVarSpec(typeVar.name)
+        funcTypeVars.push(funcTypeVar)
+        substitutions.set(typeVar, funcTypeVar.instance([]))
+      }
+      return functionFromTypes(
+        variant.map(field => substitute(field, substitutions)),
+        funcTypeVars,
+      )
+    } else {
+      throw new ReferenceError(`Variant ${variantName} doesn't exist.`)
+    }
+  }
+
+  static make (
+    name: string,
+    variantMaker: (...typeVars: NamedType[]) => [string, NType[]][],
+    ...typeVarNames: string[]
+  ) {
+    const typeVars = typeVarNames.map(name => new TypeSpec(name))
+    return new EnumTypeSpec(
+      name,
+      new Map(
+        variantMaker(
+          ...typeVars.map((typeSpec): NamedType => typeSpec.instance([])),
+        ),
+      ),
+      typeVars,
+    )
   }
 }
 
@@ -89,6 +141,33 @@ export interface NFunction {
   return: NType
   typeVars: FuncTypeVarSpec[]
 }
+export function functionFromTypes (
+  types: NType[],
+  typeVars: FuncTypeVarSpec[] = [],
+): NFunction {
+  if (types.length > 2) {
+    return {
+      type: 'function',
+      argument: types[0],
+      return: functionFromTypes(types.slice(1)),
+      typeVars,
+    }
+  } else if (types.length === 2) {
+    return { type: 'function', argument: types[0], return: types[1], typeVars }
+  } else {
+    throw new RangeError('Can only make a function from 2+ types.')
+  }
+}
+export function makeFunction (
+  typesMaker: (...typeVars: NamedType[]) => NType[],
+  ...typeVarNames: string[]
+) {
+  const typeVars = typeVarNames.map(name => new FuncTypeVarSpec(name))
+  return functionFromTypes(
+    typesMaker(...typeVars.map((typeSpec): NamedType => typeSpec.instance([]))),
+    typeVars,
+  )
+}
 
 export interface NUnion {
   type: 'union'
@@ -98,6 +177,7 @@ export interface NUnion {
 export interface Unknown {
   type: 'unknown'
 }
+export const unknown: Unknown = { type: 'unknown' }
 
 export type NTypeKnown = NamedType | NTuple | NRecord | NFunction | NUnion
 export type NType = NTypeKnown | Unknown

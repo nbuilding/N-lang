@@ -1,25 +1,68 @@
 import { Base, Declaration } from '../ast/index'
-import { Expression, TypeCheckResult } from '../ast/expressions/Expression'
-import { CheckStatementResult, Statement } from '../ast/statements/Statement'
-import { ErrorMessage, ErrorType } from './errors/Error'
+import {
+  Expression,
+  TypeCheckContext,
+  TypeCheckResult,
+} from '../ast/expressions/Expression'
+import {
+  CheckStatementContext,
+  CheckStatementResult,
+  Statement,
+} from '../ast/statements/Statement'
+import { ErrorMessage, ErrorType, TypeErrorType } from './errors/Error'
 import { WarningMessage } from './errors/Warning'
 import { TypeCheckerResult } from './TypeChecker'
-import { TypeSpec } from './types/type-specs'
-import { NType, resolve } from './types/types'
-import { CheckPatternResult, Pattern } from '../ast/patterns/Pattern'
-import { GetTypeResult, Type } from '../ast/types/Type'
+import { NType, TypeSpec, unknown } from './types/types'
+import {
+  CheckPatternContext,
+  CheckPatternResult,
+  Pattern,
+} from '../ast/patterns/Pattern'
+import { GetTypeContext, GetTypeResult, Type } from '../ast/types/Type'
 import { displayType } from '../utils/display-type'
+import { attemptAssign } from './types/comparisons/compare-assignable'
 
-export interface ScopeBaseContext {
+export class ScopeBaseContext {
   scope: Scope
-  err: (error: ErrorMessage, base?: Base) => void
-  warn: (warning: WarningMessage, base?: Base) => void
+  private _defaultBase: Base
+
+  constructor (scope: Scope, base: Base) {
+    this.scope = scope
+    this._defaultBase = base
+  }
+
+  err (error: ErrorMessage, base: Base = this._defaultBase) {
+    this.scope.checker.errors.push({ message: error, base })
+  }
+
+  warn (warning: WarningMessage, base: Base = this._defaultBase) {
+    this.scope.checker.warnings.push({ message: warning, base })
+  }
+
+  /**
+   * IMPURE! Creates a type error if an assignment cannot be performed between
+   * the annotation and value types. Returns whether there was an error.
+   */
+  isTypeError (
+    errorType: TypeErrorType,
+    annotationType: NType,
+    valueType: NType,
+    base?: Base,
+  ): boolean {
+    const error = attemptAssign(annotationType, valueType)
+    if (error) {
+      this.err({ type: errorType, error }, base)
+      return true
+    } else {
+      return false
+    }
+  }
 }
 
 export class Scope {
   checker: TypeCheckerResult
   parent?: Scope
-  variables: Map<string, NType | null> = new Map()
+  variables: Map<string, NType> = new Map()
   types: Map<string, TypeSpec> = new Map()
   unusedVariables: Set<string> = new Set()
   unusedTypes: Set<string> = new Set()
@@ -33,7 +76,7 @@ export class Scope {
     return new Scope(this.checker, this)
   }
 
-  getVariable (name: string, markAsUsed: boolean): NType | null | undefined {
+  getVariable (name: string, markAsUsed: boolean): NType | undefined {
     const type = this.variables.get(name)
     if (type === undefined) {
       if (this.parent) {
@@ -61,23 +104,9 @@ export class Scope {
     }
   }
 
-  private _contextFor (defaultBase: Base): ScopeBaseContext {
-    return {
-      scope: this,
-      err: (error, base = defaultBase) => {
-        this.checker.errors.push({ message: error, base })
-      },
-      warn: (warning, base = defaultBase) => {
-        this.checker.warnings.push({ message: warning, base })
-      },
-    }
-  }
-
   getTypeFrom (base: Type): GetTypeResult {
     try {
-      return base.getType({
-        ...this._contextFor(base),
-      })
+      return base.getType(new GetTypeContext(this, base))
     } catch (err) {
       this.checker.errors.push({
         message: {
@@ -92,22 +121,20 @@ export class Scope {
         base,
       })
       return {
-        type: null,
+        type: unknown,
       }
     }
   }
 
   checkPattern (
     base: Pattern,
-    idealType: NType | null,
+    idealType: NType,
     definite: boolean,
   ): CheckPatternResult {
     try {
-      return base.checkPattern({
-        ...this._contextFor(base),
-        type: idealType && resolve(idealType),
-        definite,
-      })
+      return base.checkPattern(
+        new CheckPatternContext(this, base, idealType, definite),
+      )
     } catch (err) {
       this.checker.errors.push({
         message: {
@@ -127,9 +154,7 @@ export class Scope {
 
   checkStatement (base: Statement): CheckStatementResult {
     try {
-      return base.checkStatement({
-        ...this._contextFor(base),
-      })
+      return base.checkStatement(new CheckStatementContext(this, base))
     } catch (err) {
       this.checker.errors.push({
         message: {
@@ -149,11 +174,15 @@ export class Scope {
 
   checkDeclaration (
     base: Declaration,
-    valueType?: NType | null,
+    valueType?: NType,
     certain = true,
   ): void {
     try {
-      base.checkDeclaration(this._contextFor(base), valueType, certain)
+      base.checkDeclaration(
+        new ScopeBaseContext(this, base),
+        valueType,
+        certain,
+      )
     } catch (err) {
       this.checker.errors.push({
         message: {
@@ -172,9 +201,7 @@ export class Scope {
 
   typeCheck (base: Expression): TypeCheckResult {
     try {
-      const result = base.typeCheck({
-        ...this._contextFor(base),
-      })
+      const result = base.typeCheck(new TypeCheckContext(this, base))
       if (result.type) {
         this.checker.types.set(base, result.type)
       }
@@ -193,7 +220,7 @@ export class Scope {
         base,
       })
       return {
-        type: null,
+        type: unknown,
       }
     }
   }

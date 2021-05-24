@@ -14,6 +14,7 @@ import {
   NType,
   NTypeKnown,
   substitute,
+  unknown,
 } from '../types'
 
 interface CompareAssignableContext {
@@ -275,6 +276,18 @@ export function compareAssignable (
   }
 }
 
+export function attemptAssign (
+  annotation: NType,
+  value: NType,
+): ComparisonResult | null {
+  const result = compareAssignable(
+    { substitutions: new Map() },
+    annotation,
+    value,
+  )
+  return result.issue ? result : null
+}
+
 export function callFunction (
   func: NFunction,
   value: NType,
@@ -306,7 +319,7 @@ export function callFunction (
           })
           addedTypeVars.push(newTypeVar)
         } else {
-          substitutions.set(typeVar, { type: 'unknown' })
+          substitutions.set(typeVar, unknown)
         }
       }
     }
@@ -332,7 +345,7 @@ export function tryFunctions (
   operands: NType[],
 ): NType | null {
   if (operands.some(type => type.type === 'unknown')) {
-    return { type: 'unknown' }
+    return unknown
   }
   const lastOperand = operands[operands.length - 1]
   functions: for (let func of functions) {
