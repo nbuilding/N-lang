@@ -1,4 +1,5 @@
-import { Scope, ScopeBaseContext } from '../../type-checker/Scope'
+import { Scope } from '../../type-checker/Scope'
+import { ScopeBaseContext } from '../../type-checker/ScopeBaseContext'
 import { NType } from '../../type-checker/types/types'
 import { Base } from '../base'
 import { Return } from './Return'

@@ -1,3 +1,4 @@
+import { fromEntries } from '../../utils/from-entries'
 import { NType } from './types'
 
 export type ComparisonResultType =

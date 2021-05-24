@@ -1,4 +1,5 @@
-import { Scope, ScopeBaseContext } from '../../type-checker/Scope'
+import { Scope } from '../../type-checker/Scope'
+import { ScopeBaseContext } from '../../type-checker/ScopeBaseContext'
 import { Base } from '../base'
 import { Return } from '../expressions/Return'
 

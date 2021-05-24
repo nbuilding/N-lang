@@ -2,6 +2,7 @@ import {
   difference,
   intersection,
 } from '../../../../test/unit/utils/set-operations'
+import { fromEntries } from '../../../utils/from-entries'
 import {
   ComparisonIssue,
   ComparisonResult,

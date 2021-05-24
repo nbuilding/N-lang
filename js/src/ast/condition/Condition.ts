@@ -1,5 +1,6 @@
 import { ErrorType } from '../../type-checker/errors/Error'
-import { Scope, ScopeBaseContext } from '../../type-checker/Scope'
+import { Scope } from '../../type-checker/Scope'
+import { ScopeBaseContext } from '../../type-checker/ScopeBaseContext'
 import { bool } from '../../type-checker/types/builtins'
 import { Expression, isExpression } from '../expressions/Expression'
 import { Return } from '../expressions/Return'

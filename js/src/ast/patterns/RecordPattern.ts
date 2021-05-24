@@ -1,5 +1,5 @@
 import { ErrorType } from '../../type-checker/errors/Error'
-import { Record } from '../../type-checker/types/types'
+import { AliasSpec, unknown } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
@@ -48,46 +48,41 @@ export class RecordPattern extends Base implements Pattern {
   }
 
   checkPattern (context: CheckPatternContext): CheckPatternResult {
-    let keys: Set<string> = new Set()
-    let type: Record | null = null
-    if (context.type) {
-      if (context.type instanceof Record) {
-        type = context.type
-        keys = new Set(type.types.keys())
-      } else {
+    const resolved = AliasSpec.resolve(context.type)
+    if (resolved.type === 'record') {
+      const keys = new Set(resolved.types.keys())
+      for (const entry of this.entries) {
+        keys.delete(entry.key.value) // TODO: Duplicate keys
+        const value = resolved.types.get(entry.key.value)
+        if (!value) {
+          context.err(
+            {
+              type: ErrorType.RECORD_DESTRUCTURE_NO_KEY,
+              recordType: resolved,
+              key: entry.key.value,
+            },
+            entry.key,
+          )
+        }
+        context.checkPattern(entry.value, value || unknown)
+      }
+      if (keys.size > 0) {
+        context.err({
+          type: ErrorType.RECORD_DESTRUCTURE_INCOMPLETE,
+          recordType: resolved,
+          keys: Array.from(keys),
+        })
+      }
+    } else {
+      if (resolved.type !== 'unknown') {
         context.err({
           type: ErrorType.DESTRUCTURE_TYPE_MISMATCH,
           assignedTo: context.type,
           destructure: 'record',
         })
       }
-    }
-    for (const entry of this.entries) {
-      keys.delete(entry.key.value)
-      if (type) {
-        const value = type.types.get(entry.key.value)
-        if (value === undefined) {
-          context.err(
-            {
-              type: ErrorType.RECORD_DESTRUCTURE_NO_KEY,
-              recordType: type,
-              key: entry.key.value,
-            },
-            entry.key,
-          )
-        }
-        context.scope.checkPattern(entry.value, value || null, context.definite)
-      } else {
-        context.scope.checkPattern(entry.value, null, context.definite)
-      }
-    }
-    if (type) {
-      if (keys.size > 0) {
-        context.err({
-          type: ErrorType.RECORD_DESTRUCTURE_INCOMPLETE,
-          recordType: type,
-          keys: Array.from(keys),
-        })
+      for (const entry of this.entries) {
+        context.checkPattern(entry.value, unknown)
       }
     }
     return {}

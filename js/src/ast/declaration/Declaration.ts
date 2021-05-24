@@ -1,10 +1,15 @@
 import { ErrorType } from '../../type-checker/errors/Error'
-import { ScopeBaseContext } from '../../type-checker/Scope'
+import { ScopeBaseContext } from '../../type-checker/ScopeBaseContext'
 import { NType, unknown } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { isPattern, Pattern } from '../patterns/Pattern'
 import { isType, Type } from '../types/Type'
+
+export interface DeclarationOptions {
+  public?: boolean
+  certain?: boolean
+}
 
 export class Declaration extends Base {
   pattern: Pattern
@@ -41,7 +46,7 @@ export class Declaration extends Base {
   checkDeclaration (
     context: ScopeBaseContext,
     valueType?: NType,
-    certain = true,
+    { certain = true, public: isPublic = false }: DeclarationOptions = {},
   ): NType {
     const typeAnnotation: NType = this.type
       ? context.scope.getTypeFrom(this.type).type
@@ -54,9 +59,14 @@ export class Declaration extends Base {
         valueType,
       )
     ) {
-      context.scope.checkPattern(this.pattern, unknown, certain)
+      context.scope.checkPattern(this.pattern, unknown, certain, isPublic)
     } else {
-      context.scope.checkPattern(this.pattern, typeAnnotation, certain)
+      context.scope.checkPattern(
+        this.pattern,
+        typeAnnotation,
+        certain,
+        isPublic,
+      )
     }
     return typeAnnotation
   }

@@ -48,11 +48,7 @@ export class EnumPattern extends Base implements Pattern {
           })
         }
         this.patterns.forEach((pattern, i) => {
-          context.scope.checkPattern(
-            pattern,
-            variant[i] || unknown,
-            context.definite,
-          )
+          context.checkPattern(pattern, variant[i] || unknown)
         })
         return {}
       } else {
@@ -73,7 +69,7 @@ export class EnumPattern extends Base implements Pattern {
       })
     }
     for (const pattern of this.patterns) {
-      context.scope.checkPattern(pattern, unknown, context.definite)
+      context.checkPattern(pattern, unknown)
     }
     return {}
   }

@@ -43,7 +43,7 @@ export class Function extends Base implements Expression {
       paramTypes.push(typeVarScope.checkDeclaration(param))
     }
     const returnType = typeVarScope.getTypeFrom(this.returnType).type
-    const scope = typeVarScope.inner(returnType)
+    const scope = typeVarScope.inner({ returnType })
     // TODO: May want to delay type checking body? (if param length > 0)
     scope.checkStatement(this.body)
     scope.end()

@@ -34,11 +34,7 @@ export class TuplePattern extends Base implements Pattern {
       }
       const tupleTypes = resolved.types
       this.patterns.forEach((pattern, i) => {
-        context.scope.checkPattern(
-          pattern,
-          tupleTypes[i] || unknown,
-          context.definite,
-        )
+        context.checkPattern(pattern, tupleTypes[i] || unknown)
       })
     } else {
       if (resolved.type !== 'unknown') {
@@ -49,7 +45,7 @@ export class TuplePattern extends Base implements Pattern {
         })
       }
       for (const pattern of this.patterns) {
-        context.scope.checkPattern(pattern, unknown, context.definite)
+        context.checkPattern(pattern, unknown)
       }
     }
     return {}

@@ -11,14 +11,14 @@ npm install
 npm run build:ne
 
 # Run
-ts-node src/n-lang.ts ../examples/test.n
+ts-node --pretty src/n-lang.ts ../examples/test.n
 ```
 
 Alternatively, you can combine the last two steps if you're working on the
 grammar:
 
 ```sh
-npm run build:ne && ts-node src/n-lang.ts ../examples/test.n
+npm run build:ne && ts-node --pretty src/n-lang.ts ../examples/test.n
 ```
 
 ## Development

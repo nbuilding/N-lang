@@ -1,5 +1,4 @@
 import { ErrorType } from '../../type-checker/errors/Error'
-import { Module } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
@@ -25,6 +24,8 @@ export class ModuleId extends Base implements Type {
   }
 
   getType (context: GetTypeContext): GetTypeResult {
+    throw new Error('TODO')
+    /*
     const [module, ...modules] = this.modules
     if (module) {
       const firstModuleType = context.scope.getVariable(module.value, true)
@@ -79,6 +80,7 @@ export class ModuleId extends Base implements Type {
         return { type: null }
       }
     }
+    */
   }
 
   toString (): string {

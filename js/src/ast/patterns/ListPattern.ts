@@ -43,7 +43,7 @@ export class ListPattern extends Base implements Pattern {
       })
     }
     for (const pattern of this.patterns) {
-      context.scope.checkPattern(pattern, innerType, context.definite)
+      context.checkPattern(pattern, innerType)
     }
     return {}
   }

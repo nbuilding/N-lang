@@ -16,23 +16,7 @@ import { unknown } from '../../type-checker/types/types'
 import { unaryOperations } from '../../type-checker/types/operations'
 import { tryFunctions } from '../../type-checker/types/comparisons/compare-assignable'
 import { cmd } from '../../type-checker/types/builtins'
-
-export enum UnaryOperator {
-  NEGATE = 'negate',
-  NOT = 'not',
-  AWAIT = 'await',
-}
-
-export function unaryOperatorToString (self: UnaryOperator): string {
-  switch (self) {
-    case UnaryOperator.NEGATE:
-      return 'negate'
-    case UnaryOperator.NOT:
-      return 'not'
-    case UnaryOperator.AWAIT:
-      return 'await'
-  }
-}
+import { UnaryOperator } from '../../type-checker/types/operations/UnaryOperator'
 
 export class UnaryOperation<O extends UnaryOperator> extends Base
   implements Expression, Statement {

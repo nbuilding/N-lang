@@ -1,4 +1,4 @@
-import { ScopeBaseContext } from '../../type-checker/Scope'
+import { ScopeBaseContext } from '../../type-checker/ScopeBaseContext'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Declaration } from '../declaration/Declaration'
@@ -21,7 +21,7 @@ export class IfLet extends Base {
   checkIfLet (context: ScopeBaseContext): ConditionResult {
     const scope = context.scope.inner()
     const { type, exitPoint } = scope.typeCheck(this.expression)
-    scope.checkDeclaration(this.declaration, type, false)
+    scope.checkDeclaration(this.declaration, type, { certain: false })
     scope.end()
     return { scope, exitPoint }
   }

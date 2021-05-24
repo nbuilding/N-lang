@@ -1,6 +1,6 @@
-import { Operator } from '../../ast/expressions/Operation'
-import { UnaryOperator } from '../../ast/expressions/UnaryOperation'
 import { bool, char, cmd, float, int, list, number, str } from './builtins'
+import { Operator } from './operations/Operator'
+import { UnaryOperator } from './operations/UnaryOperator'
 import { makeFunction, NFunction } from './types'
 
 export const operations: Record<Operator, NFunction[]> = {

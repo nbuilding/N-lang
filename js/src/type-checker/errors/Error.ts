@@ -185,7 +185,10 @@ export function displayErrorMessage (
       return [
         'An internal error occurred.',
         err.error.stack || 'No stack trace available.',
-        'This is a bug with N. Please report this error on GitHub: <https://github.com/nbuilding/N-lang/issues/new>',
+        display`This is a bug with N. Please report this error on GitHub: ${[
+          'https://github.com/nbuilding/N-lang/issues/new',
+          'link',
+        ]}`,
       ]
     }
     case ErrorType.ARG_TYPE_MISMATCH: {

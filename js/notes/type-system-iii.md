@@ -35,10 +35,10 @@ other things to solve:
     in a similar situation, but because `someUndefinedType` should've created an
     error earlier on, the unsound problem won't happen.
 
-  - The solution might not be too revolutionary. The difference between `[t] str
-    -> t` and `str -> someUndefinedType` is that the latter case becomes `str ->
-    unknown`, while the former case still retains its non-unknown type (before
-    the comparison).
+  - The solution might not be too revolutionary. The difference between
+    `[t] str -> t` and `str -> someUndefinedType` is that the latter case
+    becomes `str -> unknown`, while the former case still retains its
+    non-unknown type (before the comparison).
 
     Thus, the error about there being too many arguments being given should be created before any assignment comparisons. If it encounters an unknown, there's no need to create an error, like before, because this unknown type (probably) is due to some other type error.
 

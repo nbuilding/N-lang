@@ -39,13 +39,44 @@ export class FuncCall extends Base implements Expression, Statement {
   typeCheck (context: TypeCheckContext): TypeCheckResult {
     const funcResult = context.scope.typeCheck(this.func)
     let exitPoint = funcResult.exitPoint
-    const paramTypes: [NType, Expression][] = this.params.map(param => {
+    let returnType: NType | null = funcResult.type
+    // Check for extra arguments at this step to be able to detect extra
+    // arguments for [t] str -> t
+    const paramTypes: [NType, Expression][] = this.params.map((param, i) => {
+      if (returnType) {
+        returnType = AliasSpec.resolve(returnType)
+        if (returnType.type === 'function') {
+          returnType = returnType.return
+        } else if (returnType.type !== 'unknown') {
+          if (i === 0) {
+            context.err(
+              {
+                type: ErrorType.CALL_NON_FUNCTION,
+                funcType,
+              },
+              this.func,
+            )
+          } else {
+            context.err(
+              {
+                type: ErrorType.TOO_MANY_ARGS,
+                funcType,
+                argPos: i + 1,
+              },
+              param,
+            )
+          }
+          returnType = null
+        }
+      }
+
       const paramExpr = context.scope.typeCheck(param)
       if (paramExpr.exitPoint && !exitPoint) {
         exitPoint = paramExpr.exitPoint
       }
       return [paramExpr.type, param]
     })
+
     let funcType = funcResult.type
     let argPos = 1
     for (const [param, base] of paramTypes) {
@@ -64,30 +95,6 @@ export class FuncCall extends Base implements Expression, Statement {
         }
         funcType = result.return
       } else {
-        // Note: This might allow something like
-        // testFunc : str -> t
-        // testFunc("wow", "anyways", "wee", "too many arguments")
-        // to go unnoticed
-        if (funcType.type !== 'unknown') {
-          if (argPos === 1) {
-            context.err(
-              {
-                type: ErrorType.CALL_NON_FUNCTION,
-                funcType,
-              },
-              this.func,
-            )
-          } else {
-            context.err(
-              {
-                type: ErrorType.TOO_MANY_ARGS,
-                funcType,
-                argPos,
-              },
-              base,
-            )
-          }
-        }
         return { type: unknown, exitPoint }
       }
       argPos++

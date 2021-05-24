@@ -48,7 +48,12 @@ export class AliasDeclaration extends Base implements Statement {
       context.scope.types.set(this.typeSpec.name.value, null)
     } else {
       context.scope.types.set(this.typeSpec.name.value, typeSpec)
-      context.scope.unusedTypes.add(this.typeSpec.name.value)
+      context.scope.unused.types.add(this.typeSpec.name.value)
+    }
+    if (this.public) {
+      context.ensureExportsAllowed(names =>
+        names.types.add(this.typeSpec.name.value),
+      )
     }
     scope.end()
     return {}

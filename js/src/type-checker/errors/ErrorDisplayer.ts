@@ -1,7 +1,7 @@
 import colours from 'colors/safe'
 import { Base } from '../../ast/index'
 import { escapeHtml } from '../../utils/escape-html'
-import { displayType, NType } from '../types/types'
+import { NType } from '../types/types'
 import { displayErrorMessage, Error } from './Error'
 
 /**
@@ -15,6 +15,7 @@ export type InlineDisplay =
   | [number, 'th']
   | ['or' | 'and', string[]]
   | [string, number, string]
+  | [string, 'link']
 
 export type BlockDisplay = string | Base
 
@@ -45,6 +46,9 @@ export interface HtmlClassOptions {
 
   /** CSS class for "Error"; default `n-error-error` */
   error: string
+
+  /** CSS class for URLs */
+  link: string
 }
 
 type ErrorDisplayColourOptions =
@@ -84,6 +88,15 @@ export class ErrorDisplayer {
           default:
             return ordinal + 'th'
         }
+      } else if (inline[1] === 'link') {
+        return `<${
+          this.options.type === 'console-color'
+            ? colours.underline(colours.blue(inline[0]))
+            : this.options.type === 'html'
+            ? `<span class="${this.options.classes?.link ??
+                'n-error-link'}">${escapeHtml(inline[0])}</span>`
+            : inline[0]
+        }>`
       } else if (inline.length === 3) {
         return inline[1] === 1 ? inline[0] : `${inline[1]} ${inline[2]}`
       } else {
@@ -108,7 +121,7 @@ export class ErrorDisplayer {
             'n-error-name'}">${escapeHtml(str)}</span>`
         : str
     } else {
-      const str = '`' + displayType(inline) + '`'
+      const str = '' // '`' + displayType(inline) + '`' // TODO
       return this.options.type === 'console-color'
         ? colours.yellow(str)
         : this.options.type === 'html'
