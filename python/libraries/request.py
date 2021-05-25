@@ -2,14 +2,22 @@ import requests
 import json
 import aiohttp
 import asyncio
-import http.server
-import socketserver
+import logging
 
-from native_types import n_cmd_type, NMap, n_map_type
+from flask import Flask, request as req
+from flask.logging import default_handler
+
+from native_types import n_cmd_type, NMap, n_map_type, n_list_type
 from libraries.json import json_value_type, python_to_json, string
 
-Handler = http.server.SimpleHTTPRequestHandle # Needed
-
+server_page_type = {
+    "method": "str",
+    "path": "str",
+    "handle": (json_value_type, n_cmd_type.with_typevars([{
+        "responseCode": "int",
+        "data": "str"
+    }]))
+}
 
 async def get(url, headers):
     async with aiohttp.ClientSession() as session:
@@ -72,10 +80,18 @@ async def put(url, content, headers):
         async with session.put(url, data=json.dumps(content), headers=headers) as r:
             return {"code": r.status, "response": r.reason, "text": await r.text()}
 
-async def createServer(port):
-    with socketserver.TCPServer(("", port), Handler) as httpserver:
-        print("test")
-        httpserver.serve_forever()
+async def createServer(port, pages, error_pages):
+    app = Flask(__name__)
+    for page in pages:
+        @app.route(page["path"], methods=[page["method"]])
+        async def run():
+            out = await page["handle"].run([python_to_json(dict(req.args.lists()))])
+            return out["data"], out["responseCode"]
+    for error_code in error_pages.keys():
+        @app.errorhandler(error_code)
+        async def run(error):
+            return error_pages[error_code], error_code
+    app.run(host="localhost", port=port)
 
 
 def _values():
@@ -131,5 +147,11 @@ def _values():
             n_cmd_type.with_typevars(
                 [{"code": "int", "response": "str", "text": "str"}]
             ),
+        ),
+        "createServer": (
+            "int",
+            n_list_type.with_typevars([server_page_type]),
+            n_map_type.with_typevars(["int", "str"]),
+            n_cmd_type.with_typevars(["unit"]),
         ),
     }

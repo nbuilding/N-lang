@@ -12,6 +12,33 @@ let thing = [] -> cmd[()] {
 	let _ = FileIO.appendBytes("test.txt", [26, 26])!
 	print(FileIO.readBytes("test.txt")!)
 	print(request.delete("https://github.com", mapFrom([("", "")]))!)
+	let _ = request.createServer(3000, 
+		[
+			{
+				method: "GET"
+				path: "/"
+				handle: [data:json.value] -> cmd[{ responseCode:int; data:str }] {
+					return {
+						responseCode: 200
+						data:"Hello, world"
+					}
+				}
+			},
+			{
+				method: "POST"
+				path: "/"
+				handle: [data:json.value] -> cmd[{ responseCode:int; data:str }] {
+					return {
+						responseCode: 200
+						data:"Hello, world"
+					}
+				}
+			}
+		],
+		mapFrom([
+			(404, "ooop!")
+		])
+	)!
 }
 
 let pub test = thing()
