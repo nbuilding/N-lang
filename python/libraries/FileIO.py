@@ -1,3 +1,5 @@
+from os import listdir
+from os.path import isfile, join
 from aiofile import async_open
 from native_types import n_cmd_type, n_maybe_type, yes, none, n_list_type
 
@@ -42,6 +44,9 @@ async def readBytes(path):
     except FileNotFoundError:
         return none
 
+async def getFiles(path):
+    return [(isfile(join(path, f)), f) for f in listdir(path)]
+
 def _values():
     return {
         # write: str -> str -> cmd[()]
@@ -59,4 +64,5 @@ def _values():
             "str",
             n_cmd_type.with_typevars([n_maybe_type.with_typevars([n_list_type.with_typevars(["int"])])]),
         ),
+        "getFiles": ("str", n_list_type.with_typevars([["bool", "str"]])),
     }

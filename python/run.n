@@ -8,38 +8,7 @@ print(2 << 3)
 print(toFloat(1))
 
 let thing = [] -> cmd[()] {
-	print(times.getTime()!)
-	let _ = FileIO.appendBytes("test.txt", [26, 26])!
-	print(FileIO.readBytes("test.txt")!)
-	print(request.delete("https://github.com", mapFrom([("", "")]))!)
-	let _ = request.createServer(3000, 
-		[
-			{
-				method: "GET"
-				path: "/"
-				handle: [data:json.value] -> cmd[{ responseCode:int; data:str }] {
-					return {
-						responseCode: 200
-						data:"Hello, world"
-					}
-				}
-			},
-			{
-				method: "GET"
-				path: "/test"
-				handle: [data:json.value] -> cmd[{ responseCode:int; data:str }] {
-					return {
-						responseCode: 403
-						data:"Hello, whee"
-					}
-				}
-			}
-		],
-		mapFrom([
-			(404, "ooop!"),
-			(403, "ooop!")
-		])
-	)!
+	print(FileIO.getFiles("./"))
 }
 
 let pub test = thing()
