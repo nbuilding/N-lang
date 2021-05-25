@@ -34,8 +34,12 @@ export class AliasDeclaration extends Base implements Statement {
       for (const { value: name } of this.typeSpec.typeVars.vars) {
         const typeVar = new NamedTypeSpec(name)
         typeVars.push(typeVar)
-        // TODO: duplicate type var names
-        scope.types.set(name, typeVar)
+        if (scope.types.has(name)) {
+          scope.types.set(name, null)
+          // TODO: Duplicate types
+        } else {
+          scope.types.set(name, typeVar)
+        }
       }
     }
     const typeSpec = new AliasSpec(

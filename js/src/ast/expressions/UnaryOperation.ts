@@ -17,6 +17,7 @@ import { unaryOperations } from '../../type-checker/types/operations'
 import { tryFunctions } from '../../type-checker/types/comparisons/compare-assignable'
 import { cmd } from '../../type-checker/types/builtins'
 import { UnaryOperator } from '../../type-checker/types/operations/UnaryOperator'
+import { ErrorType } from '../../type-checker/errors/Error'
 
 export class UnaryOperation<O extends UnaryOperator> extends Base
   implements Expression, Statement {
@@ -31,7 +32,9 @@ export class UnaryOperation<O extends UnaryOperator> extends Base
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
     const { exitPoint } = context.scope.typeCheck(this)
-    // TODO: Perhaps throw an error if the operation isn't await?
+    if (this.type !== UnaryOperator.AWAIT) {
+      throw new Error('Non-await operator should not be a statement')
+    }
     return { exitPoint }
   }
 
@@ -39,7 +42,11 @@ export class UnaryOperation<O extends UnaryOperator> extends Base
     const { type, exitPoint } = context.scope.typeCheck(this.value)
     const operationType = tryFunctions(unaryOperations[this.type], [type])
     if (!operationType) {
-      // TODO: error about operation cannot be done
+      context.err({
+        type: ErrorType.UNARY_OPERATION_UNPERFORMABLE,
+        operand: type,
+        operation: this.type,
+      })
     }
     if (this.type === UnaryOperator.AWAIT) {
       const returnType = context.scope.getReturnType()
@@ -48,7 +55,9 @@ export class UnaryOperation<O extends UnaryOperator> extends Base
         returnType.type !== 'named' ||
         returnType.typeSpec !== cmd
       ) {
-        // TODO: Can only use await in cmd function
+        context.err({
+          type: ErrorType.AWAIT_OUTSIDE_CMD,
+        })
       }
     }
     return { type: operationType || unknown, exitPoint }

@@ -9,6 +9,7 @@ import { Base, BasePosition } from '../base'
 import { compareEqualTypes } from '../../type-checker/types/comparisons/compare-equal'
 import { list } from '../../type-checker/types/builtins'
 import { unknown } from '../../type-checker/types/types'
+import { ErrorType } from '../../type-checker/errors/Error'
 
 export class List extends Base implements Expression {
   items: Expression[]
@@ -37,7 +38,11 @@ export class List extends Base implements Expression {
     } else {
       const result = compareEqualTypes(types)
       if (result.error) {
-        // TODO: error
+        context.err({
+          type: ErrorType.LIST_ITEMS_MISMATCH,
+          error: result.error.result,
+          index: result.error.index,
+        })
       }
       return { type: list.instance([result.type]), exitPoint }
     }

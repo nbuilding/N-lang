@@ -12,7 +12,7 @@ import { Literal } from './Literal'
 export class Identifier extends Literal implements Pattern {
   checkPattern (context: CheckPatternContext): CheckPatternResult {
     if (context.scope.variables.has(this.value)) {
-      // TODO: error about duplicate variable
+      context.err({ type: ErrorType.DUPLICATE_VARIABLE })
       context.scope.variables.set(this.value, unknown)
     } else {
       context.scope.variables.set(this.value, context.type)

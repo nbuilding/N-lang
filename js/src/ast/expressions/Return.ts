@@ -12,6 +12,7 @@ import {
   Statement,
 } from '../statements/Statement'
 import { unknown } from '../../type-checker/types/types'
+import { ErrorType } from '../../type-checker/errors/Error'
 
 export class Return extends Base implements Expression, Statement {
   value: Expression
@@ -33,10 +34,11 @@ export class Return extends Base implements Expression, Statement {
     const { type, exitPoint } = context.scope.typeCheck(this.value)
     const returnType = context.scope.getReturnType()
     if (returnType) {
-      // TODO
-      // context.isTypeError(?, returnType, type)
+      context.isTypeError(ErrorType.RETURN_MISMATCH, returnType, type)
     } else {
-      // TODO: cannot return in non-function
+      context.err({
+        type: ErrorType.RETURN_OUTSIDE_FUNCTION,
+      })
     }
     return {
       type: unknown,

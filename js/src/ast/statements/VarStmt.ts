@@ -30,7 +30,7 @@ export class VarStmt extends Base implements Statement {
     }
     const { type: valueType, exitPoint } = context.scope.typeCheck(this.value)
     if (type) {
-      context.isTypeError(ErrorType.VAR_TYPE_MISMATCH, type, valueType)
+      context.isTypeError(ErrorType.VAR_MISMATCH, type, valueType)
     } else {
       context.err(
         { type: ErrorType.UNDEFINED_VARIABLE, name: this.var.value },

@@ -40,7 +40,10 @@ other things to solve:
     becomes `str -> unknown`, while the former case still retains its
     non-unknown type (before the comparison).
 
-    Thus, the error about there being too many arguments being given should be created before any assignment comparisons. If it encounters an unknown, there's no need to create an error, like before, because this unknown type (probably) is due to some other type error.
+    Thus, the error about there being too many arguments being given should be
+    created before any assignment comparisons. If it encounters an unknown,
+    there's no need to create an error, like before, because this unknown type
+    (probably) is due to some other type error.
 
   - Or could it have been from another function type variable resolution in an
     outer function? Like `[t] str -> (str -> t)`. But once you see it that way,

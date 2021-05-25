@@ -57,7 +57,7 @@ export class RecordPattern extends Base implements Pattern {
         if (!value) {
           context.err(
             {
-              type: ErrorType.RECORD_DESTRUCTURE_NO_KEY,
+              type: ErrorType.RECORD_PATTERN_NO_KEY,
               recordType: resolved,
               key: entry.key.value,
             },
@@ -68,7 +68,7 @@ export class RecordPattern extends Base implements Pattern {
       }
       if (keys.size > 0) {
         context.err({
-          type: ErrorType.RECORD_DESTRUCTURE_INCOMPLETE,
+          type: ErrorType.RECORD_PATTERN_INCOMPLETE,
           recordType: resolved,
           keys: Array.from(keys),
         })
@@ -76,7 +76,7 @@ export class RecordPattern extends Base implements Pattern {
     } else {
       if (resolved.type !== 'unknown') {
         context.err({
-          type: ErrorType.DESTRUCTURE_TYPE_MISMATCH,
+          type: ErrorType.PATTERN_MISMATCH,
           assignedTo: context.type,
           destructure: 'record',
         })

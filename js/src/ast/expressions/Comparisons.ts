@@ -9,6 +9,7 @@ import {
 import { Base, BasePosition } from '../base'
 import { bool } from '../../type-checker/types/builtins'
 import { compareEqualTypes } from '../../type-checker/types/comparisons/compare-equal'
+import { ErrorType } from '../../type-checker/errors/Error'
 
 export enum Compare {
   LESS = 'less',
@@ -88,7 +89,10 @@ export class Comparisons extends Base implements Expression {
       )
       const result = compareEqualTypes([type, typeB])
       if (result.error) {
-        // TODO: error
+        context.err({
+          type: ErrorType.COMPARISON_MISMATCH,
+          error: result.error.result,
+        })
       }
       // TODO: Ensure that result.type is comparable
       type = typeB

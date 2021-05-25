@@ -86,7 +86,7 @@ export class FuncCall extends Base implements Expression, Statement {
         if (result.error) {
           context.err(
             {
-              type: ErrorType.ARG_TYPE_MISMATCH,
+              type: ErrorType.ARG_MISMATCH,
               error: result.error,
               argPos,
             },

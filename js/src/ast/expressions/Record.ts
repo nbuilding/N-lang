@@ -1,3 +1,5 @@
+import { ErrorType } from '../../type-checker/errors/Error'
+import { unknown } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
@@ -50,8 +52,15 @@ export class Record extends Base implements Expression {
     let exitPoint
     for (const entry of this.entries) {
       const { type, exitPoint: exit } = context.scope.typeCheck(entry.value)
-      // TODO: Duplicate keys
-      types.set(entry.key.value, type)
+      if (types.has(entry.key.value)) {
+        types.set(entry.key.value, unknown)
+        context.err({
+          type: ErrorType.RECORD_LITERAL_DUPE_KEY,
+          key: entry.key.value,
+        })
+      } else {
+        types.set(entry.key.value, type)
+      }
       if (!exitPoint) exitPoint = exit
     }
     return { type: { type: 'record', types }, exitPoint }

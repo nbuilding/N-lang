@@ -31,14 +31,14 @@ export class ListPattern extends Base implements Pattern {
       innerType = resolved.typeVars[0]
     } else if (resolved.type !== 'unknown') {
       context.err({
-        type: ErrorType.DESTRUCTURE_TYPE_MISMATCH,
+        type: ErrorType.PATTERN_MISMATCH,
         assignedTo: resolved,
         destructure: 'list',
       })
     }
     if (context.definite) {
       context.err({
-        type: ErrorType.LIST_DESTRUCTURE_DEFINITE,
+        type: ErrorType.LIST_PATTERN_DEFINITE,
         items: this.patterns.length,
       })
     }

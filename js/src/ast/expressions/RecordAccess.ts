@@ -8,6 +8,7 @@ import {
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
 import { AliasSpec, unknown } from '../../type-checker/types/types'
+import { ErrorType } from '../../type-checker/errors/Error'
 
 export class RecordAccess extends Base implements Expression {
   value: Expression
@@ -28,12 +29,16 @@ export class RecordAccess extends Base implements Expression {
     if (resolved.type === 'record') {
       const fieldType = resolved.types.get(this.field.value)
       if (!fieldType) {
-        // TODO: Record doesn't have field
+        context.err({
+          type: ErrorType.RECORD_NO_FIELD,
+        })
       }
       return { type: fieldType || unknown, exitPoint }
     } else {
       if (resolved.type !== 'unknown') {
-        // TODO: Cannot get field of non-record
+        context.err({
+          type: ErrorType.ACCESS_FIELD_OF_NON_RECORD,
+        })
       }
       return { type: unknown, exitPoint }
     }

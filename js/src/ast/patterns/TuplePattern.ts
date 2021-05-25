@@ -26,7 +26,7 @@ export class TuplePattern extends Base implements Pattern {
     if (resolved.type === 'tuple') {
       if (resolved.types.length !== this.patterns.length) {
         context.err({
-          type: ErrorType.TUPLE_DESTRUCTURE_LENGTH_MISMATCH,
+          type: ErrorType.TUPLE_PATTERN_LENGTH_MISMATCH,
           tuple: resolved,
           fields: resolved.types.length,
           given: this.patterns.length,
@@ -39,7 +39,7 @@ export class TuplePattern extends Base implements Pattern {
     } else {
       if (resolved.type !== 'unknown') {
         context.err({
-          type: ErrorType.DESTRUCTURE_TYPE_MISMATCH,
+          type: ErrorType.PATTERN_MISMATCH,
           assignedTo: resolved,
           destructure: 'tuple',
         })

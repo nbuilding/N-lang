@@ -19,6 +19,7 @@ import {
   Operator,
   operatorToString,
 } from '../../type-checker/types/operations/Operator'
+import { ErrorType } from '../../type-checker/errors/Error'
 
 export class Operation<O extends Operator> extends Base
   implements Expression, Statement {
@@ -40,7 +41,9 @@ export class Operation<O extends Operator> extends Base
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
     const { exitPoint } = context.scope.typeCheck(this)
-    // TODO: Perhaps throw an error if the operation isn't pipe?
+    if (this.type !== Operator.PIPE) {
+      throw new Error('Non-pipe operator should not be a statement')
+    }
     return { exitPoint }
   }
 
@@ -49,7 +52,12 @@ export class Operation<O extends Operator> extends Base
     const { type: typeB, exitPoint: exitB } = context.scope.typeCheck(this.b)
     const operationType = tryFunctions(operations[this.type], [typeA, typeB])
     if (!operationType) {
-      // TODO: error about operation cannot be done
+      context.err({
+        type: ErrorType.OPERATION_UNPERFORMABLE,
+        a: typeA,
+        b: typeB,
+        operation: this.type,
+      })
     }
     return { type: operationType || unknown, exitPoint: exitA || exitB }
   }

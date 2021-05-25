@@ -9,6 +9,7 @@ import { Base, BasePosition } from '../base'
 import { checkCondition, Condition, isCondition } from '../condition/Condition'
 import { compareEqualTypes } from '../../type-checker/types/comparisons/compare-equal'
 import { unknown } from '../../type-checker/types/types'
+import { ErrorType } from '../../type-checker/errors/Error'
 
 export class IfExpression extends Base implements Expression {
   condition: Condition
@@ -37,7 +38,10 @@ export class IfExpression extends Base implements Expression {
     const exitPoint = condExit || thenExit || elseExit
     const result = compareEqualTypes([thenType, elseType])
     if (result.error) {
-      // TODO: Error
+      context.err({
+        type: ErrorType.IF_BRANCH_MISMATCH,
+        error: result.error.result,
+      })
     }
     return { type: result.type, exitPoint }
   }
