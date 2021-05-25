@@ -25,18 +25,19 @@ let thing = [] -> cmd[()] {
 				}
 			},
 			{
-				method: "POST"
-				path: "/"
+				method: "GET"
+				path: "/test"
 				handle: [data:json.value] -> cmd[{ responseCode:int; data:str }] {
 					return {
-						responseCode: 200
-						data:"Hello, world"
+						responseCode: 403
+						data:"Hello, whee"
 					}
 				}
 			}
 		],
 		mapFrom([
-			(404, "ooop!")
+			(404, "ooop!"),
+			(403, "ooop!")
 		])
 	)!
 }

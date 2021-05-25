@@ -80,14 +80,18 @@ async def put(url, content, headers):
         async with session.put(url, data=json.dumps(content), headers=headers) as r:
             return {"code": r.status, "response": r.reason, "text": await r.text()}
 
+async def set_page(app, page, index):
+    async def run():
+        out = await page["handle"].run([python_to_json(dict(req.args.lists()))])
+        return out["data"], out["responseCode"]
+    run.__name__ = "run" + str(index)
+    app.add_url_rule(page["path"], view_func=run, methods=[page["method"]])
+
 async def createServer(port, pages, error_pages):
     app = Flask(__name__)
-    for page in pages:
-        @app.route(page["path"], methods=[page["method"]])
-        async def run():
-            out = await page["handle"].run([python_to_json(dict(req.args.lists()))])
-            return out["data"], out["responseCode"]
-    for error_code in error_pages.keys():
+    for i, page in enumerate(pages):
+        await set_page(app, page, i)
+    for i, error_code in enumerate(error_pages.keys()):
         @app.errorhandler(error_code)
         async def run(error):
             return error_pages[error_code], error_code
