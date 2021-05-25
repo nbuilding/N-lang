@@ -8,6 +8,12 @@ export enum ErrorType {
   /** JavaScript runtime error */
   INTERNAL_ERROR = 'internal-error',
 
+  /**
+   * Function, AliasDeclaration, EnumDeclaration, FuncType: A function type
+   * variable exists with the same name.
+   */
+  DUPLICATE_TYPE_VAR = 'duplicate-type-var',
+
   // Conditions
 
   /** Condition: An if statement/expr condition was given a non-bool value */
@@ -70,7 +76,7 @@ export enum ErrorType {
 
   // Literals
 
-  /** Identifier: Variable is not defined in scope */
+  /** Identifier, VarStmt: Variable is not defined in scope */
   UNDEFINED_VARIABLE = 'undefined-variable',
 
   /** Identifier: Variable with same name already defined in scope */
@@ -78,7 +84,7 @@ export enum ErrorType {
 
   // Patterns
 
-  /** Pattern can't destructure type */
+  /** *Pattern: Pattern can't destructure type */
   PATTERN_MISMATCH = 'pattern-mismatch',
 
   /** EnumPattern: Destructuring an enum with a nonexistent variant */
@@ -104,13 +110,34 @@ export enum ErrorType {
 
   // Statements
 
-  // TODO
+  /**
+   * AliasDeclaration, EnumDeclaration: A type with the name already exists in
+   * the scope.
+   */
+  DUPLICATE_TYPE = 'duplicate-type',
+
+  /** AssertType: An `assert type` failed */
+  TYPE_ASSERTION_FAIL = 'type-assertion-fail',
+
+  /** AssertValue: An `assert value` was given a non-bool */
+  VALUE_ASSERTION_NOT_BOOL = 'value-assertion-not-nool',
+
+  /** For: (legacy) Type not iterable */
+  FOR_LEGACY_NOT_ITERABLE = 'for-legacy-not-iterable',
+
+  /** For: Type not iterable */
+  FOR_NOT_ITERABLE = 'for-not-iterable',
+
+  /** VarStmt: The type from a var declaration does not match its expression */
+  VAR_MISMATCH = 'var-mismatch',
+
+  // Types
+
+  /** RecordType: Record type has duplicate keys */
+  RECORD_TYPE_DUPLICATE_KEY = 'record-type-duplicate-key',
 
   /** Type is not defined in scope */
   UNDEFINED_TYPE = 'undefined-type',
-
-  /** The type from a var declaration does not match its expression */
-  VAR_MISMATCH = 'var-mismatch',
 
   /** The given module name for a type identifier is not a module */
   NOT_MODULE = 'not-module',
@@ -123,12 +150,6 @@ export enum ErrorType {
 
   /** Cannot resolve function type variable for last argument */
   UNRESOLVED_GENERIC = 'unresolved-generic',
-
-  /** An `assert type` failed */
-  TYPE_ASSERTION_FAIL = 'type-assertion-fail',
-
-  /** An `assert value` was given a non-bool */
-  VALUE_ASSERTION_NOT_BOOL = 'value-assertion-not-nool',
 }
 
 export type TypeErrorType =
@@ -248,6 +269,10 @@ export type ErrorMessage =
       key: string
     }
   | {
+      type: ErrorType.DUPLICATE_TYPE_VAR
+      in: 'func-expr' | 'alias' | 'enum' | 'func-type'
+    }
+  | {
       // Too lazy to add things to these; can do later
       type:
         | ErrorType.RECORD_NO_FIELD
@@ -255,6 +280,10 @@ export type ErrorMessage =
         | ErrorType.RETURN_OUTSIDE_FUNCTION
         | ErrorType.AWAIT_OUTSIDE_CMD
         | ErrorType.DUPLICATE_VARIABLE
+        | ErrorType.DUPLICATE_TYPE
+        | ErrorType.FOR_LEGACY_NOT_ITERABLE
+        | ErrorType.FOR_NOT_ITERABLE
+        | ErrorType.RECORD_TYPE_DUPLICATE_KEY
     }
 
 interface NError {

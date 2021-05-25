@@ -29,7 +29,6 @@ export class IfStmt extends Base implements Statement {
       context,
       this.condition,
     )
-    // TODO: Shouldn't there be a warning if the exit point is in the condition?
     const { exitPoint: thenExit } = scope.checkStatement(this.then)
     scope.end()
     let exitPoint = condExit || thenExit

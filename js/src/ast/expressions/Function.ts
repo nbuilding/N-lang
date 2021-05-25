@@ -1,3 +1,4 @@
+import { ErrorType } from '../../type-checker/errors/Error'
 import {
   functionFromTypes,
   FuncTypeVarSpec,
@@ -33,9 +34,16 @@ export class Function extends Base implements Expression {
     if (this.arguments.typeVars) {
       for (const typeVarName of this.arguments.typeVars.vars) {
         const typeVar = new TypeSpec(typeVarName.value)
-        // TODO: Duplicate names
-        typeVarScope.types.set(typeVarName.value, typeVar)
         typeVars.push(typeVar)
+        if (typeVarScope.types.has(typeVarName.value)) {
+          typeVarScope.types.set(typeVarName.value, null)
+          context.err({
+            type: ErrorType.DUPLICATE_TYPE_VAR,
+            in: 'func-expr',
+          })
+        } else {
+          typeVarScope.types.set(typeVarName.value, typeVar)
+        }
       }
     }
     const paramTypes = []

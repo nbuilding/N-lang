@@ -1,3 +1,4 @@
+import { ErrorType } from '../../type-checker/errors/Error'
 import { tryFunctions } from '../../type-checker/types/comparisons/compare-assignable'
 import {
   iterableTypes,
@@ -35,7 +36,9 @@ export class OldFor extends Base implements Statement {
     const scope = context.scope.inner()
     const iteratedType = tryFunctions(legacyIterableTypes, [type])
     if (!iteratedType) {
-      // TODO: error about not iterable
+      context.err({
+        type: ErrorType.FOR_LEGACY_NOT_ITERABLE,
+      })
     }
     scope.checkDeclaration(this.var, iteratedType || unknown)
     scope.checkStatement(this.body)
@@ -78,7 +81,9 @@ export class For extends Base implements Statement {
     const scope = context.scope.inner()
     const iteratedType = tryFunctions(iterableTypes, [type])
     if (!iteratedType) {
-      // TODO: error about not iterable
+      context.err({
+        type: ErrorType.FOR_NOT_ITERABLE,
+      })
     }
     scope.checkDeclaration(this.var, iteratedType || unknown)
     scope.checkStatement(this.body)

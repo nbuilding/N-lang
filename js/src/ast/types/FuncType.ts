@@ -1,3 +1,4 @@
+import { ErrorType } from '../../type-checker/errors/Error'
 import { FuncTypeVarSpec, NFunction } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
@@ -26,8 +27,15 @@ export class FuncType extends Base implements Type {
       for (const { value: name } of this.typeVars.vars) {
         const typeVar = new FuncTypeVarSpec(name)
         typeVars.push(typeVar)
-        // TODO: duplicate type var names
-        scope.types.set(name, typeVar)
+        if (scope.types.has(name)) {
+          scope.types.set(name, null)
+          context.err({
+            type: ErrorType.DUPLICATE_TYPE_VAR,
+            in: 'func-type',
+          })
+        } else {
+          scope.types.set(name, typeVar)
+        }
       }
     }
     const type: NFunction = {

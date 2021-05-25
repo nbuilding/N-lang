@@ -1,3 +1,4 @@
+import { ErrorType } from '../../type-checker/errors/Error'
 import {
   AliasSpec,
   TypeSpec as NamedTypeSpec,
@@ -36,7 +37,10 @@ export class AliasDeclaration extends Base implements Statement {
         typeVars.push(typeVar)
         if (scope.types.has(name)) {
           scope.types.set(name, null)
-          // TODO: Duplicate types
+          context.err({
+            type: ErrorType.DUPLICATE_TYPE_VAR,
+            in: 'alias',
+          })
         } else {
           scope.types.set(name, typeVar)
         }
@@ -48,7 +52,7 @@ export class AliasDeclaration extends Base implements Statement {
       typeVars,
     )
     if (context.scope.types.has(this.typeSpec.name.value)) {
-      // TODO: error about duplicate type
+      context.err({ type: ErrorType.DUPLICATE_TYPE })
       context.scope.types.set(this.typeSpec.name.value, null)
     } else {
       context.scope.types.set(this.typeSpec.name.value, typeSpec)

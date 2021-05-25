@@ -53,11 +53,7 @@ export class Declaration extends Base {
       : unknown
     if (
       valueType &&
-      context.isTypeError(
-        ErrorType.LET_TYPE_MISMATCH,
-        typeAnnotation,
-        valueType,
-      )
+      context.isTypeError(ErrorType.LET_MISMATCH, typeAnnotation, valueType)
     ) {
       context.scope.checkPattern(this.pattern, unknown, certain, isPublic)
     } else {

@@ -1,3 +1,5 @@
+import { ErrorType } from '../../type-checker/errors/Error'
+import { unknown } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
@@ -42,7 +44,18 @@ export class RecordType extends Base implements Type {
   }
 
   getType (context: GetTypeContext): GetTypeResult {
-    // TODO: Warn about duplicate keys
+    const types = new Map()
+    for (const entry of this.entries) {
+      const { type } = context.scope.getTypeFrom(entry.value)
+      if (types.has(entry.key.value)) {
+        context.err({
+          type: ErrorType.RECORD_TYPE_DUPLICATE_KEY,
+        })
+        types.set(entry.key.value, unknown)
+      } else {
+        types.set(entry.key.value, type)
+      }
+    }
     return {
       type: {
         type: 'record',

@@ -2,12 +2,12 @@ import { Base, Return } from '../../ast/index'
 
 export enum WarningType {
   /**
-   * The expression or statement will never be evaluated because the function
-   * exits from an inner expression
+   * Block: The expression or statement will never be evaluated because the
+   * function exits from an inner expression
    */
   EXPRESSION_NEVER = 'expression-never',
 
-  /** An identifier starting with an underscore is being used */
+  /** Identifier, VarStmt: An identifier starting with a _ has been used */
   USED_UNDERSCORE_IDENTIFIER = 'used-underscore-identifier',
 
   /** All the statements following a return statement will never be run */

@@ -1,3 +1,4 @@
+import { ErrorType } from '../../type-checker/errors/Error'
 import {
   EnumSpec,
   TypeSpec as NamedTypeSpec,
@@ -70,8 +71,15 @@ export class EnumDeclaration extends Base implements Statement {
       for (const { value: name } of this.typeSpec.typeVars.vars) {
         const typeVar = new NamedTypeSpec(name)
         typeVars.push(typeVar)
-        // TODO: duplicate type var names
-        scope.types.set(name, typeVar)
+        if (scope.types.has(name)) {
+          scope.types.set(name, null)
+          context.err({
+            type: ErrorType.DUPLICATE_TYPE_VAR,
+            in: 'enum',
+          })
+        } else {
+          scope.types.set(name, typeVar)
+        }
       }
     }
     const typeSpec = new EnumSpec(
@@ -86,7 +94,7 @@ export class EnumDeclaration extends Base implements Statement {
       typeVars,
     )
     if (context.scope.types.has(this.typeSpec.name.value)) {
-      // TODO: error about duplicate type
+      context.err({ type: ErrorType.DUPLICATE_TYPE })
       context.scope.types.set(this.typeSpec.name.value, null)
     } else {
       context.scope.types.set(this.typeSpec.name.value, typeSpec)
