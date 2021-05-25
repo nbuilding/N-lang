@@ -1,4 +1,4 @@
-aiofile==3.5.0
+﻿aiofile==3.5.0
 aiohttp==3.7.4.post0
 altgraph==0.17
 appdirs==1.4.4
@@ -10,9 +10,13 @@ certifi==2020.12.5
 chardet==4.0.0
 click==7.1.2
 colorama==0.4.4
+Flask==2.0.1
 future==0.18.2
 idna==2.10
+itsdangerous==2.0.1
+Jinja2==3.0.1
 lark==0.11.1
+MarkupSafe==2.0.1
 multidict==5.1.0
 mypy-extensions==0.4.3
 pathspec==0.8.1
@@ -27,4 +31,5 @@ typed-ast==1.4.2
 typing-extensions==3.7.4.3
 urllib3==1.26.4
 websockets==8.1
+Werkzeug==2.0.1
 yarl==1.6.3

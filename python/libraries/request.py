@@ -2,8 +2,13 @@ import requests
 import json
 import aiohttp
 import asyncio
+import http.server
+import socketserver
+
 from native_types import n_cmd_type, NMap, n_map_type
 from libraries.json import json_value_type, python_to_json, string
+
+Handler = http.server.SimpleHTTPRequestHandle # Needed
 
 
 async def get(url, headers):
@@ -66,6 +71,11 @@ async def put(url, content, headers):
     async with aiohttp.ClientSession() as session:
         async with session.put(url, data=json.dumps(content), headers=headers) as r:
             return {"code": r.status, "response": r.reason, "text": await r.text()}
+
+async def createServer(port):
+    with socketserver.TCPServer(("", port), Handler) as httpserver:
+        print("test")
+        httpserver.serve_forever()
 
 
 def _values():
