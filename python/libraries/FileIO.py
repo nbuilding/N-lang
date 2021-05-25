@@ -1,3 +1,5 @@
+import os
+
 from os import listdir
 from os.path import isfile, join
 from aiofile import async_open
@@ -45,6 +47,10 @@ async def readBytes(path):
         return none
 
 async def getFiles(path):
+    can_run = os.environ.get("FILE_ALLOW") == "true"
+    if not can_run:
+        return []
+
     return [(isfile(join(path, f)), f) for f in listdir(path)]
 
 def _values():
