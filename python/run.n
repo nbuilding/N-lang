@@ -8,6 +8,12 @@ print(2 << 3)
 print(toFloat(1))
 
 let thing = [] -> cmd[()] {
+
+	let imageData = FileIO.readBytes("C:\\Users\\Ashvin Ranjan\\Downloads\\IMG_1499.jpg")! |> default([1])
+	let image = ""
+	for (byte in imageData) {
+		var image = image + intCode(byte)
+	}
 	print(times.getTime()!)
 	let _ = FileIO.appendBytes("test.txt", [26, 26])!
 	print(FileIO.readBytes("test.txt")!)
@@ -18,17 +24,12 @@ let thing = [] -> cmd[()] {
 				method: "GET"
 				path: "/image.jpg"
 				handle: [data:json.value] -> cmd[{ responseCode:int; data:str; headers:map[str, str] }] {
-					let imageData = FileIO.readBytes("C:\\Users\\Ashvin Ranjan\\Downloads\\IMG_1499.jpg")! |> default([1])
-					let out = ""
-					for (byte in imageData) {
-						var out = out + intCode(byte)
-					}
 					return {
 						responseCode: 200
-						data: out
+						data: image
 						headers: mapFrom([
 							("Access-Control-Allow-Origin", "*"),
-							("Content-Type", "image/jpg"),
+							("Content-Type", "image/jpeg"),
 						])
 					}
 				}
