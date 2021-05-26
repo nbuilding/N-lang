@@ -23,7 +23,7 @@ async def read(path):
     try:
         async with async_open(path, "r", encoding="utf-8") as f:
             return yes(await f.read())
-    except FileNotFoundError:
+    except:
         return none
 
 async def writeBytes(path, content):
@@ -41,9 +41,9 @@ async def appendBytes(path, content):
 
 async def readBytes(path):
     try:
-        async with async_open(path, "r", encoding="utf-8") as f:
-            return yes([ord(c) for c in list(await f.read())])
-    except FileNotFoundError:
+        async with async_open(path, "rb", encoding="utf-8") as f:
+            return yes(list(await f.read()))
+    except:
         return none
 
 async def getFiles(path):
