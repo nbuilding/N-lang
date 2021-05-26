@@ -4,18 +4,20 @@ import aiohttp
 import asyncio
 import logging
 
-from flask import Flask, request as req
+from flask import Flask, request as req, Response
 from flask.logging import default_handler
 
 from native_types import n_cmd_type, NMap, n_map_type, n_list_type
 from libraries.json import json_value_type, python_to_json, string
+from ncmd import Cmd
 
 server_page_type = {
     "method": "str",
     "path": "str",
     "handle": (json_value_type, n_cmd_type.with_typevars([{
         "responseCode": "int",
-        "data": "str"
+        "data": "str",
+        "headers": n_map_type.with_typevars(["str", "str"])
     }]))
 }
 
@@ -83,6 +85,9 @@ async def put(url, content, headers):
 async def set_page(app, page, index):
     async def run():
         out = await page["handle"].run([python_to_json(dict(req.args.lists()))])
+        if isinstance(out, Cmd):
+            out = await out.eval()
+        resp = Response(out["data"], out["responseCode"], out["headers"])
         return out["data"], out["responseCode"]
     run.__name__ = "run" + str(index)
     app.add_url_rule(page["path"], view_func=run, methods=[page["method"]])
