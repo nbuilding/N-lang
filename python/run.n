@@ -28,6 +28,20 @@ let thing = [] -> cmd[()] {
 					}
 				}
 			},
+			{
+				method: "GET"
+				path: "/"
+				handle: [data:json.value] -> cmd[{ responseCode:int; data:str; headers:map[str, str] }] {
+					return {
+						responseCode: 200
+						data: "<img src='./image.png' />"
+						headers: mapFrom([
+							("Access-Control-Allow-Origin", "*"),
+							("Content-Type", "text/plain"),
+						])
+					}
+				}
+			},
 		],
 		mapFrom([
 			(404, "ooop!")
