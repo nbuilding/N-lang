@@ -967,7 +967,11 @@ class Scope:
     """
 
     async def eval_command(self, tree):
-        if tree.data == "code_block":
+        if tree.data == "main_instruction" or tree.data == "last_instruction":
+            tree = tree.children[0]
+        if tree.data == "if" or tree.data == "ifelse" or tree.data == "for" or tree.data == "for_legacy":
+            tree = lark.tree.Tree("instruction", [tree])
+        elif tree.data == "code_block":
             exit, value = (False, None)
             for instruction in tree.children:
                 exit, value = await self.eval_command(instruction)
@@ -1660,7 +1664,11 @@ class Scope:
     """
 
     def type_check_command(self, tree):
-        if tree.data == "code_block":
+        if tree.data == "main_instruction" or tree.data == "last_instruction":
+            tree = tree.children[0]
+        if tree.data == "if" or tree.data == "ifelse" or tree.data == "for" or tree.data == "for_legacy":
+            tree = lark.tree.Tree("instruction", [tree])
+        elif tree.data == "code_block":
             exit_point = None
             warned = False
             for instruction in tree.children:
@@ -1837,7 +1845,7 @@ class Scope:
             self.assign_to_pattern(pattern, ty, True, None, public, certain=True)
         elif command.data == "vary":
             name, value = command.children
-            variable = self.get_variable(name.value)
+            variable = self.get_variable(name.value, err=False)
             if variable is None:
                 self.errors.append(
                     TypeCheckError(

@@ -7,7 +7,11 @@ def format_error(e, file):
     if isinstance(e, lark.exceptions.UnexpectedEOF):
         spaces = " " * (len(str(len(file.lines) + 1) + " |") + 1) + " " * (-1)
         spaces_arrow = " " * (len(str(len(file.lines) + 1) + " |") - 3)
-        formatted_chars = ", ".join(e.expected)
+        formatted_chars = ""
+        try:
+            formatted_chars = ", ".join(e.expected)
+        except:
+            formatted_chars = ", ".join([term.name for term in e.expected])
         print(
             f"{Fore.RED}{Style.BRIGHT}Error{Style.RESET_ALL}: Unexpected end of file, expected: [{formatted_chars}]"
         )
