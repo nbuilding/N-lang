@@ -1845,7 +1845,7 @@ class Scope:
             self.assign_to_pattern(pattern, ty, True, None, public, certain=True)
         elif command.data == "vary":
             name, value = command.children
-            variable = self.get_variable(name.value)
+            variable = self.get_variable(name.value, err=False)
             if variable is None:
                 self.errors.append(
                     TypeCheckError(

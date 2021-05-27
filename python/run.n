@@ -1,3 +1,8 @@
-let test = [] -> int {
-    return 0
+let test = [a:int] -> str {
+	let out = ""
+	if a == 1 {
+		var out = "2"
+	} else if a == 2 {
+		var out = "3"
+	}
 }

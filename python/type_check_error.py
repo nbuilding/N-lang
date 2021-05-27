@@ -94,12 +94,12 @@ def display_type(n_type, color=True):
             )
     elif isinstance(n_type, NType):
         display = n_type.name
+    elif n_type is None:
+        display = "unknown"
     else:
         print(
             "display_type was given a value that is neither a string nor a tuple nor a list nor a dictionary nor a NType.",
             n_type,
         )
-        if n_type is None:
-            raise TypeError("found None")
         return Fore.RED + "???" + Style.RESET_ALL if color else "???"
     return Fore.YELLOW + display + Style.RESET_ALL if color else display
