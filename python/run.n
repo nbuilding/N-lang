@@ -1,8 +1,12 @@
-let test = [a:int] -> str {
-	let out = ""
-	if a == 1 {
-		var out = "2"
-	} else if a == 2 {
-		var out = "3"
+class Test [i:int] {
+	let pub clone = [] -> Test {
+		return Test(i)
+	}
+
+	let pub uaua = [t:Test] -> Test {
+		return t.erererer()
 	}
 }
+
+let t:Test = Test(10)
+print(t.clone())
