@@ -2,6 +2,10 @@ class Test [i:int] {
 	let pub clone = [] -> Test {
 		return Test(i)
 	}
+
+	let pub uaua = [t:Test] -> Test {
+		return t.clone()
+	}
 }
 
 let t:Test = Test(10)
