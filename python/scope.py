@@ -1947,7 +1947,7 @@ class Scope:
             self.assign_to_pattern(pattern, ty, True, None, public, certain=True)
         elif command.data == "vary":
             name, value = command.children
-            variable = self.get_variable(name.value)
+            variable = self.get_variable(name.value, err=False)
             if variable is None:
                 self.errors.append(
                     TypeCheckError(
@@ -2123,23 +2123,23 @@ class Scope:
                     )
                 )
                 return False
+
             arguments = [self.get_name_type(arg, err=False) for arg in class_args]
-            scope = self.new_scope(parent_function=None, parent_type="class")
+
+            class_type = NClass(name)
+
+            constructor_type = tuple(
+                [*(arg_type for _, arg_type in arguments), class_type]
+            )
+
+            scope = self.new_scope(parent_function=None, inherit_errors=False, parent_type="class")
             for arg_pattern, arg_type in arguments:
                 scope.assign_to_pattern(arg_pattern, arg_type, True, certain=True)
             scope.type_check_command(class_body)
 
-            class_type = NClass(name)
             for prop_name, var in scope.variables.items():
                 if var.public:
-                    if var.type is None:
-                        class_type = "invalid"
-                        break
-                    else:
-                        class_type[prop_name] = var.type
-            constructor_type = tuple(
-                [*(arg_type for _, arg_type in arguments), class_type]
-            )
+                    class_type[prop_name] = var.type
 
             if name.value in self.types:
                 scope.errors.append(
@@ -2162,6 +2162,20 @@ class Scope:
             self.variables[name.value] = Variable(
                 constructor_type, constructor_type, public
             )
+            class_type = NClass(name)
+
+            scope = self.new_scope(parent_function=None, parent_type="class")
+            for arg_pattern, arg_type in arguments:
+                scope.assign_to_pattern(arg_pattern, arg_type, True, certain=True)
+            scope.type_check_command(class_body)
+
+            for prop_name, var in scope.variables.items():
+                if var.public:
+                    if var.type is None:
+                        class_type = "invalid"
+                        break
+                    else:
+                        class_type[prop_name] = var.type
         else:
             self.type_check_expr(command)
 
