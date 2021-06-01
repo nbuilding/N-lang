@@ -2021,13 +2021,20 @@ class Scope:
                     )
                 )
                 return False
+
             arguments = [self.get_name_type(arg, err=False) for arg in class_args]
-            scope = self.new_scope(parent_function=None)
+
+            class_type = NClass(name)
+
+            constructor_type = tuple(
+                [*(arg_type for _, arg_type in arguments), class_type]
+            )
+
+            scope = self.new_scope(parent_function=None, inherit_errors=False)
             for arg_pattern, arg_type in arguments:
                 scope.assign_to_pattern(arg_pattern, arg_type, True, certain=True)
             scope.type_check_command(class_body)
 
-            class_type = NClass(name)
             for prop_name, var in scope.variables.items():
                 if var.public:
                     if var.type is None:
@@ -2035,9 +2042,6 @@ class Scope:
                         break
                     else:
                         class_type[prop_name] = var.type
-            constructor_type = tuple(
-                [*(arg_type for _, arg_type in arguments), class_type]
-            )
 
             if name.value in self.types:
                 scope.errors.append(
@@ -2060,6 +2064,33 @@ class Scope:
             self.variables[name.value] = Variable(
                 constructor_type, constructor_type, public
             )
+
+            scope = self.new_scope(parent_function=None)
+            for arg_pattern, arg_type in arguments:
+                scope.assign_to_pattern(arg_pattern, arg_type, True, certain=True)
+            scope.type_check_command(class_body)
+
+            for prop_name, var in scope.variables.items():
+                if var.public:
+                    if var.type is None:
+                        class_type = "invalid"
+                        break
+                    else:
+                        class_type[prop_name] = var.type
+
+            self.types[name.value] = class_type
+            if public:
+                self.public_types[name.value] = self.types[name.value]
+
+            constructor_type = tuple(
+                [*(arg_type for _, arg_type in arguments), class_type]
+            )
+            self.variables[name.value] = Variable(
+                constructor_type, constructor_type, public
+            )
+            
+
+            
         else:
             self.type_check_expr(command)
 
