@@ -2074,20 +2074,6 @@ class Scope:
                         break
                     else:
                         class_type[prop_name] = var.type
-
-            self.types[name.value] = class_type
-            if public:
-                self.public_types[name.value] = self.types[name.value]
-
-            constructor_type = tuple(
-                [*(arg_type for _, arg_type in arguments), class_type]
-            )
-            self.variables[name.value] = Variable(
-                constructor_type, constructor_type, public
-            )
-            
-
-            
         else:
             self.type_check_expr(command)
 

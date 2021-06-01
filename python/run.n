@@ -4,7 +4,7 @@ class Test [i:int] {
 	}
 
 	let pub uaua = [t:Test] -> Test {
-		return t.clone()
+		return t.erererer()
 	}
 }
 
