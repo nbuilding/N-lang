@@ -12,12 +12,13 @@ import asyncio
 import sys
 import signal
 import argparse
+import os
 from os import path
 from colorama import init, Fore, Style
-from sys import exit
+from sys import exit, platform
+import requests
 
 init()
-
 
 parser = argparse.ArgumentParser(
     description="Allows to only show warnings and choose the file location"
@@ -29,8 +30,40 @@ parser.add_argument(
     help="The file to read. (optional. if not included, it'll just run run.n)",
 )
 parser.add_argument("--check", action="store_true")
+parser.add_argument("--newest", action="store_true")
+parser.add_argument("--version", action="store_true")
+parser.add_argument("--update", action="store_true")
 
 args = parser.parse_args()
+
+VERSION = "N v1.3.0"
+
+if args.version:
+    print(VERSION)
+    exit()
+
+if args.update:
+    response = requests.get("https://api.github.com/repos/nbuilding/N-Lang/releases/latest")
+    if VERSION == response.json()["name"]:
+        print("You already have the newest version.")
+        exit()
+    print("Newer version detected: " + response.json()["name"])
+    if input("Are you sure you want to update? [y/n] ").lower() != "y":
+        print("Aborting...")
+        exit()
+    print("Installing...")
+    if platform == "win32":
+        os.system("PowerShell.exe -command \"iwr https://github.com/nbuilding/N-lang/raw/main/install.ps1 -useb | iex\"")
+        exit()
+    elif platform == "darwin":
+        os.system("curl -fsSL https://github.com/nbuilding/N-lang/raw/main/install.sh | sh")
+        exit()
+    print("You are on an unsupported OS.")
+
+if args.newest:
+	response = requests.get("https://api.github.com/repos/nbuilding/N-Lang/releases/latest")
+	print(response.json()["name"])
+	exit()
 
 filename = args.file
 
@@ -102,6 +135,7 @@ except lark.exceptions.UnexpectedEOF as e:
     format_error(e, file)
 
 error_count, warning_count = type_check(file, tree)
+
 if error_count > 0 or args.check:
     error_s = ""
     warning_s = ""

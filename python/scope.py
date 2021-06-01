@@ -173,6 +173,7 @@ class Scope:
         warnings=None,
         base_path="",
         file_path="",
+        parent_type="top",
     ):
         self.parent = parent
         self.parent_function = parent_function
@@ -186,8 +187,9 @@ class Scope:
         self.base_path = base_path
         # The path of the file the Scope is associated with.
         self.file_path = file_path
+        self.parent_type = parent_type
 
-    def new_scope(self, parent_function=None, inherit_errors=True):
+    def new_scope(self, parent_function=None, inherit_errors=True, parent_type=None):
         return Scope(
             self,
             parent_function=parent_function or self.parent_function,
@@ -195,6 +197,7 @@ class Scope:
             warnings=self.warnings if inherit_errors else [],
             base_path=self.base_path,
             file_path=self.file_path,
+            parent_type=parent_type or self.parent_type,
         )
 
     def get_variable(self, name, err=True):
@@ -230,6 +233,15 @@ class Scope:
                 return None
         else:
             return self.parent_function
+
+    def get_parent_types(self, types):
+        if self.parent_type not in types:
+            if self.parent:
+                return self.parent.get_parent_types(types)
+            else:
+                return None
+        else:
+            return self.parent_type
 
     def get_module_type(self, module_type, err=True):
         *modules, type_name = module_type.children
@@ -806,6 +818,9 @@ class Scope:
         elif expr.data == "not_expression":
             _, value = expr.children
             return not await self.eval_expr(value)
+        elif expr.data == "in_expression":
+            left, _, right = expr.children
+            return await self.eval_expr(left) in await self.eval_expr(right)
         elif expr.data == "compare_expression":
             # compare_expression chains leftwards. It's rather complex because it
             # chains but doesn't accumulate a value unlike addition. Also, there's a
@@ -875,6 +890,10 @@ class Scope:
                 return dividend / divisor
             elif operation.type == "MODULO":
                 return await self.eval_expr(left) % await self.eval_expr(right)
+            elif operation.type == "SHIFTL":
+                return await self.eval_expr(left) << await self.eval_expr(right)
+            elif operation.type == "SHIFTR":
+                return await self.eval_expr(left) >> await self.eval_expr(right)
             else:
                 raise SyntaxError(
                     "Unexpected operation for product_expression: %s" % operation
@@ -958,6 +977,20 @@ class Scope:
                 # they don't use await. That's fine because type checking will
                 # allow it, but the interpreter doesn't know that.
                 return command
+        elif expr.data == "match":
+            input_value, match_block = expr.children
+            inp = await self.eval_expr(input_value)
+            values = {}
+            default = match_block.children[-1].children[-1]
+
+            for match_value in match_block.children[0:-1]:
+                match, value = match_value.children
+                values[await self.eval_expr(match)] = value
+
+            if inp in values:
+                return await self.eval_expr(values[inp])
+
+            return await self.eval_expr(default)
         else:
             print("(parse tree):", expr)
             raise SyntaxError("Unexpected command/expression type %s" % expr.data)
@@ -969,7 +1002,7 @@ class Scope:
     async def eval_command(self, tree):
         if tree.data == "main_instruction" or tree.data == "last_instruction":
             tree = tree.children[0]
-        if tree.data == "if" or tree.data == "ifelse" or tree.data == "for" or tree.data == "for_legacy":
+        if tree.data == "if" or tree.data == "ifelse" or tree.data == "for" or tree.data == "for_legacy" or tree.data == "while":
             tree = lark.tree.Tree("instruction", [tree])
         elif tree.data == "code_block":
             exit, value = (False, None)
@@ -1015,10 +1048,34 @@ class Scope:
 
                 scope.assign_to_pattern(pattern, i, certain=True)
                 exit, value = await scope.eval_command(code)
+                if exit == "continue":
+                    continue
+                if exit == "break":
+                    return False, None
                 if exit:
                     return True, value
+        elif command.data == "while":
+            var, code = command.children
+            val = await self.eval_expr(var)
+            while val:
+                scope = self.new_scope()
+
+
+                exit, value = await scope.eval_command(code)
+                if exit == "continue":
+                    val = await self.eval_expr(var)
+                    continue
+                if exit == "break":
+                    return False, None
+                if exit:
+                    return True, value
+                val = await self.eval_expr(var)
         elif command.data == "return":
             return (True, await self.eval_expr(command.children[0]))
+        elif command.data == "break":
+            return ("break", None)
+        elif command.data == "continue":
+            return ("continue", None)
         elif command.data == "declare":
             modifiers, name_type, value = command.children
             pattern, _ = self.get_name_type(name_type, get_type=False)
@@ -1042,7 +1099,7 @@ class Scope:
             if yes:
                 exit, value = await scope.eval_command(body)
                 if exit:
-                    return (True, value)
+                    return (exit, value)
         elif command.data == "ifelse":
             condition, if_true, if_false = command.children
             scope = self.new_scope()
@@ -1058,7 +1115,7 @@ class Scope:
             else:
                 exit, value = await self.new_scope().eval_command(if_false)
             if exit:
-                return (True, value)
+                return (exit, value)
         elif command.data == "enum_definition":
             _, type_def, constructors = command.children
             type_name, *_ = type_def.children
@@ -1462,7 +1519,22 @@ class Scope:
                     )
                 )
             return contained_type
+        elif expr.data == "match":
+            input_value, match_block = expr.children
+            value_type = self.type_check_expr(input_value)
+            first_match, first_value = match_block.children[0].children
+            first_match_type = self.type_check_expr(first_match)
+            first_value_type = self.type_check_expr(first_value)
+            for i, match_value in enumerate(match_block.children):
+                match, value = match_value.children
+                if i != len(match_block.children) - 1 and self.type_check_expr(match) != first_match_type and self.type_check_expr(match) != None:
+                    self.errors.append(TypeCheckError(match_value, "The match check #%s's type is %s while the first check's type is %s" % (str(i + 1), display_type(self.type_check_expr(match)), display_type(first_match_type))))
+                if self.type_check_expr(value) != first_value_type and self.type_check_expr(match) != None:
+                    self.errors.append(TypeCheckError(match_value, "The match value #%s's type is %s while the first value's type is %s" % (str(i + 1), display_type(self.type_check_expr(value)), display_type(first_value_type))))
 
+            if value_type != first_match_type:
+                self.errors.append(TypeCheckError(input_value, "The input value's type is %s while the match's input type is %s" % (display_type(value_type), display_type(first_match_type))))
+            return first_match_type
         if len(expr.children) == 2 and isinstance(expr.children[0], lark.Token):
             operation, value = expr.children
             operation_type = operation.type
@@ -1666,7 +1738,7 @@ class Scope:
     def type_check_command(self, tree):
         if tree.data == "main_instruction" or tree.data == "last_instruction":
             tree = tree.children[0]
-        if tree.data == "if" or tree.data == "ifelse" or tree.data == "for" or tree.data == "for_legacy":
+        if tree.data == "if" or tree.data == "ifelse" or tree.data == "for" or tree.data == "for_legacy" or tree.data == "while":
             tree = lark.tree.Tree("instruction", [tree])
         elif tree.data == "code_block":
             exit_point = None
@@ -1775,8 +1847,20 @@ class Scope:
                             ),
                         )
                     )
-            scope = self.new_scope()
+            scope = self.new_scope(parent_type="for")
             scope.assign_to_pattern(pattern, ty, True, certain=True)
+            return scope.type_check_command(code)
+        elif command.data == "while":
+            var, code = command.children
+            bool_type = self.type_check_expr(var)
+            if bool_type != "bool":
+                self.errors.append(
+                    TypeCheckError(
+                        iterable,
+                        "I need a bool not a %s." % display_type(bool_type),
+                    )
+                )
+            scope = self.new_scope(parent_type="while")
             return scope.type_check_command(code)
         elif command.data == "return":
             return_type = self.type_check_expr(command.children[0])
@@ -1820,6 +1904,24 @@ class Scope:
                             ),
                         )
                     )
+            return command
+        elif command.data == "continue":
+            if self.get_parent_types(["while", "for"]) == None:
+                self.errors.append(
+                    TypeCheckError(
+                        command,
+                        "The command continue can only be used inside while or for loops"
+                    )
+                )
+            return command
+        elif command.data == "break":
+            if self.get_parent_types(["while", "for", "if"]) == None:
+                self.errors.append(
+                    TypeCheckError(
+                        command,
+                        "The command continue can only be used inside if statements or while or for loops"
+                    )
+                )
             return command
         elif command.data == "declare":
             modifiers, name_type, value = command.children
@@ -1874,7 +1976,7 @@ class Scope:
                 variable.type = resolved_type
         elif command.data == "if":
             condition, body = command.children
-            scope = self.new_scope()
+            scope = self.new_scope(parent_type="if")
             if condition.data == "conditional_let":
                 pattern, value = condition.children
                 eval_type = self.type_check_expr(value)
@@ -1903,8 +2005,8 @@ class Scope:
             scope.type_check_command(body)
         elif command.data == "ifelse":
             condition, if_true, if_false = command.children
-            scope = self.new_scope()
-            elsescope = self.new_scope()
+            scope = self.new_scope(parent_type="if")
+            elsescope = self.new_scope(parent_type="if")
             if condition.data == "conditional_let":
                 pattern, value = condition.children
                 eval_type = self.type_check_expr(value)
@@ -2030,7 +2132,7 @@ class Scope:
                 [*(arg_type for _, arg_type in arguments), class_type]
             )
 
-            scope = self.new_scope(parent_function=None, inherit_errors=False)
+            scope = self.new_scope(parent_function=None, inherit_errors=False, parent_type="class")
             for arg_pattern, arg_type in arguments:
                 scope.assign_to_pattern(arg_pattern, arg_type, True, certain=True)
             scope.type_check_command(class_body)
@@ -2062,7 +2164,7 @@ class Scope:
             )
             class_type = NClass(name)
 
-            scope = self.new_scope(parent_function=None)
+            scope = self.new_scope(parent_function=None, parent_type="class")
             for arg_pattern, arg_type in arguments:
                 scope.assign_to_pattern(arg_pattern, arg_type, True, certain=True)
             scope.type_check_command(class_body)

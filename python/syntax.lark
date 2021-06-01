@@ -4,12 +4,14 @@ main_instruction: instruction (";" | "\n")
                 | if (";" | "\n")?
                 | ifelse (";" | "\n")?
                 | for (";" | "\n")?
+                | while (";" | "\n")?
                 | for_legacy (";" | "\n")?
 
 last_instruction: instruction (";" | "\n")?
                 | if (";" | "\n")?
                 | ifelse (";" | "\n")?
                 | for (";" | "\n")?
+                | while (";" | "\n")?
                 | for_legacy (";" | "\n")?
 
 instruction: declare
@@ -17,6 +19,8 @@ instruction: declare
            | function_callback_pipe
            | imp
            | return
+           | continue
+           | break
            | vary
            | enum_definition
            | alias_definition
@@ -32,9 +36,12 @@ function_callback_pipe: literal "|>" pipe_function_call
                       | function_callback_pipe "|>" pipe_function_call
 for_legacy: "for" name_type NUMBER code_block
 for: "for" "(" name_type "in" value ")" code_block
+while: "while" "(" value ")" code_block
 imp: "import" NAME
 impn: "imp" (STRING | NAME)
 return: "return" expression
+continue: "continue"
+break: "break"
 if: "if" condition ("{" instruction "}" | code_block)
 ifelse: "if" condition ("{" instruction "}" | code_block) "else" ("{" instruction "}" | code_block | ifelse | if)
 ifelse_expr: "if" condition "{" expression "}" "else" ("{" expression "}" | ifelse_expr)
@@ -42,6 +49,7 @@ ifelse_expr: "if" condition "{" expression "}" "else" ("{" expression "}" | ifel
           | conditional_let
 conditional_let: "let" pattern "=" expression
 class_definition: "class" modifier NAME arguments code_block
+match: "match" "(" value ")" match_block
 
 //helpers
 name_type: pattern [":" types]
@@ -65,6 +73,8 @@ tupleval: "(" expression ("," expression)* (",")? ")"
 listval: "[" (expression ("," expression)* (",")?)? "]"
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
 enum_constructors: enum_constructor ("|" enum_constructor)*
+match_block: "{" (match_entry (";" | "\n"))* "}"
+match_entry: value "->" value
 enum_constructor: modifier "<" NAME types* ">"
                 | modifier NAME
 
@@ -121,12 +131,15 @@ func_type: generic_declaration? (func_inner_type "->")+ not_func_type
            | function_def
            | anonymous_func
            | function_callback_pipe
+           | match
 
 ?boolean_expression: or_expression
 ?or_expression: [or_expression OR] and_expression
 ?and_expression: [and_expression AND] not_expression
 ?not_expression: compare_expression
+               | in_expression
                | NOT_KW not_expression
+?in_expression: number_expression IN number_expression
 ?compare_expression: [compare_expression compare_operator] number_expression
 ?compare_operator: EQUALS
                  | GORE
@@ -137,7 +150,7 @@ func_type: generic_declaration? (func_inner_type "->")+ not_func_type
 
 ?number_expression: sum_expression
 ?sum_expression: [sum_expression (ADD | SUBTRACT)] product_expression
-?product_expression: [product_expression (MULTIPLY | DIVIDE | MODULO)] exponent_expression
+?product_expression: [product_expression (MULTIPLY | DIVIDE | MODULO | SHIFTL | SHIFTR)] exponent_expression
 // Exponentiation right to left associative
 ?exponent_expression: unary_expression [EXPONENT exponent_expression]
 ?unary_expression: await_expression
@@ -161,7 +174,7 @@ value: NUMBER
      | impn
 
 // Make sure that keywords are not in NAME
-NAME: /(?!(\b(let|type|var|alias|for|in|import|imp|return|if|else|class|pub|break|continue|with|yield|do|not)\b))/ CNAME
+NAME: /(?!(\b(let|type|var|alias|for|in|import|imp|return|if|else|class|pub|break|continue|with|yield|do|not|match)\b))/ CNAME
 
 // Alias for unary_expression. Used for values that visually look tightly bound,
 // which is important for function arguments since they're separated by spaces.
@@ -180,6 +193,9 @@ AND: ("&&" | "&")
 EQUALS: ("==" | "=")
 GORE: ">="
 LORE: "<="
+SHIFTL: "<<"
+SHIFTR: ">>"
+IN: "in"
 LESS: "<"
 GREATER: ">"
 NEQUALS: "/="
@@ -194,6 +210,7 @@ EXPONENT: "^"
 AWAIT: "!"
 PUBLIC: "pub"
 UNIT: "()"
+EMPTY: "_"
 %import common.ESCAPED_STRING -> STRING
 %import common.SIGNED_NUMBER  -> NUMBER
 %import common.CNAME
