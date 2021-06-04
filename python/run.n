@@ -4,6 +4,6 @@ let i: () -> () -> int = [] -> () -> int {
 	}
 }
 
-let ii: () -> int = i(())
+let ii: () -> int = i()
 
 print(ii())

@@ -789,6 +789,8 @@ class Scope:
         elif expr.data == "function_callback" or expr.data == "function_callback_pipe":
             if expr.data == "function_callback":
                 function, *arguments = expr.children[0].children
+                if len(arguments) == 0:
+                    arguemnts.append(())
             else:
                 mainarg = expr.children[0]
                 function, *arguments = expr.children[1].children
@@ -796,6 +798,8 @@ class Scope:
             arg_values = []
             for arg in arguments:
                 arg_values.append(await self.eval_expr(arg))
+            if len(arg_values) == 0:
+                arg_values = ["unit"]
             return await (await self.eval_expr(function)).run(arg_values)
         elif expr.data == "or_expression":
             left, _, right = expr.children
@@ -1308,6 +1312,8 @@ class Scope:
         elif expr.data == "function_callback" or expr.data == "function_callback_pipe":
             if expr.data == "function_callback":
                 function, *arguments = expr.children[0].children
+                if len(arguments) == 0:
+                    arguments.append("unit")
             else:
                 mainarg = expr.children[0]
                 function, *arguments = expr.children[1].children
