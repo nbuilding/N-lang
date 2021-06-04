@@ -789,8 +789,6 @@ class Scope:
         elif expr.data == "function_callback" or expr.data == "function_callback_pipe":
             if expr.data == "function_callback":
                 function, *arguments = expr.children[0].children
-                if len(arguments) == 0:
-                    arguemnts.append(())
             else:
                 mainarg = expr.children[0]
                 function, *arguments = expr.children[1].children
@@ -799,7 +797,7 @@ class Scope:
             for arg in arguments:
                 arg_values.append(await self.eval_expr(arg))
             if len(arg_values) == 0:
-                arg_values = ["unit"]
+                arg_values = [()]
             return await (await self.eval_expr(function)).run(arg_values)
         elif expr.data == "or_expression":
             left, _, right = expr.children
@@ -1312,12 +1310,13 @@ class Scope:
         elif expr.data == "function_callback" or expr.data == "function_callback_pipe":
             if expr.data == "function_callback":
                 function, *arguments = expr.children[0].children
-                if len(arguments) == 0:
-                    arguments.append("unit")
             else:
                 mainarg = expr.children[0]
                 function, *arguments = expr.children[1].children
                 arguments.append(mainarg)
+
+            if len(arguments) == 0:
+                arguments.append("unit")
             func_type = self.type_check_expr(function)
             if func_type is None:
                 return None
@@ -1336,7 +1335,9 @@ class Scope:
             for n, (argument, arg_type) in enumerate(
                 zip(arguments, arg_types), start=1
             ):
-                check_type = self.type_check_expr(argument)
+                check_type = argument
+                if(argument != "unit"):
+                    check_type = self.type_check_expr(check_type)
                 if check_type is None:
                     parameters_have_none = True
                 resolved_arg_type = apply_generics(arg_type, check_type, generics)
