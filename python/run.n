@@ -1,5 +1,9 @@
-let i = [] -> int {
-	return 0
+let i: () -> () -> int = [] -> () -> int {
+	return [] -> int {
+		return 3
+	}
 }
 
-let ii:int = i
+let ii: () -> int = i()
+
+print(ii())

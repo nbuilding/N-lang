@@ -10,6 +10,8 @@ class Function(Variable):
     ):
         # Tuples represent function types. (a, b, c) represents a -> b -> c.
         types = tuple([ty for _, ty in arguments] + [returntype])
+        if len(arguments) == 0:
+            types = ("unit",) + (returntype,)
         if None in types:
             types = None
         super(Function, self).__init__(types, self, public)

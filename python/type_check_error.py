@@ -60,8 +60,6 @@ def display_type(n_type, color=True):
     if isinstance(n_type, str):
         display = "()" if n_type == "unit" else n_type
     elif isinstance(n_type, tuple):
-        if len(n_type) == 1:
-            n_type = ("unit",) + n_type
         display = " -> ".join(
             ("(%s)" if isinstance(type, tuple) else "%s") % display_type(type, False)
             for type in n_type
