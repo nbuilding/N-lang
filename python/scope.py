@@ -49,8 +49,8 @@ elif __file__:
 syntaxpath = os.path.join(basepath, "syntax.lark")
 
 
-def parse_file(file_path, base_path):
-    import_scope = Scope(base_path=base_path, file_path=file_path)
+def parse_file(file_path, base_path, parent_imports):
+    import_scope = Scope(base_path=base_path, file_path=file_path, parent_imports=parent_imports)
     native_functions.add_funcs(import_scope)
 
     with open(syntaxpath, "r") as f:
@@ -70,8 +70,8 @@ def parse_file(file_path, base_path):
     return import_scope, tree, file
 
 
-async def eval_file(file_path, base_path):
-    import_scope, tree, _ = parse_file(file_path, base_path)
+async def eval_file(file_path, base_path, parent_imports):
+    import_scope, tree, _ = parse_file(file_path, base_path, parent_imports)
 
     import_scope.variables = {
         **import_scope.variables,
@@ -80,8 +80,8 @@ async def eval_file(file_path, base_path):
     return import_scope
 
 
-def type_check_file(file_path, base_path):
-    import_scope, tree, text_file = parse_file(file_path, base_path)
+def type_check_file(file_path, base_path, parent_imports):
+    import_scope, tree, text_file = parse_file(file_path, base_path, parent_imports)
 
     scope = type_check(tree, import_scope)
     import_scope.variables = {**import_scope.variables, **scope.variables}
@@ -173,6 +173,7 @@ class Scope:
         warnings=None,
         base_path="",
         file_path="",
+        parent_imports=None
     ):
         self.parent = parent
         self.parent_function = parent_function
@@ -186,6 +187,8 @@ class Scope:
         self.base_path = base_path
         # The path of the file the Scope is associated with.
         self.file_path = file_path
+        # The other files it has been imported from to prevent circular imports
+        self.parent_imports = parent_imports if parent_imports is not None else []
 
     def new_scope(self, parent_function=None, inherit_errors=True):
         return Scope(
@@ -195,6 +198,7 @@ class Scope:
             warnings=self.warnings if inherit_errors else [],
             base_path=self.base_path,
             file_path=self.file_path,
+            parent_imports=self.parent_imports,
         )
 
     def get_variable(self, name, err=True):
@@ -923,7 +927,7 @@ class Scope:
                 # Support old syntax
                 rel_file_path = expr.children[0].value + ".n"
             file_path = os.path.join(os.path.dirname(self.file_path), rel_file_path)
-            val = await eval_file(file_path, self.base_path)
+            val = await eval_file(file_path, self.base_path, self.parent_imports + [os.path.normpath(self.file_path)])
             holder = {}
             for key in val.variables.keys():
                 if val.variables[key].public:
@@ -1623,8 +1627,22 @@ class Scope:
                 # Support old syntax
                 rel_file_path = expr.children[0].value + ".n"
             file_path = os.path.join(os.path.dirname(self.file_path), rel_file_path)
+            if os.path.normpath(file_path) == os.path.normpath(self.file_path):
+                self.errors.append(
+                    TypeCheckError(
+                        expr.children[0], "You cannot import the file that is running"
+                    )
+                )
+                return None
             if os.path.isfile(file_path):
-                impn, f = type_check_file(file_path, self.base_path)
+                if os.path.normpath(file_path) in self.parent_imports:
+                    self.errors.append(
+                        TypeCheckError(
+                            expr.children[0], "Circular imports are not allowed"
+                        )
+                    )
+                    return None
+                impn, f = type_check_file(file_path, self.base_path, self.parent_imports + [os.path.normpath(self.file_path)])
                 if len(impn.errors) != 0:
                     self.errors.append(ImportedError(impn.errors[:], f))
                 if len(impn.warnings) != 0:
