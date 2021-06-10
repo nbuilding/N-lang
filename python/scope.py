@@ -1244,6 +1244,37 @@ class Scope:
         )
 
     """
+    Deal with spread operators for lists
+    """
+    def type_check_spread_list(self, spread_tree):
+        spread_var = self.get_variable(spread_tree.children[0], err=False)
+        if spread_var == None:
+            self.errors.append(
+                TypeCheckError(
+                    entry_val[0],
+                    "The variable %s does not exist in this scope" % spread_tree.children[0],
+                )
+            )
+            return None
+        if not isinstance(spread_var.type, NTypeVars):
+            self.errors.append(
+                TypeCheckError(
+                    spread_tree.children[0],
+                    "The .. operator cannot be uses on a non-list type inside a list",
+                )
+            )
+            return None
+        if spread_var.type.name != "list":
+            self.errors.append(
+                TypeCheckError(
+                    spread_tree.children[0],
+                    "The .. operator cannot be uses on a non-list type inside a list",
+                )
+            )
+            return None
+        return spread_var.type.typevars[0]
+
+    """
     Type checks an expression and returns its type.
     """
 
@@ -1658,7 +1689,7 @@ class Scope:
             if len(expr.children) == 0:
                 return n_list_type
 
-            first, *rest = [self.type_check_expr(e) for e in expr.children]
+            first, *rest = [self.type_check_spread_list(e) if isinstance(e, lark.Tree) and e.data == "spread" else self.type_check_expr(e) for e in expr.children]
             contained_type = first
 
             for i, item_type in enumerate(rest):
