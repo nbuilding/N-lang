@@ -65,12 +65,13 @@ anonymous_func: arguments "->" NAME ":" (instruction (";" instruction)*)
 char: "\\" ( escape_code | "{" /./ "}")
 escape_code: /[tnr]/
 tupledef: "(" types ("," types)* ")"
-recorddef: "{" (record_entry_def (";" | "\n"))* record_entry_def (";" | "\n")? "}"
-record_entry_def: CNAME ":" types
+recorddef: "{" (record_entry_lit (";" | "\n"))* record_entry_lit (";" | "\n")? "}"
+spread: ".." NAME
+record_entry_lit: CNAME ":" types
 with_typevars: module_type "[" types ("," types)* "]"
 declaration_with_typevars: NAME ("[" NAME ("," NAME)* "]")?
 tupleval: "(" expression ("," expression)* (",")? ")"
-listval: "[" (expression ("," expression)* (",")?)? "]"
+listval: "[" (list_expression ("," list_expression)* (",")?)? "]"
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
 enum_constructors: enum_constructor ("|" enum_constructor)*
 match_block: "{" (match_entry (";" | "\n"))* "}"
@@ -78,11 +79,11 @@ match_entry: value "->" value
 enum_constructor: modifier "<" NAME types* ">"
                 | modifier NAME
 
-
 modifier: PUBLIC?
 
 ?record_entry: CNAME ":" expression
              | NAME
+             | spread
 
 ?pattern: pattern_value
         | tuple_pattern
@@ -125,6 +126,9 @@ module_type: [NAME "."]* NAME
 func_type: generic_declaration? (func_inner_type "->")+ not_func_type
 ?func_inner_type: not_func_type
                 | "(" func_type ")"
+
+?list_expression: expression
+                | spread
 
 ?expression: ifelse_expr
            | boolean_expression

@@ -735,9 +735,18 @@ class Scope:
 
     async def eval_record_entry(self, entry):
         if isinstance(entry, lark.Tree):
+            if entry.data == "spread":
+                return [entry.children[0]]
             return entry.children[0].value, await self.eval_expr(entry.children[1])
         else:
             return entry.value, self.eval_value(entry)
+
+    """
+    Deals with spread operators for lists
+    """
+    def eval_spread_list(self, spread_tree, list_val):
+        for val in self.get_variable(spread_tree.children[0]).value:
+            list_val.append(val)
 
     def eval_value(self, value):
         if value.type == "NUMBER":
@@ -956,13 +965,28 @@ class Scope:
         elif expr.data == "listval":
             values = []
             for e in expr.children:
-                values.append(await self.eval_expr(e))
+                if isinstance(e, lark.Tree) and e.data == "spread":
+                    self.eval_spread_list(e, values)
+                else:
+                    values.append(await self.eval_expr(e))
             return values
         elif expr.data == "recordval":
-            entries = []
+            record_type = {}
+            spreads = []
+            non_spread = {}
             for entry in expr.children:
-                entries.append(await self.eval_record_entry(entry))
-            return dict(entries)
+                entry_val = await self.eval_record_entry(entry)
+                if isinstance(entry_val, list):
+                    spreads.append(self.get_variable(entry_val[0]).value)
+                else:
+                    name, val = entry_val 
+                    non_spread[name] = val
+            for spread in spreads:
+                for k in spread.keys():
+                    record_type[k] = spread[k]
+            for k in non_spread.keys():
+                record_type[k] = non_spread[k]
+            return record_type
         elif expr.data == "await_expression":
             value, _ = expr.children
             command = await self.eval_expr(value)
@@ -1207,6 +1231,8 @@ class Scope:
 
     def get_record_entry_type(self, entry):
         if isinstance(entry, lark.Tree):
+            if entry.data == "spread":
+                return [entry.children[0]]
             return entry.children[0].value, self.type_check_expr(entry.children[1])
         else:
             return entry.value, self.get_value_type(entry)
@@ -1240,6 +1266,37 @@ class Scope:
                 value, "Internal problem: I don't know the value type %s." % value.type
             )
         )
+
+    """
+    Type checks spread operators for lists
+    """
+    def type_check_spread_list(self, spread_tree):
+        spread_var = self.get_variable(spread_tree.children[0], err=False)
+        if spread_var == None:
+            self.errors.append(
+                TypeCheckError(
+                    spread_tree.children[0],
+                    "The variable %s does not exist in this scope" % spread_tree.children[0],
+                )
+            )
+            return None
+        if not isinstance(spread_var.type, NTypeVars):
+            self.errors.append(
+                TypeCheckError(
+                    spread_tree.children[0],
+                    "The .. operator cannot be uses on a non-list type inside a list",
+                )
+            )
+            return None
+        if spread_var.type.name != "list":
+            self.errors.append(
+                TypeCheckError(
+                    spread_tree.children[0],
+                    "The .. operator cannot be uses on a non-list type inside a list",
+                )
+            )
+            return None
+        return spread_var.type.typevars[0]
 
     """
     Type checks an expression and returns its type.
@@ -1656,7 +1713,7 @@ class Scope:
             if len(expr.children) == 0:
                 return n_list_type
 
-            first, *rest = [self.type_check_expr(e) for e in expr.children]
+            first, *rest = [self.type_check_spread_list(e) if isinstance(e, lark.Tree) and e.data == "spread" else self.type_check_expr(e) for e in expr.children]
             contained_type = first
 
             for i, item_type in enumerate(rest):
@@ -1714,9 +1771,38 @@ class Scope:
                 )
                 return None
         elif expr.data == "recordval":
-            record_type = dict(
-                self.get_record_entry_type(entry) for entry in expr.children
-            )
+            record_type = {}
+            spreads = []
+            non_spread = {}
+            for entry in expr.children:
+                entry_val = self.get_record_entry_type(entry)
+                if isinstance(entry_val, list):
+                    spread_var = self.get_variable(entry_val[0], err=False)
+                    if spread_var == None:
+                        self.errors.append(
+                            TypeCheckError(
+                                entry_val[0],
+                                "The variable %s does not exist in this scope" % entry_val[0],
+                            )
+                        )
+                        return None
+                    if not isinstance(spread_var.type, dict):
+                        self.errors.append(
+                            TypeCheckError(
+                                entry_val[0],
+                                "The .. operator cannot be uses on a non-record type inside a record",
+                            )
+                        )
+                        return None
+                    spreads.append(spread_var.type)
+                else:
+                    name, val = entry_val 
+                    non_spread[name] = val
+            for spread in spreads:
+                for k in spread.keys():
+                    record_type[k] = spread[k]
+            for k in non_spread.keys():
+                record_type[k] = non_spread[k]
             if None in record_type.values():
                 return None
             else:
