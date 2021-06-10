@@ -11,7 +11,7 @@ for (i in range(0, 10, 1)) {
 }
 
 let errer = [1, 2, 3]
-//let spreadTest = [..errer, 1, 2, 3]
+let spreadTest = [..errer, 5, 5, 5, ..errer]
 
 print(3 in mapFrom([(1, 3), (4, 5)]))
 print("est" in "test")
@@ -27,4 +27,4 @@ let c = {
 }
 
 print(c)
-//print(spreadTest)
+print(spreadTest)

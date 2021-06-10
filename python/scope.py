@@ -741,6 +741,13 @@ class Scope:
         else:
             return entry.value, self.eval_value(entry)
 
+    """
+    Deals with spread operators for lists
+    """
+    def eval_spread_list(self, spread_tree, list_val):
+        for val in self.get_variable(spread_tree.children[0]).value:
+            list_val.append(val)
+
     def eval_value(self, value):
         if value.type == "NUMBER":
             if "." in str(value.value):
@@ -958,7 +965,10 @@ class Scope:
         elif expr.data == "listval":
             values = []
             for e in expr.children:
-                values.append(await self.eval_expr(e))
+                if isinstance(e, lark.Tree) and e.data == "spread":
+                    self.eval_spread_list(e, values)
+                else:
+                    values.append(await self.eval_expr(e))
             return values
         elif expr.data == "recordval":
             record_type = {}
@@ -1258,7 +1268,7 @@ class Scope:
         )
 
     """
-    Deal with spread operators for lists
+    Type checks spread operators for lists
     """
     def type_check_spread_list(self, spread_tree):
         spread_var = self.get_variable(spread_tree.children[0], err=False)
