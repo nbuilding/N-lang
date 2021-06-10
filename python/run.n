@@ -17,7 +17,7 @@ let r = {
 	test1: 2
 }
 
-let c = {
+let c: {test2:int } = {
 	..r
 	test1: 3
 	test2: "reer"

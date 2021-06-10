@@ -87,6 +87,7 @@ modifier: PUBLIC?
 
 ?record_entry: CNAME ":" expression
              | NAME
+             | spread
 
 ?pattern: pattern_value
         | tuple_pattern
