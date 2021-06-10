@@ -28,3 +28,6 @@ let c = {
 
 print(c)
 print(spreadTest)
+
+print(append(3, spreadTest))
+print(subsection(1, 100000, spreadTest))

@@ -107,6 +107,17 @@ def special_print(val):
         print(display)
     return val
 
+def append_to_list(val, l):
+    l.append(val)
+    return l[:]
+
+def subsection_list(lower, upper, l):
+    if lower < 0:
+        lower = 0
+    if upper > len(l):
+        upper = len(l)
+    return l[lower:upper]
+
 
 # Define global functions/variables
 def add_funcs(global_scope):
@@ -209,11 +220,23 @@ def add_funcs(global_scope):
         "append",
         [
             ("item", append_generic),
-            ("list", n_list_type.with_typevars([item_at_generic])),
+            ("list", n_list_type.with_typevars([append_generic])),
         ],
-        n_list_type.with_typevars([item_at_generic]),
-        lambda item, l: l.__add__([item]),
+        n_list_type.with_typevars([append_generic]),
+        append_to_list,
     )
+    subsection_generic = NGenericType("t")
+    global_scope.add_native_function(
+        "subsection",
+        [
+            ("lower", "int"),
+            ("upper", "int"),
+            ("list", n_list_type.with_typevars([subsection_generic])),
+        ],
+        n_list_type.with_typevars([subsection_generic]),
+        subsection_list,
+    )
+
     filter_map_generic_a = NGenericType("a")
     filter_map_generic_b = NGenericType("b")
     global_scope.add_native_function(
