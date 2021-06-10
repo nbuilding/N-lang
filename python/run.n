@@ -11,7 +11,7 @@ for (i in range(0, 10, 1)) {
 }
 
 let errer = [1, 2, 3]
-let spreadTest = [..fsdf, 1, 2, 3]
+//let spreadTest = [..errer, 1, 2, 3]
 
 print(3 in mapFrom([(1, 3), (4, 5)]))
 print("est" in "test")
@@ -20,10 +20,11 @@ let r = {
 	test1: 2
 }
 
-let c: {test2:int} = {
-	..errer
+let c = {
+	..r
 	test1: 3
 	test2: "reer"
 }
 
 print(c)
+//print(spreadTest)

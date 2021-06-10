@@ -735,6 +735,8 @@ class Scope:
 
     async def eval_record_entry(self, entry):
         if isinstance(entry, lark.Tree):
+            if entry.data == "spread":
+                return [entry.children[0]]
             return entry.children[0].value, await self.eval_expr(entry.children[1])
         else:
             return entry.value, self.eval_value(entry)
@@ -959,10 +961,22 @@ class Scope:
                 values.append(await self.eval_expr(e))
             return values
         elif expr.data == "recordval":
-            entries = []
+            record_type = {}
+            spreads = []
+            non_spread = {}
             for entry in expr.children:
-                entries.append(await self.eval_record_entry(entry))
-            return dict(entries)
+                entry_val = await self.eval_record_entry(entry)
+                if isinstance(entry_val, list):
+                    spreads.append(self.get_variable(entry_val[0]).value)
+                else:
+                    name, val = entry_val 
+                    non_spread[name] = val
+            for spread in spreads:
+                for k in spread.keys():
+                    record_type[k] = spread[k]
+            for k in non_spread.keys():
+                record_type[k] = non_spread[k]
+            return record_type
         elif expr.data == "await_expression":
             value, _ = expr.children
             command = await self.eval_expr(value)
