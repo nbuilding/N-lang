@@ -1251,7 +1251,7 @@ class Scope:
         if spread_var == None:
             self.errors.append(
                 TypeCheckError(
-                    entry_val[0],
+                    spread_tree.children[0],
                     "The variable %s does not exist in this scope" % spread_tree.children[0],
                 )
             )
