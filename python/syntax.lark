@@ -65,7 +65,7 @@ anonymous_func: arguments "->" NAME ":" (instruction (";" instruction)*)
 char: "\\" ( escape_code | "{" /./ "}")
 escape_code: /[tnr]/
 tupledef: "(" types ("," types)* ")"
-recorddef: "{" (record_entry_def (";" | "\n"))* record_entry_def (";" | "\n")? "}"
+recorddef: "{" (record_entry_lit (";" | "\n"))* record_entry_lit (";" | "\n")? "}"
 spread: ".." NAME
 record_entry_lit: CNAME ":" types
 with_typevars: module_type "[" types ("," types)* "]"
@@ -78,10 +78,6 @@ match_block: "{" (match_entry (";" | "\n"))* "}"
 match_entry: value "->" value
 enum_constructor: modifier "<" NAME types* ">"
                 | modifier NAME
-
-
-record_entry_def: spread
-                | record_entry_lit
 
 modifier: PUBLIC?
 

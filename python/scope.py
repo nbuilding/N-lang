@@ -351,21 +351,10 @@ class Scope:
                 ]
                 return tuple_type if None not in tuple_type else None
             elif tree_or_token.data == "recorddef":
-                record_type = {}
-                spreads = []
-                non_spread = {}
-                for entry in tree_or_token.children:
-                    entry_val = self.get_record_entry_type(entry)
-                    if isinstance(entry_val, list):
-                        spreads.append(self.get_variable(entry_val[0], err=False).type)
-                    else:
-                        name, val = entry_val 
-                        non_spread[name] = val
-                for spread in spreads:
-                    for k in spread.keys():
-                        record_type[k] = spread[k]
-                for k in non_spread.keys():
-                    record_type[k] = non_spread[k]
+                record_type = {
+                    entry.children[0].value: self.parse_type(entry.children[1], err=err)
+                    for entry in tree_or_token.children
+                }
                 return record_type if None not in record_type.values() else None
             elif tree_or_token.data == "module_type":
                 n_type = self.get_module_type(tree_or_token, err=err)
@@ -1218,12 +1207,9 @@ class Scope:
 
     def get_record_entry_type(self, entry):
         if isinstance(entry, lark.Tree):
-            if entry.data == "record_entry_def":
-                entry = entry.children[0]
             if entry.data == "spread":
                 return [entry.children[0]]
-            _, ty = self.get_name_type(entry, err=False)
-            return entry.children[0].value, ty
+            return entry.children[0].value, self.type_check_expr(entry.children[1])
         else:
             return entry.value, self.get_value_type(entry)
 
@@ -1736,7 +1722,24 @@ class Scope:
             for entry in expr.children:
                 entry_val = self.get_record_entry_type(entry)
                 if isinstance(entry_val, list):
-                    spreads.append(self.get_variable(entry_val[0], err=False).type)
+                    spread_var = self.get_variable(entry_val[0], err=False)
+                    if spread_var == None:
+                        self.errors.append(
+                            TypeCheckError(
+                                entry_val[0],
+                                "The variable %s does not exist in this scope" % entry_val[0],
+                            )
+                        )
+                        return None
+                    if not isinstance(spread_var.type, dict):
+                        self.errors.append(
+                            TypeCheckError(
+                                entry_val[0],
+                                "The .. operator cannot be uses on a non-record type inside a record",
+                            )
+                        )
+                        return None
+                    spreads.append(spread_var.type)
                 else:
                     name, val = entry_val 
                     non_spread[name] = val
