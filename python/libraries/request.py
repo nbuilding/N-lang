@@ -7,7 +7,7 @@ import logging
 from io import BytesIO
 from flask import Flask, request as req, Response
 from flask.logging import default_handler
-from werkzeug import FileWrapper
+from werkzeug.wsgi import FileWrapper
 
 from native_types import n_cmd_type, NMap, n_map_type, n_list_type
 from libraries.json import json_value_type, python_to_json, string

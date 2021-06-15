@@ -31,6 +31,17 @@ let thing = [] -> cmd[()] {
 	print(request.delete("https://github.com", mapFrom([("", "")]))!)
 	let _ = request.createServer(3000, 
 		[path:str requestType:str data:json.value] -> cmd[{ responseCode:int; data:list[int]; headers:map[str, str]; mimetype:str }] {
+			if (path == "" && requestType == "GET") {
+				return {
+					responseCode: 200
+					data: textToBytes("oops");
+					headers: mapFrom([
+						("Access-Control-Allow-Origin", "*"),
+						("Content-Type", "text/plain"),
+					])
+					mimetype: "text/plain"
+				}
+			}
 			return {
 				responseCode: 404
 				data: textToBytes("oops");
