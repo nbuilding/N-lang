@@ -107,10 +107,6 @@ def special_print(val):
         print(display)
     return val
 
-def append_to_list(val, l):
-    l.append(val)
-    return l[:]
-
 def subsection_list(lower, upper, l):
     if lower < 0:
         lower = 0
@@ -223,7 +219,7 @@ def add_funcs(global_scope):
             ("list", n_list_type.with_typevars([append_generic])),
         ],
         n_list_type.with_typevars([append_generic]),
-        append_to_list,
+        lambda i, l: l.__add__([i]),
     )
     subsection_generic = NGenericType("t")
     global_scope.add_native_function(
