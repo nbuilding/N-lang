@@ -7,6 +7,17 @@ print(2 << 3)
 
 print(toFloat(1))
 
+let textToBytes = [text:str] -> list[int] {
+	let b = []
+	for (i in range(0, len(text), 1)) {
+		if let <yes c> = text |> charAt(i) {
+			var b = b |> append(charCode(c))
+		}
+		var b = b |> append(0)
+	}
+	return b
+}
+
 let thing = [] -> cmd[()] {
 
 	let imageData = FileIO.readBytes("C:\\Users\\Ashvin Ranjan\\Downloads\\IMG_1499.jpg")! |> default([1])
@@ -19,39 +30,17 @@ let thing = [] -> cmd[()] {
 	print(FileIO.readBytes("test.txt")!)
 	print(request.delete("https://github.com", mapFrom([("", "")]))!)
 	let _ = request.createServer(3000, 
-		[
-			{
-				method: "GET"
-				path: "/image.jpg"
-				handle: [data:json.value] -> cmd[{ responseCode:int; data:str; headers:map[str, str] }] {
-					return {
-						responseCode: 200
-						data: image
-						headers: mapFrom([
-							("Access-Control-Allow-Origin", "*"),
-							("Content-Type", "image/jpeg"),
-						])
-					}
-				}
-			},
-			{
-				method: "GET"
-				path: "/"
-				handle: [data:json.value] -> cmd[{ responseCode:int; data:str; headers:map[str, str] }] {
-					return {
-						responseCode: 200
-						data: "<img src='./image.jpg' />"
-						headers: mapFrom([
-							("Access-Control-Allow-Origin", "*"),
-							("Content-Type", "text/plain"),
-						])
-					}
-				}
-			},
-		],
-		mapFrom([
-			(404, "ooop!")
-		])
+		[path:str requestType:str data:json.value] -> cmd[{ responseCode:int; data:list[int]; headers:map[str, str]; mimetype:str }] {
+			return {
+				responseCode: 404
+				data: textToBytes("oops");
+				headers: mapFrom([
+					("Access-Control-Allow-Origin", "*"),
+					("Content-Type", "text/plain"),
+				])
+				mimetype: "text/plain"
+			}
+		}
 	)!
 }
 
