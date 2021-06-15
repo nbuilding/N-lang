@@ -37,9 +37,9 @@ let thing = [] -> cmd[()] {
 					data: textToBytes("oops");
 					headers: mapFrom([
 						("Access-Control-Allow-Origin", "*"),
-						("Content-Type", "text/plain"),
+						("Content-Type", "text/html"),
 					])
-					mimetype: "text/plain"
+					mimetype: "text/html"
 				}
 			}
 			return {
