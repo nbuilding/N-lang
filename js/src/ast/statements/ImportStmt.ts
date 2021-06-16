@@ -1,3 +1,5 @@
+import { modules } from '../../native-modules'
+import { unknown } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
@@ -19,7 +21,22 @@ export class ImportStmt extends Base implements Statement {
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
-    throw new Error('Method not implemented.')
+    context.defineVariable(
+      this.name,
+      modules.hasOwnProperty(this.name.value)
+        ? {
+            type: 'module',
+            path: this.name.value,
+            types: new Map(
+              Object.entries(modules[this.name.value].variables || {}),
+            ),
+            exportedTypes: new Map(
+              Object.entries(modules[this.name.value].types || {}),
+            ),
+          }
+        : unknown,
+    )
+    return {}
   }
 
   toString (): string {

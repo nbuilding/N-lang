@@ -26,7 +26,7 @@ export class RecordAccess extends Base implements Expression {
   typeCheck (context: TypeCheckContext): TypeCheckResult {
     const { type, exitPoint } = context.scope.typeCheck(this.value)
     const resolved = AliasSpec.resolve(type)
-    if (resolved.type === 'record') {
+    if (resolved.type === 'record' || resolved.type === 'module') {
       const fieldType = resolved.types.get(this.field.value)
       if (!fieldType) {
         context.err({

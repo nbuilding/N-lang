@@ -105,9 +105,6 @@ export enum ErrorType {
   /** RecordPattern: Duplicate key in record pattern */
   RECORD_PATTERN_DUPE_KEY = 'record-pattern-dupe-key',
 
-  /** RecordPattern: Not all fields of record destructured */
-  RECORD_PATTERN_INCOMPLETE = 'record-pattern-incomplete',
-
   /** TuplePattern: The number of items destructured =/= tuple length */
   TUPLE_PATTERN_LENGTH_MISMATCH = 'tuple-pattern-length-mismatch',
 
@@ -264,11 +261,6 @@ export type ErrorMessage =
       key: string
     }
   | {
-      type: ErrorType.RECORD_PATTERN_INCOMPLETE
-      recordType: NType
-      keys: string[]
-    }
-  | {
       type: ErrorType.OPERATION_UNPERFORMABLE
       a: NType
       b: NType
@@ -388,12 +380,6 @@ export function displayErrorMessage (
     }
     case ErrorType.NOT_MODULE: {
       return display`${err.modType} isn't a module, so you can't get any exported types from it.`
-    }
-    case ErrorType.RECORD_PATTERN_INCOMPLETE: {
-      return display`A ${err.recordType} has the keys ${[
-        'and',
-        err.keys.map(key => display`${key}`),
-      ]}, but you didn't destructure them. If you don't need those fields, you should assign them to a ${'_'} to explicitly discard the values.`
     }
     case ErrorType.RECORD_PATTERN_NO_KEY: {
       return display`A ${err.recordType} doesn't have a field named ${err.key}.`

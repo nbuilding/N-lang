@@ -35,7 +35,7 @@ export class ClassDeclaration extends Base implements Statement {
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
     const classType: NRecord = { type: 'record', types: new Map() }
-    const classAlias = new AliasSpec(this.name.value, classType, [])
+    const classAlias = new AliasSpec(this.name.value, classType)
     context.defineType(this.name, classAlias, this.public)
     const scope = context.scope.inner({
       returnType: 'class',

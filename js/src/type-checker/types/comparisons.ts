@@ -19,6 +19,10 @@ export type ComparisonResultType =
       types: Record<string, ComparisonResult>
     }
   | {
+      type: 'module'
+      path: string
+    }
+  | {
       type: 'function'
       argument: ComparisonResult
       return: ComparisonResult
@@ -54,6 +58,12 @@ export function typeToResultType (type: NType): ComparisonResultType {
           key,
           typeToResultType(type),
         ]),
+      }
+    }
+    case 'module': {
+      return {
+        type: 'module',
+        path: type.path,
       }
     }
     case 'function': {

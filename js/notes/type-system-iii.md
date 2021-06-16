@@ -80,3 +80,32 @@ other things to solve:
   - The number type has been converted into a union type, but it doesn't have
     name. I guess that's fine, though, since it's a bit confusing to see
     `number` without being able to use it. `int or float` suffices.
+
+## Module types
+
+I can't just make modules like records for two reasons:
+
+- modules should only be assignable based on their path.
+
+- `{ a: str }` is not the same as a module exporting `a` as a str.
+
+Thus, I must also define the comparison mechanics for them. I think module types
+will still be a special record type so that it works with record access and
+patterns, but maybe this is a bad idea, especially since there's many special
+cases for module types. For example, for substituting type variables, there is
+no need to recurse into a module (and that's probably a bad idea anyways).
+
+Thus, I will make a new type... type.
+
+```ts
+interface NModule {
+  type: 'module'
+  path: string // eg 'request' or 'C:\\Users\\billy\\Documents\\run.n'
+  types: Map<string, NType>
+  exportedTypes: Map<string, TypeSpec | 'error'>
+}
+```
+
+For comparisons, modules are only assignable to modules of the same path, which
+serves as a unique identifier per module. Modules cannot be assigned to records,
+and vice versa. This is symmetrical even for assignable comparisons.

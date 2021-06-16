@@ -49,17 +49,18 @@ export class RecordPattern extends Base implements Pattern {
 
   checkPattern (context: CheckPatternContext): CheckPatternResult {
     const resolved = AliasSpec.resolve(context.type)
-    if (resolved.type === 'record') {
-      const keys = new Set(resolved.types.keys())
+    if (resolved.type === 'record' || resolved.type === 'module') {
+      const keys: Set<string> = new Set()
       for (const entry of this.entries) {
-        if (!keys.delete(entry.key.value)) {
-          // Key was already deleted (ie duplicate key)
+        if (keys.has(entry.key.value)) {
           context.err(
             {
               type: ErrorType.RECORD_PATTERN_DUPE_KEY,
             },
             entry.key,
           )
+        } else {
+          keys.add(entry.key.value)
         }
         const value = resolved.types.get(entry.key.value)
         if (!value) {
@@ -73,13 +74,6 @@ export class RecordPattern extends Base implements Pattern {
           )
         }
         context.checkPattern(entry.value, value || unknown)
-      }
-      if (keys.size > 0) {
-        context.err({
-          type: ErrorType.RECORD_PATTERN_INCOMPLETE,
-          recordType: resolved,
-          keys: Array.from(keys),
-        })
       }
     } else {
       if (resolved.type !== 'unknown') {
