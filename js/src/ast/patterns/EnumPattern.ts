@@ -38,17 +38,17 @@ export class EnumPattern extends Base implements Pattern {
       }
       const variant = context.type.typeSpec.variants.get(this.variant.value)
       if (variant) {
-        if (variant.length !== this.patterns.length) {
+        if (variant.types && variant.types.length !== this.patterns.length) {
           context.err({
             type: ErrorType.ENUM_PATTERN_FIELD_MISMATCH,
             enum: context.type,
             variant: this.variant.value,
-            fields: variant.length,
+            fields: variant.types.length,
             given: this.patterns.length,
           })
         }
         this.patterns.forEach((pattern, i) => {
-          context.checkPattern(pattern, variant[i] || unknown)
+          context.checkPattern(pattern, variant.types?.[i] || unknown)
         })
         return {}
       } else {
