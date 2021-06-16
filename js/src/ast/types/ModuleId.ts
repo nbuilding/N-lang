@@ -1,4 +1,5 @@
 import { ErrorType } from '../../type-checker/errors/Error'
+import { unknown } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
@@ -24,63 +25,61 @@ export class ModuleId extends Base implements Type {
   }
 
   getType (context: GetTypeContext): GetTypeResult {
-    throw new Error('TODO')
-    /*
     const [module, ...modules] = this.modules
     if (module) {
-      const firstModuleType = context.scope.getVariable(module.value, true)
-      if (firstModuleType instanceof Module) {
-        let moduleType: Module = firstModuleType
-        for (const module of modules) {
-          const type = moduleType.types.get(module.value)
-          if (type === undefined) {
-            context.err({
-              type: ErrorType.NOT_EXPORTED,
-              name: module.value,
-              exported: 'module',
-            })
-            return { type: null }
-          } else if (type instanceof Module) {
-            moduleType = type
-          } else {
-            if (type) {
-              context.err({ type: ErrorType.NOT_MODULE, modType: type })
-            }
-            return { type: null }
-          }
-        }
-        const typeSpec = moduleType.typeSpecs.get(this.name.value)
-        if (typeSpec !== undefined) {
-          return { type: typeSpec.instance() }
-        } else {
-          context.err({
-            type: ErrorType.NOT_EXPORTED,
-            name: this.name.value,
-            exported: 'type',
-          })
-          return { type: null }
-        }
-      } else {
-        if (firstModuleType === undefined) {
-          context.err({
-            type: ErrorType.UNDEFINED_VARIABLE,
-            name: module.value,
-          })
-        } else if (firstModuleType) {
-          context.err({ type: ErrorType.NOT_MODULE, modType: firstModuleType })
-        }
-        return { type: null }
-      }
+      throw new Error('Modules are currently not yet supported')
+      // const firstModuleType = context.scope.getVariable(module.value, true)
+      // if (firstModuleType instanceof Module) {
+      //   let moduleType: Module = firstModuleType
+      //   for (const module of modules) {
+      //     const type = moduleType.types.get(module.value)
+      //     if (type === undefined) {
+      //       context.err({
+      //         type: ErrorType.NOT_EXPORTED,
+      //         name: module.value,
+      //         exported: 'module',
+      //       })
+      //       return { type: null }
+      //     } else if (type instanceof Module) {
+      //       moduleType = type
+      //     } else {
+      //       if (type) {
+      //         context.err({ type: ErrorType.NOT_MODULE, modType: type })
+      //       }
+      //       return { type: null }
+      //     }
+      //   }
+      //   const typeSpec = moduleType.typeSpecs.get(this.name.value)
+      //   if (typeSpec !== undefined) {
+      //     return { type: typeSpec.instance() }
+      //   } else {
+      //     context.err({
+      //       type: ErrorType.NOT_EXPORTED,
+      //       name: this.name.value,
+      //       exported: 'type',
+      //     })
+      //     return { type: null }
+      //   }
+      // } else {
+      //   if (firstModuleType === undefined) {
+      //     context.err({
+      //       type: ErrorType.UNDEFINED_VARIABLE,
+      //       name: module.value,
+      //     })
+      //   } else if (firstModuleType) {
+      //     context.err({ type: ErrorType.NOT_MODULE, modType: firstModuleType })
+      //   }
+      //   return { type: null }
+      // }
     } else {
       const typeSpec = context.scope.getType(this.name.value, true)
       if (typeSpec !== undefined) {
-        return { type: typeSpec.instance() }
+        return { type: typeSpec ? typeSpec.instance() : unknown }
       } else {
         context.err({ type: ErrorType.UNDEFINED_TYPE, name: this.name.value })
-        return { type: null }
+        return { type: unknown }
       }
     }
-    */
   }
 
   toString (): string {
