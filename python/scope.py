@@ -49,8 +49,8 @@ elif __file__:
 syntaxpath = os.path.join(basepath, "syntax.lark")
 
 
-def parse_file(file_path, base_path):
-    import_scope = Scope(base_path=base_path, file_path=file_path)
+def parse_file(file_path, base_path, parent_imports):
+    import_scope = Scope(base_path=base_path, file_path=file_path, parent_imports=parent_imports)
     native_functions.add_funcs(import_scope)
 
     with open(syntaxpath, "r") as f:
@@ -70,8 +70,8 @@ def parse_file(file_path, base_path):
     return import_scope, tree, file
 
 
-async def eval_file(file_path, base_path):
-    import_scope, tree, _ = parse_file(file_path, base_path)
+async def eval_file(file_path, base_path, parent_imports):
+    import_scope, tree, _ = parse_file(file_path, base_path, parent_imports)
 
     import_scope.variables = {
         **import_scope.variables,
@@ -80,8 +80,8 @@ async def eval_file(file_path, base_path):
     return import_scope
 
 
-def type_check_file(file_path, base_path):
-    import_scope, tree, text_file = parse_file(file_path, base_path)
+def type_check_file(file_path, base_path, parent_imports):
+    import_scope, tree, text_file = parse_file(file_path, base_path, parent_imports)
 
     scope = type_check(tree, import_scope)
     import_scope.variables = {**import_scope.variables, **scope.variables}
@@ -173,6 +173,7 @@ class Scope:
         warnings=None,
         base_path="",
         file_path="",
+        parent_imports=None
     ):
         self.parent = parent
         self.parent_function = parent_function
@@ -186,6 +187,8 @@ class Scope:
         self.base_path = base_path
         # The path of the file the Scope is associated with.
         self.file_path = file_path
+        # The other files it has been imported from to prevent circular imports
+        self.parent_imports = parent_imports if parent_imports is not None else []
 
     def new_scope(self, parent_function=None, inherit_errors=True):
         return Scope(
@@ -195,6 +198,7 @@ class Scope:
             warnings=self.warnings if inherit_errors else [],
             base_path=self.base_path,
             file_path=self.file_path,
+            parent_imports=self.parent_imports,
         )
 
     def get_variable(self, name, err=True):
@@ -796,6 +800,8 @@ class Scope:
             arg_values = []
             for arg in arguments:
                 arg_values.append(await self.eval_expr(arg))
+            if len(arg_values) == 0:
+                arg_values = [()]
             return await (await self.eval_expr(function)).run(arg_values)
         elif expr.data == "or_expression":
             left, _, right = expr.children
@@ -921,7 +927,7 @@ class Scope:
                 # Support old syntax
                 rel_file_path = expr.children[0].value + ".n"
             file_path = os.path.join(os.path.dirname(self.file_path), rel_file_path)
-            val = await eval_file(file_path, self.base_path)
+            val = await eval_file(file_path, self.base_path, self.parent_imports + [os.path.normpath(self.file_path)])
             holder = {}
             for key in val.variables.keys():
                 if val.variables[key].public:
@@ -1312,6 +1318,9 @@ class Scope:
                 mainarg = expr.children[0]
                 function, *arguments = expr.children[1].children
                 arguments.append(mainarg)
+
+            if len(arguments) == 0:
+                arguments.append("unit")
             func_type = self.type_check_expr(function)
             if func_type is None:
                 return None
@@ -1330,7 +1339,9 @@ class Scope:
             for n, (argument, arg_type) in enumerate(
                 zip(arguments, arg_types), start=1
             ):
-                check_type = self.type_check_expr(argument)
+                check_type = argument
+                if(argument != "unit"):
+                    check_type = self.type_check_expr(check_type)
                 if check_type is None:
                     parameters_have_none = True
                 resolved_arg_type = apply_generics(arg_type, check_type, generics)
@@ -1616,8 +1627,22 @@ class Scope:
                 # Support old syntax
                 rel_file_path = expr.children[0].value + ".n"
             file_path = os.path.join(os.path.dirname(self.file_path), rel_file_path)
+            if os.path.normpath(file_path) == os.path.normpath(self.file_path):
+                self.errors.append(
+                    TypeCheckError(
+                        expr.children[0], "You cannot import the file that is running"
+                    )
+                )
+                return None
             if os.path.isfile(file_path):
-                impn, f = type_check_file(file_path, self.base_path)
+                if os.path.normpath(file_path) in self.parent_imports:
+                    self.errors.append(
+                        TypeCheckError(
+                            expr.children[0], "Circular imports are not allowed"
+                        )
+                    )
+                    return None
+                impn, f = type_check_file(file_path, self.base_path, self.parent_imports + [os.path.normpath(self.file_path)])
                 if len(impn.errors) != 0:
                     self.errors.append(ImportedError(impn.errors[:], f))
                 if len(impn.warnings) != 0:
@@ -2021,23 +2046,23 @@ class Scope:
                     )
                 )
                 return False
+
             arguments = [self.get_name_type(arg, err=False) for arg in class_args]
-            scope = self.new_scope(parent_function=None)
+
+            class_type = NClass(name)
+
+            constructor_type = tuple(
+                [*(arg_type for _, arg_type in arguments), class_type]
+            )
+
+            scope = self.new_scope(parent_function=None, inherit_errors=False)
             for arg_pattern, arg_type in arguments:
                 scope.assign_to_pattern(arg_pattern, arg_type, True, certain=True)
             scope.type_check_command(class_body)
 
-            class_type = NClass(name)
             for prop_name, var in scope.variables.items():
                 if var.public:
-                    if var.type is None:
-                        class_type = "invalid"
-                        break
-                    else:
-                        class_type[prop_name] = var.type
-            constructor_type = tuple(
-                [*(arg_type for _, arg_type in arguments), class_type]
-            )
+                    class_type[prop_name] = var.type
 
             if name.value in self.types:
                 scope.errors.append(
@@ -2060,6 +2085,20 @@ class Scope:
             self.variables[name.value] = Variable(
                 constructor_type, constructor_type, public
             )
+            class_type = NClass(name)
+
+            scope = self.new_scope(parent_function=None)
+            for arg_pattern, arg_type in arguments:
+                scope.assign_to_pattern(arg_pattern, arg_type, True, certain=True)
+            scope.type_check_command(class_body)
+
+            for prop_name, var in scope.variables.items():
+                if var.public:
+                    if var.type is None:
+                        class_type = "invalid"
+                        break
+                    else:
+                        class_type[prop_name] = var.type
         else:
             self.type_check_expr(command)
 

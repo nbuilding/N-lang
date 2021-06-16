@@ -1,2 +1,1 @@
-let test:str = 0
-let test = "ree"
+let _ = imp "./run.n"
