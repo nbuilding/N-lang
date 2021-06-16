@@ -52,7 +52,15 @@ export class RecordPattern extends Base implements Pattern {
     if (resolved.type === 'record') {
       const keys = new Set(resolved.types.keys())
       for (const entry of this.entries) {
-        keys.delete(entry.key.value) // TODO: Duplicate keys
+        if (!keys.delete(entry.key.value)) {
+          // Key was already deleted (ie duplicate key)
+          context.err(
+            {
+              type: ErrorType.RECORD_PATTERN_DUPE_KEY,
+            },
+            entry.key,
+          )
+        }
         const value = resolved.types.get(entry.key.value)
         if (!value) {
           context.err(

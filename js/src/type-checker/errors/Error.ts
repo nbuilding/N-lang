@@ -102,6 +102,9 @@ export enum ErrorType {
   /** RecordPattern: Destructuring a nonexistent key from a record */
   RECORD_PATTERN_NO_KEY = 'record-pattern-no-key',
 
+  /** RecordPattern: Duplicate key in record pattern */
+  RECORD_PATTERN_DUPE_KEY = 'record-pattern-dupe-key',
+
   /** RecordPattern: Not all fields of record destructured */
   RECORD_PATTERN_INCOMPLETE = 'record-pattern-incomplete',
 
@@ -109,6 +112,9 @@ export enum ErrorType {
   TUPLE_PATTERN_LENGTH_MISMATCH = 'tuple-pattern-length-mismatch',
 
   // Statements
+
+  /** ScopeBaseContext: Cannot export here */
+  CANNOT_EXPORT = 'cannot-export',
 
   /**
    * AliasDeclaration, EnumDeclaration: A type with the name already exists in
@@ -121,6 +127,12 @@ export enum ErrorType {
 
   /** AssertValue: An `assert value` was given a non-bool */
   VALUE_ASSERTION_NOT_BOOL = 'value-assertion-not-nool',
+
+  /** EnumDeclaration: Duplicate variant name */
+  DUPLICATE_VARIANT = 'duplicate-variant',
+
+  /** EnumDeclaration: Marking a variant public in a non-public enum type */
+  PUBLIC_VARIANT_PRIVATE_TYPE = 'public-variant-private-type',
 
   /** For: (legacy) Type not iterable */
   FOR_LEGACY_NOT_ITERABLE = 'for-legacy-not-iterable',
@@ -284,6 +296,12 @@ export type ErrorMessage =
         | ErrorType.FOR_LEGACY_NOT_ITERABLE
         | ErrorType.FOR_NOT_ITERABLE
         | ErrorType.RECORD_TYPE_DUPLICATE_KEY
+        | ErrorType.COMPARISON_CANNOT_EQUAL
+        | ErrorType.COMPARISON_CANNOT_COMPARE
+        | ErrorType.RECORD_PATTERN_DUPE_KEY
+        | ErrorType.DUPLICATE_VARIANT
+        | ErrorType.PUBLIC_VARIANT_PRIVATE_TYPE
+        | ErrorType.CANNOT_EXPORT
     }
 
 interface NError {

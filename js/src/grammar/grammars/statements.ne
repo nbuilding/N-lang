@@ -24,10 +24,12 @@ varStatement -> ("var" _) identifier (_ "=" _) expression {% from(ast.VarStmt) %
 
 enumDeclaration -> ("type" _) ("pub" _):? typeSpec (_ "=" _) enumDefinition {% from(ast.EnumDeclaration) %}
 
-enumDefinition -> ("|" _):? enumVariant ((_ "|" _) enumVariant):*
+enumDefinition -> ("|" _):? enumVariantEntry ((_ "|" _) enumVariantEntry):*
 
-enumVariant -> ("<" _) identifier (_ typeValue):* (_ ">") {% from(ast.EnumVariant) %}
-	| identifier {% from(ast.EnumVariant) %}
+enumVariantEntry -> ("pub" _):? enumVariant {% from(ast.EnumVariant) %}
+
+enumVariant -> ("<" _) identifier (_ typeValue):* (_ ">")
+	| identifier
 
 aliasDefinition -> ("alias" _) ("pub" _):? typeSpec (_ "=" _) type {% from(ast.AliasDeclaration) %}
 

@@ -1,7 +1,18 @@
-import { bool, char, cmd, float, int, list, number, str } from './builtins'
+import {
+  bool,
+  char,
+  cmd,
+  float,
+  int,
+  list,
+  map,
+  number,
+  str,
+  unit,
+} from './builtins'
 import { Operator } from './operations/Operator'
 import { UnaryOperator } from './operations/UnaryOperator'
-import { makeFunction, NFunction } from './types'
+import { makeFunction, NFunction, NType, TypeSpec } from './types'
 
 export const operations: Record<Operator, NFunction[]> = {
   [Operator.ADD]: [
@@ -75,3 +86,9 @@ export const iterableTypes: NFunction[] = [
   makeFunction(a => [list.instance([a]), a], 'a'),
 ]
 export const legacyIterableTypes: NFunction[] = [makeFunction(() => [int, int])]
+
+export const equalableTypes: TypeSpec[] = [
+  ...[str, int, float, char, unit].map(type => type.typeSpec),
+  list,
+  map,
+]

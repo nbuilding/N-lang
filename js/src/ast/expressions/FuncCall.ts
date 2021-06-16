@@ -14,6 +14,7 @@ import {
 import { AliasSpec, NType, unknown } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { callFunction } from '../../type-checker/types/comparisons/compare-assignable'
+import { unit } from '../../type-checker/types/builtins'
 
 export class FuncCall extends Base implements Expression, Statement {
   func: Expression
@@ -76,6 +77,9 @@ export class FuncCall extends Base implements Expression, Statement {
       }
       return [paramExpr.type, param]
     })
+    if (paramTypes.length === 0) {
+      paramTypes.push([unit, this])
+    }
 
     let funcType = funcResult.type
     let argPos = 1

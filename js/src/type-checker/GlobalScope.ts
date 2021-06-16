@@ -87,7 +87,7 @@ export class GlobalScope extends Scope {
       'range',
       makeFunction(() => [int, int, int, list.instance([int])]),
     )
-    // TODO: The type "function"?
+    // TODO: The `type` function?
     this.variables.set(
       'print',
       makeFunction(t => [t, t], 't'),

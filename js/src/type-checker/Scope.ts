@@ -1,4 +1,4 @@
-import { Declaration } from '../ast/index'
+import { Base, Declaration } from '../ast/index'
 import {
   Expression,
   TypeCheckContext,
@@ -21,15 +21,16 @@ import { GetTypeContext, GetTypeResult, Type } from '../ast/types/Type'
 import { displayType } from '../utils/display-type'
 import { DeclarationOptions } from '../ast/declaration/Declaration'
 import { ScopeBaseContext } from './ScopeBaseContext'
+import { WarningType } from './errors/Warning'
 
 export interface ScopeOptions {
   returnType?: NType
   exportsAllowed?: boolean
 }
 
-export interface ScopeNames {
-  variables: Set<string>
-  types: Set<string>
+export interface ScopeNames<T> {
+  variables: T
+  types: T
 }
 
 export class Scope {
@@ -38,8 +39,11 @@ export class Scope {
   returnType?: NType
   variables: Map<string, NType> = new Map()
   types: Map<string, TypeSpec | null> = new Map()
-  unused: ScopeNames = { variables: new Set(), types: new Set() }
-  exports: ScopeNames | null = null
+  unused: ScopeNames<Map<string, Base>> = {
+    variables: new Map(),
+    types: new Map(),
+  }
+  exports: ScopeNames<Set<string>> | null = null
 
   constructor (
     checker: TypeCheckerResult,
@@ -223,6 +227,21 @@ export class Scope {
   }
 
   end () {
-    // TODO: unused variables, types
+    for (const base of this.unused.variables.values()) {
+      this.checker.warnings.push({
+        message: {
+          type: WarningType.UNUSED_VARIABLE,
+        },
+        base,
+      })
+    }
+    for (const base of this.unused.types.values()) {
+      this.checker.warnings.push({
+        message: {
+          type: WarningType.UNUSED_TYPE,
+        },
+        base,
+      })
+    }
   }
 }

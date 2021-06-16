@@ -1,4 +1,5 @@
 import { ErrorType } from '../../type-checker/errors/Error'
+import { unit } from '../../type-checker/types/builtins'
 import {
   functionFromTypes,
   FuncTypeVarSpec,
@@ -50,32 +51,28 @@ export class Function extends Base implements Expression {
     for (const param of this.arguments.params) {
       paramTypes.push(typeVarScope.checkDeclaration(param))
     }
+    if (paramTypes.length === 0) {
+      paramTypes.push(unit)
+    }
     const returnType = typeVarScope.getTypeFrom(this.returnType).type
     const scope = typeVarScope.inner({ returnType })
-    // TODO: May want to delay type checking body? (if param length > 0)
+    // TODO: May want to delay type checking body?
     scope.checkStatement(this.body)
     scope.end()
     typeVarScope.end()
 
     const substitutions = new Map()
-    if (paramTypes.length === 0) {
-      for (const typeVar of typeVars) {
-        substitutions.set(typeVar, unknown)
-      }
-      return { type: substitute(returnType, substitutions) }
-    } else {
-      const funcTypeVars = []
-      for (const typeVar of typeVars) {
-        const funcTypeVar = new FuncTypeVarSpec(typeVar.name)
-        substitutions.set(typeVar, funcTypeVar)
-        funcTypeVars.push(funcTypeVar)
-      }
-      return {
-        type: functionFromTypes([
-          ...paramTypes.map(param => substitute(param, substitutions)),
-          substitute(returnType, substitutions),
-        ]),
-      }
+    const funcTypeVars = []
+    for (const typeVar of typeVars) {
+      const funcTypeVar = new FuncTypeVarSpec(typeVar.name)
+      substitutions.set(typeVar, funcTypeVar)
+      funcTypeVars.push(funcTypeVar)
+    }
+    return {
+      type: functionFromTypes([
+        ...paramTypes.map(param => substitute(param, substitutions)),
+        substitute(returnType, substitutions),
+      ]),
     }
   }
 

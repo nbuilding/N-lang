@@ -3,6 +3,7 @@ import { Base } from '../../ast/index'
 import { escapeHtml } from '../../utils/escape-html'
 import { NType } from '../types/types'
 import { displayErrorMessage, Error } from './Error'
+import { displayWarningMessage, Warning } from './Warning'
 
 /**
  * A type, a string (that will be enclosed in backticks), an ordinal, a list
@@ -46,6 +47,9 @@ export interface HtmlClassOptions {
 
   /** CSS class for "Error"; default `n-error-error` */
   error: string
+
+  /** CSS class of "Warning"; default `n-error-warning` */
+  warning: string
 
   /** CSS class for URLs */
   link: string
@@ -276,6 +280,34 @@ export class ErrorDisplayer {
         ? `<span class="${this.options.classes?.error ??
             'n-error-error'}">Error</span>`
         : 'Error'
+    str += ': '
+    let firstLine = true
+    for (const block of blocks) {
+      if (!firstLine) {
+        str += '\n\n'
+      }
+      if (typeof block === 'string') {
+        str += block
+      } else {
+        str += this._displayCode(fileName, lines, block)
+      }
+      firstLine = false
+    }
+    return str
+  }
+
+  displayWarning (fileName: string, lines: string[], warning: Warning): string {
+    const rawBlocks = displayWarningMessage(warning, this._displayLine)
+    const blocks: BlockDisplay[] = Array.isArray(rawBlocks)
+      ? rawBlocks.filter((block): block is BlockDisplay => !!block)
+      : [rawBlocks, warning.base]
+    let str =
+      this.options.type === 'console-color'
+        ? colours.bold(colours.yellow('Warning'))
+        : this.options.type === 'html'
+        ? `<span class="${this.options.classes?.warning ??
+            'n-error-warning'}">Warning</span>`
+        : 'Warning'
     str += ': '
     let firstLine = true
     for (const block of blocks) {

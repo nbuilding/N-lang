@@ -22,13 +22,19 @@ type EnumType = {
   typeVars: NType[]
 }
 
+export type EnumVariant = {
+  types: NType[] | null
+  public: boolean
+}
+
 export class EnumSpec extends TypeSpec {
-  variants: Map<string, NType[]>
+  /** Invalid variants are null. */
+  variants: Map<string, EnumVariant>
   typeVars: TypeSpec[]
 
   constructor (
     name: string,
-    variants: Map<string, NType[]>,
+    variants: Map<string, EnumVariant>,
     typeVars: TypeSpec[],
   ) {
     super(name, typeVars.length)
@@ -37,10 +43,14 @@ export class EnumSpec extends TypeSpec {
     this.typeVars = typeVars
   }
 
+  /** Throws an error if the variant does not exist */
   getConstructorType (variantName: string): NType {
     const variant = this.variants.get(variantName)
     if (variant) {
-      if (variant.length === 0) {
+      if (variant.types === null) {
+        return unknown
+      }
+      if (variant.types.length === 0) {
         const unknowns = []
         for (let i = 0; i < this.typeVarCount; i++) {
           unknowns.push(unknown)
@@ -56,7 +66,7 @@ export class EnumSpec extends TypeSpec {
         }
         return functionFromTypes(
           [
-            ...variant.map(field => substitute(field, substitutions)),
+            ...variant.types.map(field => substitute(field, substitutions)),
             this.instance(funcTypeVars.map(typeVar => typeVar.instance())),
           ],
           funcTypeVars,
@@ -67,6 +77,18 @@ export class EnumSpec extends TypeSpec {
     }
   }
 
+  /** Get the types contained in each variant, excluding invalid ones. */
+  getVariants (typeVars: NType[]): NType[][] {
+    const substitutions: Map<TypeSpec, NType> = new Map()
+    typeVars.forEach((typeVar, i) => {
+      substitutions.set(this.typeVars[i], typeVar)
+    })
+    return [...this.variants.values()].map(({ types }) =>
+      types ? types.map(type => substitute(type, substitutions)) : [],
+    )
+  }
+
+  /** Assumes that all variants are public */
   static make (
     name: string,
     variantMaker: (...typeVars: NamedType[]) => [string, NType[]][],
@@ -78,7 +100,7 @@ export class EnumSpec extends TypeSpec {
       new Map(
         variantMaker(
           ...typeVars.map((typeSpec): NamedType => typeSpec.instance()),
-        ),
+        ).map(([name, types]) => [name, { public: true, types }]),
       ),
       typeVars,
     )
@@ -218,7 +240,7 @@ export type NType = NTypeKnown | Unknown
 /**
  * Returns an iterator over all the types and their contained types.
  */
-function * iterateType (type: NType): Generator<NType> {
+export function * iterateType (type: NType): Generator<NType> {
   yield type
   switch (type.type) {
     case 'named': {

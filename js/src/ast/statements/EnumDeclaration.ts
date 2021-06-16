@@ -1,7 +1,9 @@
 import { ErrorType } from '../../type-checker/errors/Error'
 import {
   EnumSpec,
+  EnumVariant as EnumTypeVariant,
   TypeSpec as NamedTypeSpec,
+  unknown,
 } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
@@ -15,18 +17,20 @@ import {
 } from './Statement'
 
 export class EnumVariant extends Base {
+  public: boolean
   variant: Identifier
   types: Type[]
 
   constructor (
     pos: BasePosition,
-    rawVariant: schem.infer<typeof EnumVariant.schema>,
+    [pub, rawVariant]: schem.infer<typeof EnumVariant.schema>,
   ) {
     const [variant, types] =
       rawVariant.length === 1
         ? [rawVariant[0], []]
         : [rawVariant[1], rawVariant[2].map(([, type]) => type)]
     super(pos, [variant, ...types])
+    this.public = pub !== null
     this.variant = variant
     this.types = types
   }
@@ -35,14 +39,17 @@ export class EnumVariant extends Base {
     return `<${this.variant}${this.types.map(type => ' ' + type).join('')}>`
   }
 
-  static schema = schema.union([
-    schema.tuple([
-      schema.any,
-      schema.instance(Identifier),
-      schema.array(schema.tuple([schema.any, schema.guard(isType)])),
-      schema.any,
+  static schema = schema.tuple([
+    schema.nullable(schema.tuple([schema.any, schema.any])),
+    schema.union([
+      schema.tuple([
+        schema.any,
+        schema.instance(Identifier),
+        schema.array(schema.tuple([schema.any, schema.guard(isType)])),
+        schema.any,
+      ]),
+      schema.tuple([schema.instance(Identifier)]),
     ]),
-    schema.tuple([schema.instance(Identifier)]),
   ])
 }
 
@@ -82,28 +89,70 @@ export class EnumDeclaration extends Base implements Statement {
         }
       }
     }
-    const typeSpec = new EnumSpec(
-      this.typeSpec.name.value,
-      // TODO: duplicate variants
-      new Map(
-        this.variants.map(variant => [
+    const typeSpec = new EnumSpec(this.typeSpec.name.value, new Map(), typeVars)
+    for (const variant of this.variants) {
+      const types = variant.types.map(
+        type => context.scope.getTypeFrom(type).type,
+      )
+      const existingVariant = typeSpec.variants.get(variant.variant.value)
+      if (existingVariant) {
+        context.err(
+          {
+            type: ErrorType.DUPLICATE_VARIANT,
+          },
+          variant.variant,
+        )
+        typeSpec.variants.set(variant.variant.value, {
+          types: null,
+          public: variant.public || existingVariant.public,
+        })
+      } else {
+        typeSpec.variants.set(variant.variant.value, {
+          types,
+          public: variant.public,
+        })
+      }
+      if (context.scope.variables.has(variant.variant.value)) {
+        context.err({ type: ErrorType.DUPLICATE_VARIABLE })
+        context.scope.variables.set(variant.variant.value, unknown)
+      } else {
+        context.scope.variables.set(
           variant.variant.value,
-          variant.types.map(type => context.scope.getTypeFrom(type).type),
-        ]),
-      ),
-      typeVars,
-    )
+          typeSpec.getConstructorType(variant.variant.value),
+        )
+        context.scope.unused.variables.set(
+          variant.variant.value,
+          variant.variant,
+        )
+      }
+      if (variant.public && !this.public) {
+        context.err(
+          {
+            type: ErrorType.PUBLIC_VARIANT_PRIVATE_TYPE,
+          },
+          variant,
+        )
+      }
+    }
     if (context.scope.types.has(this.typeSpec.name.value)) {
       context.err({ type: ErrorType.DUPLICATE_TYPE })
       context.scope.types.set(this.typeSpec.name.value, null)
     } else {
       context.scope.types.set(this.typeSpec.name.value, typeSpec)
-      context.scope.unused.types.add(this.typeSpec.name.value)
+      context.scope.unused.types.set(
+        this.typeSpec.name.value,
+        this.typeSpec.name,
+      )
     }
     if (this.public) {
-      context.ensureExportsAllowed(names =>
-        names.types.add(this.typeSpec.name.value),
-      )
+      context.ensureExportsAllowed(names => {
+        names.types.add(this.typeSpec.name.value)
+        for (const [name, variant] of typeSpec.variants) {
+          if (variant.public) {
+            names.variables.add(name)
+          }
+        }
+      })
     }
     scope.end()
     return {}

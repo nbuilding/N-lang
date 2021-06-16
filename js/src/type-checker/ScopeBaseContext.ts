@@ -1,7 +1,7 @@
 import { Base } from '../ast/base'
 import { ErrorMessage, TypeErrorType } from './errors/Error'
 import { WarningMessage } from './errors/Warning'
-import { Scope, ScopeNames } from './Scope'
+import { Scope } from './Scope'
 import { attemptAssign } from './types/comparisons/compare-assignable'
 import { NType } from './types/types'
 
@@ -38,15 +38,6 @@ export class ScopeBaseContext {
       return true
     } else {
       return false
-    }
-  }
-
-  /** Checks whether exports are allowed in the scope and warns if not. */
-  ensureExportsAllowed (addExport?: (names: ScopeNames) => void) {
-    if (this.scope.exports) {
-      if (addExport) addExport(this.scope.exports)
-    } else {
-      // TODO: Cannot export here
     }
   }
 }

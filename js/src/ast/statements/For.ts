@@ -1,4 +1,5 @@
 import { ErrorType } from '../../type-checker/errors/Error'
+import { WarningType } from '../../type-checker/errors/Warning'
 import { tryFunctions } from '../../type-checker/types/comparisons/compare-assignable'
 import {
   iterableTypes,
@@ -32,6 +33,9 @@ export class OldFor extends Base implements Statement {
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
+    context.warn({
+      type: WarningType.OLD_FOR,
+    })
     const { type, exitPoint } = context.scope.typeCheck(this.value)
     const scope = context.scope.inner()
     const iteratedType = tryFunctions(legacyIterableTypes, [type])

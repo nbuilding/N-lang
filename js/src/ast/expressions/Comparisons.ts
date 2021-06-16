@@ -7,9 +7,43 @@ import {
   TypeCheckResult,
 } from './Expression'
 import { Base, BasePosition } from '../base'
-import { bool } from '../../type-checker/types/builtins'
+import { bool, float, int } from '../../type-checker/types/builtins'
 import { compareEqualTypes } from '../../type-checker/types/comparisons/compare-equal'
 import { ErrorType } from '../../type-checker/errors/Error'
+import { equalableTypes } from '../../type-checker/types/operations'
+import { NType } from '../..'
+import {
+  AliasSpec,
+  EnumSpec,
+  iterateType,
+} from '../../type-checker/types/types'
+
+// Ideally, there would be a more descriptive type error for this, like "^^^ I
+// can't compare functions." One day!
+function typeEqualable (testType: NType): boolean {
+  for (const type of iterateType(testType)) {
+    if (type.type === 'named') {
+      if (type.typeSpec instanceof EnumSpec) {
+        for (const types of type.typeSpec.variants) {
+          if (!types.every(typeEqualable)) {
+            return false
+          }
+        }
+      } else if (type.typeSpec instanceof AliasSpec) {
+        if (!typeEqualable(type.typeSpec.substitute(type.typeVars))) {
+          return false
+        }
+      } else {
+        if (!equalableTypes.includes(type.typeSpec)) {
+          return false
+        }
+      }
+    } else if (type.type === 'function') {
+      return false
+    }
+  }
+  return true
+}
 
 export enum Compare {
   LESS = 'less',
@@ -94,8 +128,34 @@ export class Comparisons extends Base implements Expression {
           error: result.error.result,
         })
       }
-      // TODO: Ensure that result.type is comparable
       type = typeB
+      if (
+        comparison.type === Compare.EQUAL ||
+        comparison.type === Compare.NEQ
+      ) {
+        if (!typeEqualable(type)) {
+          context.err({
+            type: ErrorType.COMPARISON_CANNOT_EQUAL,
+          })
+        }
+      } else {
+        // Ideally, I wouldn't have to hard code these types
+        if (
+          !(
+            (type.type === 'named' &&
+              (type.typeSpec === float.typeSpec ||
+                type.typeSpec === int.typeSpec)) ||
+            (type.type === 'union' &&
+              type.types.every(
+                spec => spec === float.typeSpec || spec === int.typeSpec,
+              ))
+          )
+        ) {
+          context.err({
+            type: ErrorType.COMPARISON_CANNOT_COMPARE,
+          })
+        }
+      }
       if (!exitPoint) exitPoint = exit
     }
     return { type: bool, exitPoint }

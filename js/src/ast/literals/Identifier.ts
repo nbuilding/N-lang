@@ -16,7 +16,7 @@ export class Identifier extends Literal implements Pattern {
       context.scope.variables.set(this.value, unknown)
     } else {
       context.scope.variables.set(this.value, context.type)
-      context.scope.unused.variables.add(this.value)
+      context.scope.unused.variables.set(this.value, this)
     }
     if (context.public && context.scope.exports) {
       // Exportability is warned about in LetStmt, so there's no need to create
