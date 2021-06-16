@@ -55,11 +55,12 @@ export class Function extends Base implements Expression {
       paramTypes.push(unit)
     }
     const returnType = typeVarScope.getTypeFrom(this.returnType).type
-    const scope = typeVarScope.inner({ returnType })
-    // TODO: May want to delay type checking body?
-    scope.checkStatement(this.body)
-    scope.end()
-    typeVarScope.end()
+    context.scope.deferred.push(() => {
+      const scope = typeVarScope.inner({ returnType })
+      scope.checkStatement(this.body)
+      scope.end()
+      typeVarScope.end()
+    })
 
     const substitutions = new Map()
     const funcTypeVars = []

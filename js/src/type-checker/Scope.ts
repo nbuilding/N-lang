@@ -45,6 +45,7 @@ export class Scope {
     types: new Map(),
   }
   exports: ScopeNames<Set<string>> | null = null
+  deferred: (() => void)[] = []
 
   constructor (
     checker: TypeCheckerResult,
@@ -239,6 +240,9 @@ export class Scope {
   }
 
   end () {
+    for (const deferred of this.deferred) {
+      deferred()
+    }
     if (this.exports) {
       for (const name of this.exports.variables) {
         this.unused.variables.delete(name)
