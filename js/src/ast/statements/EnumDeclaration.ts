@@ -79,7 +79,7 @@ export class EnumDeclaration extends Base implements Statement {
         const typeVar = new NamedTypeSpec(name)
         typeVars.push(typeVar)
         if (scope.types.has(name)) {
-          scope.types.set(name, null)
+          scope.types.set(name, 'error')
           context.err({
             type: ErrorType.DUPLICATE_TYPE_VAR,
             in: 'enum',
@@ -112,48 +112,13 @@ export class EnumDeclaration extends Base implements Statement {
           public: variant.public,
         })
       }
-      if (context.scope.variables.has(variant.variant.value)) {
-        context.err({ type: ErrorType.DUPLICATE_VARIABLE })
-        context.scope.variables.set(variant.variant.value, unknown)
-      } else {
-        context.scope.variables.set(
-          variant.variant.value,
-          typeSpec.getConstructorType(variant.variant.value),
-        )
-        context.scope.unused.variables.set(
-          variant.variant.value,
-          variant.variant,
-        )
-      }
-      if (variant.public && !this.public) {
-        context.err(
-          {
-            type: ErrorType.PUBLIC_VARIANT_PRIVATE_TYPE,
-          },
-          variant,
-        )
-      }
-    }
-    if (context.scope.types.has(this.typeSpec.name.value)) {
-      context.err({ type: ErrorType.DUPLICATE_TYPE })
-      context.scope.types.set(this.typeSpec.name.value, null)
-    } else {
-      context.scope.types.set(this.typeSpec.name.value, typeSpec)
-      context.scope.unused.types.set(
-        this.typeSpec.name.value,
-        this.typeSpec.name,
+      context.defineVariable(
+        variant.variant,
+        typeSpec.getConstructorType(variant.variant.value),
+        variant.public && !this.public,
       )
     }
-    if (this.public) {
-      context.ensureExportsAllowed(names => {
-        names.types.add(this.typeSpec.name.value)
-        for (const [name, variant] of typeSpec.variants) {
-          if (variant.public) {
-            names.variables.add(name)
-          }
-        }
-      })
-    }
+    context.defineType(this.typeSpec.name, typeSpec, this.public)
     scope.end()
     return {}
   }

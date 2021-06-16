@@ -1,4 +1,4 @@
-import { Base, Declaration } from '../ast/index'
+import { Base, Declaration, Identifier } from '../ast/index'
 import {
   Expression,
   TypeCheckContext,
@@ -11,7 +11,7 @@ import {
 } from '../ast/statements/Statement'
 import { ErrorType } from './errors/Error'
 import { TypeCheckerResult } from './TypeChecker'
-import { NType, TypeSpec, unknown } from './types/types'
+import { NFunction, NType, TypeSpec, unknown } from './types/types'
 import {
   CheckPatternContext,
   CheckPatternResult,
@@ -24,7 +24,7 @@ import { ScopeBaseContext } from './ScopeBaseContext'
 import { WarningType } from './errors/Warning'
 
 export interface ScopeOptions {
-  returnType?: NType
+  returnType?: NType | 'top-level' | 'class'
   exportsAllowed?: boolean
 }
 
@@ -36,9 +36,10 @@ export interface ScopeNames<T> {
 export class Scope {
   checker: TypeCheckerResult
   parent?: Scope
-  returnType?: NType
+  /** The type of Scope; undefined to inherit from parent scope */
+  returnType?: NType | 'top-level' | 'class'
   variables: Map<string, NType> = new Map()
-  types: Map<string, TypeSpec | null> = new Map()
+  types: Map<string, TypeSpec | 'error'> = new Map()
   unused: ScopeNames<Map<string, Base>> = {
     variables: new Map(),
     types: new Map(),
@@ -62,44 +63,55 @@ export class Scope {
     return new Scope(this.checker, this, options)
   }
 
-  getReturnType (): NType | undefined {
+  getReturnType (): NType | null {
+    if (typeof this.returnType !== 'string') {
+      if (this.returnType) {
+        return this.returnType
+      } else if (this.parent) {
+        return this.parent.getReturnType()
+      }
+    }
+    return null
+  }
+
+  /**
+   * Functions inside classes will return false; this is for warning about
+   * exporting types.
+   */
+  inClass (): boolean {
     if (this.returnType) {
-      return this.returnType
+      return this.returnType === 'class'
     } else if (this.parent) {
-      return this.parent.getReturnType()
+      return this.parent.inClass()
     } else {
-      return undefined
+      return false
     }
   }
 
-  getVariable (name: string, markAsUsed: boolean): NType | undefined {
+  getVariable (name: string, markAsUsed: boolean): NType | null {
     const type = this.variables.get(name)
-    if (type === undefined) {
-      if (this.parent) {
-        return this.parent.getVariable(name, markAsUsed)
-      } else {
-        return undefined
-      }
-    } else {
+    if (type) {
       if (markAsUsed) this.unused.variables.delete(name)
       return type
+    } else if (this.parent) {
+      return this.parent.getVariable(name, markAsUsed)
+    } else {
+      return null
     }
   }
 
   /**
    * null is the error type spec while undefined means it's not in scope
    */
-  getType (name: string, markAsUsed: boolean): TypeSpec | null | undefined {
+  getType (name: string, markAsUsed: boolean): TypeSpec | 'error' | null {
     const type = this.types.get(name)
-    if (type === undefined) {
-      if (this.parent) {
-        return this.parent.getType(name, markAsUsed)
-      } else {
-        return undefined
-      }
-    } else {
+    if (type) {
       if (markAsUsed) this.unused.types.delete(name)
       return type
+    } else if (this.parent) {
+      return this.parent.getType(name, markAsUsed)
+    } else {
+      return null
     }
   }
 
@@ -227,6 +239,14 @@ export class Scope {
   }
 
   end () {
+    if (this.exports) {
+      for (const name of this.exports.variables) {
+        this.unused.variables.delete(name)
+      }
+      for (const name of this.exports.types) {
+        this.unused.types.delete(name)
+      }
+    }
     for (const base of this.unused.variables.values()) {
       this.checker.warnings.push({
         message: {

@@ -36,7 +36,7 @@ export class AliasDeclaration extends Base implements Statement {
         const typeVar = new NamedTypeSpec(name)
         typeVars.push(typeVar)
         if (scope.types.has(name)) {
-          scope.types.set(name, null)
+          scope.types.set(name, 'error')
           context.err({
             type: ErrorType.DUPLICATE_TYPE_VAR,
             in: 'alias',
@@ -46,26 +46,15 @@ export class AliasDeclaration extends Base implements Statement {
         }
       }
     }
-    const typeSpec = new AliasSpec(
-      this.typeSpec.name.value,
-      context.scope.getTypeFrom(this.type).type,
-      typeVars,
-    )
-    if (context.scope.types.has(this.typeSpec.name.value)) {
-      context.err({ type: ErrorType.DUPLICATE_TYPE })
-      context.scope.types.set(this.typeSpec.name.value, null)
-    } else {
-      context.scope.types.set(this.typeSpec.name.value, typeSpec)
-      context.scope.unused.types.set(
+    context.defineType(
+      this.typeSpec.name,
+      new AliasSpec(
         this.typeSpec.name.value,
-        this.typeSpec.name,
-      )
-    }
-    if (this.public) {
-      context.ensureExportsAllowed(names =>
-        names.types.add(this.typeSpec.name.value),
-      )
-    }
+        context.scope.getTypeFrom(this.type).type,
+        typeVars,
+      ),
+      this.public,
+    )
     scope.end()
     return {}
   }

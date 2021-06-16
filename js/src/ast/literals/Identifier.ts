@@ -11,18 +11,14 @@ import { Literal } from './Literal'
 
 export class Identifier extends Literal implements Pattern {
   checkPattern (context: CheckPatternContext): CheckPatternResult {
-    if (context.scope.variables.has(this.value)) {
-      context.err({ type: ErrorType.DUPLICATE_VARIABLE })
-      context.scope.variables.set(this.value, unknown)
-    } else {
-      context.scope.variables.set(this.value, context.type)
-      context.scope.unused.variables.set(this.value, this)
-    }
-    if (context.public && context.scope.exports) {
-      // Exportability is warned about in LetStmt, so there's no need to create
-      // errors here
-      context.scope.exports.variables.add(this.value)
-    }
+    // Exportability is warned about in LetStmt, so there's no need to create
+    // errors here
+    context.defineVariable(
+      this,
+      context.type,
+      context.public && context.scope.exports !== null,
+      false,
+    )
     return {}
   }
 
@@ -31,7 +27,7 @@ export class Identifier extends Literal implements Pattern {
     if (this.value.startsWith('_')) {
       context.warn({ type: WarningType.USED_UNDERSCORE_IDENTIFIER })
     }
-    if (type !== undefined) {
+    if (type) {
       return { type }
     } else {
       context.err({ type: ErrorType.UNDEFINED_VARIABLE, name: this.value })

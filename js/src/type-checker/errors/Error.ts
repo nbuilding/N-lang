@@ -128,6 +128,9 @@ export enum ErrorType {
   /** AssertValue: An `assert value` was given a non-bool */
   VALUE_ASSERTION_NOT_BOOL = 'value-assertion-not-nool',
 
+  /** ClassDeclaration: Classes do not support type variables as of yet */
+  CLASS_NO_TYPEVAR = 'class-no-typevar',
+
   /** EnumDeclaration: Duplicate variant name */
   DUPLICATE_VARIANT = 'duplicate-variant',
 
@@ -302,6 +305,7 @@ export type ErrorMessage =
         | ErrorType.DUPLICATE_VARIANT
         | ErrorType.PUBLIC_VARIANT_PRIVATE_TYPE
         | ErrorType.CANNOT_EXPORT
+        | ErrorType.CLASS_NO_TYPEVAR
     }
 
 interface NError {

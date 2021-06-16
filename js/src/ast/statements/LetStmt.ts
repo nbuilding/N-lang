@@ -1,3 +1,4 @@
+import { ErrorType } from '../../type-checker/errors/Error'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Declaration } from '../declaration/Declaration'
@@ -28,7 +29,9 @@ export class LetStmt extends Base implements Statement {
     context.scope.checkDeclaration(this.declaration, type, {
       public: this.public,
     })
-    if (this.public) context.ensureExportsAllowed()
+    if (this.public && !context.scope.exports) {
+      context.err({ type: ErrorType.CANNOT_EXPORT })
+    }
     return { exitPoint }
   }
 

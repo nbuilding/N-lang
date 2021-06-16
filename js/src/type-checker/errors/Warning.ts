@@ -5,23 +5,26 @@ import { BlockDisplay, InlineDisplay } from './ErrorDisplayer'
 export enum WarningType {
   /**
    * Block: The expression or statement will never be evaluated because the
-   * function exits from an inner expression
+   * function exits from an inner expression.
    */
   EXPRESSION_NEVER = 'expression-never',
 
-  /** Identifier, VarStmt: An identifier starting with a _ has been used */
+  /** Identifier, VarStmt: An identifier starting with a _ has been used. */
   USED_UNDERSCORE_IDENTIFIER = 'used-underscore-identifier',
 
-  /** For: The old for syntax is deprecated */
+  /** For: The old for syntax is deprecated. */
   OLD_FOR = 'old-for',
 
-  /** Variable is unused */
+  /** ScopeBaseContext: Exporting a type inside a class. */
+  CLASS_EXPORT_TYPE = 'class-export-type',
+
+  /** Scope: Variable is unused. */
   UNUSED_VARIABLE = 'unused-variable',
 
-  /** Type is unused */
+  /** Scope: Type is unused. */
   UNUSED_TYPE = 'unused-type',
 
-  /** All the statements following a return statement will never be run */
+  /** All the statements following a return statement will never be run. */
   STATEMENT_NEVER = 'statement-never',
 }
 
@@ -31,13 +34,12 @@ export type WarningMessage =
       exitPoint: Return
     }
   | {
-      type: WarningType.USED_UNDERSCORE_IDENTIFIER
-    }
-  | {
-      type: WarningType.UNUSED_VARIABLE | WarningType.UNUSED_TYPE
-    }
-  | {
-      type: WarningType.OLD_FOR
+      type:
+        | WarningType.USED_UNDERSCORE_IDENTIFIER
+        | WarningType.UNUSED_VARIABLE
+        | WarningType.UNUSED_TYPE
+        | WarningType.OLD_FOR
+        | WarningType.CLASS_EXPORT_TYPE
     }
 
 export interface Warning {
