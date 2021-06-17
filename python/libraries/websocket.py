@@ -21,7 +21,29 @@ send_type = "str", n_cmd_type.with_typevars(["unit"])
 connect_options_type = {
     "onOpen": (send_type, n_cmd_type.with_typevars(["bool"])),
     "onMessage": (send_type, "str", n_cmd_type.with_typevars(["bool"])),
-    # "onClose": n_cmd_type.with_typevars(["unit"]),
+    # "onClose": ("unit", n_cmd_type.with_typevars(["unit"])),
+}
+
+# alias user = {
+#   send: str -> cmd[()]
+#   disconnect: () -> cmd[()]
+#   ip: (int, int, int, int)
+# }
+user_type = {
+    "send": ("str", n_cmd_type.with_typevars(["unit"])),
+    "disconnect": ("unit", n_cmd_type.with_typevars(["unit"])),
+    "ip": ["int", "int", "int", "int"],
+}
+
+# alias setupOptions = {
+#   onConnect: user -> cmd[bool]
+#   onMessage: user -> str -> cmd[bool]
+#   onDisconnect: user -> cmd[()]
+# }
+setup_options_type = {
+    "onOpen": (user_type, n_cmd_type.with_typevars(["bool"])),
+    "onMessage": (user_type, "str", n_cmd_type.with_typevars(["bool"])),
+    "onDisconnect": (user_type, n_cmd_type.with_typevars(["unit"])),
 }
 
 
@@ -103,10 +125,18 @@ def _values():
             "str",
             n_cmd_type.with_typevars([n_maybe_type.with_typevars(["str"])]),
         ),
+        # createServer: setupOptions -> str -> int -> cmd[maybe[str]]
+        "createServer": (
+            setup_options_type,
+            "str",
+            "int",
+            n_cmd_type.with_typevars([n_maybe_type.with_typevars(["str"])]),
+        ),
     }
 
 
 def _types():
     return {
         "send": NAliasType("send", send_type),
+        "user": NAliasType("user", user_type),
     }

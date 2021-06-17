@@ -55,6 +55,10 @@ let thing = [] -> cmd[()] {
 	)!
 }
 
+let thing2 = [] -> cmd[()] {
+	
+}
+
 let pub test = thing()
 
 print(json.stringify(json.number(30.0)))
