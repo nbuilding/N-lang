@@ -24,20 +24,16 @@ before(async () => {
           absolutePath (basePath: string, importPath: string): string {
             return resolve(basePath, importPath)
           },
-          async provideFile (path: string): Promise<Block> {
-            const file = await fs.readFile(path, 'utf8')
-            return parse(file)
+          async provideFile (path: string): Promise<string> {
+            return await fs.readFile(path, 'utf8')
           },
         })
         const result = await checker.start(path)
-        if (result.errors.length > 0) {
-          const displayer = new ErrorDisplayer({ type: 'console-color' })
-          const lines: string[] = [] // TEMP
-          throw new TypeError(
-            result.errors
-              .map(error => displayer.displayError('run.n', lines, error))
-              .join('\n\n'),
-          )
+        const { display, errors } = result.displayAll(
+          new ErrorDisplayer({ type: 'console-color' }),
+        )
+        if (errors > 0) {
+          throw new TypeError(display)
         }
       })
     }

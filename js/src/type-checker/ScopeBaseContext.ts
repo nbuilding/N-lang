@@ -16,11 +16,11 @@ export class ScopeBaseContext {
   }
 
   err (error: ErrorMessage, base: Base = this._defaultBase) {
-    this.scope.checker.errors.push({ message: error, base })
+    this.scope.results.errors.push({ message: error, base })
   }
 
   warn (warning: WarningMessage, base: Base = this._defaultBase) {
-    this.scope.checker.warnings.push({ message: warning, base })
+    this.scope.results.warnings.push({ message: warning, base })
   }
 
   /**

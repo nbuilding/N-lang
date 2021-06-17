@@ -67,24 +67,24 @@ async function main () {
     absolutePath (basePath: string, importPath: string): string {
       return path.resolve(basePath, importPath)
     },
-    async provideFile (path: string): Promise<Block> {
+    async provideFile (path: string) {
       const file = await fs.readFile(path, 'utf8')
-      const ast = parse(file, {
+      const block = parse(file, {
         ambiguityOutput,
         loud: true,
       })
-      if (ast) console.log(util.inspect(ast, false, null, true))
-      if (repr) console.log(ast.toString(true))
-      return ast
+      if (ast) console.log(util.inspect(block, false, null, true))
+      if (repr) console.log(block.toString(true))
+      return [file, block]
+    },
+    displayPath (absolutePath: string, basePath: string) {
+      return path.relative(path.dirname(basePath), absolutePath)
     },
   })
-  const displayer = new ErrorDisplayer({ type: 'console-color' })
   const result = await checker.start(path.resolve(fileName))
   if (!(js || running || checksOnly)) return
   console.log(
-    result.errors
-      .map(error => displayer.displayError('run.n', [], error)) // TEMP
-      .join('\n\n'),
+    result.displayAll(new ErrorDisplayer({ type: 'console-color' })).display,
   )
   /*
   const compiled = compileToJS(script, checker.types)
