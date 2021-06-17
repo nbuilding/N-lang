@@ -47,6 +47,12 @@ export enum ErrorType {
   /** IfExpression: Branch types don't match */
   IF_BRANCH_MISMATCH = 'if-branch-mismatch',
 
+  /** ImportFile: Importing a nonexistent file or the path is malformed */
+  CANNOT_IMPORT = 'cannot-import',
+
+  /** ImportFile: Circular dependency */
+  CIRCULAR_IMPORTS = 'circular-imports',
+
   /** List: List item types don't match */
   LIST_ITEMS_MISMATCH = 'list-items-mismatch',
 
@@ -133,6 +139,9 @@ export enum ErrorType {
 
   /** EnumDeclaration: Marking a variant public in a non-public enum type */
   PUBLIC_VARIANT_PRIVATE_TYPE = 'public-variant-private-type',
+
+  /** ImportStmt: Native module does not exist */
+  NO_NATIVE_MODULE = 'no-native-module',
 
   /** For: (legacy) Type not iterable */
   FOR_LEGACY_NOT_ITERABLE = 'for-legacy-not-iterable',
@@ -298,6 +307,9 @@ export type ErrorMessage =
         | ErrorType.PUBLIC_VARIANT_PRIVATE_TYPE
         | ErrorType.CANNOT_EXPORT
         | ErrorType.CLASS_NO_TYPEVAR
+        | ErrorType.NO_NATIVE_MODULE
+        | ErrorType.CANNOT_IMPORT
+        | ErrorType.CIRCULAR_IMPORTS
     }
 
 interface NError {

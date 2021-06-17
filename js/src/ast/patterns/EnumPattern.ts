@@ -38,6 +38,8 @@ export class EnumPattern extends Base implements Pattern {
       }
       const variant = context.type.typeSpec.variants.get(this.variant.value)
       if (variant) {
+        // TODO: Check if variant is public if the type wasn't defined in the
+        // file
         if (variant.types && variant.types.length !== this.patterns.length) {
           context.err({
             type: ErrorType.ENUM_PATTERN_FIELD_MISMATCH,

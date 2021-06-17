@@ -1,11 +1,25 @@
-import { Base, Block } from '../ast/index'
+import { Base, Block, ImportFile } from '../ast/index'
 import { Error as NError } from './errors/Error'
 import { Warning as NWarning } from './errors/Warning'
-import { FileGetter } from './FileGetter'
 import { GlobalScope } from './GlobalScope'
-import { NType } from './types/types'
+import { NModule, NType } from './types/types'
 
-export class TypeCheckerResult {
+/** Yields relative paths from `imp` expressions */
+function * getImportPaths (base: Base): Generator<string> {
+  if (base instanceof ImportFile) {
+    yield base.getImportPath()
+  }
+  for (const child of base.children) {
+    yield * getImportPaths(child)
+  }
+}
+
+type ModuleState =
+  | { state: 'loading' }
+  | { state: 'loaded'; module: NModule }
+  | { state: 'error'; error: unknown }
+
+export class TypeCheckerResults {
   checker: TypeChecker
   types: Map<Base, NType> = new Map()
   errors: NError[] = []
@@ -16,39 +30,92 @@ export class TypeCheckerResult {
   }
 }
 
+export class TypeCheckerResultsForFile {
+  parent: TypeCheckerResults
+  modules: Map<string, ModuleState>
+
+  constructor (parent: TypeCheckerResults, modules: Map<string, ModuleState>) {
+    this.parent = parent
+    this.modules = modules
+  }
+}
+
 export interface CheckerOptions {
   /**
    * Resolve a unique path name per file given a base path. If two files import
    * the same file, the path to that file should be the same.
    */
-  resolvePath(basePath: string, importPath: string): string
+  absolutePath(basePath: string, importPath: string): string
 
   /**
    * Asynchronously gets an imported file and returns the parsed file.
-   * TODO: In the future, perhaps this could also return only the types.
+   * This may reject with an Error if the file does not exist.
    */
-  provideFile(path: string): Promise<Block>
+  provideFile(path: string): Block | NModule | PromiseLike<Block | NModule>
 }
 
 export class TypeChecker {
   options: CheckerOptions
+  moduleCache: Map<string, ModuleState> = new Map()
 
   constructor (options: CheckerOptions) {
     this.options = options
   }
 
-  async start (file: Block, filePath = 'run.n'): Promise<TypeCheckerResult> {
-    const getter = new FileGetter(this)
-    await getter.start(file, filePath)
-    return this._checkFile(file)
+  /**
+   * @param startPath - The absolute path (unique file ID) of the start file.
+   */
+  async start (startPath: string): Promise<TypeCheckerResults> {
+    const results = new TypeCheckerResults(this)
+    await this._ensureModuleLoaded(results, startPath)
+    return results
   }
 
-  private _checkFile (file: Block): TypeCheckerResult {
-    const result = new TypeCheckerResult(this)
-    const globalScope = new GlobalScope(result)
-    const scope = globalScope.inner()
-    scope.checkStatement(file)
-    scope.end()
-    return result
+  /**
+   * @param modulePath - Unique ID for the file (with a file system, the
+   * absolute path).
+   */
+  private async _ensureModuleLoaded (
+    results: TypeCheckerResults,
+    modulePath: string,
+  ) {
+    if (this.moduleCache.has(modulePath)) return
+    this.moduleCache.set(modulePath, { state: 'loading' })
+    try {
+      const module = await this.options.provideFile(modulePath)
+      if (module instanceof Block) {
+        const relToAbsPaths: Map<string, string> = new Map()
+        for (const importPath of getImportPaths(module)) {
+          const path = this.options.absolutePath(modulePath, importPath)
+          relToAbsPaths.set(importPath, path)
+        }
+        await Promise.all(
+          Array.from(relToAbsPaths.values(), path =>
+            this._ensureModuleLoaded(results, path),
+          ),
+        )
+        const globalScope = new GlobalScope(
+          new TypeCheckerResultsForFile(
+            results,
+            new Map(
+              Array.from(relToAbsPaths, ([path, absPath]) => {
+                const state = this.moduleCache.get(absPath)
+                if (!state) {
+                  throw new Error('module cache does not have absolute path.')
+                }
+                return [path, state]
+              }),
+            ),
+          ),
+        )
+        const scope = globalScope.inner({ exportsAllowed: true })
+        scope.checkStatement(module)
+        scope.end()
+      } else {
+        this.moduleCache.set(modulePath, { state: 'loaded', module })
+      }
+    } catch (error) {
+      this.moduleCache.set(modulePath, { state: 'error', error })
+    }
   }
 }
