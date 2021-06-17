@@ -257,7 +257,10 @@ export function compareAssignable (
           canOnlyHandle: typeToResultType(annotation),
         },
       }
-    } else if (value.type !== 'named') {
+    } else if (
+      value.type !== 'named' ||
+      value.typeSpec !== annotation.typeSpec
+    ) {
       return {
         ...typeToResultType(value),
         issue: {

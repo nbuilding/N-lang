@@ -5,6 +5,8 @@ import { NType } from '../types/types'
 import { displayErrorMessage, Error } from './Error'
 import { displayWarningMessage, Warning } from './Warning'
 
+export const HINT = { keyword: 'hint' } as const
+
 /**
  * A type, a string (that will be enclosed in backticks), an ordinal, a list
  * (with a conjunction of your choosing), or using the singular or plural form
@@ -17,6 +19,7 @@ export type InlineDisplay =
   | ['or' | 'and', string[]]
   | [string, number, string]
   | [string, 'link']
+  | typeof HINT
 
 export type BlockDisplay = string | Base
 
@@ -53,6 +56,9 @@ export interface HtmlClassOptions {
 
   /** CSS class for URLs */
   link: string
+
+  /** CSS class for the "Hint" word in hints */
+  hint: string
 }
 
 type ErrorDisplayColourOptions =
@@ -124,6 +130,13 @@ export class ErrorDisplayer {
         ? `<span class="${this.options.classes?.name ??
             'n-error-name'}">${escapeHtml(str)}</span>`
         : str
+    } else if ('keyword' in inline) {
+      return this.options.type === 'console-color'
+        ? colours.green('Hint')
+        : this.options.type === 'html'
+        ? `<span class="${this.options.classes?.hint ??
+            'n-error-hint'}">Hint</span>`
+        : 'Hint'
     } else {
       const str = '' // '`' + displayType(inline) + '`' // TODO
       return this.options.type === 'console-color'
@@ -177,7 +190,13 @@ export class ErrorDisplayer {
         ? `<span class="${this.options.classes?.underline ??
             'n-error-underline'}">${underline}</span>`
         : underline
-    return ' '.repeat(lineNumLength + (col !== null ? 3 + col : 0)) + displayed
+    return (
+      ' '.repeat(lineNumLength + 1) +
+      (col !== null
+        ? '   ' + lines[line - 1].slice(0, col - 1).replace(/[^\t]/g, ' ')
+        : '') +
+      displayed
+    )
   }
 
   private _displayMultilineHighlight (text: string): string {

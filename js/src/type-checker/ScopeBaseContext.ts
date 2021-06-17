@@ -53,13 +53,20 @@ export class ScopeBaseContext {
       this.scope.variables.set(name.value, unknown)
     } else {
       this.scope.variables.set(name.value, type)
-      if (!isPublic) {
+      if (!isPublic && !name.value.startsWith('_')) {
         this.scope.unused.variables.set(name.value, name)
       }
     }
     if (isPublic) {
       if (this.scope.exports) {
         this.scope.exports.variables.add(name.value)
+        if (name.value.startsWith('_')) {
+          this.warn({
+            type: WarningType.EXPORT_UNDERSCORE,
+            name: name.value,
+            value: 'variable',
+          })
+        }
       } else if (warnAboutExportability) {
         this.err({ type: ErrorType.CANNOT_EXPORT }, name)
       }
@@ -72,7 +79,7 @@ export class ScopeBaseContext {
       this.scope.types.set(name.value, 'error')
     } else {
       this.scope.types.set(name.value, type)
-      if (!isPublic) {
+      if (!isPublic && !name.value.startsWith('_')) {
         this.scope.unused.types.set(name.value, name)
       }
     }
@@ -81,6 +88,12 @@ export class ScopeBaseContext {
         this.scope.exports.types.add(name.value)
         if (this.scope.inClass()) {
           this.warn({ type: WarningType.CLASS_EXPORT_TYPE }, name)
+        } else if (name.value.startsWith('_')) {
+          this.warn({
+            type: WarningType.EXPORT_UNDERSCORE,
+            name: name.value,
+            value: 'type',
+          })
         }
       } else {
         this.err({ type: ErrorType.CANNOT_EXPORT }, name)

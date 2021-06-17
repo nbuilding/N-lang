@@ -211,20 +211,24 @@ export class Scope {
         this.unused.types.delete(name)
       }
     }
-    for (const base of this.unused.variables.values()) {
+    for (const [name, declaration] of this.unused.variables) {
       this.results.warnings.push({
         message: {
-          type: WarningType.UNUSED_VARIABLE,
+          type: WarningType.UNUSED,
+          name,
+          value: 'variable',
         },
-        base,
+        base: declaration,
       })
     }
-    for (const base of this.unused.types.values()) {
+    for (const [name, declaration] of this.unused.types) {
       this.results.warnings.push({
         message: {
-          type: WarningType.UNUSED_TYPE,
+          type: WarningType.UNUSED,
+          name,
+          value: 'type',
         },
-        base,
+        base: declaration,
       })
     }
   }

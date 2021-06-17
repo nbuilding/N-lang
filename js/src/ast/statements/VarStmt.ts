@@ -26,7 +26,14 @@ export class VarStmt extends Base implements Statement {
   checkStatement (context: CheckStatementContext): CheckStatementResult {
     const type = context.scope.getVariable(this.var.value, true)
     if (this.var.value.startsWith('_')) {
-      context.warn({ type: WarningType.USED_UNDERSCORE_IDENTIFIER }, this.var)
+      context.warn(
+        {
+          type: WarningType.USED_UNDERSCORE_IDENTIFIER,
+          name: this.var.value,
+          value: 'variable',
+        },
+        this.var,
+      )
     }
     const { type: valueType, exitPoint } = context.scope.typeCheck(this.value)
     if (type) {

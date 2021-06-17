@@ -1,2 +1,4 @@
-assert type "wow" : str
-assert value true
+let a = 1
+let _b = 2
+alias wow = str
+print(_b)

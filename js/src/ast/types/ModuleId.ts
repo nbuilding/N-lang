@@ -1,4 +1,5 @@
 import { ErrorType } from '../../type-checker/errors/Error'
+import { WarningType } from '../../type-checker/errors/Warning'
 import { NModule, unknown } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
@@ -26,6 +27,10 @@ export class ModuleId extends Base implements Type {
 
   getType (context: GetTypeContext): GetTypeResult {
     const [module, ...modules] = this.modules
+    const typeVars = this.typeVars.map(
+      typeVar => context.scope.getTypeFrom(typeVar).type,
+    )
+    let typeSpec
     if (module) {
       const firstModuleType = context.scope.getVariable(module.value, true)
       if (!firstModuleType) {
@@ -54,9 +59,9 @@ export class ModuleId extends Base implements Type {
             return { type: unknown }
           }
         }
-        const typeSpec = moduleType.exportedTypes.get(this.name.value)
-        if (typeSpec) {
-          return { type: typeSpec !== 'error' ? typeSpec.instance() : unknown }
+        const spec = moduleType.exportedTypes.get(this.name.value)
+        if (spec) {
+          typeSpec = spec
         } else {
           context.err({
             type: ErrorType.NOT_EXPORTED,
@@ -72,13 +77,23 @@ export class ModuleId extends Base implements Type {
         return { type: unknown }
       }
     } else {
-      const typeSpec = context.scope.getType(this.name.value, true)
-      if (typeSpec) {
-        return { type: typeSpec !== 'error' ? typeSpec.instance() : unknown }
+      const spec = context.scope.getType(this.name.value, true)
+      if (this.name.value.startsWith('_')) {
+        context.warn({
+          type: WarningType.USED_UNDERSCORE_IDENTIFIER,
+          name: this.name.value,
+          value: 'type',
+        })
+      }
+      if (spec) {
+        typeSpec = spec
       } else {
         context.err({ type: ErrorType.UNDEFINED_TYPE, name: this.name.value })
         return { type: unknown }
       }
+    }
+    return {
+      type: typeSpec !== 'error' ? typeSpec.instance(typeVars) : unknown,
     }
   }
 

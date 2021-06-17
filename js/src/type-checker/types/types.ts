@@ -16,7 +16,7 @@ export class TypeSpec {
   }
 }
 
-type EnumType = {
+export type EnumType = {
   type: 'named'
   typeSpec: EnumSpec
   typeVars: NType[]
@@ -111,7 +111,7 @@ export class EnumSpec extends TypeSpec {
   }
 }
 
-type AliasType = {
+export type AliasType = {
   type: 'named'
   typeSpec: AliasSpec
   typeVars: NType[]
@@ -154,7 +154,7 @@ export class AliasSpec extends TypeSpec {
   }
 }
 
-type FuncTypeVar = {
+export type FuncTypeVar = {
   type: 'named'
   typeSpec: FuncTypeVarSpec
   typeVars: NType[]
