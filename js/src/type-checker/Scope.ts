@@ -9,9 +9,9 @@ import {
   CheckStatementResult,
   Statement,
 } from '../ast/statements/Statement'
-import { ErrorType } from './errors/Error'
-import { TypeCheckerResult } from './TypeChecker'
-import { NType, TypeSpec, unknown } from './types/types'
+import { Error as NError, ErrorMessage, ErrorType } from './errors/Error'
+import { TypeCheckerResultsForFile } from './TypeChecker'
+import { NModule, NType, TypeSpec, unknown } from './types/types'
 import {
   CheckPatternContext,
   CheckPatternResult,
@@ -21,10 +21,14 @@ import { GetTypeContext, GetTypeResult, Type } from '../ast/types/Type'
 import { displayType } from '../utils/display-type'
 import { DeclarationOptions } from '../ast/declaration/Declaration'
 import { ScopeBaseContext } from './ScopeBaseContext'
-import { WarningType } from './errors/Warning'
+import {
+  Warning as NWarning,
+  WarningMessage,
+  WarningType,
+} from './errors/Warning'
 
 export interface ScopeOptions {
-  returnType?: NType
+  returnType?: NType | 'class'
   exportsAllowed?: boolean
 }
 
@@ -34,23 +38,25 @@ export interface ScopeNames<T> {
 }
 
 export class Scope {
-  checker: TypeCheckerResult
+  results: TypeCheckerResultsForFile
   parent?: Scope
-  returnType?: NType
+  /** The type of Scope; undefined to inherit from parent scope */
+  returnType?: NType | 'class'
   variables: Map<string, NType> = new Map()
-  types: Map<string, TypeSpec | null> = new Map()
+  types: Map<string, TypeSpec | 'error'> = new Map()
   unused: ScopeNames<Map<string, Base>> = {
     variables: new Map(),
     types: new Map(),
   }
   exports: ScopeNames<Set<string>> | null = null
+  deferred: (() => void)[] = []
 
   constructor (
-    checker: TypeCheckerResult,
+    results: TypeCheckerResultsForFile,
     parent?: Scope,
     { returnType, exportsAllowed }: ScopeOptions = {},
   ) {
-    this.checker = checker
+    this.results = results
     this.parent = parent
     this.returnType = returnType
     if (exportsAllowed) {
@@ -59,66 +65,81 @@ export class Scope {
   }
 
   inner (options?: ScopeOptions) {
-    return new Scope(this.checker, this, options)
+    return new Scope(this.results, this, options)
   }
 
-  getReturnType (): NType | undefined {
+  getReturnType (): NType | null {
+    if (typeof this.returnType !== 'string') {
+      if (this.returnType) {
+        return this.returnType
+      } else if (this.parent) {
+        return this.parent.getReturnType()
+      }
+    }
+    return null
+  }
+
+  /**
+   * Functions inside classes will return false; this is for warning about
+   * exporting types.
+   */
+  inClass (): boolean {
     if (this.returnType) {
-      return this.returnType
+      return this.returnType === 'class'
     } else if (this.parent) {
-      return this.parent.getReturnType()
+      return this.parent.inClass()
     } else {
-      return undefined
+      return false
     }
   }
 
-  getVariable (name: string, markAsUsed: boolean): NType | undefined {
+  getVariable (name: string, markAsUsed: boolean): NType | null {
     const type = this.variables.get(name)
-    if (type === undefined) {
-      if (this.parent) {
-        return this.parent.getVariable(name, markAsUsed)
-      } else {
-        return undefined
-      }
-    } else {
+    if (type) {
       if (markAsUsed) this.unused.variables.delete(name)
       return type
+    } else if (this.parent) {
+      return this.parent.getVariable(name, markAsUsed)
+    } else {
+      return null
     }
   }
 
   /**
    * null is the error type spec while undefined means it's not in scope
    */
-  getType (name: string, markAsUsed: boolean): TypeSpec | null | undefined {
+  getType (name: string, markAsUsed: boolean): TypeSpec | 'error' | null {
     const type = this.types.get(name)
-    if (type === undefined) {
-      if (this.parent) {
-        return this.parent.getType(name, markAsUsed)
-      } else {
-        return undefined
-      }
-    } else {
+    if (type) {
       if (markAsUsed) this.unused.types.delete(name)
       return type
+    } else if (this.parent) {
+      return this.parent.getType(name, markAsUsed)
+    } else {
+      return null
     }
+  }
+
+  reportInternalError (error: unknown, base: Base) {
+    this.results.parent.errors.push({
+      message: {
+        type: ErrorType.INTERNAL_ERROR,
+        error:
+          error instanceof Error
+            ? error
+            : new TypeError(
+                `A non-Error of type ${displayType(error)} was thrown.`,
+              ),
+      },
+      base,
+    })
   }
 
   getTypeFrom (base: Type): GetTypeResult {
     try {
       return base.getType(new GetTypeContext(this, base))
     } catch (err) {
-      this.checker.errors.push({
-        message: {
-          type: ErrorType.INTERNAL_ERROR,
-          error:
-            err instanceof Error
-              ? err
-              : new TypeError(
-                  `A non-Error of type ${displayType(err)} was thrown.`,
-                ),
-        },
-        base,
-      })
+      this.reportInternalError(err, base)
       return {
         type: unknown,
       }
@@ -136,18 +157,7 @@ export class Scope {
         new CheckPatternContext(this, base, idealType, definite, isPublic),
       )
     } catch (err) {
-      this.checker.errors.push({
-        message: {
-          type: ErrorType.INTERNAL_ERROR,
-          error:
-            err instanceof Error
-              ? err
-              : new TypeError(
-                  `A non-Error of type ${displayType(err)} was thrown.`,
-                ),
-        },
-        base,
-      })
+      this.reportInternalError(err, base)
       return {}
     }
   }
@@ -156,18 +166,7 @@ export class Scope {
     try {
       return base.checkStatement(new CheckStatementContext(this, base))
     } catch (err) {
-      this.checker.errors.push({
-        message: {
-          type: ErrorType.INTERNAL_ERROR,
-          error:
-            err instanceof Error
-              ? err
-              : new TypeError(
-                  `A non-Error of type ${displayType(err)} was thrown.`,
-                ),
-        },
-        base,
-      })
+      this.reportInternalError(err, base)
       return {}
     }
   }
@@ -184,18 +183,7 @@ export class Scope {
         options,
       )
     } catch (err) {
-      this.checker.errors.push({
-        message: {
-          type: ErrorType.INTERNAL_ERROR,
-          error:
-            err instanceof Error
-              ? err
-              : new TypeError(
-                  `A non-Error of type ${displayType(err)} was thrown.`,
-                ),
-        },
-        base,
-      })
+      this.reportInternalError(err, base)
       return unknown
     }
   }
@@ -204,22 +192,11 @@ export class Scope {
     try {
       const result = base.typeCheck(new TypeCheckContext(this, base))
       if (result.type) {
-        this.checker.types.set(base, result.type)
+        this.results.parent.types.set(base, result.type)
       }
       return result
     } catch (err) {
-      this.checker.errors.push({
-        message: {
-          type: ErrorType.INTERNAL_ERROR,
-          error:
-            err instanceof Error
-              ? err
-              : new TypeError(
-                  `A non-Error of type ${displayType(err)} was thrown.`,
-                ),
-        },
-        base,
-      })
+      this.reportInternalError(err, base)
       return {
         type: unknown,
       }
@@ -227,8 +204,19 @@ export class Scope {
   }
 
   end () {
+    for (const deferred of this.deferred) {
+      deferred()
+    }
+    if (this.exports) {
+      for (const name of this.exports.variables) {
+        this.unused.variables.delete(name)
+      }
+      for (const name of this.exports.types) {
+        this.unused.types.delete(name)
+      }
+    }
     for (const base of this.unused.variables.values()) {
-      this.checker.warnings.push({
+      this.results.parent.warnings.push({
         message: {
           type: WarningType.UNUSED_VARIABLE,
         },
@@ -236,12 +224,39 @@ export class Scope {
       })
     }
     for (const base of this.unused.types.values()) {
-      this.checker.warnings.push({
+      this.results.parent.warnings.push({
         message: {
           type: WarningType.UNUSED_TYPE,
         },
         base,
       })
+    }
+  }
+
+  /**
+   * Captures current exports into a module type
+   */
+  toModule (path: string): NModule {
+    if (!this.exports) {
+      throw new Error('This scope does not have exports')
+    }
+    return {
+      type: 'module',
+      path,
+      types: new Map(
+        Array.from(this.exports.variables, name => {
+          const type = this.variables.get(name)
+          if (!type) throw new Error(`Where did the export go for ${name}?`)
+          return [name, type]
+        }),
+      ),
+      exportedTypes: new Map(
+        Array.from(this.exports.variables, name => {
+          const type = this.types.get(name)
+          if (!type) throw new Error(`Where did the export go for ${name}?`)
+          return [name, type]
+        }),
+      ),
     }
   }
 }

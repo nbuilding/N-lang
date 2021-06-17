@@ -3,6 +3,8 @@ import { Expression, TypeCheckContext, TypeCheckResult } from './Expression'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
 import { String as AstString } from '../literals/String'
+import { unknown } from '../../type-checker/types/types'
+import { ErrorType } from '../../type-checker/errors/Error'
 
 export class ImportFile extends Base implements Expression {
   path: Identifier | AstString
@@ -16,7 +18,20 @@ export class ImportFile extends Base implements Expression {
   }
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {
-    throw new Error('Method not implemented.')
+    const state = context.scope.results.modules.get(this.getImportPath())
+    if (!state) {
+      throw new Error('Why does state not exist?')
+    }
+    if (state.state === 'loaded') {
+      return { type: state.module }
+    } else {
+      if (state.state === 'error') {
+        context.err({ type: ErrorType.CANNOT_IMPORT })
+      } else if (state.state === 'loading') {
+        context.err({ type: ErrorType.CIRCULAR_IMPORTS })
+      }
+      return { type: unknown }
+    }
   }
 
   getImportPath (): string {

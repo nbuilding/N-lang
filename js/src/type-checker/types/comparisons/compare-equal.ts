@@ -295,6 +295,24 @@ export function compareEqual (
         issue,
       },
     }
+  } else if (typeA.type === 'module') {
+    if (typeB.type === 'module' && typeA.path === typeB.path) {
+      return {
+        type: typeB,
+        result: typeToResultType(typeB),
+      }
+    } else {
+      return {
+        type: unknown,
+        result: {
+          ...typeToResultType(typeB),
+          issue: {
+            issue: 'should-be',
+            type: typeToResultType(typeA),
+          },
+        },
+      }
+    }
   } else if (typeA.type === 'function') {
     if (typeB.type !== 'function') {
       return {

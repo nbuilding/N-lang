@@ -121,7 +121,7 @@ export class AliasSpec extends TypeSpec {
   type: NType
   typeVars: TypeSpec[]
 
-  constructor (name: string, type: NType, typeVars: TypeSpec[]) {
+  constructor (name: string, type: NType, typeVars: TypeSpec[] = []) {
     super(name, typeVars.length)
 
     this.type = type
@@ -180,17 +180,31 @@ export type NamedType = {
   typeVars: NType[]
 }
 
-export interface NTuple {
+export type NTuple = {
   type: 'tuple'
   types: NType[]
 }
 
-export interface NRecord {
+export type NRecord = {
   type: 'record'
   types: Map<string, NType>
 }
+export function makeRecord (types: Record<string, NType>): NRecord {
+  return {
+    type: 'record',
+    types: new Map(Object.entries(types)),
+  }
+}
 
-export interface NFunction {
+export type NModule = {
+  type: 'module'
+  path: string
+  /** Exported variables */
+  types: Map<string, NType>
+  exportedTypes: Map<string, TypeSpec | 'error'>
+}
+
+export type NFunction = {
   type: 'function'
   argument: NType
   return: NType
@@ -224,17 +238,23 @@ export function makeFunction (
   )
 }
 
-export interface NUnion {
+export type NUnion = {
   type: 'union'
   types: TypeSpec[]
 }
 
-export interface Unknown {
+export type Unknown = {
   type: 'unknown'
 }
 export const unknown: Unknown = { type: 'unknown' }
 
-export type NTypeKnown = NamedType | NTuple | NRecord | NFunction | NUnion
+export type NTypeKnown =
+  | NamedType
+  | NTuple
+  | NRecord
+  | NModule
+  | NFunction
+  | NUnion
 export type NType = NTypeKnown | Unknown
 
 /**

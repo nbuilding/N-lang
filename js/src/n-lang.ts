@@ -1,6 +1,7 @@
 // See README.md on how to run this
 
 import fs from 'fs/promises'
+import path from 'path'
 import util from 'util'
 import parseArgs from 'minimist'
 // import { compileToJS, TypeChecker, FileLines } from './index'
@@ -62,36 +63,30 @@ async function main () {
 
   const running = run || !(ast || repr || js || checksOnly)
 
-  const file = await fs.readFile(fileName, 'utf8')
-  const script = parse(file, {
-    ambiguityOutput,
-    loud: true,
-  })
-  if (ast) console.log(util.inspect(script, false, null, true))
-  if (repr) console.log(script.toString(true))
-
-  if (!(js || running || checksOnly)) return
-
-  //*
   const checker = new TypeChecker({
-    resolvePath (basePath: string, importPath: string): string {
-      return basePath + importPath // TEMP
+    absolutePath (basePath: string, importPath: string): string {
+      return path.resolve(basePath, importPath)
     },
-    async provideFile (_path: string): Promise<Block> {
-      throw new Error('not implemented')
+    async provideFile (path: string): Promise<Block> {
+      const file = await fs.readFile(path, 'utf8')
+      const ast = parse(file, {
+        ambiguityOutput,
+        loud: true,
+      })
+      if (ast) console.log(util.inspect(ast, false, null, true))
+      if (repr) console.log(ast.toString(true))
+      return ast
     },
   })
   const displayer = new ErrorDisplayer({ type: 'console-color' })
-  const result = await checker.start(script)
-  const lines = file.split(/\r?\n/)
+  const result = await checker.start(path.resolve(fileName))
+  if (!(js || running || checksOnly)) return
   console.log(
     result.errors
-      .map(error => displayer.displayError('run.n', lines, error))
+      .map(error => displayer.displayError('run.n', [], error)) // TEMP
       .join('\n\n'),
   )
   /*
-  console.log(checker.displayWarnings(lines))
-
   const compiled = compileToJS(script, checker.types)
   if (js) console.log(compiled)
   // Indirect call of eval to run in global scope

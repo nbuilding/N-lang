@@ -28,7 +28,7 @@ export class FuncType extends Base implements Type {
         const typeVar = new FuncTypeVarSpec(name)
         typeVars.push(typeVar)
         if (scope.types.has(name)) {
-          scope.types.set(name, null)
+          scope.types.set(name, 'error')
           context.err({
             type: ErrorType.DUPLICATE_TYPE_VAR,
             in: 'func-type',

@@ -20,20 +20,19 @@ before(async () => {
   describe('type checking', () => {
     for (const { name, path } of files) {
       it(name, async function () {
-        const file = await fs.readFile(path, 'utf8')
-        const script = parse(file)
         const checker = new TypeChecker({
-          resolvePath (basePath: string, importPath: string): string {
-            return basePath + importPath // TEMP
+          absolutePath (basePath: string, importPath: string): string {
+            return resolve(basePath, importPath)
           },
-          async provideFile (_path: string): Promise<Block> {
-            throw new Error('not implemented')
+          async provideFile (path: string): Promise<Block> {
+            const file = await fs.readFile(path, 'utf8')
+            return parse(file)
           },
         })
-        const result = await checker.start(script)
+        const result = await checker.start(path)
         if (result.errors.length > 0) {
           const displayer = new ErrorDisplayer({ type: 'console-color' })
-          const lines = file.split(/\r?\n/)
+          const lines: string[] = [] // TEMP
           throw new TypeError(
             result.errors
               .map(error => displayer.displayError('run.n', lines, error))

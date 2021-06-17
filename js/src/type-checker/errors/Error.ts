@@ -47,6 +47,12 @@ export enum ErrorType {
   /** IfExpression: Branch types don't match */
   IF_BRANCH_MISMATCH = 'if-branch-mismatch',
 
+  /** ImportFile: Importing a nonexistent file or the path is malformed */
+  CANNOT_IMPORT = 'cannot-import',
+
+  /** ImportFile: Circular dependency */
+  CIRCULAR_IMPORTS = 'circular-imports',
+
   /** List: List item types don't match */
   LIST_ITEMS_MISMATCH = 'list-items-mismatch',
 
@@ -105,9 +111,6 @@ export enum ErrorType {
   /** RecordPattern: Duplicate key in record pattern */
   RECORD_PATTERN_DUPE_KEY = 'record-pattern-dupe-key',
 
-  /** RecordPattern: Not all fields of record destructured */
-  RECORD_PATTERN_INCOMPLETE = 'record-pattern-incomplete',
-
   /** TuplePattern: The number of items destructured =/= tuple length */
   TUPLE_PATTERN_LENGTH_MISMATCH = 'tuple-pattern-length-mismatch',
 
@@ -128,11 +131,17 @@ export enum ErrorType {
   /** AssertValue: An `assert value` was given a non-bool */
   VALUE_ASSERTION_NOT_BOOL = 'value-assertion-not-nool',
 
+  /** ClassDeclaration: Classes do not support type variables as of yet */
+  CLASS_NO_TYPEVAR = 'class-no-typevar',
+
   /** EnumDeclaration: Duplicate variant name */
   DUPLICATE_VARIANT = 'duplicate-variant',
 
   /** EnumDeclaration: Marking a variant public in a non-public enum type */
   PUBLIC_VARIANT_PRIVATE_TYPE = 'public-variant-private-type',
+
+  /** ImportStmt: Native module does not exist */
+  NO_NATIVE_MODULE = 'no-native-module',
 
   /** For: (legacy) Type not iterable */
   FOR_LEGACY_NOT_ITERABLE = 'for-legacy-not-iterable',
@@ -261,11 +270,6 @@ export type ErrorMessage =
       key: string
     }
   | {
-      type: ErrorType.RECORD_PATTERN_INCOMPLETE
-      recordType: NType
-      keys: string[]
-    }
-  | {
       type: ErrorType.OPERATION_UNPERFORMABLE
       a: NType
       b: NType
@@ -302,6 +306,10 @@ export type ErrorMessage =
         | ErrorType.DUPLICATE_VARIANT
         | ErrorType.PUBLIC_VARIANT_PRIVATE_TYPE
         | ErrorType.CANNOT_EXPORT
+        | ErrorType.CLASS_NO_TYPEVAR
+        | ErrorType.NO_NATIVE_MODULE
+        | ErrorType.CANNOT_IMPORT
+        | ErrorType.CIRCULAR_IMPORTS
     }
 
 interface NError {
@@ -384,12 +392,6 @@ export function displayErrorMessage (
     }
     case ErrorType.NOT_MODULE: {
       return display`${err.modType} isn't a module, so you can't get any exported types from it.`
-    }
-    case ErrorType.RECORD_PATTERN_INCOMPLETE: {
-      return display`A ${err.recordType} has the keys ${[
-        'and',
-        err.keys.map(key => display`${key}`),
-      ]}, but you didn't destructure them. If you don't need those fields, you should assign them to a ${'_'} to explicitly discard the values.`
     }
     case ErrorType.RECORD_PATTERN_NO_KEY: {
       return display`A ${err.recordType} doesn't have a field named ${err.key}.`

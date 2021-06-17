@@ -202,6 +202,18 @@ export function compareAssignable (
       types: results,
       issue,
     }
+  } else if (annotation.type === 'module') {
+    if (value.type === 'module' && value.path === annotation.path) {
+      return typeToResultType(value)
+    } else {
+      return {
+        ...typeToResultType(value),
+        issue: {
+          issue: 'should-be',
+          type: typeToResultType(annotation),
+        },
+      }
+    }
   } else if (annotation.type === 'function') {
     if (value.type !== 'function') {
       return {
