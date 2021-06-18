@@ -1,2 +1,18 @@
-let test:str = 0
-let test = "ree"
+import websocket // Used for connecting to WebSockets
+
+let thing2 = [] -> cmd[()] {
+	let websocketTest = websocket.connect({
+		onOpen: [send: websocket.send] -> cmd[bool] {
+			print("Open!")
+			let _ = send("hi")!
+			return false
+		}
+		onMessage: [send: websocket.send message: str] -> cmd[bool] {
+			print(message)
+			let _ = send("hello")!
+			return message == "hello"
+		}
+	}, "wss://localhost:3000")!
+}
+
+let pub test = thing2()

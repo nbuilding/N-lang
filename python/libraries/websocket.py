@@ -121,12 +121,11 @@ async def createServer(options, port):
     async def server(websocket, path):
         print(websocket)
 
-    # Create websocket server
-    start_server = websockets.serve(server, "localhost", port)
-
-    # Start and run websocket server forever
-    asyncio.get_event_loop().run_until_complete(start_server)
-    asyncio.get_event_loop().run_forever()
+    # Create and start websocket server
+    ws_server = await websockets.serve(server, "localhost", port)
+    
+    # Run websocket server until it ends
+    await ws_server.wait_closed()
 
 
 def _values():
