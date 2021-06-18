@@ -46,7 +46,7 @@ export function compareEqual (
     typeA.typeSpec === typeB.typeSpec
   ) {
     const vars: CompareEqualResult[] = []
-    let issue: ComparisonIssue | null = null
+    let issue: ComparisonIssue | undefined
     typeA.typeVars.forEach((variable, i) => {
       const result = compareEqual(context, variable, typeB.typeVars[i])
       vars.push(result)
@@ -197,7 +197,7 @@ export function compareEqual (
       }
     }
     const results: CompareEqualResult[] = []
-    let issue: ComparisonIssue | null =
+    let issue: ComparisonIssue | undefined =
       typeB.types.length < typeA.types.length
         ? {
             issue: 'need-extra-items',
@@ -208,7 +208,7 @@ export function compareEqual (
             issue: 'too-many-items',
             extra: typeB.types.length - typeA.types.length,
           }
-        : null
+        : undefined
     typeB.types.forEach((type, i) => {
       if (i < typeA.types.length) {
         const result = compareEqual(context, typeA.types[i], type)
@@ -251,14 +251,14 @@ export function compareEqual (
     }
     const [missing, extra] = difference(typeA.types.keys(), typeB.types.keys())
     const results: Record<string, CompareEqualResult> = {}
-    let issue: ComparisonIssue | null =
+    let issue: ComparisonIssue | undefined =
       missing.size > 0 || extra.size > 0
         ? {
             issue: 'record-key-mismatch',
             missing: [...missing],
             extra: [...extra],
           }
-        : null
+        : undefined
     for (const [key, type] of typeB.types) {
       const annotationType = typeA.types.get(key)
       if (annotationType) {
@@ -378,8 +378,8 @@ export function compareEqual (
         type: 'function',
         argument: argumentResult.result,
         return: returnResult.result,
-        typeVarNames: typeB.typeVars.map(typeVar => typeVar.name),
-        issue: hasIssue ? 'contained' : null,
+        typeVarIds: typeB.typeVars.map(typeVar => typeVar.id),
+        issue: hasIssue ? 'contained' : undefined,
       },
     }
   } else {
@@ -396,7 +396,7 @@ export function compareEqual (
       }
     }
     const vars: CompareEqualResult[] = []
-    let issue: ComparisonIssue | null = null
+    let issue: ComparisonIssue | undefined
     typeA.typeVars.forEach((variable, i) => {
       const result = compareEqual(context, variable, typeB.typeVars[i])
       vars.push(result)

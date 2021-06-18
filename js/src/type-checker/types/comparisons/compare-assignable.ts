@@ -41,7 +41,7 @@ export function compareAssignable (
   } else if (AliasSpec.isAlias(value)) {
     if (annotation.type === 'named' && annotation.typeSpec === value.typeSpec) {
       const vars: ComparisonResult[] = []
-      let issue: ComparisonIssue | null = null
+      let issue: ComparisonIssue | undefined
       value.typeVars.forEach((variable, i) => {
         const result = compareAssignable(
           context,
@@ -132,7 +132,7 @@ export function compareAssignable (
       }
     }
     const results: ComparisonResult[] = []
-    let issue: ComparisonIssue | null =
+    let issue: ComparisonIssue | undefined =
       value.types.length < annotation.types.length
         ? {
             issue: 'need-extra-items',
@@ -145,7 +145,7 @@ export function compareAssignable (
             issue: 'too-many-items',
             extra: value.types.length - annotation.types.length,
           }
-        : null
+        : undefined
     value.types.forEach((type, i) => {
       if (i < annotation.types.length) {
         const result = compareAssignable(context, annotation.types[i], type)
@@ -177,14 +177,14 @@ export function compareAssignable (
       value.types.keys(),
     )
     const results: Record<string, ComparisonResult> = {}
-    let issue: ComparisonIssue | null =
+    let issue: ComparisonIssue | undefined =
       missing.size > 0 || extra.size > 0
         ? {
             issue: 'record-key-mismatch',
             missing: [...missing],
             extra: [...extra],
           }
-        : null
+        : undefined
     for (const [key, type] of value.types) {
       const annotationType = annotation.types.get(key)
       if (annotationType) {
@@ -238,8 +238,9 @@ export function compareAssignable (
       type: 'function',
       argument: argumentResult,
       return: returnResult,
-      typeVarNames: value.typeVars.map(typeVar => typeVar.name),
-      issue: argumentResult.issue || returnResult.issue ? 'contained' : null,
+      typeVarIds: value.typeVars.map(typeVar => typeVar.id),
+      issue:
+        argumentResult.issue || returnResult.issue ? 'contained' : undefined,
     }
   } else {
     if (annotation.typeSpec instanceof AliasSpec) {
@@ -270,7 +271,7 @@ export function compareAssignable (
       }
     }
     const vars: ComparisonResult[] = []
-    let issue: ComparisonIssue | null = null
+    let issue: ComparisonIssue | undefined
     value.typeVars.forEach((variable, i) => {
       const result = compareAssignable(
         context,

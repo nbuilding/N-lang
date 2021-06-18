@@ -1,11 +1,15 @@
 import { fromEntries } from '../../utils/from-entries'
-import { NType } from './types'
+import { FuncTypeVarSpec, NType } from './types'
 
 export type ComparisonResultType =
   | {
       type: 'named'
       name: string
       vars: ComparisonResult[]
+    }
+  | {
+      type: 'func-type-var'
+      id: string
     }
   | {
       type: 'unit'
@@ -26,7 +30,7 @@ export type ComparisonResultType =
       type: 'function'
       argument: ComparisonResult
       return: ComparisonResult
-      typeVarNames: string[]
+      typeVarIds: string[]
     }
   | {
       type: 'union'
@@ -39,11 +43,16 @@ export type ComparisonResultType =
 export function typeToResultType (type: NType): ComparisonResultType {
   switch (type.type) {
     case 'named': {
-      return {
-        type: 'named',
-        name: type.typeSpec.name,
-        vars: type.typeVars.map(typeToResultType),
-      }
+      return type.typeSpec instanceof FuncTypeVarSpec
+        ? {
+            type: 'func-type-var',
+            id: type.typeSpec.id,
+          }
+        : {
+            type: 'named',
+            name: type.typeSpec.name,
+            vars: type.typeVars.map(typeToResultType),
+          }
     }
     case 'tuple': {
       return {
@@ -71,7 +80,7 @@ export function typeToResultType (type: NType): ComparisonResultType {
         type: 'function',
         argument: typeToResultType(type.argument),
         return: typeToResultType(type.return),
-        typeVarNames: type.typeVars.map(typeVar => typeVar.name),
+        typeVarIds: type.typeVars.map(typeVar => typeVar.id),
       }
     }
     case 'union': {
@@ -126,5 +135,5 @@ export type ComparisonIssue =
     }
 
 export type ComparisonResult = ComparisonResultType & {
-  issue?: ComparisonIssue | null
+  issue?: ComparisonIssue
 }

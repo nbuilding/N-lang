@@ -1,3 +1,5 @@
+import { uniqueId } from '../../utils/uuid'
+
 export class TypeSpec {
   name: string
   typeVarCount: number
@@ -161,6 +163,8 @@ export type FuncTypeVar = {
 }
 
 export class FuncTypeVarSpec extends TypeSpec {
+  id = uniqueId()
+
   constructor (name: string) {
     super(name, 0)
   }
