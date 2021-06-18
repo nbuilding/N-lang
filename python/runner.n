@@ -13,6 +13,7 @@ let thing2 = [] -> cmd[()] {
 			return message == "hello"
 		}
 	}, "wss://localhost:3000")!
+	print(websocketTest)
 }
 
 let pub test = thing2()

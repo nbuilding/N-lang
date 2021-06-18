@@ -69,52 +69,56 @@ async def connect(options, url):
                 pass
 
         debug_task = asyncio.create_task(manual_send())
-    async with websockets.connect(url) as websocket:
-        if debug:
-            print(f"[{url}] {Fore.BLUE}Open!{Style.RESET_ALL}")
-
-        async def send_msg(message):
+    try:
+        async with websockets.connect(url) as websocket:
             if debug:
-                print(
-                    f"[{url}] {Fore.CYAN}send{Style.RESET_ALL} {Fore.GREEN}{message}{Style.RESET_ALL}"
-                )
-            await websocket.send(message)
+                print(f"[{url}] {Fore.BLUE}Open!{Style.RESET_ALL}")
 
-        # Why is this so complicated
-        send = NativeFunction(
-            None, [], None, lambda message: Cmd(lambda _: lambda: send_msg(message))
-        )
-        close = await options["onOpen"].run([send])
-        if debug:
-            print(f"[{url}] {Fore.BLUE}onOpen handled.{Style.RESET_ALL}")
-        if isinstance(close, Cmd):
-            close = await close.eval()
-        if not close:
-            try:
-                async for message in websocket:
-                    if debug:
-                        print(
-                            f"[{url}] {Fore.CYAN}recv{Style.RESET_ALL} {Fore.MAGENTA}{message}{Style.RESET_ALL}"
-                        )
-                    close = await options["onMessage"].run([send, message])
-                    if debug:
-                        print(f"[{url}] {Fore.BLUE}onMessage handled.{Style.RESET_ALL}")
-                    if isinstance(close, Cmd):
-                        close = await close.eval()
-                    if close:
-                        break
-            except websockets.exceptions.ConnectionClosedError as err:
+            async def send_msg(message):
                 if debug:
                     print(
-                        f"[{url}] {Fore.CYAN}ERROR{Style.RESET_ALL} {Fore.RED}{err}{Style.RESET_ALL}"
+                        f"[{url}] {Fore.CYAN}send{Style.RESET_ALL} {Fore.GREEN}{message}{Style.RESET_ALL}"
                     )
-                return yes(err.reason)
-        # await options['onClose'].eval()
+                await websocket.send(message)
+
+            # Why is this so complicated
+            send = NativeFunction(
+                None, [], None, lambda message: Cmd(lambda _: lambda: send_msg(message))
+            )
+            close = await options["onOpen"].run([send])
+            if debug:
+                print(f"[{url}] {Fore.BLUE}onOpen handled.{Style.RESET_ALL}")
+            if isinstance(close, Cmd):
+                close = await close.eval()
+            if not close:
+                try:
+                    async for message in websocket:
+                        if debug:
+                            print(
+                                f"[{url}] {Fore.CYAN}recv{Style.RESET_ALL} {Fore.MAGENTA}{message}{Style.RESET_ALL}"
+                            )
+                        close = await options["onMessage"].run([send, message])
+                        if debug:
+                            print(f"[{url}] {Fore.BLUE}onMessage handled.{Style.RESET_ALL}")
+                        if isinstance(close, Cmd):
+                            close = await close.eval()
+                        if close:
+                            break
+                except websockets.exceptions.ConnectionClosedError as err:
+                    if debug:
+                        print(
+                            f"[{url}] {Fore.CYAN}ERROR{Style.RESET_ALL} {Fore.RED}{err}{Style.RESET_ALL}"
+                        )
+                    return yes(err.reason)
+            # await options['onClose'].eval()
+            if debug:
+                debug_task.cancel()
         if debug:
-            debug_task.cancel()
-    if debug:
-        print(f"[{url}] {Fore.BLUE}Closed.{Style.RESET_ALL}")
-    return none
+            print(f"[{url}] {Fore.BLUE}Closed.{Style.RESET_ALL}")
+        return none
+    except Exception as err:
+        return yes(str(err))
+
 
 # https://limecoda.com/how-to-build-basic-websocket-server-python/
 async def createServer(options, port):
@@ -123,7 +127,7 @@ async def createServer(options, port):
 
     # Create and start websocket server
     ws_server = await websockets.serve(server, "localhost", port)
-    
+
     # Run websocket server until it ends
     await ws_server.wait_closed()
 
