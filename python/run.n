@@ -2,6 +2,7 @@ import times
 import FileIO
 import request
 import json
+import websocket
 
 print(2 << 3)
 
@@ -56,9 +57,16 @@ let thing = [] -> cmd[()] {
 }
 
 let thing2 = [] -> cmd[()] {
-	
+	let _ = websocket.createServer(
+		{
+			onConnect: [user:websocket.user path:str] -> cmd[bool] { return false }
+			onMessage: [user:websocket.user message:str] -> cmd[bool] { return false }
+			onDisconnect: [user:websocket.user] -> cmd[()] {}
+		},
+		3000
+	)!
 }
 
-let pub test = thing()
+let pub test = thing2()
 
 print(json.stringify(json.number(30.0)))

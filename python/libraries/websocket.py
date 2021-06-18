@@ -36,12 +36,12 @@ user_type = {
 }
 
 # alias setupOptions = {
-#   onConnect: user -> cmd[bool]
+#   onConnect: user -> str -> cmd[bool]
 #   onMessage: user -> str -> cmd[bool]
 #   onDisconnect: user -> cmd[()]
 # }
 setup_options_type = {
-    "onOpen": (user_type, n_cmd_type.with_typevars(["bool"])),
+    "onConnect": (user_type, "str", n_cmd_type.with_typevars(["bool"])),
     "onMessage": (user_type, "str", n_cmd_type.with_typevars(["bool"])),
     "onDisconnect": (user_type, n_cmd_type.with_typevars(["unit"])),
 }
@@ -116,6 +116,18 @@ async def connect(options, url):
         print(f"[{url}] {Fore.BLUE}Closed.{Style.RESET_ALL}")
     return none
 
+# https://limecoda.com/how-to-build-basic-websocket-server-python/
+async def createServer(options, port):
+    async def server(websocket, path):
+        print(websocket)
+
+    # Create websocket server
+    start_server = websockets.serve(server, "localhost", port)
+
+    # Start and run websocket server forever
+    asyncio.get_event_loop().run_until_complete(start_server)
+    asyncio.get_event_loop().run_forever()
+
 
 def _values():
     return {
@@ -125,10 +137,9 @@ def _values():
             "str",
             n_cmd_type.with_typevars([n_maybe_type.with_typevars(["str"])]),
         ),
-        # createServer: setupOptions -> str -> int -> cmd[maybe[str]]
+        # createServer: setupOptions -> int -> cmd[maybe[str]]
         "createServer": (
             setup_options_type,
-            "str",
             "int",
             n_cmd_type.with_typevars([n_maybe_type.with_typevars(["str"])]),
         ),
