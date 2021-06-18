@@ -1,9 +1,31 @@
 import colours from 'colors/safe'
+import { generateNames } from '../../../test/unit/utils/generate-names'
 import { Base } from '../../ast/index'
 import { escapeHtml } from '../../utils/escape-html'
+import { ComparisonResult } from '../types/comparisons'
 import { NType } from '../types/types'
 import { displayErrorMessage, Error } from './Error'
 import { displayWarningMessage, Warning } from './Warning'
+
+class TypeNameCache {
+  funcTypeVarNames: Map<string, string> = new Map()
+  generator?: Generator<string, never>
+
+  getFuncTypeVarNameForId (id: string): string {
+  let name = this.funcTypeVarNames.get(id)
+  if (!name) {
+    if (!this.generator) {
+      this.generator = generateNames()
+    }
+    // TODO: Currently not intelligent and can suggest duplicate names with
+    // existing type names. Disambiguating type names will have to be more
+    // clever.
+    name = this.generator.next().value
+    this.funcTypeVarNames.set(id, name)
+  }
+  return name
+}
+}
 
 export const HINT = { keyword: 'hint' } as const
 
@@ -285,6 +307,43 @@ export class ErrorDisplayer {
         this._displayUnderline(lines, base.endLine, null, base.endCol)
     }
     return displayed
+  }
+
+  private _displayInlineType (type: ComparisonResult, cache = new TypeNameCache(), inParens = false): string {
+    let display
+    if (type.type === 'named') {
+      display = `${type.name}${type.vars.length > 0
+      ? `[${type.vars.map(typeVar => this._displayInlineType(typeVar, cache, typeVar.type === 'tuple')).join(', ')}]`
+    : ''}`
+    } else if (type.type === 'unit') {
+      display = '()'
+    } else if (type.type === 'func-type-var') {
+      display = cache.getFuncTypeVarNameForId(type.id)
+    } else if (type.type === 'union') {
+      display = type.typeNames.join(' | ')
+    } else if (type.type === 'record') {
+      const entries = Object.entries(type.types)
+      display = entries.length > 0
+      ? `{ ${entries.map(([field, type]) => `${field}: ${this._displayInlineType(type, cache)}`).join('; ')} }`
+      : '{}'
+    } else if (type.type === 'module') {
+      // TODO: Move displayPath to an option of ErrorDisplayer because it uses
+      // it more
+      display = `imp ${JSON.stringify(type.path)}`
+    } else if (type.type === 'tuple') {
+      display = type.types.map(type => this._displayInlineType(type, cache, type.type === 'tuple')).join(', ')
+    } else if (type.type === 'function') {
+      display = `${type.typeVarIds.length > 0 ?
+        `[${type.typeVarIds.map(id => cache.getFuncTypeVarNameForId(id)).join(', ')}] `:
+      ''}${this._displayInlineType(type.argument, cache, type.argument.type === 'function' || type.argument.type === 'tuple')} -> ${this._displayInlineType(type.return, cache, type.return.type === 'tuple')}`
+    } else if (type.type === 'omitted') {
+      display = '...'
+    } else {
+      throw new TypeError('What is this')
+    }
+    return inParens
+      ? `(${display})`
+      : display
   }
 
   displayError (fileName: string, lines: string[], error: Error): string {
