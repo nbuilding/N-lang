@@ -123,10 +123,12 @@ async def connect(options, url):
 # https://limecoda.com/how-to-build-basic-websocket-server-python/
 async def createServer(options, port):
     async def server(websocket, path):
+        data = await websocket.recv()
+        print(data)
         print(websocket)
 
     # Create and start websocket server
-    ws_server = await websockets.serve(server, "localhost", port)
+    ws_server = await websockets.serve(server, "0.0.0.0", port)
 
     # Run websocket server until it ends
     await ws_server.wait_closed()

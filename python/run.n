@@ -4,10 +4,6 @@ import request
 import json
 import websocket
 
-print(2 << 3)
-
-print(toFloat(1))
-
 let textToBytes = [text:str] -> list[int] {
 	let b = []
 	for (i in range(0, len(text), 1)) {
@@ -51,12 +47,13 @@ let thing = [] -> cmd[()] {
 					("Content-Type", "text/plain"),
 				])
 				mimetype: "text/plain"
-			}
+			}	
 		}
 	)!
 }
 
 let thing2 = [] -> cmd[()] {
+	print("opening the websocket!")
 	let _ = websocket.createServer(
 		{
 			onConnect: [user:websocket.user path:str] -> cmd[bool] { return false }
@@ -68,5 +65,3 @@ let thing2 = [] -> cmd[()] {
 }
 
 let pub test = thing2()
-
-print(json.stringify(json.number(30.0)))
