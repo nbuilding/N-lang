@@ -25,7 +25,11 @@ export class Identifier extends Literal implements Pattern {
   typeCheck (context: TypeCheckContext): TypeCheckResult {
     const type = context.scope.getVariable(this.value, true)
     if (this.value.startsWith('_')) {
-      context.warn({ type: WarningType.USED_UNDERSCORE_IDENTIFIER })
+      context.warn({
+        type: WarningType.USED_UNDERSCORE_IDENTIFIER,
+        name: this.value,
+        value: 'variable',
+      })
     }
     if (type) {
       return { type }

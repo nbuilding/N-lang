@@ -2,10 +2,10 @@ import { ErrorType } from '../../type-checker/errors/Error'
 import { unit } from '../../type-checker/types/builtins'
 import {
   functionFromTypes,
+  NamedType,
   FuncTypeVarSpec,
   substitute,
   TypeSpec,
-  unknown,
 } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
@@ -62,11 +62,11 @@ export class Function extends Base implements Expression {
       typeVarScope.end()
     })
 
-    const substitutions = new Map()
+    const substitutions: Map<TypeSpec, NamedType> = new Map()
     const funcTypeVars = []
     for (const typeVar of typeVars) {
       const funcTypeVar = new FuncTypeVarSpec(typeVar.name)
-      substitutions.set(typeVar, funcTypeVar)
+      substitutions.set(typeVar, funcTypeVar.instance())
       funcTypeVars.push(funcTypeVar)
     }
     return {

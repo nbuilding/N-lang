@@ -320,13 +320,14 @@ export { NError as Error }
 
 // Maybe this shouldn't rely on `base`
 export function displayErrorMessage (
-  { message: err }: NError,
+  { message: err, base }: NError,
   display: (strings: TemplateStringsArray, ...items: InlineDisplay[]) => string,
 ): string | [string, ...(BlockDisplay | false)[]] {
   switch (err.type) {
     case ErrorType.INTERNAL_ERROR: {
       return [
-        'An internal error occurred.',
+        'An error arose from within the deep internal innerworkings of N.',
+        base,
         err.error.stack || 'No stack trace available.',
         display`This is a bug with N. Please report this error on GitHub: ${[
           'https://github.com/nbuilding/N-lang/issues/new',
@@ -364,6 +365,7 @@ export function displayErrorMessage (
           err.fields,
           'fields',
         ]}, but you gave ${['just one field', err.given, 'fields']}.`,
+        base,
         err.given < err.fields &&
           display`If you don't need all the fields, you can use ${'_'} to discard the fields you don't need.`,
       ]

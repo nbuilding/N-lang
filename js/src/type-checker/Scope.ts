@@ -9,7 +9,7 @@ import {
   CheckStatementResult,
   Statement,
 } from '../ast/statements/Statement'
-import { Error as NError, ErrorMessage, ErrorType } from './errors/Error'
+import { ErrorType } from './errors/Error'
 import { TypeCheckerResultsForFile } from './TypeChecker'
 import { NModule, NType, TypeSpec, unknown } from './types/types'
 import {
@@ -21,11 +21,7 @@ import { GetTypeContext, GetTypeResult, Type } from '../ast/types/Type'
 import { displayType } from '../utils/display-type'
 import { DeclarationOptions } from '../ast/declaration/Declaration'
 import { ScopeBaseContext } from './ScopeBaseContext'
-import {
-  Warning as NWarning,
-  WarningMessage,
-  WarningType,
-} from './errors/Warning'
+import { WarningType } from './errors/Warning'
 
 export interface ScopeOptions {
   returnType?: NType | 'class'
@@ -121,7 +117,7 @@ export class Scope {
   }
 
   reportInternalError (error: unknown, base: Base) {
-    this.results.parent.errors.push({
+    this.results.errors.push({
       message: {
         type: ErrorType.INTERNAL_ERROR,
         error:
@@ -215,20 +211,24 @@ export class Scope {
         this.unused.types.delete(name)
       }
     }
-    for (const base of this.unused.variables.values()) {
-      this.results.parent.warnings.push({
+    for (const [name, declaration] of this.unused.variables) {
+      this.results.warnings.push({
         message: {
-          type: WarningType.UNUSED_VARIABLE,
+          type: WarningType.UNUSED,
+          name,
+          value: 'variable',
         },
-        base,
+        base: declaration,
       })
     }
-    for (const base of this.unused.types.values()) {
-      this.results.parent.warnings.push({
+    for (const [name, declaration] of this.unused.types) {
+      this.results.warnings.push({
         message: {
-          type: WarningType.UNUSED_TYPE,
+          type: WarningType.UNUSED,
+          name,
+          value: 'type',
         },
-        base,
+        base: declaration,
       })
     }
   }

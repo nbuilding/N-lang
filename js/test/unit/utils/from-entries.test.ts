@@ -1,4 +1,5 @@
 import { expect } from 'chai'
+import { fromEntries } from '../../../src/utils/from-entries'
 
 describe('fromEntries', () => {
   it('should create an object with given entries', () => {
