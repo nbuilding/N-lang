@@ -56,8 +56,8 @@ let thing2 = [] -> cmd[()] {
 	print("opening the websocket!")
 	let _ = websocket.createServer(
 		{
-			onConnect: [user:websocket.user path:str] -> cmd[bool] { return false }
-			onMessage: [user:websocket.user message:str] -> cmd[bool] { return false }
+			onConnect: [user:websocket.user path:str] -> cmd[bool] { print(user); return false }
+			onMessage: [user:websocket.user message:str] -> cmd[bool] { let _ = user.send(message)!; return false }
 			onDisconnect: [user:websocket.user] -> cmd[()] {}
 		},
 		3000

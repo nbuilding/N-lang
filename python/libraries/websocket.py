@@ -1,6 +1,7 @@
 import websockets
 import os
 import asyncio
+import uuid
 
 from colorama import Fore, Style
 
@@ -27,12 +28,12 @@ connect_options_type = {
 # alias user = {
 #   send: str -> cmd[()]
 #   disconnect: () -> cmd[()]
-#   ip: (int, int, int, int)
+#   uuid: (int, int, int, int)
 # }
 user_type = {
     "send": ("str", n_cmd_type.with_typevars(["unit"])),
     "disconnect": ("unit", n_cmd_type.with_typevars(["unit"])),
-    "ip": ["int", "int", "int", "int"],
+    "uuid": "str",
 }
 
 # alias setupOptions = {
@@ -122,10 +123,33 @@ async def connect(options, url):
 
 # https://limecoda.com/how-to-build-basic-websocket-server-python/
 async def createServer(options, port):
+    ws_server = None
     async def server(websocket, path):
-        data = await websocket.recv()
-        print(data)
-        print(websocket)
+        user_data = {
+            "send": NativeFunction(
+                None, [], None, lambda message: Cmd(lambda _: lambda: websocket.send(message))
+            ),
+            "close": NativeFunction(
+                None, [], None, lambda message: Cmd(lambda _: lambda: websocket.close()) # TODO: add code and reason
+            ),
+            "uuid": str(uuid.uuid4()),
+        }
+        
+        stop = await options["onConnect"].run([user_data, path])
+        if isinstance(stop, Cmd):
+            stop = await stop.eval()
+
+        if stop:
+            ws_server.close()
+
+        async for message in websocket:
+            print(message)
+            stop = await options["onMessage"].run([user_data, message])
+            if isinstance(stop, Cmd):
+                stop = await stop.eval()
+
+            if stop:
+                ws_server.close()
 
     # Create and start websocket server
     ws_server = await websockets.serve(server, "0.0.0.0", port)

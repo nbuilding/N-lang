@@ -4,7 +4,7 @@ let thing2 = [] -> cmd[()] {
 	let websocketTest = websocket.connect({
 		onOpen: [send: websocket.send] -> cmd[bool] {
 			print("Open!")
-			let _ = send("hello")
+			let _ = send("hello")!
 			return false
 		}
 		onMessage: [send: websocket.send message: str] -> cmd[bool] {
