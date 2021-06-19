@@ -2,7 +2,12 @@ import colours from 'colors/safe'
 import { generateNames } from '../../../test/unit/utils/generate-names'
 import { Base } from '../../ast/index'
 import { escapeHtml } from '../../utils/escape-html'
-import { ComparisonResult, typeToResultType } from '../types/comparisons'
+import { findLastIndex } from '../../utils/find-last-index'
+import {
+  ComparisonResult,
+  ComparisonResultType,
+  typeToResultType,
+} from '../types/comparisons'
 import { NType } from '../types/types'
 import { displayErrorMessage, Error } from './Error'
 import { displayWarningMessage, Warning } from './Warning'
@@ -43,7 +48,7 @@ export type InlineDisplay =
   | [string, 'link']
   | typeof HINT
 
-export type BlockDisplay = string | Base
+export type BlockDisplay = string | Base | ComparisonResult
 
 export interface HtmlClassOptions {
   /** CSS class to use for variable and type names; default `n-error-name` */
@@ -76,11 +81,14 @@ export interface HtmlClassOptions {
   /** CSS class of "Warning"; default `n-error-warning` */
   warning: string
 
-  /** CSS class for URLs */
+  /** CSS class for URLs; default `n-error-link` */
   link: string
 
-  /** CSS class for the "Hint" word in hints */
+  /** CSS class for the "Hint" word in hints; default `n-error-hint` */
   hint: string
+
+  /** CSS class for type error notes; default `n-error-type-error` */
+  typeError: string
 }
 
 type ErrorDisplayColourOptions =
@@ -149,6 +157,27 @@ export class ErrorDisplayer {
     }
   }
 
+  private _displayLink (url: string): string {
+    return `<${
+      this.options.type === 'console-color'
+        ? colours.underline(colours.blue(url))
+        : this.options.type === 'html'
+        ? `<span class="${this.options.classes?.link ??
+            'n-error-link'}">${escapeHtml(url)}</span>`
+        : url
+    }>`
+  }
+
+  private _displayInlineTypePretty (type: ComparisonResult): string {
+    const str = '`' + this._displayInlineType(type) + '`'
+    return this.options.type === 'console-color'
+      ? colours.yellow(str)
+      : this.options.type === 'html'
+      ? `<span class="${this.options.classes?.types ??
+          'n-error-types'}">${escapeHtml(str)}</span>`
+      : str
+  }
+
   private _displayInline (inline: InlineDisplay): string {
     if (Array.isArray(inline)) {
       if (inline[1] === 'th') {
@@ -164,14 +193,7 @@ export class ErrorDisplayer {
             return ordinal + 'th'
         }
       } else if (inline[1] === 'link') {
-        return `<${
-          this.options.type === 'console-color'
-            ? colours.underline(colours.blue(inline[0]))
-            : this.options.type === 'html'
-            ? `<span class="${this.options.classes?.link ??
-                'n-error-link'}">${escapeHtml(inline[0])}</span>`
-            : inline[0]
-        }>`
+        return this._displayLink(inline[0])
       } else if (inline.length === 3) {
         return inline[1] === 1 ? inline[0] : `${inline[1]} ${inline[2]}`
       } else {
@@ -183,13 +205,7 @@ export class ErrorDisplayer {
     } else if ('keyword' in inline) {
       return this._hint
     } else {
-      const str = '`' + this._displayInlineType(typeToResultType(inline)) + '`'
-      return this.options.type === 'console-color'
-        ? colours.yellow(str)
-        : this.options.type === 'html'
-        ? `<span class="${this.options.classes?.types ??
-            'n-error-types'}">${escapeHtml(str)}</span>`
-        : str
+      return this._displayInlineTypePretty(typeToResultType(inline))
     }
   }
 
@@ -341,7 +357,7 @@ export class ErrorDisplayer {
   }
 
   private _displayInlineType (
-    type: ComparisonResult,
+    type: ComparisonResultType,
     cache = new TypeNameCache(),
     inParens = false,
   ): string {
@@ -411,12 +427,68 @@ export class ErrorDisplayer {
     return inParens ? `(${display})` : display
   }
 
+  private _displayTypeErrorMsg (message: string): string {
+    return this.options.type === 'console-color'
+      ? colours.white(message)
+      : this.options.type === 'html'
+      ? `<span class="${this.options.classes?.typeError ??
+          'n-error-type-error'}">${escapeHtml(message)}</span>`
+      : message
+  }
+
   private _displayTypeError (
     type: ComparisonResult,
     cache = new TypeNameCache(),
     suffix = '',
     inParens?: boolean,
   ): string[] {
+    if (
+      !type.issue ||
+      type.issue.issue === 'should-be' ||
+      type.issue.issue === 'too-specific' ||
+      type.issue.issue === 'too-general' ||
+      type.issue.issue === 'no-overlap'
+    ) {
+      const typeDisplay = this._displayInlineType(type, cache)
+      const lines = [
+        inParens ? `(${typeDisplay})${suffix}` : typeDisplay + suffix,
+      ]
+      if (type.issue) {
+        let message =
+          (inParens ? ' ' : '') +
+          this._displayUnderline(typeDisplay.length) +
+          ' '
+        if (type.issue.issue === 'should-be') {
+          message += this._displayTypeErrorMsg(
+            `This should be a ${this._displayInlineTypePretty(
+              type.issue.type,
+            )}.`,
+          )
+        } else if (type.issue.issue === 'too-specific') {
+          message += this._displayTypeErrorMsg(
+            `This function is too specific. It should be able to handle any value, not just str. ${
+              this._hint
+            }: You can use a type variable for this. Read the documentation for some tips: ${this._displayLink(
+              'https://nbuilding.github.io/N-lang-docs/features/generic.html',
+            )}`,
+          )
+        } else if (type.issue.issue === 'too-general') {
+          message += this._displayTypeErrorMsg(
+            `This should only be a ${this._displayInlineTypePretty(
+              type.issue.canOnlyHandle,
+            )}.`,
+          )
+        } else if (type.issue.issue === 'no-overlap') {
+          message += this._displayTypeErrorMsg(
+            `This has no overlap with ${this._displayInlineTypePretty(
+              type.issue.with,
+            )}.`,
+          )
+        }
+        lines.push(message)
+      }
+      return lines
+    }
     // Below here assumes that there is an error and it is *inside* the type
     if (type.type === 'named') {
       // If the type does not have type variables then it would not have an
@@ -461,7 +533,7 @@ export class ErrorDisplayer {
             `${field}: ${this._displayInlineType(innerType, cache)}`,
             `${this._displayUnderline(
               field.length,
-            )} You don't need this field.`,
+            )} ${this._displayTypeErrorMsg("This field isn't needed.")}`,
           )
         } else {
           omitted++
@@ -469,34 +541,26 @@ export class ErrorDisplayer {
       }
       if (omitted > 0) {
         lines.push(`... (${omitted} more field${omitted === 1 ? '' : 's'})`)
-        if (
-          type.issue?.issue === 'record-key-mismatch' &&
-          type.issue.missing.length > 0
-        ) {
-          lines.push(
-            `${this._displayUnderline(
-              3,
-            )} Your record is missing the fields ${this._displayList(
-              'and',
-              type.issue.missing.map(field => this._displayInlineCode(field)),
-            )}.`,
-          )
-        }
-      } else if (
+      }
+      if (
         type.issue?.issue === 'record-key-mismatch' &&
         type.issue.missing.length > 0
       ) {
         lines.push(
-          `Your record is missing the fields ${this._displayList(
-            'and',
-            type.issue.missing.map(field => this._displayInlineCode(field)),
-          )}.`,
+          (omitted > 0 ? this._displayUnderline(3) + ' ' : '') +
+            this._displayTypeErrorMsg(
+              `The record is missing the fields ${this._displayList(
+                'and',
+                type.issue.missing.map(field => this._displayInlineCode(field)),
+              )}.`,
+            ),
         )
       }
       return ['{', ...lines.map(line => this._indent + line), '}' + suffix]
     } else if (type.type === 'tuple') {
       const lines: string[] = []
-      for (const innerType of type.types) {
+      const lastIssueIndex = findLastIndex(type.types, ({ issue }) => !!issue)
+      for (const innerType of type.types.slice(0, lastIssueIndex + 1)) {
         lines.push(
           ...this._displayTypeError(
             innerType,
@@ -504,6 +568,36 @@ export class ErrorDisplayer {
             ',',
             innerType.type === 'tuple',
           ),
+        )
+      }
+      const omitted = type.types.length - 1 - lastIssueIndex
+      if (omitted > 0) {
+        lines.push(`... (${omitted} more field${omitted === 1 ? '' : 's'})`)
+      }
+      if (type.issue.issue === 'too-many-items') {
+        lines.push(
+          (omitted > 0 ? this._displayUnderline(3) + ' ' : '') +
+            this._displayTypeErrorMsg(
+              `This tuple has ${
+                type.issue.extra === 1
+                  ? 'an extra field'
+                  : `${type.issue.extra} too many fields`
+              }.`,
+            ),
+        )
+      } else if (type.issue.issue === 'need-extra-items') {
+        lines.push(
+          (omitted > 0 ? this._displayUnderline(3) + ' ' : '') +
+            this._displayTypeErrorMsg(
+              `This tuple needs ${type.issue.types.length} more field${
+                type.issue.types.length === 1 ? '' : 's'
+              }: ${this._displayList(
+                'and',
+                type.issue.types.map(field =>
+                  this._displayInlineTypePretty(field),
+                ),
+              )}.`,
+            ),
         )
       }
       return ['(', ...lines.map(line => this._indent + line), ')' + suffix]
@@ -532,6 +626,26 @@ export class ErrorDisplayer {
     }
   }
 
+  private _displayBlock (
+    fileName: string,
+    lines: string[],
+    block: BlockDisplay,
+  ): string {
+    if (typeof block === 'string') {
+      return block
+    } else if (block instanceof Base) {
+      return this._displayCode(fileName, lines, block)
+    } else {
+      const displayed = this._displayTypeError(block).join('\n')
+      return this.options.type === 'console-color'
+        ? colours.yellow(displayed)
+        : this.options.type === 'html'
+        ? `<span class="${this.options.classes?.types ??
+            'n-error-types'}">${escapeHtml(displayed)}</span>`
+        : displayed
+    }
+  }
+
   displayError (fileName: string, lines: string[], error: Error): string {
     const rawBlocks = displayErrorMessage(error, this._displayLine)
     const blocks: BlockDisplay[] = Array.isArray(rawBlocks)
@@ -550,11 +664,7 @@ export class ErrorDisplayer {
       if (!firstLine) {
         str += '\n\n'
       }
-      if (typeof block === 'string') {
-        str += block
-      } else {
-        str += this._displayCode(fileName, lines, block)
-      }
+      str += this._displayBlock(fileName, lines, block)
       firstLine = false
     }
     return str
@@ -578,11 +688,7 @@ export class ErrorDisplayer {
       if (!firstLine) {
         str += '\n\n'
       }
-      if (typeof block === 'string') {
-        str += block
-      } else {
-        str += this._displayCode(fileName, lines, block)
-      }
+      str += this._displayBlock(fileName, lines, block)
       firstLine = false
     }
     return str

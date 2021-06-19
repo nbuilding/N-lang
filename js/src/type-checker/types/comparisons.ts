@@ -103,7 +103,7 @@ export type ComparisonIssue =
   | typeof CONTAINED
   | {
       issue: 'should-be'
-      type: ComparisonResultType | 'tuple' | 'record' | 'function'
+      type: ComparisonResultType
     }
   | {
       // Function type vars, compareAssignable

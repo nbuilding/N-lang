@@ -336,7 +336,12 @@ export function displayErrorMessage (
       ]
     }
     case ErrorType.ARG_MISMATCH: {
-      return display`The ${[err.argPos, 'th']} argument you give to a TODO.`
+      return [
+        display`The ${[err.argPos, 'th']} argument you give to a TODO.`,
+        base,
+        'Here is the type of the value you gave to the function:',
+        err.error,
+      ]
     }
     case ErrorType.CALL_NON_FUNCTION: {
       return display`You call a ${err.funcType} like a function, but it's not a function.`

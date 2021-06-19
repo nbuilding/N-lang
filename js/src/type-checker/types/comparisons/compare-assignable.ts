@@ -128,7 +128,7 @@ export function compareAssignable (
         ...typeToResultType(value),
         issue: {
           issue: 'should-be',
-          type: 'tuple',
+          type: typeToResultType(annotation),
         },
       }
     }
@@ -169,7 +169,7 @@ export function compareAssignable (
         ...typeToResultType(value),
         issue: {
           issue: 'should-be',
-          type: 'record',
+          type: typeToResultType(annotation),
         },
       }
     }
@@ -221,7 +221,7 @@ export function compareAssignable (
         ...typeToResultType(value),
         issue: {
           issue: 'should-be',
-          type: 'function',
+          type: typeToResultType(annotation),
         },
       }
     }

@@ -192,7 +192,7 @@ export function compareEqual (
           ...typeToResultType(typeB),
           issue: {
             issue: 'should-be',
-            type: 'tuple',
+            type: typeToResultType(typeA),
           },
         },
       }
@@ -245,7 +245,7 @@ export function compareEqual (
           ...typeToResultType(typeB),
           issue: {
             issue: 'should-be',
-            type: 'record',
+            type: typeToResultType(typeA),
           },
         },
       }
@@ -322,7 +322,7 @@ export function compareEqual (
           ...typeToResultType(typeB),
           issue: {
             issue: 'should-be',
-            type: 'function',
+            type: typeToResultType(typeA),
           },
         },
       }
