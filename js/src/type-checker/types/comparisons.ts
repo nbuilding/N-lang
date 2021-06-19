@@ -97,8 +97,10 @@ export function typeToResultType (type: NType): ComparisonResultType {
   }
 }
 
+export const CONTAINED = { issue: 'contained' } as const
+
 export type ComparisonIssue =
-  | 'contained'
+  | typeof CONTAINED
   | {
       issue: 'should-be'
       type: ComparisonResultType | 'tuple' | 'record' | 'function'

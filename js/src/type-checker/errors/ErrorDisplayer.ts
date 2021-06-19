@@ -2,7 +2,7 @@ import colours from 'colors/safe'
 import { generateNames } from '../../../test/unit/utils/generate-names'
 import { Base } from '../../ast/index'
 import { escapeHtml } from '../../utils/escape-html'
-import { ComparisonResult } from '../types/comparisons'
+import { ComparisonResult, typeToResultType } from '../types/comparisons'
 import { NType } from '../types/types'
 import { displayErrorMessage, Error } from './Error'
 import { displayWarningMessage, Warning } from './Warning'
@@ -12,19 +12,19 @@ class TypeNameCache {
   generator?: Generator<string, never>
 
   getFuncTypeVarNameForId (id: string): string {
-  let name = this.funcTypeVarNames.get(id)
-  if (!name) {
-    if (!this.generator) {
-      this.generator = generateNames()
+    let name = this.funcTypeVarNames.get(id)
+    if (!name) {
+      if (!this.generator) {
+        this.generator = generateNames()
+      }
+      // TODO: Currently not intelligent and can suggest duplicate names with
+      // existing type names. Disambiguating type names will have to be more
+      // clever.
+      name = this.generator.next().value
+      this.funcTypeVarNames.set(id, name)
     }
-    // TODO: Currently not intelligent and can suggest duplicate names with
-    // existing type names. Disambiguating type names will have to be more
-    // clever.
-    name = this.generator.next().value
-    this.funcTypeVarNames.set(id, name)
+    return name
   }
-  return name
-}
 }
 
 export const HINT = { keyword: 'hint' } as const
@@ -95,6 +95,7 @@ type ErrorDisplayColourOptions =
 export type ErrorDisplayerOptions = ErrorDisplayColourOptions & {
   /** Minimum number of lines to show for multiline code snippets */
   previewMultiline?: number
+  indent?: string | number
 }
 
 export class ErrorDisplayer {
@@ -104,6 +105,48 @@ export class ErrorDisplayer {
     this._displayLine = this._displayLine.bind(this)
 
     this.options = options
+  }
+
+  private get _indent (): string {
+    if (typeof this.options.indent === 'string') {
+      return this.options.indent
+    } else if (typeof this.options.indent === 'number') {
+      return ' '.repeat(this.options.indent)
+    } else {
+      return '  '
+    }
+  }
+
+  private get _hint (): string {
+    return this.options.type === 'console-color'
+      ? colours.green('Hint')
+      : this.options.type === 'html'
+      ? `<span class="${this.options.classes?.hint ??
+          'n-error-hint'}">Hint</span>`
+      : 'Hint'
+  }
+
+  private _displayInlineCode (code: string): string {
+    const str = '`' + code + '`'
+    return this.options.type === 'console-color'
+      ? colours.cyan(str)
+      : this.options.type === 'html'
+      ? `<span class="${this.options.classes?.name ??
+          'n-error-name'}">${escapeHtml(str)}</span>`
+      : str
+  }
+
+  private _displayList (conjunction: string, items: string[]): string {
+    if (items.length === 1) {
+      return items[0]
+    } else if (items.length === 2) {
+      return `${items[0]} ${conjunction} ${items[1]}`
+    } else {
+      // OXFORD COMMA
+      return `${items.slice(0, -1).join(', ')},  ${conjunction} ${
+        items[items.length - 1]
+      }`
+    }
   }
 
   private _displayInline (inline: InlineDisplay): string {
@@ -133,34 +176,14 @@ export class ErrorDisplayer {
         return inline[1] === 1 ? inline[0] : `${inline[1]} ${inline[2]}`
       } else {
         const [conjunction, items] = inline
-        if (items.length === 1) {
-          return items[0]
-        } else if (items.length === 2) {
-          return `${items[0]} ${conjunction} ${items[1]}`
-        } else {
-          // OXFORD COMMA
-          return `${items.slice(0, -1).join(', ')},  ${conjunction} ${
-            items[items.length - 1]
-          }`
-        }
+        return this._displayList(conjunction, items)
       }
     } else if (typeof inline === 'string') {
-      const str = '`' + inline + '`'
-      return this.options.type === 'console-color'
-        ? colours.cyan(str)
-        : this.options.type === 'html'
-        ? `<span class="${this.options.classes?.name ??
-            'n-error-name'}">${escapeHtml(str)}</span>`
-        : str
+      return this._displayInlineCode(inline)
     } else if ('keyword' in inline) {
-      return this.options.type === 'console-color'
-        ? colours.green('Hint')
-        : this.options.type === 'html'
-        ? `<span class="${this.options.classes?.hint ??
-            'n-error-hint'}">Hint</span>`
-        : 'Hint'
+      return this._hint
     } else {
-      const str = '' // '`' + displayType(inline) + '`' // TODO
+      const str = '`' + this._displayInlineType(typeToResultType(inline)) + '`'
       return this.options.type === 'console-color'
         ? colours.yellow(str)
         : this.options.type === 'html'
@@ -195,29 +218,37 @@ export class ErrorDisplayer {
   }
 
   private _displayUnderline (
+    length: number,
+    { prefix = '', suffix = '' }: { prefix?: string; suffix?: string } = {},
+  ): string {
+    const underline = prefix + '^'.repeat(length) + suffix
+    return this.options.type === 'console-color'
+      ? colours.red(underline)
+      : this.options.type === 'html'
+      ? `<span class="${this.options.classes?.underline ??
+          'n-error-underline'}">${underline}</span>`
+      : underline
+  }
+
+  private _displayUnderlineForLine (
     lines: string[],
     line: number,
     col: number | null,
     endCol: number | null,
   ): string {
     const lineNumLength = lines.length.toString().length
-    const underline =
-      (col !== null ? '' : '... ') +
-      '^'.repeat((endCol ?? lines[line - 1].length + 1) - (col ?? 1)) +
-      (endCol !== null ? '' : ' ...')
-    const displayed =
-      this.options.type === 'console-color'
-        ? colours.red(underline)
-        : this.options.type === 'html'
-        ? `<span class="${this.options.classes?.underline ??
-            'n-error-underline'}">${underline}</span>`
-        : underline
     return (
       ' '.repeat(lineNumLength + 1) +
       (col !== null
         ? '   ' + lines[line - 1].slice(0, col - 1).replace(/[^\t]/g, ' ')
         : '') +
-      displayed
+      this._displayUnderline(
+        (endCol ?? lines[line - 1].length + 1) - (col ?? 1),
+        {
+          prefix: col !== null ? '' : '... ',
+          suffix: endCol !== null ? '' : ' ...',
+        },
+      )
     )
   }
 
@@ -245,7 +276,7 @@ export class ErrorDisplayer {
         this._displayLineNum(lineNumLength, base.line) +
         lines[base.line - 1] +
         '\n' +
-        this._displayUnderline(lines, base.line, base.col, base.endCol)
+        this._displayUnderlineForLine(lines, base.line, base.col, base.endCol)
     } else {
       displayed +=
         this._displayLineNum(lineNumLength, base.line) +
@@ -254,7 +285,7 @@ export class ErrorDisplayer {
           lines[base.line - 1].slice(base.col - 1),
         ) +
         '\n' +
-        this._displayUnderline(lines, base.line, base.col, null)
+        this._displayUnderlineForLine(lines, base.line, base.col, null)
       const previewLines = this.options.previewMultiline ?? 2
       if (base.endLine - base.line + 1 > (previewLines + 1) * 2) {
         for (
@@ -304,17 +335,31 @@ export class ErrorDisplayer {
         ) +
         lines[base.endLine - 1].slice(base.endCol - 1) +
         '\n' +
-        this._displayUnderline(lines, base.endLine, null, base.endCol)
+        this._displayUnderlineForLine(lines, base.endLine, null, base.endCol)
     }
     return displayed
   }
 
-  private _displayInlineType (type: ComparisonResult, cache = new TypeNameCache(), inParens = false): string {
+  private _displayInlineType (
+    type: ComparisonResult,
+    cache = new TypeNameCache(),
+    inParens = false,
+  ): string {
     let display
     if (type.type === 'named') {
-      display = `${type.name}${type.vars.length > 0
-      ? `[${type.vars.map(typeVar => this._displayInlineType(typeVar, cache, typeVar.type === 'tuple')).join(', ')}]`
-    : ''}`
+      display = `${type.name}${
+        type.vars.length > 0
+          ? `[${type.vars
+              .map(typeVar =>
+                this._displayInlineType(
+                  typeVar,
+                  cache,
+                  typeVar.type === 'tuple',
+                ),
+              )
+              .join(', ')}]`
+          : ''
+      }`
     } else if (type.type === 'unit') {
       display = '()'
     } else if (type.type === 'func-type-var') {
@@ -323,27 +368,168 @@ export class ErrorDisplayer {
       display = type.typeNames.join(' | ')
     } else if (type.type === 'record') {
       const entries = Object.entries(type.types)
-      display = entries.length > 0
-      ? `{ ${entries.map(([field, type]) => `${field}: ${this._displayInlineType(type, cache)}`).join('; ')} }`
-      : '{}'
+      display =
+        entries.length > 0
+          ? `{ ${entries
+              .map(
+                ([field, type]) =>
+                  `${field}: ${this._displayInlineType(type, cache)}`,
+              )
+              .join('; ')} }`
+          : '{}'
     } else if (type.type === 'module') {
       // TODO: Move displayPath to an option of ErrorDisplayer because it uses
       // it more
       display = `imp ${JSON.stringify(type.path)}`
     } else if (type.type === 'tuple') {
-      display = type.types.map(type => this._displayInlineType(type, cache, type.type === 'tuple')).join(', ')
+      display = type.types
+        .map(type =>
+          this._displayInlineType(type, cache, type.type === 'tuple'),
+        )
+        .join(', ')
     } else if (type.type === 'function') {
-      display = `${type.typeVarIds.length > 0 ?
-        `[${type.typeVarIds.map(id => cache.getFuncTypeVarNameForId(id)).join(', ')}] `:
-      ''}${this._displayInlineType(type.argument, cache, type.argument.type === 'function' || type.argument.type === 'tuple')} -> ${this._displayInlineType(type.return, cache, type.return.type === 'tuple')}`
+      display = `${
+        type.typeVarIds.length > 0
+          ? `[${type.typeVarIds
+              .map(id => cache.getFuncTypeVarNameForId(id))
+              .join(', ')}] `
+          : ''
+      }${this._displayInlineType(
+        type.argument,
+        cache,
+        type.argument.type === 'function' || type.argument.type === 'tuple',
+      )} -> ${this._displayInlineType(
+        type.return,
+        cache,
+        type.return.type === 'tuple',
+      )}`
     } else if (type.type === 'omitted') {
       display = '...'
     } else {
       throw new TypeError('What is this')
     }
-    return inParens
-      ? `(${display})`
-      : display
+    return inParens ? `(${display})` : display
+  }
+
+  private _displayTypeError (
+    type: ComparisonResult,
+    cache = new TypeNameCache(),
+    suffix = '',
+    inParens?: boolean,
+  ): string[] {
+    // Below here assumes that there is an error and it is *inside* the type
+    if (type.type === 'named') {
+      // If the type does not have type variables then it would not have an
+      // error inside the type
+      const lines: string[] = []
+      for (const typeVar of type.vars) {
+        lines.push(
+          ...this._displayTypeError(
+            typeVar,
+            cache,
+            ',',
+            typeVar.type === 'tuple',
+          ),
+        )
+      }
+      return [
+        `${type.name}[`,
+        ...lines.map(line => this._indent + line),
+        ']' + suffix,
+      ]
+    } else if (type.type === 'record') {
+      const extraFields =
+        type.issue?.issue === 'record-key-mismatch' ? type.issue.extra : []
+      const lines: string[] = []
+      let omitted = 0
+      for (const [field, innerType] of Object.entries(type.types)) {
+        if (innerType.issue) {
+          const innerLines = this._displayTypeError(innerType, cache)
+          if (innerLines.length <= 2) {
+            // Probably the error was something like
+            // field: list[int]
+            //        ^^^^^^^^^ This should be something else.
+            lines.push(`${field}: ${innerLines[0]}`)
+            if (innerLines.length === 2) {
+              lines.push(' '.repeat(field.length + 2) + innerLines[1])
+            }
+          } else {
+            lines.push(`${field}: ${innerLines[0]}`, ...innerLines.slice(1))
+          }
+        } else if (extraFields.includes(field)) {
+          lines.push(
+            `${field}: ${this._displayInlineType(innerType, cache)}`,
+            `${this._displayUnderline(
+              field.length,
+            )} You don't need this field.`,
+          )
+        } else {
+          omitted++
+        }
+      }
+      if (omitted > 0) {
+        lines.push(`... (${omitted} more field${omitted === 1 ? '' : 's'})`)
+        if (
+          type.issue?.issue === 'record-key-mismatch' &&
+          type.issue.missing.length > 0
+        ) {
+          lines.push(
+            `${this._displayUnderline(
+              3,
+            )} Your record is missing the fields ${this._displayList(
+              'and',
+              type.issue.missing.map(field => this._displayInlineCode(field)),
+            )}.`,
+          )
+        }
+      } else if (
+        type.issue?.issue === 'record-key-mismatch' &&
+        type.issue.missing.length > 0
+      ) {
+        lines.push(
+          `Your record is missing the fields ${this._displayList(
+            'and',
+            type.issue.missing.map(field => this._displayInlineCode(field)),
+          )}.`,
+        )
+      }
+      return ['{', ...lines.map(line => this._indent + line), '}' + suffix]
+    } else if (type.type === 'tuple') {
+      const lines: string[] = []
+      for (const innerType of type.types) {
+        lines.push(
+          ...this._displayTypeError(
+            innerType,
+            cache,
+            ',',
+            innerType.type === 'tuple',
+          ),
+        )
+      }
+      return ['(', ...lines.map(line => this._indent + line), ')' + suffix]
+    } else if (type.type === 'function') {
+      const funcTypeVars =
+        type.typeVarIds.length > 0
+          ? `[${type.typeVarIds
+              .map(id => cache.getFuncTypeVarNameForId(id))
+              .join(', ')}] `
+          : ''
+      const lines: string[] = []
+      if (type.argument.issue) {
+        if (type.argument.type === 'function') {
+          lines.push(funcTypeVars + '(')
+          lines.push()
+        } else {
+          lines.push()
+        }
+      }
+      // TODO
+      return []
+    } else {
+      throw new Error(
+        `The type ${type.type} should not have a non-should-be non-func-type-whatever error`,
+      )
+    }
   }
 
   displayError (fileName: string, lines: string[], error: Error): string {

@@ -6,6 +6,7 @@ import { fromEntries } from '../../../utils/from-entries'
 import {
   ComparisonIssue,
   ComparisonResult,
+  CONTAINED,
   typeToResultType,
 } from '../comparisons'
 import {
@@ -51,7 +52,7 @@ export function compareEqual (
       const result = compareEqual(context, variable, typeB.typeVars[i])
       vars.push(result)
       if (result.result.issue && !issue) {
-        issue = 'contained'
+        issue = CONTAINED
       }
     })
     return {
@@ -214,7 +215,7 @@ export function compareEqual (
         const result = compareEqual(context, typeA.types[i], type)
         results.push(result)
         if (result.result.issue && !issue) {
-          issue = 'contained'
+          issue = CONTAINED
         }
       } else {
         results.push({
@@ -265,7 +266,7 @@ export function compareEqual (
         const result = compareEqual(context, annotationType, type)
         results[key] = result
         if (result.result.issue && !issue) {
-          issue = 'contained'
+          issue = CONTAINED
         }
       } else {
         results[key] = {
@@ -379,7 +380,7 @@ export function compareEqual (
         argument: argumentResult.result,
         return: returnResult.result,
         typeVarIds: typeB.typeVars.map(typeVar => typeVar.id),
-        issue: hasIssue ? 'contained' : undefined,
+        issue: hasIssue ? CONTAINED : undefined,
       },
     }
   } else {
@@ -401,7 +402,7 @@ export function compareEqual (
       const result = compareEqual(context, variable, typeB.typeVars[i])
       vars.push(result)
       if (result.result.issue && !issue) {
-        issue = 'contained'
+        issue = CONTAINED
       }
     })
     return {

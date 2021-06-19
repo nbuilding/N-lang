@@ -5,6 +5,7 @@ import {
 import {
   ComparisonIssue,
   ComparisonResult,
+  CONTAINED,
   typeToResultType,
 } from '../comparisons'
 import {
@@ -50,7 +51,7 @@ export function compareAssignable (
         )
         vars.push(result)
         if (result.issue && !issue) {
-          issue = 'contained'
+          issue = CONTAINED
         }
       })
       return {
@@ -151,7 +152,7 @@ export function compareAssignable (
         const result = compareAssignable(context, annotation.types[i], type)
         results.push(result)
         if (result.issue && !issue) {
-          issue = 'contained'
+          issue = CONTAINED
         }
       } else {
         results.push(typeToResultType(type))
@@ -191,7 +192,7 @@ export function compareAssignable (
         const result = compareAssignable(context, annotationType, type)
         results[key] = result
         if (result.issue && !issue) {
-          issue = 'contained'
+          issue = CONTAINED
         }
       } else {
         results[key] = typeToResultType(type)
@@ -239,8 +240,7 @@ export function compareAssignable (
       argument: argumentResult,
       return: returnResult,
       typeVarIds: value.typeVars.map(typeVar => typeVar.id),
-      issue:
-        argumentResult.issue || returnResult.issue ? 'contained' : undefined,
+      issue: argumentResult.issue || returnResult.issue ? CONTAINED : undefined,
     }
   } else {
     if (annotation.typeSpec instanceof AliasSpec) {
@@ -280,7 +280,7 @@ export function compareAssignable (
       )
       vars.push(result)
       if (result.issue && !issue) {
-        issue = 'contained'
+        issue = CONTAINED
       }
     })
     return {
