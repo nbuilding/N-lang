@@ -128,10 +128,9 @@ async def parse_tree(tree):
             if variable.public and isinstance(variable.value, Cmd):
                 await variable.value.eval()
                 break
+        global_scope.stack_trace = scope.stack_trace[:]
     else:
         raise SyntaxError("Unable to run parse_tree on non-starting branch")
-
-    eefreer.aasdf()
 
 
 try:
@@ -171,6 +170,5 @@ if __name__ == "__main__":
         debug = os.environ.get("N_ST_DEBUG") == "dev"
         if(debug):
             raise err
-        print(global_scope.stack_trace)
         stack_trace.display(global_scope.stack_trace)
         exit()

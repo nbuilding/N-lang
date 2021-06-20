@@ -43,11 +43,12 @@ class File:
             output.append(
                 f"{Fore.CYAN}{start_line:>{self.line_num_width}} | {Style.RESET_ALL}{line}"
             )
-            output.append(
-                " " * (self.line_num_width + 2 + start_col)
-                + f"{color + '^' * (end_col - start_col) if underline else ''}"
-                + Style.RESET_ALL
-            )
+            if underline:
+                output.append(
+                    " " * (self.line_num_width + 2 + start_col)
+                    + f"{color + '^' * (end_col - start_col) if underline else ''}"
+                    + Style.RESET_ALL
+                )
         else:
             for line_num, line in enumerate(
                 self.get_lines(start_line, end_line), start=start_line
