@@ -58,7 +58,7 @@ let thing2 = [] -> cmd[()] {
 		{
 			onConnect: [user:websocket.user path:str] -> cmd[bool] { print(user); return false }
 			onMessage: [user:websocket.user message:str] -> cmd[bool] { let _ = user.send(message)!; return false }
-			onDisconnect: [user:websocket.user] -> cmd[()] {}
+			onDisconnect: [user:websocket.user exitData:{ code: int; reason:str }] -> cmd[bool] { return true }
 		},
 		3000
 	)!

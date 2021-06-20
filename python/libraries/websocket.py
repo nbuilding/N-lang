@@ -28,23 +28,28 @@ connect_options_type = {
 # alias user = {
 #   send: str -> cmd[()]
 #   disconnect: () -> cmd[()]
-#   uuid: (int, int, int, int)
+#   ip: (int, int, int, int)
+#   uuid: str
 # }
 user_type = {
     "send": ("str", n_cmd_type.with_typevars(["unit"])),
     "disconnect": ("unit", n_cmd_type.with_typevars(["unit"])),
+    "ip": ["int", "int", "int", "int"],
     "uuid": "str",
 }
 
 # alias setupOptions = {
 #   onConnect: user -> str -> cmd[bool]
 #   onMessage: user -> str -> cmd[bool]
-#   onDisconnect: user -> cmd[()]
+#   onDisconnect: user -> { code: int; reason: str } -> cmd[bool]
 # }
 setup_options_type = {
     "onConnect": (user_type, "str", n_cmd_type.with_typevars(["bool"])),
     "onMessage": (user_type, "str", n_cmd_type.with_typevars(["bool"])),
-    "onDisconnect": (user_type, n_cmd_type.with_typevars(["unit"])),
+    "onDisconnect": (user_type, {
+        "code": "int",
+        "reason": "str",
+    }, n_cmd_type.with_typevars(["bool"])),
 }
 
 
@@ -125,26 +130,34 @@ async def connect(options, url):
 async def createServer(options, port):
     ws_server = None
     async def server(websocket, path):
-        user_data = {
-            "send": NativeFunction(
-                None, [], None, lambda message: Cmd(lambda _: lambda: websocket.send(message))
-            ),
-            "close": NativeFunction(
-                None, [], None, lambda message: Cmd(lambda _: lambda: websocket.close()) # TODO: add code and reason
-            ),
-            "uuid": str(uuid.uuid4()),
-        }
-        
-        stop = await options["onConnect"].run([user_data, path])
-        if isinstance(stop, Cmd):
-            stop = await stop.eval()
+        try:
+            user_data = {
+                "send": NativeFunction(
+                    None, [], None, lambda message: Cmd(lambda _: lambda: websocket.send(message))
+                ),
+                "close": NativeFunction(
+                    None, [], None, lambda message: Cmd(lambda _: lambda: websocket.close()) # TODO: add code and reason
+                ),
+                "ip": [int(i) for i in websocket.remote_address[0].split(".")],
+                "uuid": str(uuid.uuid4()),
+            }
+            
+            stop = await options["onConnect"].run([user_data, path])
+            if isinstance(stop, Cmd):
+                stop = await stop.eval()
 
-        if stop:
-            ws_server.close()
+            if stop:
+                ws_server.close()
 
-        async for message in websocket:
-            print(message)
-            stop = await options["onMessage"].run([user_data, message])
+            async for message in websocket:
+                stop = await options["onMessage"].run([user_data, message])
+                if isinstance(stop, Cmd):
+                    stop = await stop.eval()
+
+                if stop:
+                    ws_server.close()
+        except websockets.exceptions.ConnectionClosed as err:
+            stop = await options["onDisconnect"].run([user_data, { "code": err.code, "reason": err.reason }])
             if isinstance(stop, Cmd):
                 stop = await stop.eval()
 
