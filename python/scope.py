@@ -960,7 +960,7 @@ class Scope:
             with open(self.file_path, "r", encoding="utf-8") as f:
                 self.stack_trace.append((expr, File(f, name=os.path.relpath(self.file_path, start=self.base_path))))
             val = await eval_file(file_path, self.base_path)
-            self.stack_trace = self.stack_trace.__add__(val.stack_trace[:])
+            self.stack_trace += val.stack_trace
             holder = {}
             for key in val.variables.keys():
                 if val.variables[key].public:
