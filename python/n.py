@@ -1,3 +1,18 @@
+import lark
+import asyncio
+import sys
+import signal
+import argparse
+import os
+
+from os import path
+from colorama import init, Fore, Style
+from sys import exit, platform
+import requests
+from lark import Lark
+
+import stack_trace
+
 from syntax_error import format_error
 from ncmd import Cmd
 from imported_error import ImportedError
@@ -6,17 +21,7 @@ from type_check_error import TypeCheckError
 from native_functions import add_funcs
 from parse import n_parser
 from file import File
-from lark import Lark
-import lark
-import asyncio
-import sys
-import signal
-import argparse
-import os
-from os import path
-from colorama import init, Fore, Style
-from sys import exit, platform
-import requests
+
 
 init()
 
@@ -110,7 +115,7 @@ def type_check(file, tree):
             warning_len += len(warning)
         else:
             warning_len += 1
-
+    eefreer.aasdf()
     return (error_len, warning_len)
 
 
@@ -134,7 +139,14 @@ except lark.exceptions.UnexpectedCharacters as e:
 except lark.exceptions.UnexpectedEOF as e:
     format_error(e, file)
 
-error_count, warning_count = type_check(file, tree)
+try:
+    error_count, warning_count = type_check(file, tree)
+except Exception as err:
+    debug = os.environ.get("N_ST_DEBUG") == "dev"
+    if(debug):
+        raise err
+    stack_trace.display(global_scope.stack_trace)
+    exit()
 
 if error_count > 0 or args.check:
     error_s = ""
