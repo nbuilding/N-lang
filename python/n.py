@@ -1,3 +1,18 @@
+import lark
+import asyncio
+import sys
+import signal
+import argparse
+import os
+
+from os import path
+from colorama import init, Fore, Style
+from sys import exit, platform
+import requests
+from lark import Lark
+
+import stack_trace
+
 from syntax_error import format_error
 from ncmd import Cmd
 from imported_error import ImportedError
@@ -6,17 +21,7 @@ from type_check_error import TypeCheckError
 from native_functions import add_funcs
 from parse import n_parser
 from file import File
-from lark import Lark
-import lark
-import asyncio
-import sys
-import signal
-import argparse
-import os
-from os import path
-from colorama import init, Fore, Style
-from sys import exit, platform
-import requests
+
 
 init()
 
@@ -123,6 +128,7 @@ async def parse_tree(tree):
             if variable.public and isinstance(variable.value, Cmd):
                 await variable.value.eval()
                 break
+        global_scope.stack_trace = scope.stack_trace[:]
     else:
         raise SyntaxError("Unable to run parse_tree on non-starting branch")
 
@@ -134,7 +140,14 @@ except lark.exceptions.UnexpectedCharacters as e:
 except lark.exceptions.UnexpectedEOF as e:
     format_error(e, file)
 
-error_count, warning_count = type_check(file, tree)
+try:
+    error_count, warning_count = type_check(file, tree)
+except Exception as err:
+    debug = os.environ.get("N_ST_DEBUG") == "dev"
+    if(debug):
+        raise err
+    stack_trace.display(global_scope.stack_trace, False)
+    exit()
 
 if error_count > 0 or args.check:
     error_s = ""
@@ -150,4 +163,12 @@ if error_count > 0 or args.check:
 
 if __name__ == "__main__":
     # https://github.com/aio-libs/aiohttp/issues/4324#issuecomment-676675779
-    asyncio.get_event_loop().run_until_complete(parse_tree(tree))
+
+    try:
+        asyncio.get_event_loop().run_until_complete(parse_tree(tree))    
+    except Exception as err:
+        debug = os.environ.get("N_ST_DEBUG") == "dev"
+        if(debug):
+            raise err
+        stack_trace.display(global_scope.stack_trace)
+        exit()

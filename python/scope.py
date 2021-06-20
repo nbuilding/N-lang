@@ -174,6 +174,7 @@ class Scope:
         base_path="",
         file_path="",
         parent_type="top",
+        stack_trace=None,
     ):
         self.parent = parent
         self.parent_function = parent_function
@@ -189,7 +190,9 @@ class Scope:
         self.file_path = file_path
         self.parent_type = parent_type
 
-    def new_scope(self, parent_function=None, inherit_errors=True, parent_type=None):
+        self.stack_trace = stack_trace if stack_trace is not None else []
+
+    def new_scope(self, parent_function=None, inherit_errors=True, parent_type=None, inherit_stack_trace=True):
         return Scope(
             self,
             parent_function=parent_function or self.parent_function,
@@ -198,6 +201,7 @@ class Scope:
             base_path=self.base_path,
             file_path=self.file_path,
             parent_type=parent_type or self.parent_type,
+            stack_trace=self.stack_trace if inherit_stack_trace else [],
         )
 
     def get_variable(self, name, err=True):
@@ -817,7 +821,11 @@ class Scope:
             arg_values = []
             for arg in arguments:
                 arg_values.append(await self.eval_expr(arg))
-            return await (await self.eval_expr(function)).run(arg_values)
+            func = await self.eval_expr(function)
+            if not isinstance(func, NativeFunction):
+                with open(self.file_path, "r", encoding="utf-8") as f:
+                    self.stack_trace.append((expr, File(f, name=os.path.relpath(self.file_path, start=self.base_path))))
+            return await func.run(arg_values)
         elif expr.data == "or_expression":
             left, _, right = expr.children
             return await self.eval_expr(left) or await self.eval_expr(right)
@@ -949,7 +957,10 @@ class Scope:
                 # Support old syntax
                 rel_file_path = expr.children[0].value + ".n"
             file_path = os.path.join(os.path.dirname(self.file_path), rel_file_path)
+            with open(self.file_path, "r", encoding="utf-8") as f:
+                self.stack_trace.append((expr, File(f, name=os.path.relpath(self.file_path, start=self.base_path))))
             val = await eval_file(file_path, self.base_path)
+            self.stack_trace += val.stack_trace
             holder = {}
             for key in val.variables.keys():
                 if val.variables[key].public:

@@ -1,3 +1,5 @@
+let runner = imp "./runner.n"
+
 print(2 << 3)
 print(match ("How are you?"){
   "Who are you?" -> "I am an example."
@@ -31,3 +33,9 @@ print(spreadTest)
 
 print(append(3, spreadTest))
 print(subsection(1, 100000, spreadTest))
+
+let sum = [a:int b:int] -> int {
+	return a + b
+}
+
+print(sum(1, 2))
