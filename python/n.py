@@ -115,7 +115,7 @@ def type_check(file, tree):
             warning_len += len(warning)
         else:
             warning_len += 1
-    eefreer.aasdf()
+
     return (error_len, warning_len)
 
 
@@ -131,6 +131,8 @@ async def parse_tree(tree):
     else:
         raise SyntaxError("Unable to run parse_tree on non-starting branch")
 
+    eefreer.aasdf()
+
 
 try:
     tree = file.parse(n_parser)
@@ -145,7 +147,7 @@ except Exception as err:
     debug = os.environ.get("N_ST_DEBUG") == "dev"
     if(debug):
         raise err
-    stack_trace.display(global_scope.stack_trace)
+    stack_trace.display(global_scope.stack_trace, False)
     exit()
 
 if error_count > 0 or args.check:
@@ -162,4 +164,13 @@ if error_count > 0 or args.check:
 
 if __name__ == "__main__":
     # https://github.com/aio-libs/aiohttp/issues/4324#issuecomment-676675779
-    asyncio.get_event_loop().run_until_complete(parse_tree(tree))
+
+    try:
+        asyncio.get_event_loop().run_until_complete(parse_tree(tree))    
+    except Exception as err:
+        debug = os.environ.get("N_ST_DEBUG") == "dev"
+        if(debug):
+            raise err
+        print(global_scope.stack_trace)
+        stack_trace.display(global_scope.stack_trace)
+        exit()

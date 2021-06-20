@@ -821,7 +821,11 @@ class Scope:
             arg_values = []
             for arg in arguments:
                 arg_values.append(await self.eval_expr(arg))
-            return await (await self.eval_expr(function)).run(arg_values)
+            func = await self.eval_expr(function)
+            if not isinstance(func, NativeFunction):
+                with open(self.file_path, "r", encoding="utf-8") as f:
+                    self.stack_trace.append((expr, File(f, name=os.path.relpath(self.file_path, start=self.base_path))))
+            return await func.run(arg_values)
         elif expr.data == "or_expression":
             left, _, right = expr.children
             return await self.eval_expr(left) or await self.eval_expr(right)
@@ -953,7 +957,10 @@ class Scope:
                 # Support old syntax
                 rel_file_path = expr.children[0].value + ".n"
             file_path = os.path.join(os.path.dirname(self.file_path), rel_file_path)
+            with open(self.file_path, "r", encoding="utf-8") as f:
+                self.stack_trace.append((expr, File(f, name=os.path.relpath(self.file_path, start=self.base_path))))
             val = await eval_file(file_path, self.base_path)
+            self.stack_trace = self.stack_trace.__add__(val.stack_trace[:])
             holder = {}
             for key in val.variables.keys():
                 if val.variables[key].public:
@@ -1431,9 +1438,6 @@ class Scope:
                 function, *arguments = expr.children[1].children
                 arguments.append(mainarg)
             func_type = self.type_check_expr(function)
-            if isinstance(func_type, NativeFunction):
-                with open(self.file_path, "r", encoding="utf-8") as f:
-                    self.stack_trace.append((expr, File(f, name=os.path.relpath(self.file_path, start=self.base_path))))
             if func_type is None:
                 return None
             if not isinstance(func_type, tuple):
@@ -1753,9 +1757,7 @@ class Scope:
                 rel_file_path = expr.children[0].value + ".n"
             file_path = os.path.join(os.path.dirname(self.file_path), rel_file_path)
             if os.path.isfile(file_path):
-                impn, f = type_check_file(file_path, self.base_path)  
-                with open(self.file_path, "r", encoding="utf-8") as f:
-                    self.stack_trace.append((expr, File(f, name=os.path.relpath(self.file_path, start=self.base_path))))
+                impn, f = type_check_file(file_path, self.base_path)
                 if len(impn.errors) != 0:
                     self.errors.append(ImportedError(impn.errors[:], f))
                 if len(impn.warnings) != 0:

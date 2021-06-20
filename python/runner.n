@@ -1,2 +1,5 @@
-let test:str = 0
-let test = "ree"
+let sum = [a:int b:int] -> int {
+	return a + b
+}
+
+print(sum(1, 2))
