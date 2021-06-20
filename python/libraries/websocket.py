@@ -138,7 +138,7 @@ async def createServer(options, port):
                 "close": NativeFunction(
                     None, [], None, lambda message: Cmd(lambda _: lambda: websocket.close()) # TODO: add code and reason
                 ),
-                "ip": [int(i) for i in websocket.remote_address[0].split(".")],
+                "ip": tuple([int(i) for i in websocket.remote_address[0].split(".")]),
                 "uuid": str(uuid.uuid4()),
             }
             
