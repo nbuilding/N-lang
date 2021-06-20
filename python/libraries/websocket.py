@@ -163,7 +163,7 @@ async def createServer(options, port):
 
             if stop:
                 ws_server.close()
-
+                
     # Create and start websocket server
     ws_server = await websockets.serve(server, "0.0.0.0", port)
 
