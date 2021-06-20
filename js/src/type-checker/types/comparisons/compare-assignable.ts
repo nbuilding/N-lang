@@ -1,7 +1,4 @@
-import {
-  difference,
-  isSubset,
-} from '../../../../test/unit/utils/set-operations'
+import { difference, isSubset } from '../../../utils/set-operations'
 import {
   ComparisonIssue,
   ComparisonResult,
@@ -176,6 +173,12 @@ export function compareAssignable (
     const [missing, extra] = difference(
       annotation.types.keys(),
       value.types.keys(),
+    )
+    console.log(
+      [...annotation.types.keys()],
+      [...value.types.keys()],
+      missing,
+      extra,
     )
     const results: Record<string, ComparisonResult> = {}
     let issue: ComparisonIssue | undefined =

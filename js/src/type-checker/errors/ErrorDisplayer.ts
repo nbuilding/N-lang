@@ -609,6 +609,8 @@ export class ErrorDisplayer {
               .join(', ')}] `
           : ''
       const lines: string[] = []
+      // const argLines = this._displayTypeError(type.argument, cache, '', type.argument.type === 'tuple' || type.argument.type === 'function')
+      // const returnLines = this._displayTypeError(type.return, cache, '', type.argument.type === 'tuple')
       if (type.argument.issue) {
         if (type.argument.type === 'function') {
           lines.push(funcTypeVars + '(')

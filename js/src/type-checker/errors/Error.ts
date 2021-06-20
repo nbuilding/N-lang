@@ -430,7 +430,12 @@ export function displayErrorMessage (
       return display`I can't figure out what the return type for ${err.funcType} should be. This probably is an issue with the function type, not your function call.`
     }
     case ErrorType.TYPE_ASSERTION_FAIL: {
-      return display`Type assertion failed.`
+      return [
+        display`Type assertion failed.`,
+        base,
+        'Here is the type of the value you asserted.',
+        err.error,
+      ]
     }
     case ErrorType.VALUE_ASSERTION_NOT_BOOL: {
       return display`You need to give a bool to a value assertion.`

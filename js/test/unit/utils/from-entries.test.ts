@@ -30,8 +30,8 @@ describe('fromEntries', () => {
 
   it('should support iterables with a mapping function', () => {
     const map: Map<Date, string> = new Map()
-    map.set(new Date(2020), 'twenty twenty')
-    map.set(new Date(2021), 'two thousand twenty-one')
+    map.set(new Date(2020, 0), 'twenty twenty')
+    map.set(new Date(2021, 0), 'two thousand twenty-one')
     expect(
       fromEntries(map, (key, value) => [value, key.getFullYear()]),
     ).to.deep.equal({

@@ -27,12 +27,16 @@ export function difference<T> (
   a: Iterable<T>,
   b: Iterable<T>,
 ): [Set<T>, Set<T>] {
-  const aNoB = new Set(a)
-  for (const item of b) {
+  // Avoid consuming iterable twice
+  const setA = a instanceof Set ? a : new Set(a)
+  const setB = a instanceof Set ? b : new Set(b)
+
+  const aNoB = new Set(setA)
+  for (const item of setB) {
     aNoB.delete(item)
   }
-  const bNoA = new Set(b)
-  for (const item of a) {
+  const bNoA = new Set(setB)
+  for (const item of setA) {
     bNoA.delete(item)
   }
   return [aNoB, bNoA]

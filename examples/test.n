@@ -1,4 +1,2 @@
-let a = 1
-let _b = 2
-alias wow = str
-print(_b)
+assert type { a: 3.0; b: "str"; c: () } : { a: float; b: char; d: egg }
+assert type { a: "wow"; b: "ok" } : { a: str }
