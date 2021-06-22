@@ -25,6 +25,7 @@ instruction: declare
            | enum_definition
            | alias_definition
            | class_definition
+           | assert
 
 // functions
 vary: "var " NAME "=" expression
@@ -50,6 +51,7 @@ ifelse_expr: "if" condition "{" expression "}" "else" ("{" expression "}" | ifel
 conditional_let: "let" pattern "=" expression
 class_definition: "class" modifier NAME arguments code_block
 match: "match" "(" value ")" match_block
+assert: "assert" assert_value
 
 //helpers
 name_type: pattern [":" types]
@@ -78,6 +80,13 @@ match_block: "{" (match_entry (";" | "\n"))* "}"
 match_entry: value "->" value
 enum_constructor: modifier "<" NAME types* ">"
                 | modifier NAME
+assert_value: assert_non_let_value
+            | "let" pattern "=" assert_non_let_value
+assert_val: "value" expression
+assert_type: "type" expression ":" types
+
+?assert_non_let_value: assert_val
+                     | assert_type
 
 modifier: PUBLIC?
 
