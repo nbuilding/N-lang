@@ -1,2 +1,1 @@
-assert type { a: 3.0; b: "str"; c: () } : { a: float; b: char; d: egg }
-assert type { a: "wow"; b: "ok" } : { a: str }
+let _a: int = 3

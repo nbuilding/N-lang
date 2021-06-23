@@ -24,6 +24,9 @@ export class VarStmt extends Base implements Statement {
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
+    context.warn({
+      type: WarningType.VAR_UNSAFE,
+    })
     const type = context.scope.getVariable(this.var.value, true)
     if (this.var.value.startsWith('_')) {
       context.warn(

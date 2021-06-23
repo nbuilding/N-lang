@@ -21,6 +21,9 @@ export enum WarningType {
   /** For: The old for syntax is deprecated. */
   OLD_FOR = 'old-for',
 
+  /** VarStmt: `var` is undefined behaviour. */
+  VAR_UNSAFE = 'var-unsafe',
+
   /** ScopeBaseContext: Exporting a type inside a class. */
   CLASS_EXPORT_TYPE = 'class-export-type',
 
@@ -42,7 +45,10 @@ export type WarningMessage =
       value: 'type' | 'variable'
     }
   | {
-      type: WarningType.OLD_FOR | WarningType.CLASS_EXPORT_TYPE
+      type:
+        | WarningType.OLD_FOR
+        | WarningType.CLASS_EXPORT_TYPE
+        | WarningType.VAR_UNSAFE
     }
 
 export interface Warning {
@@ -92,6 +98,9 @@ export function displayWarningMessage (
           err.name
         }, remove the underscore: ${err.name.replace(/^_+/, '')}.`,
       ]
+    }
+    case WarningType.VAR_UNSAFE: {
+      return display`The behaviour of ${'var'} statements is poorly defined, and its use is unsafe.`
     }
     default: {
       const errorMessage: unknown = err

@@ -337,7 +337,10 @@ export function displayErrorMessage (
     }
     case ErrorType.ARG_MISMATCH: {
       return [
-        display`The ${[err.argPos, 'th']} argument you give to a TODO.`,
+        display`The ${[
+          err.argPos,
+          'th',
+        ]} argument you gave to this function expects a value of a different type.`,
         base,
         'Here is the type of the value you gave to the function:',
         err.error,
@@ -379,7 +382,12 @@ export function displayErrorMessage (
       return display`${err.enum} doesn't have a variant ${err.variant}, so your pattern will never match.`
     }
     case ErrorType.LET_MISMATCH: {
-      return display`You assign what evaluates to a TODO.`
+      return [
+        display`Your type annotation and the type of the value you're assigning do not match.`,
+        base,
+        display`Here is the value that you're assigning:`,
+        err.error,
+      ]
     }
     case ErrorType.LIST_PATTERN_DEFINITE: {
       return display`Here, you expect that the list should have ${[

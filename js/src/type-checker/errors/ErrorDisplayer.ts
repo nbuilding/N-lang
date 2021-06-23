@@ -638,7 +638,9 @@ export class ErrorDisplayer {
     } else if (block instanceof Base) {
       return this._displayCode(fileName, lines, block)
     } else {
-      const displayed = this._displayTypeError(block).join('\n')
+      const displayed = this._displayTypeError(block)
+        .map(line => this._indent + line)
+        .join('\n')
       return this.options.type === 'console-color'
         ? colours.yellow(displayed)
         : this.options.type === 'html'

@@ -92,6 +92,11 @@ export function compareAssignable (
       return typeToResultType(value)
     }
   } else if (annotation.type === 'union') {
+    // This can only happen when doing
+    // let wow = 3
+    // var wow = 4.4
+    // Ideally we'd change the type of `wow` to be float rather than number, but
+    // `var` is currently undefined behaviour so it's not a big deal
     if (value.type === 'union') {
       // Maybe we should take the intersection of the union?
       if (isSubset(value.types, annotation.types)) {
@@ -174,12 +179,6 @@ export function compareAssignable (
       annotation.types.keys(),
       value.types.keys(),
     )
-    console.log(
-      [...annotation.types.keys()],
-      [...value.types.keys()],
-      missing,
-      extra,
-    )
     const results: Record<string, ComparisonResult> = {}
     let issue: ComparisonIssue | undefined =
       missing.size > 0 || extra.size > 0
@@ -254,6 +253,10 @@ export function compareAssignable (
       )
     }
     if (value.type === 'union') {
+      // Ignores type variables
+      if (value.types.includes(annotation.typeSpec)) {
+        return typeToResultType(value)
+      }
       return {
         ...typeToResultType(value),
         issue: {
