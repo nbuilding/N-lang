@@ -1,6 +1,13 @@
 import colours from 'colors/safe'
 import { generateNames } from '../../../test/unit/utils/generate-names'
-import { Base } from '../../ast/index'
+import { Base, BasePosition } from '../../ast/index'
+import {
+  ParseError,
+  ParseUnexpectedInputError,
+  ParseUnexpectedEOFError,
+  ParseNearleyError,
+  ParseAmbiguityError,
+} from '../../grammar/parse'
 import { escapeHtml } from '../../utils/escape-html'
 import { findLastIndex } from '../../utils/find-last-index'
 import {
@@ -49,6 +56,8 @@ export type InlineDisplay =
   | typeof HINT
 
 export type BlockDisplay = string | Base | ComparisonResult
+
+export type FilePathSpec = string | { base: string; file: string }
 
 export interface HtmlClassOptions {
   /** CSS class to use for variable and type names; default `n-error-name` */
@@ -104,14 +113,21 @@ export type ErrorDisplayerOptions = ErrorDisplayColourOptions & {
   /** Minimum number of lines to show for multiline code snippets */
   previewMultiline?: number
   indent?: string | number
+
+  /**
+   * Display absolute paths in a less verbose manners, if needed, for displaying
+   * errors. For example, this can return a relative path based on the starting
+   * script. If omitted, the absolute path will be displayed instead.
+   *
+   * @param basePath - The `startPath` given through `.start`
+   */
+  displayPath?(absolutePath: string, basePath: string): string
 }
 
 export class ErrorDisplayer {
   options: ErrorDisplayerOptions
 
   constructor (options: ErrorDisplayerOptions = {}) {
-    this._displayLine = this._displayLine.bind(this)
-
     this.options = options
   }
 
@@ -168,8 +184,11 @@ export class ErrorDisplayer {
     }>`
   }
 
-  private _displayInlineTypePretty (type: ComparisonResult): string {
-    const str = '`' + this._displayInlineType(type) + '`'
+  private _displayInlineTypePretty (
+    filePath: string,
+    type: ComparisonResult,
+  ): string {
+    const str = '`' + this._displayInlineType(filePath, type) + '`'
     return this.options.type === 'console-color'
       ? colours.yellow(str)
       : this.options.type === 'html'
@@ -178,7 +197,7 @@ export class ErrorDisplayer {
       : str
   }
 
-  private _displayInline (inline: InlineDisplay): string {
+  private _displayInline (filePath: string, inline: InlineDisplay): string {
     if (Array.isArray(inline)) {
       if (inline[1] === 'th') {
         const [ordinal] = inline
@@ -205,11 +224,12 @@ export class ErrorDisplayer {
     } else if ('keyword' in inline) {
       return this._hint
     } else {
-      return this._displayInlineTypePretty(typeToResultType(inline))
+      return this._displayInlineTypePretty(filePath, typeToResultType(inline))
     }
   }
 
   private _displayLine (
+    filePath: string,
     strings: TemplateStringsArray,
     ...items: InlineDisplay[]
   ): string {
@@ -217,7 +237,7 @@ export class ErrorDisplayer {
     strings.forEach((item, i) => {
       displayed += this.options.type === 'html' ? escapeHtml(item) : item
       if (i < strings.length - 1) {
-        displayed += this._displayInline(items[i])
+        displayed += this._displayInline(filePath, items[i])
       }
     })
     return displayed
@@ -277,9 +297,21 @@ export class ErrorDisplayer {
       : text
   }
 
-  private _displayCode (fileName: string, lines: string[], base: Base): string {
+  private _displayCode (
+    pathSpec: FilePathSpec,
+    lines: string[],
+    base: BasePosition,
+  ): string {
+    const { displayPath } = this.options
+    const path =
+      typeof pathSpec === 'string'
+        ? pathSpec
+        : displayPath
+        ? displayPath(pathSpec.file, pathSpec.base)
+        : pathSpec.file
+    let displayed = `  --> ${path}:${base.line}:${base.col}\n`
+
     const lineNumLength = lines.length.toString().length
-    let displayed = `  --> ${fileName}:${base.line}:${base.col}\n`
     displayed =
       this.options.type === 'console-color'
         ? colours.blue(displayed)
@@ -287,6 +319,7 @@ export class ErrorDisplayer {
         ? `<span class="${this.options.classes?.filePos ??
             'n-error-file-pos'}">${escapeHtml(displayed)}</span>`
         : displayed
+
     if (base.line === base.endLine) {
       displayed +=
         this._displayLineNum(lineNumLength, base.line) +
@@ -302,6 +335,7 @@ export class ErrorDisplayer {
         ) +
         '\n' +
         this._displayUnderlineForLine(lines, base.line, base.col, null)
+
       const previewLines = this.options.previewMultiline ?? 2
       if (base.endLine - base.line + 1 > (previewLines + 1) * 2) {
         for (
@@ -314,6 +348,7 @@ export class ErrorDisplayer {
             this._displayLineNum(lineNumLength, line) +
             this._displayMultilineHighlight(lines[line - 1])
         }
+
         const ellipses =
           lineNumLength > 1
             ? `\n${' '.repeat(lineNumLength - 2)}... |`
@@ -325,6 +360,7 @@ export class ErrorDisplayer {
             ? `<span class="${this.options.classes?.lineNum ??
                 'n-error-line-num'}">${ellipses}</span>`
             : ellipses
+
         for (
           let line = base.endLine - previewLines;
           line < base.endLine;
@@ -343,6 +379,7 @@ export class ErrorDisplayer {
             this._displayMultilineHighlight(lines[line - 1])
         }
       }
+
       displayed +=
         '\n' +
         this._displayLineNum(lineNumLength, base.endLine) +
@@ -357,6 +394,7 @@ export class ErrorDisplayer {
   }
 
   private _displayInlineType (
+    filePath: string,
     type: ComparisonResultType,
     cache = new TypeNameCache(),
     inParens = false,
@@ -368,6 +406,7 @@ export class ErrorDisplayer {
           ? `[${type.vars
               .map(typeVar =>
                 this._displayInlineType(
+                  filePath,
                   typeVar,
                   cache,
                   typeVar.type === 'tuple',
@@ -389,18 +428,19 @@ export class ErrorDisplayer {
           ? `{ ${entries
               .map(
                 ([field, type]) =>
-                  `${field}: ${this._displayInlineType(type, cache)}`,
+                  `${field}: ${this._displayInlineType(filePath, type, cache)}`,
               )
               .join('; ')} }`
           : '{}'
     } else if (type.type === 'module') {
-      // TODO: Move displayPath to an option of ErrorDisplayer because it uses
-      // it more
-      display = `imp ${JSON.stringify(type.path)}`
+      const { displayPath } = this.options
+      display = `imp ${JSON.stringify(
+        displayPath ? displayPath(type.path, filePath) : type.path,
+      )}`
     } else if (type.type === 'tuple') {
       display = type.types
         .map(type =>
-          this._displayInlineType(type, cache, type.type === 'tuple'),
+          this._displayInlineType(filePath, type, cache, type.type === 'tuple'),
         )
         .join(', ')
     } else if (type.type === 'function') {
@@ -411,10 +451,12 @@ export class ErrorDisplayer {
               .join(', ')}] `
           : ''
       }${this._displayInlineType(
+        filePath,
         type.argument,
         cache,
         type.argument.type === 'function' || type.argument.type === 'tuple',
       )} -> ${this._displayInlineType(
+        filePath,
         type.return,
         cache,
         type.return.type === 'tuple',
@@ -437,6 +479,7 @@ export class ErrorDisplayer {
   }
 
   private _displayTypeError (
+    filePath: string,
     type: ComparisonResult,
     cache = new TypeNameCache(),
     suffix = '',
@@ -449,7 +492,7 @@ export class ErrorDisplayer {
       type.issue.issue === 'too-general' ||
       type.issue.issue === 'no-overlap'
     ) {
-      const typeDisplay = this._displayInlineType(type, cache)
+      const typeDisplay = this._displayInlineType(filePath, type, cache)
       const lines = [
         inParens ? `(${typeDisplay})${suffix}` : typeDisplay + suffix,
       ]
@@ -461,6 +504,7 @@ export class ErrorDisplayer {
         if (type.issue.issue === 'should-be') {
           message += this._displayTypeErrorMsg(
             `This should be a ${this._displayInlineTypePretty(
+              filePath,
               type.issue.type,
             )}.`,
           )
@@ -475,12 +519,14 @@ export class ErrorDisplayer {
         } else if (type.issue.issue === 'too-general') {
           message += this._displayTypeErrorMsg(
             `This should only be a ${this._displayInlineTypePretty(
+              filePath,
               type.issue.canOnlyHandle,
             )}.`,
           )
         } else if (type.issue.issue === 'no-overlap') {
           message += this._displayTypeErrorMsg(
             `This has no overlap with ${this._displayInlineTypePretty(
+              filePath,
               type.issue.with,
             )}.`,
           )
@@ -497,6 +543,7 @@ export class ErrorDisplayer {
       for (const typeVar of type.vars) {
         lines.push(
           ...this._displayTypeError(
+            filePath,
             typeVar,
             cache,
             ',',
@@ -516,7 +563,7 @@ export class ErrorDisplayer {
       let omitted = 0
       for (const [field, innerType] of Object.entries(type.types)) {
         if (innerType.issue) {
-          const innerLines = this._displayTypeError(innerType, cache)
+          const innerLines = this._displayTypeError(filePath, innerType, cache)
           if (innerLines.length <= 2) {
             // Probably the error was something like
             // field: list[int]
@@ -530,7 +577,7 @@ export class ErrorDisplayer {
           }
         } else if (extraFields.includes(field)) {
           lines.push(
-            `${field}: ${this._displayInlineType(innerType, cache)}`,
+            `${field}: ${this._displayInlineType(filePath, innerType, cache)}`,
             `${this._displayUnderline(
               field.length,
             )} ${this._displayTypeErrorMsg("This field isn't needed.")}`,
@@ -563,6 +610,7 @@ export class ErrorDisplayer {
       for (const innerType of type.types.slice(0, lastIssueIndex + 1)) {
         lines.push(
           ...this._displayTypeError(
+            filePath,
             innerType,
             cache,
             ',',
@@ -594,7 +642,7 @@ export class ErrorDisplayer {
               }: ${this._displayList(
                 'and',
                 type.issue.types.map(field =>
-                  this._displayInlineTypePretty(field),
+                  this._displayInlineTypePretty(filePath, field),
                 ),
               )}.`,
             ),
@@ -629,16 +677,19 @@ export class ErrorDisplayer {
   }
 
   private _displayBlock (
-    fileName: string,
+    path: FilePathSpec,
     lines: string[],
     block: BlockDisplay,
   ): string {
     if (typeof block === 'string') {
       return block
     } else if (block instanceof Base) {
-      return this._displayCode(fileName, lines, block)
+      return this._displayCode(path, lines, block)
     } else {
-      const displayed = this._displayTypeError(block)
+      const displayed = this._displayTypeError(
+        typeof path === 'string' ? path : path.file,
+        block,
+      )
         .map(line => this._indent + line)
         .join('\n')
       return this.options.type === 'console-color'
@@ -650,8 +701,11 @@ export class ErrorDisplayer {
     }
   }
 
-  displayError (fileName: string, lines: string[], error: Error): string {
-    const rawBlocks = displayErrorMessage(error, this._displayLine)
+  displayError (path: FilePathSpec, lines: string[], error: Error): string {
+    const rawBlocks = displayErrorMessage(
+      error,
+      this._displayLine.bind(this, typeof path === 'string' ? path : path.file),
+    )
     const blocks: BlockDisplay[] = Array.isArray(rawBlocks)
       ? rawBlocks.filter((block): block is BlockDisplay => !!block)
       : [rawBlocks, error.base]
@@ -668,14 +722,21 @@ export class ErrorDisplayer {
       if (!firstLine) {
         str += '\n\n'
       }
-      str += this._displayBlock(fileName, lines, block)
+      str += this._displayBlock(path, lines, block)
       firstLine = false
     }
     return str
   }
 
-  displayWarning (fileName: string, lines: string[], warning: Warning): string {
-    const rawBlocks = displayWarningMessage(warning, this._displayLine)
+  displayWarning (
+    path: FilePathSpec,
+    lines: string[],
+    warning: Warning,
+  ): string {
+    const rawBlocks = displayWarningMessage(
+      warning,
+      this._displayLine.bind(this, typeof path === 'string' ? path : path.file),
+    )
     const blocks: BlockDisplay[] = Array.isArray(rawBlocks)
       ? rawBlocks.filter((block): block is BlockDisplay => !!block)
       : [rawBlocks, warning.base]
@@ -692,8 +753,66 @@ export class ErrorDisplayer {
       if (!firstLine) {
         str += '\n\n'
       }
-      str += this._displayBlock(fileName, lines, block)
+      str += this._displayBlock(path, lines, block)
       firstLine = false
+    }
+    return str
+  }
+
+  displaySyntaxError (
+    path: FilePathSpec,
+    lines: string[],
+    error: ParseError,
+    position: BasePosition,
+  ): string {
+    let str =
+      this.options.type === 'console-color'
+        ? colours.bold(colours.red('Syntax error'))
+        : this.options.type === 'html'
+        ? `<span class="${this.options.classes?.error ??
+            'n-error-error'}">Syntax error</span>`
+        : 'Syntax error'
+    str += ': '
+    if (error instanceof ParseUnexpectedEOFError) {
+      str += 'Your code seems to have ended unexpectedly.'
+    } else if (error instanceof ParseAmbiguityError) {
+      str += `You have found an ambiguity in N syntax. Please report this error on GitHub: ${this._displayLink(
+        'https://github.com/nbuilding/N-lang/issues/new',
+      )}`
+    } else if (error instanceof ParseUnexpectedInputError) {
+      str += "I didn't expect to encounter this character in your code."
+    } else {
+      str += `I didn't expect to encounter a ${error.token.type} token here.`
+    }
+    str += '\n\n' + this._displayCode(path, lines, position)
+    if (error instanceof ParseNearleyError) {
+      str += `\n\nInstead, I was expecting either a ${this._displayList(
+        'or',
+        error.expected,
+      )}.`
+    }
+    if (error instanceof ParseUnexpectedEOFError) {
+      str += `\n\n${this._hint}: Maybe a bracket does not have a matching pair?`
+    } else if (error instanceof ParseUnexpectedInputError) {
+      const char = lines[error.line - 1][error.col - 1]
+      const codePoint = char.codePointAt(0) || 0
+      if (char === '\u037e') {
+        str += `\n\n${
+          this._hint
+        }: That is a U+037E GREEK QUESTION MARK (${this._displayInlineCode(
+          '\u037e',
+        )}), which looks the same as a semicolon (${this._displayInlineCode(
+          ';',
+        )}). Is someone pulling a prank on you?`
+      } else if (codePoint >= 128) {
+        str += `\n\n${this._hint}: That is U+${codePoint
+          .toString(16)
+          .toUpperCase()
+          .padStart(
+            4,
+            '0',
+          )}, which isn't an ASCII character. Some Unicode characters look very similar or the same as some ASCII characters, so check to make sure that there isn't a lookalike character in your code. N only allows non-ASCII characters in string and character literals, not variable or type names.`
+      }
     }
     return str
   }

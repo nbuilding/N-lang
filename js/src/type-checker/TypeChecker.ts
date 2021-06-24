@@ -1,7 +1,13 @@
-import { Base, Block, ImportFile } from '../ast/index'
-import { parse } from '../grammar/parse'
+import { Base, BasePosition, Block, ImportFile } from '../ast/index'
+import {
+  parse,
+  ParseAmbiguityError,
+  ParseError,
+  ParseUnexpectedInputError,
+  ParseUnexpectedEOFError,
+} from '../grammar/parse'
 import { Error as NError } from './errors/Error'
-import { ErrorDisplayer } from './errors/ErrorDisplayer'
+import { ErrorDisplayer, FilePathSpec } from './errors/ErrorDisplayer'
 import { Warning as NWarning } from './errors/Warning'
 import { GlobalScope } from './GlobalScope'
 import { NModule, NType, unknown, Unknown } from './types/types'
@@ -19,13 +25,13 @@ function * getImportPaths (base: Base): Generator<string> {
 type ModuleState =
   | { state: 'loading' }
   | { state: 'loaded'; module: NModule | Unknown }
-  | { state: 'error'; error: unknown }
+  | { state: 'error'; error: typeof NOT_FOUND | typeof BAD_PATH }
 
 export class TypeCheckerResults {
   checker: TypeChecker
   startPath: string
   types: Map<Base, NType> = new Map()
-  files: Map<string, TypeCheckerResultsForFile> = new Map()
+  files: Map<string, BaseResultsForFile> = new Map()
 
   constructor (checker: TypeChecker, startPath: string) {
     this.checker = checker
@@ -47,8 +53,20 @@ export class TypeCheckerResults {
     return file
   }
 
+  syntaxError (absolutePath: string, source: string, error: ParseError) {
+    const result = new SyntaxErrorForFile(
+      this,
+      absolutePath,
+      source.split(/\r?\n/),
+      error,
+    )
+    this.files.set(absolutePath, result)
+    return result
+  }
+
   /**
-   * Joins all the errors and warnings together into a single string, separated by double newlines.
+   * Joins all the errors and warnings together into a single string, separated
+   * by double newlines.
    */
   displayAll (
     displayer: ErrorDisplayer,
@@ -56,7 +74,7 @@ export class TypeCheckerResults {
     const allWarnings = []
     const allErrors = []
     for (const file of this.files.values()) {
-      const { warnings, errors } = file.display(displayer)
+      const { errors, warnings = [] } = file.display(displayer)
       allWarnings.push(...warnings)
       allErrors.push(...errors)
     }
@@ -68,13 +86,11 @@ export class TypeCheckerResults {
   }
 }
 
-export class TypeCheckerResultsForFile {
+export abstract class BaseResultsForFile {
   parent: TypeCheckerResults
   absolutePath: string
   lines: string[]
   modules: Map<string, ModuleState>
-  errors: NError[] = []
-  warnings: NWarning[] = []
 
   constructor (
     parent: TypeCheckerResults,
@@ -88,23 +104,117 @@ export class TypeCheckerResultsForFile {
     this.modules = modules
   }
 
+  get path (): FilePathSpec {
+    return {
+      file: this.absolutePath,
+      base: this.parent.startPath,
+    }
+  }
+
+  display (
+    _displayer: ErrorDisplayer,
+  ): { errors: string[]; warnings?: string[] } {
+    throw new Error('Not implemented')
+  }
+}
+
+export class TypeCheckerResultsForFile extends BaseResultsForFile {
+  errors: NError[] = []
+  warnings: NWarning[] = []
+
   display (
     displayer: ErrorDisplayer,
   ): { errors: string[]; warnings: string[] } {
-    const { displayPath } = this.parent.checker.options
-    const path = displayPath
-      ? displayPath(this.absolutePath, this.parent.startPath)
-      : this.absolutePath
     return {
       errors: this.errors.map(error =>
-        displayer.displayError(path, this.lines, error),
+        displayer.displayError(this.path, this.lines, error),
       ),
       warnings: this.warnings.map(warning =>
-        displayer.displayWarning(path, this.lines, warning),
+        displayer.displayWarning(this.path, this.lines, warning),
       ),
     }
   }
 }
+
+export class SyntaxErrorForFile extends BaseResultsForFile {
+  error: ParseError
+
+  constructor (
+    parent: TypeCheckerResults,
+    absolutePath: string,
+    lines: string[],
+    error: ParseError,
+  ) {
+    super(parent, absolutePath, lines, new Map())
+    this.error = error
+  }
+
+  get position (): BasePosition {
+    if (
+      this.error instanceof ParseUnexpectedEOFError ||
+      this.error instanceof ParseAmbiguityError
+    ) {
+      const lastLine = this.lines[this.lines.length - 1]
+      if (lastLine.length === 0) {
+        const penultimateLine = this.lines[this.lines.length - 2]
+        return {
+          line: this.lines.length - 1,
+          col: penultimateLine.length,
+          endLine: this.lines.length - 1,
+          endCol: penultimateLine.length + 1,
+        }
+      } else {
+        return {
+          line: this.lines.length,
+          col: lastLine.length,
+          endLine: this.lines.length,
+          endCol: lastLine.length + 1,
+        }
+      }
+    } else if (this.error instanceof ParseUnexpectedInputError) {
+      return {
+        line: this.error.line,
+        col: this.error.col,
+        endLine: this.error.line,
+        endCol: this.error.col + 1,
+      }
+    } else {
+      const { line, col } = this.error.end
+      return {
+        line: this.error.line,
+        col: this.error.col,
+        endLine: line,
+        endCol: col,
+      }
+    }
+  }
+
+  display (displayer: ErrorDisplayer): { errors: string[] } {
+    return {
+      errors: [
+        displayer.displaySyntaxError(
+          this.path,
+          this.lines,
+          this.error,
+          this.position,
+        ),
+      ],
+    }
+  }
+}
+
+export const NOT_FOUND = Symbol('not found')
+export const BAD_PATH = Symbol('bad path')
+
+type ParsedBlockWithSource = { source: string; block: Block }
+type ParseErrorWithSource = { source: string; error: ParseError }
+export type ProvidedFile =
+  | string
+  | ParsedBlockWithSource
+  | NModule
+  | ParseErrorWithSource
+  | typeof NOT_FOUND
+  | typeof BAD_PATH
 
 export interface CheckerOptions {
   /**
@@ -115,24 +225,8 @@ export interface CheckerOptions {
 
   /**
    * Asynchronously gets an imported file and returns the parsed file.
-   * This may reject with an Error if the file does not exist.
    */
-  provideFile(
-    path: string,
-  ):
-    | string
-    | [string, Block]
-    | NModule
-    | PromiseLike<string | [string, Block] | NModule>
-
-  /**
-   * Display absolute paths in a less verbose manners, if needed, for displaying
-   * errors. For example, this can return a relative path based on the starting
-   * script. If omitted, the absolute path will be displayed instead.
-   *
-   * @param basePath - The `startPath` given through `.start`
-   */
-  displayPath?(absolutePath: string, basePath: string): string
+  provideFile(path: string): ProvidedFile | PromiseLike<ProvidedFile>
 }
 
 export class TypeChecker {
@@ -152,6 +246,63 @@ export class TypeChecker {
     return results
   }
 
+  private async _getResultFromProvided (
+    results: TypeCheckerResults,
+    modulePath: string,
+    provided: ProvidedFile,
+  ): Promise<NModule | ParseErrorWithSource | null> {
+    if (typeof provided === 'symbol') {
+      this.moduleCache.set(modulePath, { state: 'error', error: provided })
+      return null
+    } else if (typeof provided === 'string' || 'block' in provided) {
+      let blockWithSource: ParsedBlockWithSource
+      if (typeof provided === 'string') {
+        const parsed = parse(provided)
+        if (parsed instanceof Block) {
+          blockWithSource = { source: provided, block: parsed }
+        } else {
+          return { source: provided, error: parsed }
+        }
+      } else {
+        blockWithSource = provided
+      }
+      const { source, block } = blockWithSource
+
+      const relToAbsPaths: Map<string, string> = new Map()
+      for (const importPath of getImportPaths(block)) {
+        const path = this.options.absolutePath(modulePath, importPath)
+        relToAbsPaths.set(importPath, path)
+      }
+      await Promise.all(
+        Array.from(relToAbsPaths.values(), path =>
+          this._ensureModuleLoaded(results, path),
+        ),
+      )
+
+      const globalScope = new GlobalScope(
+        results.newFile(
+          modulePath,
+          source,
+          new Map(
+            Array.from(relToAbsPaths, ([path, absPath]) => {
+              const state = this.moduleCache.get(absPath)
+              if (!state) {
+                throw new Error('module cache does not have absolute path.')
+              }
+              return [path, state]
+            }),
+          ),
+        ),
+      )
+      const scope = globalScope.inner({ exportsAllowed: true })
+      scope.checkStatement(block)
+      scope.end()
+      return scope.toModule(modulePath)
+    } else {
+      return provided
+    }
+  }
+
   /**
    * @param modulePath - Unique ID for the file (with a file system, the
    * absolute path).
@@ -162,55 +313,19 @@ export class TypeChecker {
   ) {
     if (this.moduleCache.has(modulePath)) return
     this.moduleCache.set(modulePath, { state: 'loading' })
-    try {
-      let module = await this.options.provideFile(modulePath)
-      if (typeof module === 'string') {
-        let parsed
-        try {
-          parsed = parse(module)
-        } catch (error) {
-          const errors = results.newFile(modulePath, module)
-          // TODO: Add syntax error
-          this.moduleCache.set(modulePath, { state: 'loaded', module: unknown })
-          return
-        }
-        module = [module, parsed]
+
+    const result = await this._getResultFromProvided(
+      results,
+      modulePath,
+      await this.options.provideFile(modulePath),
+    )
+    if (result) {
+      if ('error' in result) {
+        results.syntaxError(modulePath, result.source, result.error)
+        this.moduleCache.set(modulePath, { state: 'loaded', module: unknown })
+      } else {
+        this.moduleCache.set(modulePath, { state: 'loaded', module: result })
       }
-      if (Array.isArray(module)) {
-        const [source, parsed] = module
-        const relToAbsPaths: Map<string, string> = new Map()
-        for (const importPath of getImportPaths(parsed)) {
-          const path = this.options.absolutePath(modulePath, importPath)
-          relToAbsPaths.set(importPath, path)
-        }
-        await Promise.all(
-          Array.from(relToAbsPaths.values(), path =>
-            this._ensureModuleLoaded(results, path),
-          ),
-        )
-        const globalScope = new GlobalScope(
-          results.newFile(
-            modulePath,
-            source,
-            new Map(
-              Array.from(relToAbsPaths, ([path, absPath]) => {
-                const state = this.moduleCache.get(absPath)
-                if (!state) {
-                  throw new Error('module cache does not have absolute path.')
-                }
-                return [path, state]
-              }),
-            ),
-          ),
-        )
-        const scope = globalScope.inner({ exportsAllowed: true })
-        scope.checkStatement(parsed)
-        scope.end()
-        module = scope.toModule(modulePath)
-      }
-      this.moduleCache.set(modulePath, { state: 'loaded', module })
-    } catch (error) {
-      this.moduleCache.set(modulePath, { state: 'error', error })
     }
   }
 }

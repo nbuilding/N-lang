@@ -289,6 +289,10 @@ export type ErrorMessage =
       in: 'func-expr' | 'alias' | 'enum' | 'func-type'
     }
   | {
+      type: ErrorType.CANNOT_IMPORT
+      reason: 'not-found' | 'bad-path'
+    }
+  | {
       // Too lazy to add things to these; can do later
       type:
         | ErrorType.RECORD_NO_FIELD
@@ -308,7 +312,6 @@ export type ErrorMessage =
         | ErrorType.CANNOT_EXPORT
         | ErrorType.CLASS_NO_TYPEVAR
         | ErrorType.NO_NATIVE_MODULE
-        | ErrorType.CANNOT_IMPORT
         | ErrorType.CIRCULAR_IMPORTS
     }
 
@@ -441,12 +444,20 @@ export function displayErrorMessage (
       return [
         display`Type assertion failed.`,
         base,
-        'Here is the type of the value you asserted.',
+        'Here is the type of the value you asserted:',
         err.error,
       ]
     }
     case ErrorType.VALUE_ASSERTION_NOT_BOOL: {
       return display`You need to give a bool to a value assertion.`
+    }
+    case ErrorType.RETURN_MISMATCH: {
+      return [
+        'The type you return here does not match the return type annotation of the function.',
+        base,
+        'Here is the type of the value you returned:',
+        err.error,
+      ]
     }
     default: {
       const errorMessage: unknown = err

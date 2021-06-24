@@ -1,1 +1,2 @@
-let _a: int = 3
+print
+

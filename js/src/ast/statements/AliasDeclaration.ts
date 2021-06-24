@@ -50,7 +50,7 @@ export class AliasDeclaration extends Base implements Statement {
       this.typeSpec.name,
       new AliasSpec(
         this.typeSpec.name.value,
-        context.scope.getTypeFrom(this.type).type,
+        scope.getTypeFrom(this.type).type,
         typeVars,
       ),
       this.public,

@@ -5,6 +5,7 @@ import { Identifier } from '../literals/Identifier'
 import { String as AstString } from '../literals/String'
 import { unknown } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
+import { NOT_FOUND } from '../../type-checker/TypeChecker'
 
 export class ImportFile extends Base implements Expression {
   path: Identifier | AstString
@@ -26,7 +27,10 @@ export class ImportFile extends Base implements Expression {
       return { type: state.module }
     } else {
       if (state.state === 'error') {
-        context.err({ type: ErrorType.CANNOT_IMPORT })
+        context.err({
+          type: ErrorType.CANNOT_IMPORT,
+          reason: state.error === NOT_FOUND ? 'not-found' : 'bad-path',
+        })
       } else if (state.state === 'loading') {
         context.err({ type: ErrorType.CIRCULAR_IMPORTS })
       }

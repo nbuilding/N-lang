@@ -31,7 +31,7 @@ export class ParseAmbiguityError extends ParseBaseError {
   }
 }
 
-class ParserNearleyError extends ParseBaseError {
+export class ParseNearleyError extends ParseBaseError {
   line: number
   col: number
   expected: string[]
@@ -44,20 +44,37 @@ class ParserNearleyError extends ParseBaseError {
   }
 }
 
-export class ParserUnexpectedInputError extends ParserNearleyError {
+export class ParseUnexpectedInputError extends ParseNearleyError {
   constructor (line: number, col: number, expected: string[]) {
     super('The lexer did not expect this input.', line, col, expected)
   }
 }
 
-export class ParserTokenError extends ParserNearleyError {
+export class ParseTokenError extends ParseNearleyError {
   token: Token
 
   constructor (token: Token, line: number, col: number, expected: string[]) {
     super(`Unexpected ${token.type} token`, line, col, expected)
     this.token = token
   }
+
+  get end (): { line: number; col: number } {
+    const { line, col, lineBreaks, text } = this.token
+    const lastLine = text.includes('\n')
+      ? text.slice(text.lastIndexOf('\n') + 1)
+      : text
+    return {
+      line: line + lineBreaks,
+      col: col + lastLine.length,
+    }
+  }
 }
+
+export type ParseError =
+  | ParseUnexpectedEOFError
+  | ParseAmbiguityError
+  | ParseUnexpectedInputError
+  | ParseTokenError
 
 function isNearleyError (
   error: unknown,
@@ -86,7 +103,7 @@ Unexpected symbol token: ".".
 // https://github.com/no-context/moo/blob/master/moo.js#L574-L580
 function parseNearleyError (
   error: Error & { offset: number; token?: Token },
-): ParseBaseError | null {
+): ParseTokenError | ParseUnexpectedInputError | null {
   const lineColMatch = error.message.match(lineColRegex)
   if (lineColMatch) {
     const [, line, col] = lineColMatch
@@ -110,7 +127,7 @@ function parseNearleyError (
                 `error.token.type=${error.token.type} but tokenType=${tokenType}`,
               )
             }
-            return new ParserTokenError(
+            return new ParseTokenError(
               error.token,
               +line,
               +col,
@@ -118,7 +135,7 @@ function parseNearleyError (
             )
           }
         } else {
-          return new ParserUnexpectedInputError(+line, +col, expectedInstead)
+          return new ParseUnexpectedInputError(+line, +col, expectedInstead)
         }
       } else {
         console.log("lexerInput isn't undefined! :o")
@@ -137,7 +154,7 @@ export interface ParseOptions {
 export function parse (
   script: string,
   { ambiguityOutput = 'omit', loud = false }: ParseOptions = {},
-): Block {
+): Block | ParseError {
   const parser = new Parser(Grammar.fromCompiled(grammar))
   try {
     parser.feed(script)
@@ -145,14 +162,14 @@ export function parse (
     if (isNearleyError(err)) {
       const error = parseNearleyError(err)
       if (error) {
-        throw error
+        return error
       }
     }
     throw err
   }
   const [result, ...ambiguities] = parser.results
   if (!result) {
-    throw new ParseUnexpectedEOFError(parser.results)
+    return new ParseUnexpectedEOFError(parser.results)
   }
   if (ambiguities.length) {
     let results: string
@@ -195,7 +212,7 @@ export function parse (
         console.error(`^ Differences between results 0 and ${i}`)
       }
     }
-    throw new ParseAmbiguityError(parser.results)
+    return new ParseAmbiguityError(parser.results)
   }
   return result
 }

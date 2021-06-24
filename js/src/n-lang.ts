@@ -6,7 +6,7 @@ import util from 'util'
 import parseArgs from 'minimist'
 // import { compileToJS, TypeChecker, FileLines } from './index'
 import { parse } from './grammar/parse'
-import { TypeChecker } from './type-checker/TypeChecker'
+import { NOT_FOUND, TypeChecker } from './type-checker/TypeChecker'
 import { Block } from './ast/statements/Block'
 import { ErrorDisplayer } from './type-checker/errors/ErrorDisplayer'
 // import { Block } from './ast/index'
@@ -68,23 +68,41 @@ async function main () {
       return path.resolve(basePath, importPath)
     },
     async provideFile (path: string) {
-      const file = await fs.readFile(path, 'utf8')
-      const block = parse(file, {
-        ambiguityOutput,
-        loud: true,
-      })
-      if (ast) console.log(util.inspect(block, false, null, true))
-      if (repr) console.log(block.toString(true))
-      return [file, block]
-    },
-    displayPath (absolutePath: string, basePath: string) {
-      return path.relative(path.dirname(basePath), absolutePath)
+      try {
+        const file = await fs.readFile(path, 'utf8')
+        const block = parse(file, {
+          ambiguityOutput,
+          loud: true,
+        })
+        if (block instanceof Block) {
+          if (ast) console.log(util.inspect(block, false, null, true))
+          if (repr) console.log(block.toString(true))
+          return { source: file, block }
+        } else {
+          return { source: file, error: block }
+        }
+      } catch (err) {
+        if (err instanceof Error) {
+          const nodeError: NodeJS.ErrnoException = err
+          if (nodeError.code === 'ENOENT') {
+            return NOT_FOUND
+          }
+        }
+        throw err
+      }
     },
   })
   const result = await checker.start(path.resolve(fileName))
   if (!(js || running || checksOnly)) return
   console.log(
-    result.displayAll(new ErrorDisplayer({ type: 'console-color' })).display,
+    result.displayAll(
+      new ErrorDisplayer({
+        type: 'console-color',
+        displayPath (absolutePath: string, basePath: string) {
+          return path.relative(path.dirname(basePath), absolutePath)
+        },
+      }),
+    ).display,
   )
   /*
   const compiled = compileToJS(script, checker.types)
