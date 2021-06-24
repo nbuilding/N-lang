@@ -9,7 +9,7 @@ returnExpression -> "return" _ expression {% from(ast.Return) %}
 
 funcExpr -> arguments (_ "->" _) type (_ "{" _) block (_ "}") {% from(ast.Function) %}
 
-arguments -> ("[" _) (typeVarsDeclaration _):? deifniteDeclaration (__ deifniteDeclaration):* (_ "]") {% from(ast.Arguments) %}
+arguments -> "[" (_ typeVarsDeclaration):? (_ definiteDeclaration (__ definiteDeclaration):*):? (_ "]") {% from(ast.Arguments) %}
 
 tupleExpression -> noCommaExpression {% id %}
 	| (noCommaExpression _ "," _):+ noCommaExpression (_ ","):? {% from(ast.Tuple) %}
@@ -61,7 +61,7 @@ prefixExpression -> postfixExpression {% id %}
 
 postfixExpression -> value {% id %}
 	| postfixExpressionImpure {% id %}
-	| postfixExpression (_ "." _) identifier {% from(ast.RecordAccess) %}
+	| postfixExpression (_ "." _) anyIdentifier {% from(ast.RecordAccess) %}
 
 postfixExpressionImpure -> postfixExpression _ "!" {% suffix(ast.UnaryOperator.AWAIT) %}
 	# No newlines allowed between the function and its arguments
@@ -80,7 +80,8 @@ value -> identifier {% id %}
 	| ("[" _) ((noCommaExpression (_ "," _)):* noCommaExpression ((_ ","):? _)):? "]" {% from(ast.List) %}
 	| ("{" _) ((recordEntry blockSeparator):* recordEntry (blockSeparator | _spaces)):? "}" {% from(ast.Record) %}
 
-recordEntry -> identifier ((_ ":" _) expression):? {% from(ast.RecordEntry) %}
+recordEntry -> anyIdentifier (_ ":" _) expression {% from(ast.RecordEntry) %}
+	| identifier {% from(ast.RecordEntry) %}
 
 string -> %string {% from(ast.String) %}
 

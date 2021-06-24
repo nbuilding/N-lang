@@ -16,20 +16,26 @@ export class RecordEntry extends Base {
 
   constructor (
     pos: BasePosition,
-    [key, maybeValue]: schem.infer<typeof RecordEntry.schema>,
+    entry: schem.infer<typeof RecordEntry.schema>,
   ) {
-    super(pos, [key, maybeValue && maybeValue[1]])
-    this.key = key
-    this.value = maybeValue ? maybeValue[1] : key
+    const pair: [Identifier, Expression] =
+      entry.length === 3 ? [entry[0], entry[2]] : [entry[0], entry[0]]
+    super(pos, [pair[0], entry.length === 3 ? pair[1] : null])
+    this.key = pair[0]
+    this.value = pair[1]
   }
 
   toString (): string {
     return `${this.key}: ${this.value}`
   }
 
-  static schema = schema.tuple([
-    schema.instance(Identifier),
-    schema.nullable(schema.tuple([schema.any, schema.guard(isExpression)])),
+  static schema = schema.union([
+    schema.tuple([schema.instance(Identifier)]),
+    schema.tuple([
+      schema.instance(Identifier),
+      schema.any,
+      schema.guard(isExpression),
+    ]),
   ])
 }
 

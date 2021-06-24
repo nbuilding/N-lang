@@ -15,7 +15,13 @@ export class GuardError extends Error {
   value: unknown
 
   constructor (value: unknown, shouldBe: string) {
-    super(`${value} should be ${shouldBe}, but it's ${displayType(value)}.`)
+    super(
+      `${JSON.stringify(
+        value,
+        null,
+        2,
+      )} should be ${shouldBe}, but it's ${displayType(value)}.`,
+    )
     this.name = this.constructor.name
     this.value = value
   }

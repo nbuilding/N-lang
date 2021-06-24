@@ -104,6 +104,21 @@ main -> _ block _ {% ([, block]) => block %}
 
 identifier -> %identifier {% from(ast.Identifier) %}
 
+# Isn't this repetitive? Yes. Oh well.
+keyword -> "import" {% from(ast.Identifier) %}
+	| "imp" {% from(ast.Identifier) %}
+	| "return" {% from(ast.Identifier) %}
+	| "let" {% from(ast.Identifier) %}
+	| "var" {% from(ast.Identifier) %}
+	| "pub" {% from(ast.Identifier) %}
+	| "if" {% from(ast.Identifier) %}
+	| "else" {% from(ast.Identifier) %}
+	| "for" {% from(ast.Identifier) %}
+	| "in" {% from(ast.Identifier) %}
+	| "not" {% from(ast.Identifier) %}
+anyIdentifier -> identifier {% id %}
+	| keyword {% id %}
+
 # // comment
 lineComment -> %comment {% () => null %}
 

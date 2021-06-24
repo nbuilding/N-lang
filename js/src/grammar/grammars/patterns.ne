@@ -4,7 +4,7 @@ declaration -> pattern ((_ ":" _) type):? {% from(ast.Declaration) %}
 
 # Used in function arguments to avoid a syntactic ambiguity between type
 # variables and destructuring a list
-deifniteDeclaration -> definitePattern ((_ ":" _) type):? {% from(ast.Declaration) %}
+definiteDeclaration -> definitePattern ((_ ":" _) type):? {% from(ast.Declaration) %}
 
 pattern -> tuplePattern {% id %}
 
@@ -20,4 +20,5 @@ definitePattern -> identifier {% id %}
 	| ("{" _) ((recordPatternEntry blockSeparator):* recordPatternEntry (blockSeparator | _spaces)):? "}" {% from(ast.RecordPattern) %}
 	| "(" _ pattern _ ")" {% includeBrackets %}
 
-recordPatternEntry -> identifier ((_ ":" _) valuePattern):? {% from(ast.RecordPatternEntry) %}
+recordPatternEntry -> anyIdentifier (_ ":" _) valuePattern {% from(ast.RecordPatternEntry) %}
+	| identifier {% from(ast.RecordPatternEntry) %}

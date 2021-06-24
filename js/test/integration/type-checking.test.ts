@@ -1,8 +1,6 @@
 import * as fs from 'fs/promises'
 import { resolve, join } from 'path'
 
-import { Block } from '../../src/ast/statements/Block'
-import { parse } from '../../src/grammar/parse'
 import { ErrorDisplayer } from '../../src/type-checker/errors/ErrorDisplayer'
 import { TypeChecker } from '../../src/type-checker/TypeChecker'
 

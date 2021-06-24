@@ -13,7 +13,7 @@ typeValue -> modIdentifier {% id %}
 	| "(" _ ")" {% from(ast.UnitType) %}
 	| ("{" _) ((recordTypeEntry blockSeparator):* recordTypeEntry (blockSeparator | _spaces)):? "}" {% from(ast.RecordType) %}
 
-recordTypeEntry -> identifier (_ ":" _) type {% from(ast.RecordTypeEntry) %}
+recordTypeEntry -> anyIdentifier (_ ":" _) type {% from(ast.RecordTypeEntry) %}
 
 modIdentifier -> (identifier "."):* identifier (_ typeVars):? {% from(ast.ModuleId) %}
 
