@@ -2273,6 +2273,39 @@ class Scope:
                         break
                     else:
                         class_type[prop_name] = var.type
+        elif command.data == "assert":
+            assert_type = command.children[0].children[0]
+            if assert_type.data == "assert_type":
+                expr, ty = assert_type.children
+                expr_type = self.type_check_expr(expr)
+                check_type = self.parse_type(ty, False)
+                if (expr_type == None or check_type == None):
+                    self.warnings.append(
+                        TypeCheckError(
+                            command, "The expression or the type to check against evaluates to None, so the result is ambiguous and will probably fail."
+                        )
+                    )
+                    return False
+                if (expr_type != check_type):
+                    self.errors.append(
+                        TypeCheckError(
+                            command, "Type assersion failed against %s and %s." % (expr_type, check_type)
+                        )
+                    )
+                    return False
+                return False
+            if assert_type.data == "assert_val":
+                return False
+            if assert_type.data == "assert_let":
+                let_assert = assert_type
+                let_assert.data = "declare"
+                self.type_check_command(lark.Tree("instruction", [let_assert]))
+                return False
+            self.errors.append(
+                TypeCheckError(
+                    command, "egg."
+                )
+            )
         else:
             self.type_check_expr(command)
 

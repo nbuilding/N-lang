@@ -4,3 +4,5 @@ assert type 3:(str, int) -> maybe
 
 assert   value
 3
+
+assert let check = value 3 == 4

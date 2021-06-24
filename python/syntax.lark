@@ -80,13 +80,12 @@ match_block: "{" (match_entry (";" | "\n"))* "}"
 match_entry: value "->" value
 enum_constructor: modifier "<" NAME types* ">"
                 | modifier NAME
-assert_value: assert_non_let_value
-            | "let" pattern "=" assert_non_let_value
+assert_value: assert_val
+            | assert_type
+            | assert_let
 assert_val: "value" expression
 assert_type: "type" expression ":" types
-
-?assert_non_let_value: assert_val
-                     | assert_type
+assert_let: "let" modifier pattern "=" assert_val
 
 modifier: PUBLIC?
 
