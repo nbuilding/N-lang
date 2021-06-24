@@ -13,6 +13,8 @@ import {
 } from '../statements/Statement'
 import { unknown } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
+import { cmd } from '../../type-checker/types/builtins'
+import { attemptAssign } from '../../type-checker/types/comparisons/compare-assignable'
 
 export class Return extends Base implements Expression, Statement {
   value: Expression
@@ -34,7 +36,18 @@ export class Return extends Base implements Expression, Statement {
     const { type, exitPoint } = context.scope.typeCheck(this.value)
     const returnType = context.scope.getReturnType()
     if (returnType) {
-      context.isTypeError(ErrorType.RETURN_MISMATCH, returnType, type)
+      const error = attemptAssign(returnType, type)
+      if (error) {
+        if (returnType.type === 'named' && returnType.typeSpec === cmd) {
+          context.isTypeError(
+            ErrorType.RETURN_MISMATCH,
+            returnType.typeVars[0],
+            type,
+          )
+        } else {
+          context.err({ type: ErrorType.RETURN_MISMATCH, error })
+        }
+      }
     } else {
       context.err({
         type: ErrorType.RETURN_OUTSIDE_FUNCTION,

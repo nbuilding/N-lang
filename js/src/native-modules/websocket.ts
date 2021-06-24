@@ -7,7 +7,7 @@ import {
 
 const send = new AliasSpec(
   'send',
-  makeFunction(() => [str, unit]),
+  makeFunction(() => [str, cmd.instance([unit])]),
 )
 const connectOptions = new AliasSpec(
   'connectOptions',

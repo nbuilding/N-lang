@@ -1,5 +1,5 @@
 import * as fs from 'fs/promises'
-import { resolve, join } from 'path'
+import { resolve, join, dirname } from 'path'
 
 import { ErrorDisplayer } from '../../src/type-checker/errors/ErrorDisplayer'
 import { TypeChecker } from '../../src/type-checker/TypeChecker'
@@ -20,7 +20,7 @@ before(async () => {
       it(name, async function () {
         const checker = new TypeChecker({
           absolutePath (basePath: string, importPath: string): string {
-            return resolve(basePath, importPath)
+            return resolve(dirname(basePath), importPath)
           },
           async provideFile (path: string): Promise<string> {
             return await fs.readFile(path, 'utf8')

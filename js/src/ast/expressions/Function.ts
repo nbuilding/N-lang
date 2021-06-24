@@ -56,6 +56,9 @@ export class Function extends Base implements Expression {
     }
     const returnType = typeVarScope.getTypeFrom(this.returnType).type
     context.scope.deferred.push(() => {
+      // TODO: Isn't it possible to do something like
+      // let a = [] -> () { print(b) }
+      // let b = a()
       const scope = typeVarScope.inner({ returnType })
       scope.checkStatement(this.body)
       scope.end()

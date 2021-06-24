@@ -24,11 +24,13 @@ export class Block extends Base implements Statement {
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
-    const scope = context.scope.inner()
+    // NOTE: Blocks do not create their own scope
     let blockExitPoint: Return | undefined
     let warned = false
     for (const statement of this.statements) {
-      const { exitPoint, exitPointWarned } = scope.checkStatement(statement)
+      const { exitPoint, exitPointWarned } = context.scope.checkStatement(
+        statement,
+      )
       if (blockExitPoint) {
         if (!warned) {
           context.warn({
@@ -44,7 +46,6 @@ export class Block extends Base implements Statement {
         }
       }
     }
-    scope.end()
     return {
       exitPoint: blockExitPoint,
       exitPointWarned: warned,

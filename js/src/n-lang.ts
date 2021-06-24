@@ -65,7 +65,7 @@ async function main () {
 
   const checker = new TypeChecker({
     absolutePath (basePath: string, importPath: string): string {
-      return path.resolve(basePath, importPath)
+      return path.resolve(path.dirname(basePath), importPath)
     },
     async provideFile (path: string) {
       try {

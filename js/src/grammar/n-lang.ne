@@ -57,17 +57,25 @@ const lexer = moo.states({
 				'return keyword': 'return',
 				'let keyword': 'let',
 				'vary keyword': 'var',
+				'alias keyword': 'alias',
+				'class keyword': 'class',
+				'type keyword': 'type',
 				'public keyword': 'pub',
 				'if keyword': 'if',
 				'else keyword': 'else',
 				'for keyword': 'for',
 				'in keyword': 'in',
+				'break reserved word': 'break',
+				'continue reserved word': 'continue',
+				'with reserved word': 'with',
+				'yield reserved word': 'yield',
+				'do reserved word': 'do',
 				'not operator': 'not',
 			}),
 		},
 		discard: '_',
-		float: /-?(?:\d+\.\d*|\.\d+)/,
-		number: /-?\d+/,
+		float: /-?(?:\d+\.\d*|\.\d+)(?:e\d+)?/,
+		number: /-?(?:0b[01]+|0o[0-7]+|0x[0-9a-fA-F]+|\d+)/,
 		string: {
 			match: /"(?:[^\r\n\\"]|\\(?:[nrtv0fb"\\]|u\{[0-9a-fA-F]+\}|\{(?:.|[\uD800-\uDBFF][\uDC00-\uDFFF])\}))*"/,
 			value: string => unescape(string.slice(1, -1)),
@@ -110,12 +118,21 @@ keyword -> "import" {% from(ast.Identifier) %}
 	| "return" {% from(ast.Identifier) %}
 	| "let" {% from(ast.Identifier) %}
 	| "var" {% from(ast.Identifier) %}
+	| "alias" {% from(ast.Identifier) %}
+	| "class" {% from(ast.Identifier) %}
+	| "type" {% from(ast.Identifier) %}
 	| "pub" {% from(ast.Identifier) %}
 	| "if" {% from(ast.Identifier) %}
 	| "else" {% from(ast.Identifier) %}
 	| "for" {% from(ast.Identifier) %}
 	| "in" {% from(ast.Identifier) %}
 	| "not" {% from(ast.Identifier) %}
+	| "break" {% from(ast.Identifier) %}
+	| "continue" {% from(ast.Identifier) %}
+	| "with" {% from(ast.Identifier) %}
+	| "yield" {% from(ast.Identifier) %}
+	| "do" {% from(ast.Identifier) %}
+
 anyIdentifier -> identifier {% id %}
 	| keyword {% id %}
 

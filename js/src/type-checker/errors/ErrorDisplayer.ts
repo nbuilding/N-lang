@@ -272,11 +272,14 @@ export class ErrorDisplayer {
     col: number | null,
     endCol: number | null,
   ): string {
-    const lineNumLength = lines.length.toString().length
+    const lineNumLength = [...lines.length.toString()].length
     return (
       ' '.repeat(lineNumLength + 1) +
       (col !== null
-        ? '   ' + lines[line - 1].slice(0, col - 1).replace(/[^\t]/g, ' ')
+        ? '   ' +
+          lines[line - 1]
+            .slice(0, col - 1)
+            .replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|[^\t]/g, ' ')
         : '') +
       this._displayUnderline(
         (endCol ?? lines[line - 1].length + 1) - (col ?? 1),

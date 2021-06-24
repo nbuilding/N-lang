@@ -246,14 +246,18 @@ export class Scope {
       types: new Map(
         Array.from(this.exports.variables, name => {
           const type = this.variables.get(name)
-          if (!type) throw new Error(`Where did the export go for ${name}?`)
+          if (!type) {
+            throw new Error(`Where did the export go for ${name}?`)
+          }
           return [name, type]
         }),
       ),
       exportedTypes: new Map(
-        Array.from(this.exports.variables, name => {
+        Array.from(this.exports.types, name => {
           const type = this.types.get(name)
-          if (!type) throw new Error(`Where did the export go for ${name}?`)
+          if (!type) {
+            throw new Error(`Where did the export go for ${name}?`)
+          }
           return [name, type]
         }),
       ),

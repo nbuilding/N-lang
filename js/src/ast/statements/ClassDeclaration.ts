@@ -57,6 +57,7 @@ export class ClassDeclaration extends Base implements Statement {
     if (paramTypes.length === 0) {
       paramTypes.push(unit)
     }
+    scope.checkStatement(this.body)
     for (const exported of scope.exports.variables) {
       const type = scope.variables.get(exported)
       if (!type) throw new Error(`Where did the export go for ${exported}?`)
