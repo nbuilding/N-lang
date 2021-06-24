@@ -82,10 +82,8 @@ enum_constructor: modifier "<" NAME types* ">"
                 | modifier NAME
 assert_value: assert_val
             | assert_type
-            | assert_let
 assert_val: "value" expression
 assert_type: "type" expression ":" types
-assert_let: "let" modifier pattern "=" assert_val
 
 modifier: PUBLIC?
 
