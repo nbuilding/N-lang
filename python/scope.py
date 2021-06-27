@@ -40,6 +40,8 @@ from syntax_error import format_error
 from classes import NConstructor
 from modules import libraries
 
+unit_test_results = {}
+
 basepath = ""
 if getattr(sys, "frozen", False):
     basepath = os.path.dirname(sys.executable)
@@ -962,14 +964,14 @@ class Scope:
             file_path = os.path.join(os.path.dirname(self.file_path), rel_file_path)
             with open(self.file_path, "r", encoding="utf-8") as f:
                 self.stack_trace.append((expr, File(f, name=os.path.relpath(self.file_path, start=self.base_path))))
-            impn, f = type_check_file(file_path, self.base_path)
             val = await eval_file(file_path, self.base_path)
             self.stack_trace += val.stack_trace
             holder = {}
             for key in val.variables.keys():
                 if val.variables[key].public:
                     holder[key] = val.variables[key].value
-            return NModule(rel_file_path, holder, unit_test_results=val.unit_tests[:] + impn.unit_tests[:])
+            unit_test_results[rel_file_path] += val.unit_tests[:]
+            return NModule(rel_file_path, holder)
         elif expr.data == "record_access":
             return (await self.eval_expr(expr.children[0]))[expr.children[1].value]
         elif expr.data == "tupleval":
@@ -1791,6 +1793,7 @@ class Scope:
                             "There was nothing to import from %s" % expr.children[0],
                         )
                     )
+                unit_test_results[rel_file_path] = impn.unit_tests[:]
                 return NModule(rel_file_path, holder, types=impn.public_types)
             else:
                 self.errors.append(

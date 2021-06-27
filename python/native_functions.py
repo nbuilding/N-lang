@@ -118,8 +118,7 @@ def subsection_list(lower, upper, l):
 def to_module(possible_module):
     if isinstance(possible_module, NModule):
         return yes(possible_module)
-    else:
-        return none
+    return none
 
 # Define global functions/variables
 def add_funcs(global_scope):
@@ -358,7 +357,7 @@ def add_funcs(global_scope):
                 "possibleTypes": n_maybe_type.with_typevars([["str", "str"]])
             }
         ]),
-        lambda module: module.unit_tests[:],
+        lambda module: scope.unit_test_results[module.mod_name][:],
     )
 
     global_scope.types["str"] = "str"
