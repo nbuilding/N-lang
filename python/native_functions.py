@@ -350,12 +350,14 @@ def add_funcs(global_scope):
     global_scope.add_native_function(
         "getUnitTestResults",
         [("possibleModule", n_module_type)],
-        n_list_type.with_typevars([[
-            "bool",
-            "int",
-            "str",
-            n_list_type.with_typevars(["str"])
-        ]]),
+        n_list_type.with_typevars([
+            {
+                "hasPassed": "bool",
+                "fileLine": "int",
+                "unitTestType": "str",
+                "possibleTypes": n_maybe_type.with_typevars([["str", "str"]])
+            }
+        ]),
         lambda module: module.unit_tests[:],
     )
 

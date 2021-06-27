@@ -22,7 +22,7 @@ from type import (
 )
 from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
-from native_types import n_list_type, n_cmd_type
+from native_types import n_list_type, n_cmd_type, none, yes
 from ncmd import Cmd
 from type_check_error import TypeCheckError, display_type
 from display import display_value
@@ -1213,12 +1213,14 @@ class Scope:
             assert_type = command.children[0].children[0]
             if assert_type.data == "assert_val":
                 expr = await self.eval_expr(assert_type.children[0])
-                self.unit_tests.append((
-                        expr,
-                        command.line,
-                        "value",
-                        []
-                    ))
+                self.unit_tests.append(
+                    {
+                        "hasPassed": expr,
+                        "fileLine": command.line,
+                        "unitTestType": "value",
+                        "possibleTypes": none,
+                    }
+                )
             return False
         else:
             await self.eval_expr(command)
@@ -2303,12 +2305,14 @@ class Scope:
                     )
                     return False
                 _, incompatible = resolve_equal_types(expr_type, check_type)
-                self.unit_tests.append((
-                    not incompatible,
-                    command.line,
-                    "type",
-                    [display_type(expr_type, False), display_type(check_type, True)],
-                ))
+                self.unit_tests.append(
+                    {
+                        "hasPassed": not incompatible,
+                        "fileLine": command.line,
+                        "unitTestType": "type",
+                        "possibleTypes": yes((display_type(expr_type, False), display_type(check_type, True))),
+                    }
+                )
             elif assert_type.data == "assert_val":
                 expr = assert_type.children[0]
                 expr_type = self.type_check_expr(expr)
