@@ -46,10 +46,10 @@ user_type = {
 setup_options_type = {
     "onConnect": (user_type, "str", n_cmd_type.with_typevars(["bool"])),
     "onMessage": (user_type, "str", n_cmd_type.with_typevars(["bool"])),
-    "onDisconnect": (user_type, {
+    "onDisconnect": (user_type, n_maybe_type.with_typevars([{
         "code": "int",
         "reason": "str",
-    }, n_cmd_type.with_typevars(["bool"])),
+    }]), n_cmd_type.with_typevars(["bool"])),
 }
 
 
@@ -156,8 +156,16 @@ async def createServer(options, port):
 
                 if stop:
                     ws_server.close()
+
+            if (websocket.closed):
+                stop = await options["onDisconnect"].run([user_data, none])
+                if isinstance(stop, Cmd):
+                    stop = await stop.eval()
+
+                if stop:
+                    ws_server.close()
         except websockets.exceptions.ConnectionClosed as err:
-            stop = await options["onDisconnect"].run([user_data, { "code": err.code, "reason": err.reason }])
+            stop = await options["onDisconnect"].run([user_data, yes({ "code": err.code, "reason": err.reason })])
             if isinstance(stop, Cmd):
                 stop = await stop.eval()
 
