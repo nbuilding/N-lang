@@ -83,10 +83,11 @@ class NTypeVars(NType):
 
 # N modules are kind of like records but different
 class NModule(dict):
-    def __init__(self, name, *args, types=None, **kw):
+    def __init__(self, name, *args, types=None, unit_test_results=None, **kw):
         super(NModule, self).__init__(*args, **kw)
         self.mod_name = name
         self.types = types if types is not None else {}
+        self.unit_tests = unit_test_results if unit_test_results is not None else []
         # Prevent destructuring modules completely. This hidden internal field
         # should never be shown to the casual N programmer.
         self["not exhaustive"] = True

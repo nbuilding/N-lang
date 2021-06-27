@@ -6,7 +6,7 @@ import scope
 from variable import Variable
 from function import Function
 from type_check_error import display_type
-from type import NGenericType
+from type import NGenericType, NModule
 from enums import EnumType, EnumValue
 from native_types import (
     n_list_type,
@@ -22,6 +22,7 @@ from native_types import (
     result_err_generic,
     ok,
     err,
+    n_module_type,
 )
 
 
@@ -114,6 +115,11 @@ def subsection_list(lower, upper, l):
         upper = len(l)
     return l[lower:upper]
 
+def to_module(possible_module):
+    if isinstance(possible_module, NModule):
+        return yes(possible_module)
+    else:
+        return none
 
 # Define global functions/variables
 def add_funcs(global_scope):
@@ -334,6 +340,24 @@ def add_funcs(global_scope):
         n_list_type.with_typevars([[entries_generic_key, entries_generic_value]]),
         entries,
     )
+    into_module_generic_value = NGenericType("m")
+    global_scope.add_native_function(
+        "intoModule",
+        [("possibleModule", into_module_generic_value)],
+        n_maybe_type.with_typevars([n_module_type.with_typevars([])]),
+        to_module,
+    )
+    global_scope.add_native_function(
+        "getUnitTestResults",
+        [("possibleModule", n_module_type)],
+        n_list_type.with_typevars([[
+            "bool",
+            "int",
+            "str",
+            n_list_type.with_typevars(["str"])
+        ]]),
+        lambda module: module.unit_tests[:],
+    )
 
     global_scope.types["str"] = "str"
     global_scope.types["char"] = "char"
@@ -345,3 +369,4 @@ def add_funcs(global_scope):
     global_scope.types["cmd"] = n_cmd_type
     global_scope.types["maybe"] = n_maybe_type
     global_scope.types["result"] = n_result_type
+    global_scope.types["module"] = n_module_type

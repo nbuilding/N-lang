@@ -175,6 +175,7 @@ class Scope:
         file_path="",
         parent_type="top",
         stack_trace=None,
+        unit_tests=None,
     ):
         self.parent = parent
         self.parent_function = parent_function
@@ -191,8 +192,9 @@ class Scope:
         self.parent_type = parent_type
 
         self.stack_trace = stack_trace if stack_trace is not None else []
+        self.unit_tests = unit_tests if unit_tests is not None else []
 
-    def new_scope(self, parent_function=None, inherit_errors=True, parent_type=None, inherit_stack_trace=True):
+    def new_scope(self, parent_function=None, inherit_errors=True, parent_type=None, inherit_stack_trace=True, inherit_unit_tests=True):
         return Scope(
             self,
             parent_function=parent_function or self.parent_function,
@@ -202,6 +204,7 @@ class Scope:
             file_path=self.file_path,
             parent_type=parent_type or self.parent_type,
             stack_trace=self.stack_trace if inherit_stack_trace else [],
+            unit_tests=self.unit_tests if inherit_unit_tests else [],
         )
 
     def get_variable(self, name, err=True):
@@ -959,13 +962,14 @@ class Scope:
             file_path = os.path.join(os.path.dirname(self.file_path), rel_file_path)
             with open(self.file_path, "r", encoding="utf-8") as f:
                 self.stack_trace.append((expr, File(f, name=os.path.relpath(self.file_path, start=self.base_path))))
+            impn, f = type_check_file(file_path, self.base_path)
             val = await eval_file(file_path, self.base_path)
             self.stack_trace += val.stack_trace
             holder = {}
             for key in val.variables.keys():
                 if val.variables[key].public:
                     holder[key] = val.variables[key].value
-            return NModule(rel_file_path, holder)
+            return NModule(rel_file_path, holder, unit_test_results=val.unit_tests[:] + impn.unit_tests[:])
         elif expr.data == "record_access":
             return (await self.eval_expr(expr.children[0]))[expr.children[1].value]
         elif expr.data == "tupleval":
@@ -1204,6 +1208,18 @@ class Scope:
                 class_body,
                 public,
             )
+        elif command.data == "assert":
+            assert_type = command.children[0].children[0]
+            assert_type = command.children[0].children[0]
+            if assert_type.data == "assert_val":
+                expr = await self.eval_expr(assert_type.children[0])
+                self.unit_tests.append((
+                        expr,
+                        command.line,
+                        "value",
+                        []
+                    ))
+            return False
         else:
             await self.eval_expr(command)
 
@@ -2280,18 +2296,19 @@ class Scope:
                 expr_type = self.type_check_expr(expr)
                 check_type = self.parse_type(ty, False)
                 if (expr_type == None or check_type == None):
-                    self.warnings.append(
-                        TypeCheckError(
-                            command, "The expression or the type to check against evaluates to None, so the result is ambiguous and will probably fail."
-                        )
-                    )
-                if (expr_type != check_type):
                     self.errors.append(
                         TypeCheckError(
-                            command, "Type assersion failed against %s and %s." % (expr_type, check_type)
+                            command, "The expression or the type to check against evaluates to None, so the result is ambiguous as there is an error."
                         )
                     )
                     return False
+                _, incompatible = resolve_equal_types(expr_type, check_type)
+                self.unit_tests.append((
+                    not incompatible,
+                    command.line,
+                    "type",
+                    [display_type(expr_type, False), display_type(check_type, True)],
+                ))
             elif assert_type.data == "assert_val":
                 expr = assert_type.children[0]
                 expr_type = self.type_check_expr(expr)
