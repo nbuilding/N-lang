@@ -14,6 +14,8 @@ from libraries.SystemIO import inp as async_input
 # alias send = str -> cmd[()]
 send_type = "str", n_cmd_type.with_typevars(["unit"])
 
+close_type = ("unit", n_cmd_type.with_typevars(["unit"]))
+
 # alias connectOptions = {
 # 	onOpen: (str -> cmd[()]) -> cmd[()]
 # 	onMessage: (str -> cmd[()]) -> str -> cmd[()]
@@ -22,6 +24,7 @@ send_type = "str", n_cmd_type.with_typevars(["unit"])
 connect_options_type = {
     "onOpen": (send_type, n_cmd_type.with_typevars(["bool"])),
     "onMessage": (send_type, "str", n_cmd_type.with_typevars(["bool"])),
+    "runAlways": (send_type, close_type, n_cmd_type.with_typevars(["unit"]))
     # "onClose": ("unit", n_cmd_type.with_typevars(["unit"])),
 }
 
@@ -91,34 +94,54 @@ async def connect(options, url):
             send = NativeFunction(
                 None, [], None, lambda message: Cmd(lambda _: lambda: send_msg(message))
             )
-            close = await options["onOpen"].run([send])
-            if debug:
-                print(f"[{url}] {Fore.BLUE}onOpen handled.{Style.RESET_ALL}")
-            if isinstance(close, Cmd):
-                close = await close.eval()
-            if not close:
-                try:
-                    async for message in websocket:
+            close = NativeFunction(
+                    None, [], None, lambda message: Cmd(lambda _: lambda: websocket.close()) # TODO: add code and reason
+            )
+            async def run_on_trigger():
+                close = await options["onOpen"].run([send])
+                if debug:
+                    print(f"[{url}] {Fore.BLUE}onOpen handled.{Style.RESET_ALL}")
+                if isinstance(close, Cmd):
+                    close = await close.eval()
+                if not close:
+                    try:
+                        async for message in websocket:
+                            if debug:
+                                print(
+                                    f"[{url}] {Fore.CYAN}recv{Style.RESET_ALL} {Fore.MAGENTA}{message}{Style.RESET_ALL}"
+                                )
+                            close = await options["onMessage"].run([send, message])
+                            if debug:
+                                print(f"[{url}] {Fore.BLUE}onMessage handled.{Style.RESET_ALL}")
+                            if isinstance(close, Cmd):
+                                close = await close.eval()
+                            if close:
+                                websocket.close()
+                    except websockets.exceptions.ConnectionClosedError as err:
                         if debug:
                             print(
-                                f"[{url}] {Fore.CYAN}recv{Style.RESET_ALL} {Fore.MAGENTA}{message}{Style.RESET_ALL}"
+                                f"[{url}] {Fore.CYAN}ERROR{Style.RESET_ALL} {Fore.RED}{err}{Style.RESET_ALL}"
                             )
-                        close = await options["onMessage"].run([send, message])
-                        if debug:
-                            print(f"[{url}] {Fore.BLUE}onMessage handled.{Style.RESET_ALL}")
-                        if isinstance(close, Cmd):
-                            close = await close.eval()
-                        if close:
-                            break
-                except websockets.exceptions.ConnectionClosedError as err:
-                    if debug:
-                        print(
-                            f"[{url}] {Fore.CYAN}ERROR{Style.RESET_ALL} {Fore.RED}{err}{Style.RESET_ALL}"
-                        )
-                    return yes(err.reason)
-            # await options['onClose'].eval()
-            if debug:
-                debug_task.cancel()
+                        return yes(err.reason)
+                # await options['onClose'].eval()
+                if debug:
+                    debug_task.cancel()
+            async def run_always():
+                if debug:
+                    print(f"[{url}] {Fore.BLUE}runAlways started.{Style.RESET_ALL}")
+                possible_cmd = await options["runAlways"].run([send])
+                if isinstance(possible_cmd, Cmd):
+                    await possible_cmd.eval() 
+
+            run_on_trigger_task = asyncio.create_task(
+                run_on_trigger()
+            )
+            run_always_task = asyncio.create_task(
+                run_always()
+            )
+
+            await run_on_trigger_task
+            await run_always_test
         if debug:
             print(f"[{url}] {Fore.BLUE}Closed.{Style.RESET_ALL}")
         return none
@@ -135,8 +158,8 @@ async def createServer(options, port):
                 "send": NativeFunction(
                     None, [], None, lambda message: Cmd(lambda _: lambda: websocket.send(message))
                 ),
-                "close": NativeFunction(
-                    None, [], None, lambda message: Cmd(lambda _: lambda: websocket.close()) # TODO: add code and reason
+                "disconnect": NativeFunction(
+                    None, [], None, lambda: Cmd(lambda: lambda: websocket.close()) # TODO: add code and reason
                 ),
                 "ip": tuple([int(i) for i in websocket.remote_address[0].split(".")]),
                 "uuid": str(uuid.uuid4()),
@@ -199,5 +222,6 @@ def _values():
 def _types():
     return {
         "send": NAliasType("send", send_type),
+        "close": NAliasType("close", close_type),
         "user": NAliasType("user", user_type),
     }
