@@ -1,2 +1,19 @@
-assert value 1 == 2
-assert type 1:int
+import websocket // Used for connecting to WebSockets
+
+let thing2 = [] -> cmd[()] {
+	let websocketTest = websocket.connect({
+		onOpen: [send: websocket.send] -> cmd[bool] {
+			print("Open!")
+			let _ = send("hello")!
+			return false
+		}
+		onMessage: [send: websocket.send message: str] -> cmd[bool] {
+			print(message)
+			let _ = send("hello")!
+			return message == "hello"
+		}
+	}, "ws://localhost:3000")!
+	print(websocketTest)
+}
+
+let pub test = thing2()
