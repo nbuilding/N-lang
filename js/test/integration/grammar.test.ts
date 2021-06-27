@@ -21,7 +21,14 @@ before(async () => {
         const file = await fs.readFile(path, 'utf8')
         const [firstSnippet, ...snippets] = file
           .split(/(?:\r?\n){3}/)
-          .map(snippet => parse(snippet))
+          .map(snippet => {
+            const result = parse(snippet)
+            if (result instanceof Error) {
+              throw result
+            } else {
+              return result
+            }
+          })
 
         for (let i = 0; i < snippets.length; i++) {
           const differences = firstSnippet.diff(snippets[i])

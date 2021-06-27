@@ -30,7 +30,7 @@
     "@types/mocha": "^8.2.1",
     "@types/moo": "^0.5.3",
     "@types/nearley": "^2.11.1",
-    "@types/node": "^15.12.2",
+    "@types/node": "^15.12.5",
     "@typescript-eslint/eslint-plugin": "^4.19.0",
     "@typescript-eslint/parser": "^4.19.0",
     "chai": "^4.3.3",

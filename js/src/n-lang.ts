@@ -1,9 +1,9 @@
 // See README.md on how to run this
 
-import fs from 'fs/promises'
-import path from 'path'
-import util from 'util'
-import parseArgs from 'minimist'
+import * as fs from 'fs/promises'
+import * as path from 'path'
+import * as util from 'util'
+import parseArgs = require('minimist')
 // import { compileToJS, TypeChecker, FileLines } from './index'
 import { parse } from './grammar/parse'
 import { NOT_FOUND, TypeChecker } from './type-checker/TypeChecker'
