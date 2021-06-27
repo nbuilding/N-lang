@@ -6,7 +6,7 @@ import scope
 from variable import Variable
 from function import Function
 from type_check_error import display_type
-from type import NGenericType
+from type import NGenericType, NModule
 from enums import EnumType, EnumValue
 from native_types import (
     n_list_type,
@@ -22,6 +22,7 @@ from native_types import (
     result_err_generic,
     ok,
     err,
+    n_module_type,
 )
 
 
@@ -107,6 +108,17 @@ def special_print(val):
         print(display)
     return val
 
+def subsection_list(lower, upper, l):
+    if lower < 0:
+        lower = 0
+    if upper > len(l):
+        upper = len(l)
+    return l[lower:upper]
+
+def to_module(possible_module):
+    if isinstance(possible_module, NModule):
+        return yes(possible_module)
+    return none
 
 # Define global functions/variables
 def add_funcs(global_scope):
@@ -161,6 +173,12 @@ def add_funcs(global_scope):
         substr,
     )
     global_scope.add_native_function(
+        "toFloat",
+        [("number", "int")],
+        "float",
+        float,
+    )
+    global_scope.add_native_function(
         "len",
         [("obj", NGenericType("t"))],
         "int",
@@ -203,11 +221,23 @@ def add_funcs(global_scope):
         "append",
         [
             ("item", append_generic),
-            ("list", n_list_type.with_typevars([item_at_generic])),
+            ("list", n_list_type.with_typevars([append_generic])),
         ],
-        n_list_type.with_typevars([item_at_generic]),
-        lambda item, l: l.__add__([item]),
+        n_list_type.with_typevars([append_generic]),
+        lambda i, l: l.__add__([i]),
     )
+    subsection_generic = NGenericType("t")
+    global_scope.add_native_function(
+        "subsection",
+        [
+            ("lower", "int"),
+            ("upper", "int"),
+            ("list", n_list_type.with_typevars([subsection_generic])),
+        ],
+        n_list_type.with_typevars([subsection_generic]),
+        subsection_list,
+    )
+
     filter_map_generic_a = NGenericType("a")
     filter_map_generic_b = NGenericType("b")
     global_scope.add_native_function(
@@ -309,6 +339,26 @@ def add_funcs(global_scope):
         n_list_type.with_typevars([[entries_generic_key, entries_generic_value]]),
         entries,
     )
+    into_module_generic_value = NGenericType("m")
+    global_scope.add_native_function(
+        "intoModule",
+        [("possibleModule", into_module_generic_value)],
+        n_maybe_type.with_typevars([n_module_type.with_typevars([])]),
+        to_module,
+    )
+    global_scope.add_native_function(
+        "getUnitTestResults",
+        [("possibleModule", n_module_type)],
+        n_list_type.with_typevars([
+            {
+                "hasPassed": "bool",
+                "fileLine": "int",
+                "unitTestType": "str",
+                "possibleTypes": n_maybe_type.with_typevars([["str", "str"]])
+            }
+        ]),
+        lambda module: scope.unit_test_results[module.mod_name][:],
+    )
 
     global_scope.types["str"] = "str"
     global_scope.types["char"] = "char"
@@ -320,3 +370,4 @@ def add_funcs(global_scope):
     global_scope.types["cmd"] = n_cmd_type
     global_scope.types["maybe"] = n_maybe_type
     global_scope.types["result"] = n_result_type
+    global_scope.types["module"] = n_module_type

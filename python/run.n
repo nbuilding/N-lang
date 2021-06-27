@@ -1,1 +1,12 @@
-let _ = imp "./runner.n"
+/* // These should just parse successfully; remember that type checking isn't performed for these tests!
+assert type 3:(str, int) -> maybe
+[str, int]
+
+assert   value
+3 */
+
+let e = imp "./runner.n"
+
+if let <yes mod> = intoModule(e) {
+	print(getUnitTestResults(mod))
+}

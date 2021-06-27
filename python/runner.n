@@ -1,1 +1,2 @@
-let _ = imp "./run.n"
+assert value 1 == 2
+assert type 1:int
