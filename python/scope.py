@@ -22,7 +22,7 @@ from type import (
 )
 from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
-from native_types import n_list_type, n_cmd_type
+from native_types import n_list_type, n_cmd_type, none, yes
 from ncmd import Cmd
 from type_check_error import TypeCheckError, display_type
 from display import display_value
@@ -39,6 +39,8 @@ import native_functions
 from syntax_error import format_error
 from classes import NConstructor
 from modules import libraries
+
+unit_test_results = {}
 
 basepath = ""
 if getattr(sys, "frozen", False):
@@ -175,6 +177,7 @@ class Scope:
         file_path="",
         parent_type="top",
         stack_trace=None,
+        unit_tests=None,
     ):
         self.parent = parent
         self.parent_function = parent_function
@@ -191,8 +194,9 @@ class Scope:
         self.parent_type = parent_type
 
         self.stack_trace = stack_trace if stack_trace is not None else []
+        self.unit_tests = unit_tests if unit_tests is not None else []
 
-    def new_scope(self, parent_function=None, inherit_errors=True, parent_type=None, inherit_stack_trace=True):
+    def new_scope(self, parent_function=None, inherit_errors=True, parent_type=None, inherit_stack_trace=True, inherit_unit_tests=True):
         return Scope(
             self,
             parent_function=parent_function or self.parent_function,
@@ -202,6 +206,7 @@ class Scope:
             file_path=self.file_path,
             parent_type=parent_type or self.parent_type,
             stack_trace=self.stack_trace if inherit_stack_trace else [],
+            unit_tests=self.unit_tests if inherit_unit_tests else [],
         )
 
     def get_variable(self, name, err=True):
@@ -965,6 +970,7 @@ class Scope:
             for key in val.variables.keys():
                 if val.variables[key].public:
                     holder[key] = val.variables[key].value
+            unit_test_results[rel_file_path] += val.unit_tests[:]
             return NModule(rel_file_path, holder)
         elif expr.data == "record_access":
             return (await self.eval_expr(expr.children[0]))[expr.children[1].value]
@@ -1204,6 +1210,20 @@ class Scope:
                 class_body,
                 public,
             )
+        elif command.data == "assert":
+            assert_type = command.children[0].children[0]
+            assert_type = command.children[0].children[0]
+            if assert_type.data == "assert_val":
+                expr = await self.eval_expr(assert_type.children[0])
+                self.unit_tests.append(
+                    {
+                        "hasPassed": expr,
+                        "fileLine": command.line,
+                        "unitTestType": "value",
+                        "possibleTypes": none,
+                    }
+                )
+            return False
         else:
             await self.eval_expr(command)
 
@@ -1773,6 +1793,7 @@ class Scope:
                             "There was nothing to import from %s" % expr.children[0],
                         )
                     )
+                unit_test_results[rel_file_path] = impn.unit_tests[:]
                 return NModule(rel_file_path, holder, types=impn.public_types)
             else:
                 self.errors.append(
@@ -2273,6 +2294,38 @@ class Scope:
                         break
                     else:
                         class_type[prop_name] = var.type
+        elif command.data == "assert":
+            assert_type = command.children[0].children[0]
+            if assert_type.data == "assert_type":
+                expr, ty = assert_type.children
+                expr_type = self.type_check_expr(expr)
+                check_type = self.parse_type(ty, False)
+                if (expr_type == None or check_type == None):
+                    self.errors.append(
+                        TypeCheckError(
+                            command, "The expression or the type to check against evaluates to None, so the result is ambiguous as there is an error."
+                        )
+                    )
+                    return False
+                _, incompatible = resolve_equal_types(expr_type, check_type)
+                self.unit_tests.append(
+                    {
+                        "hasPassed": not incompatible,
+                        "fileLine": command.line,
+                        "unitTestType": "type",
+                        "possibleTypes": yes((display_type(expr_type, False), display_type(check_type, True))),
+                    }
+                )
+            elif assert_type.data == "assert_val":
+                expr = assert_type.children[0]
+                expr_type = self.type_check_expr(expr)
+                if expr_type != "bool":
+                    self.errors.append(
+                        TypeCheckError(
+                            command, "Cannot use assert value on a %s." % expr_type
+                        )
+                    )
+            return False
         else:
             self.type_check_expr(command)
 

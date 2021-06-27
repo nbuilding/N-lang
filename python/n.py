@@ -116,6 +116,8 @@ def type_check(file, tree):
         else:
             warning_len += 1
 
+    global_scope.unit_tests = scope.unit_tests[:]
+
     return (error_len, warning_len)
 
 
