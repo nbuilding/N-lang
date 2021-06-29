@@ -90,6 +90,8 @@ async def createServer(port, page_handler):
 
     app.run(host="localhost", port=port)
 
+    return ()
+
 
 def _values():
     return {

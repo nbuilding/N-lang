@@ -12,7 +12,6 @@ let thing2 = [] -> cmd[()] {
 			let _ = send("hello")!
 			return message == "hello"
 		}
-		runAlways: [send: websocket.send close:websocket.close] -> cmd[()] {}
 	}, "ws://localhost:3000")!
 	print(websocketTest)
 }

@@ -24,7 +24,6 @@ close_type = ("unit", n_cmd_type.with_typevars(["unit"]))
 connect_options_type = {
     "onOpen": (send_type, n_cmd_type.with_typevars(["bool"])),
     "onMessage": (send_type, "str", n_cmd_type.with_typevars(["bool"])),
-    "runAlways": (send_type, close_type, n_cmd_type.with_typevars(["unit"]))
     # "onClose": ("unit", n_cmd_type.with_typevars(["unit"])),
 }
 
@@ -97,51 +96,47 @@ async def connect(options, url):
             close = NativeFunction(
                     None, [], None, lambda message: Cmd(lambda _: lambda: websocket.close()) # TODO: add code and reason
             )
-            async def run_on_trigger():
+            async def on_message():
+                try:
+                    async for message in websocket:
+                        if debug:
+                            print(
+                                f"[{url}] {Fore.CYAN}recv{Style.RESET_ALL} {Fore.MAGENTA}{message}{Style.RESET_ALL}"
+                            )
+                        close = await options["onMessage"].run([send, message])
+                        if debug:
+                            print(f"[{url}] {Fore.BLUE}onMessage handled.{Style.RESET_ALL}")
+                        if isinstance(close, Cmd):
+                            close = await close.eval()
+                        if close:
+                            break
+                except websockets.exceptions.ConnectionClosedError as err:
+                    if debug:
+                        print(
+                            f"[{url}] {Fore.CYAN}ERROR{Style.RESET_ALL} {Fore.RED}{err}{Style.RESET_ALL}"
+                        )
+                    return yes(err.reason)
+            async def on_connect():
                 close = await options["onOpen"].run([send])
                 if debug:
                     print(f"[{url}] {Fore.BLUE}onOpen handled.{Style.RESET_ALL}")
                 if isinstance(close, Cmd):
                     close = await close.eval()
-                if not close:
-                    try:
-                        async for message in websocket:
-                            if debug:
-                                print(
-                                    f"[{url}] {Fore.CYAN}recv{Style.RESET_ALL} {Fore.MAGENTA}{message}{Style.RESET_ALL}"
-                                )
-                            close = await options["onMessage"].run([send, message])
-                            if debug:
-                                print(f"[{url}] {Fore.BLUE}onMessage handled.{Style.RESET_ALL}")
-                            if isinstance(close, Cmd):
-                                close = await close.eval()
-                            if close:
-                                websocket.close()
-                    except websockets.exceptions.ConnectionClosedError as err:
-                        if debug:
-                            print(
-                                f"[{url}] {Fore.CYAN}ERROR{Style.RESET_ALL} {Fore.RED}{err}{Style.RESET_ALL}"
-                            )
-                        return yes(err.reason)
+                if close:
+                    websocket.close()
                 # await options['onClose'].eval()
                 if debug:
                     debug_task.cancel()
-            async def run_always():
-                if debug:
-                    print(f"[{url}] {Fore.BLUE}runAlways started.{Style.RESET_ALL}")
-                possible_cmd = await options["runAlways"].run([send])
-                if isinstance(possible_cmd, Cmd):
-                    await possible_cmd.eval() 
 
-            run_on_trigger_task = asyncio.create_task(
-                run_on_trigger()
+            on_message_task = asyncio.create_task(
+                on_message()
             )
-            run_always_task = asyncio.create_task(
-                run_always()
+            on_connect_task = asyncio.create_task(
+                on_connect()
             )
 
-            await run_on_trigger_task
-            await run_always_test
+            await on_message_task
+            await on_connect_task
         if debug:
             print(f"[{url}] {Fore.BLUE}Closed.{Style.RESET_ALL}")
         return none
@@ -201,6 +196,8 @@ async def createServer(options, port):
     # Run websocket server until it ends
     await ws_server.wait_closed()
 
+    return ()
+
 
 def _values():
     return {
@@ -214,7 +211,7 @@ def _values():
         "createServer": (
             setup_options_type,
             "int",
-            n_cmd_type.with_typevars([n_maybe_type.with_typevars(["str"])]),
+            n_cmd_type.with_typevars([n_maybe_type.with_typevars(["unit"])]),
         ),
     }
 
