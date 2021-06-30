@@ -13,6 +13,7 @@ from native_types import n_cmd_type, NMap, n_map_type, n_list_type
 from libraries.json import json_value_type, python_to_json, string
 from ncmd import Cmd
 
+
 async def get(url, headers):
     async with aiohttp.ClientSession() as session:
         async with session.get(url, headers=headers) as r:
@@ -74,19 +75,28 @@ async def put(url, content, headers):
         async with session.put(url, data=json.dumps(content), headers=headers) as r:
             return {"code": r.status, "response": r.reason, "text": await r.text()}
 
+
 async def createServer(port, page_handler):
     app = Flask(__name__)
 
-    @app.route('/', defaults={'path': ''})
-    @app.route('/<path:path>')
+    @app.route("/", defaults={"path": ""})
+    @app.route("/<path:path>")
     async def catch_all(path):
-        out = await page_handler.run([path, req.method, python_to_json(dict(req.args.lists()))])
+        out = await page_handler.run(
+            [path, req.method, python_to_json(dict(req.args.lists()))]
+        )
         if isinstance(out, Cmd):
             out = await out.eval()
 
         b = BytesIO(bytes(out["data"]))
         w = FileWrapper(b)
-        return Response(w, status=out["responseCode"], headers=out["headers"], mimetype=out["mimetype"], direct_passthrough=True)
+        return Response(
+            w,
+            status=out["responseCode"],
+            headers=out["headers"],
+            mimetype=out["mimetype"],
+            direct_passthrough=True,
+        )
 
     app.run(host="localhost", port=port)
 
@@ -149,12 +159,21 @@ def _values():
         ),
         "createServer": (
             "int",
-            ("str", "str", json_value_type, n_cmd_type.with_typevars([{
-                "responseCode": "int",
-                "data": n_list_type.with_typevars(["int"]),
-                "headers": n_map_type.with_typevars(["str", "str"]),
-                "mimetype": "str",
-            }])), # [path:str requestType:str data:json.value] -> cmd[{ responseCode:int; data:list[int]; headers:map[str, str]; mimetype:str }]
+            (
+                "str",
+                "str",
+                json_value_type,
+                n_cmd_type.with_typevars(
+                    [
+                        {
+                            "responseCode": "int",
+                            "data": n_list_type.with_typevars(["int"]),
+                            "headers": n_map_type.with_typevars(["str", "str"]),
+                            "mimetype": "str",
+                        }
+                    ]
+                ),
+            ),  # [path:str requestType:str data:json.value] -> cmd[{ responseCode:int; data:list[int]; headers:map[str, str]; mimetype:str }]
             n_cmd_type.with_typevars(["unit"]),
         ),
     }

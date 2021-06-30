@@ -52,7 +52,9 @@ syntaxpath = os.path.join(basepath, "syntax.lark")
 
 
 def parse_file(file_path, base_path, parent_imports):
-    import_scope = Scope(base_path=base_path, file_path=file_path, parent_imports=parent_imports)
+    import_scope = Scope(
+        base_path=base_path, file_path=file_path, parent_imports=parent_imports
+    )
     native_functions.add_funcs(import_scope)
 
     with open(syntaxpath, "r") as f:
@@ -199,7 +201,14 @@ class Scope:
         self.stack_trace = stack_trace if stack_trace is not None else []
         self.unit_tests = unit_tests if unit_tests is not None else []
 
-    def new_scope(self, parent_function=None, inherit_errors=True, parent_type=None, inherit_stack_trace=True, inherit_unit_tests=True):
+    def new_scope(
+        self,
+        parent_function=None,
+        inherit_errors=True,
+        parent_type=None,
+        inherit_stack_trace=True,
+        inherit_unit_tests=True,
+    ):
         return Scope(
             self,
             parent_function=parent_function or self.parent_function,
@@ -757,6 +766,7 @@ class Scope:
     """
     Deals with spread operators for lists
     """
+
     def eval_spread_list(self, spread_tree, list_val):
         for val in self.get_variable(spread_tree.children[0]).value:
             list_val.append(val)
@@ -835,7 +845,17 @@ class Scope:
             func = await self.eval_expr(function)
             if not isinstance(func, NativeFunction):
                 with open(self.file_path, "r", encoding="utf-8") as f:
-                    self.stack_trace.append((expr, File(f, name=os.path.relpath(self.file_path, start=self.base_path))))
+                    self.stack_trace.append(
+                        (
+                            expr,
+                            File(
+                                f,
+                                name=os.path.relpath(
+                                    self.file_path, start=self.base_path
+                                ),
+                            ),
+                        )
+                    )
             return await func.run(arg_values)
         elif expr.data == "or_expression":
             left, _, right = expr.children
@@ -969,8 +989,20 @@ class Scope:
                 rel_file_path = expr.children[0].value + ".n"
             file_path = os.path.join(os.path.dirname(self.file_path), rel_file_path)
             with open(self.file_path, "r", encoding="utf-8") as f:
-                self.stack_trace.append((expr, File(f, name=os.path.relpath(self.file_path, start=self.base_path))))
-            val = await eval_file(file_path, self.base_path, self.parent_imports + [os.path.normpath(self.file_path)])
+                self.stack_trace.append(
+                    (
+                        expr,
+                        File(
+                            f,
+                            name=os.path.relpath(self.file_path, start=self.base_path),
+                        ),
+                    )
+                )
+            val = await eval_file(
+                file_path,
+                self.base_path,
+                self.parent_imports + [os.path.normpath(self.file_path)],
+            )
             self.stack_trace += val.stack_trace
             holder = {}
             for key in val.variables.keys():
@@ -1002,7 +1034,7 @@ class Scope:
                 if isinstance(entry_val, list):
                     spreads.append(self.get_variable(entry_val[0]).value)
                 else:
-                    name, val = entry_val 
+                    name, val = entry_val
                     non_spread[name] = val
             for spread in spreads:
                 for k in spread.keys():
@@ -1049,7 +1081,13 @@ class Scope:
     async def eval_command(self, tree):
         if tree.data == "main_instruction" or tree.data == "last_instruction":
             tree = tree.children[0]
-        if tree.data == "if" or tree.data == "ifelse" or tree.data == "for" or tree.data == "for_legacy" or tree.data == "while":
+        if (
+            tree.data == "if"
+            or tree.data == "ifelse"
+            or tree.data == "for"
+            or tree.data == "for_legacy"
+            or tree.data == "while"
+        ):
             tree = lark.tree.Tree("instruction", [tree])
         elif tree.data == "code_block":
             exit, value = (False, None)
@@ -1106,7 +1144,6 @@ class Scope:
             val = await self.eval_expr(var)
             while val:
                 scope = self.new_scope()
-
 
                 exit, value = await scope.eval_command(code)
                 if exit == "continue":
@@ -1307,13 +1344,15 @@ class Scope:
     """
     Type checks spread operators for lists
     """
+
     def type_check_spread_list(self, spread_tree):
         spread_var = self.get_variable(spread_tree.children[0], err=False)
         if spread_var == None:
             self.errors.append(
                 TypeCheckError(
                     spread_tree.children[0],
-                    "The variable %s does not exist in this scope" % spread_tree.children[0],
+                    "The variable %s does not exist in this scope"
+                    % spread_tree.children[0],
                 )
             )
             return None
@@ -1485,7 +1524,7 @@ class Scope:
                 zip(arguments, arg_types), start=1
             ):
                 check_type = argument
-                if(argument != "unit"):
+                if argument != "unit":
                     check_type = self.type_check_expr(check_type)
                 if check_type is None:
                     parameters_have_none = True
@@ -1626,13 +1665,46 @@ class Scope:
             first_value_type = self.type_check_expr(first_value)
             for i, match_value in enumerate(match_block.children):
                 match, value = match_value.children
-                if i != len(match_block.children) - 1 and self.type_check_expr(match) != first_match_type and self.type_check_expr(match) != None:
-                    self.errors.append(TypeCheckError(match_value, "The match check #%s's type is %s while the first check's type is %s" % (str(i + 1), display_type(self.type_check_expr(match)), display_type(first_match_type))))
-                if self.type_check_expr(value) != first_value_type and self.type_check_expr(match) != None:
-                    self.errors.append(TypeCheckError(match_value, "The match value #%s's type is %s while the first value's type is %s" % (str(i + 1), display_type(self.type_check_expr(value)), display_type(first_value_type))))
+                if (
+                    i != len(match_block.children) - 1
+                    and self.type_check_expr(match) != first_match_type
+                    and self.type_check_expr(match) != None
+                ):
+                    self.errors.append(
+                        TypeCheckError(
+                            match_value,
+                            "The match check #%s's type is %s while the first check's type is %s"
+                            % (
+                                str(i + 1),
+                                display_type(self.type_check_expr(match)),
+                                display_type(first_match_type),
+                            ),
+                        )
+                    )
+                if (
+                    self.type_check_expr(value) != first_value_type
+                    and self.type_check_expr(match) != None
+                ):
+                    self.errors.append(
+                        TypeCheckError(
+                            match_value,
+                            "The match value #%s's type is %s while the first value's type is %s"
+                            % (
+                                str(i + 1),
+                                display_type(self.type_check_expr(value)),
+                                display_type(first_value_type),
+                            ),
+                        )
+                    )
 
             if value_type != first_match_type:
-                self.errors.append(TypeCheckError(input_value, "The input value's type is %s while the match's input type is %s" % (display_type(value_type), display_type(first_match_type))))
+                self.errors.append(
+                    TypeCheckError(
+                        input_value,
+                        "The input value's type is %s while the match's input type is %s"
+                        % (display_type(value_type), display_type(first_match_type)),
+                    )
+                )
             return first_match_type
         if len(expr.children) == 2 and isinstance(expr.children[0], lark.Token):
             operation, value = expr.children
@@ -1755,7 +1827,12 @@ class Scope:
             if len(expr.children) == 0:
                 return n_list_type
 
-            first, *rest = [self.type_check_spread_list(e) if isinstance(e, lark.Tree) and e.data == "spread" else self.type_check_expr(e) for e in expr.children]
+            first, *rest = [
+                self.type_check_spread_list(e)
+                if isinstance(e, lark.Tree) and e.data == "spread"
+                else self.type_check_expr(e)
+                for e in expr.children
+            ]
             contained_type = first
 
             for i, item_type in enumerate(rest):
@@ -1802,7 +1879,11 @@ class Scope:
                         )
                     )
                     return None
-                impn, f = type_check_file(file_path, self.base_path, self.parent_imports + [os.path.normpath(self.file_path)])
+                impn, f = type_check_file(
+                    file_path,
+                    self.base_path,
+                    self.parent_imports + [os.path.normpath(self.file_path)],
+                )
                 if len(impn.errors) != 0:
                     self.errors.append(ImportedError(impn.errors[:], f))
                 if len(impn.warnings) != 0:
@@ -1839,7 +1920,8 @@ class Scope:
                         self.errors.append(
                             TypeCheckError(
                                 entry_val[0],
-                                "The variable %s does not exist in this scope" % entry_val[0],
+                                "The variable %s does not exist in this scope"
+                                % entry_val[0],
                             )
                         )
                         return None
@@ -1853,7 +1935,7 @@ class Scope:
                         return None
                     spreads.append(spread_var.type)
                 else:
-                    name, val = entry_val 
+                    name, val = entry_val
                     non_spread[name] = val
             for spread in spreads:
                 for k in spread.keys():
@@ -1881,7 +1963,13 @@ class Scope:
     def type_check_command(self, tree):
         if tree.data == "main_instruction" or tree.data == "last_instruction":
             tree = tree.children[0]
-        if tree.data == "if" or tree.data == "ifelse" or tree.data == "for" or tree.data == "for_legacy" or tree.data == "while":
+        if (
+            tree.data == "if"
+            or tree.data == "ifelse"
+            or tree.data == "for"
+            or tree.data == "for_legacy"
+            or tree.data == "while"
+        ):
             tree = lark.tree.Tree("instruction", [tree])
         elif tree.data == "code_block":
             exit_point = None
@@ -2053,7 +2141,7 @@ class Scope:
                 self.errors.append(
                     TypeCheckError(
                         command,
-                        "The command continue can only be used inside while or for loops"
+                        "The command continue can only be used inside while or for loops",
                     )
                 )
             return command
@@ -2062,7 +2150,7 @@ class Scope:
                 self.errors.append(
                     TypeCheckError(
                         command,
-                        "The command continue can only be used inside if statements or while or for loops"
+                        "The command continue can only be used inside if statements or while or for loops",
                     )
                 )
             return command
@@ -2275,7 +2363,9 @@ class Scope:
                 [*(arg_type for _, arg_type in arguments), class_type]
             )
 
-            scope = self.new_scope(parent_function=None, inherit_errors=False, parent_type="class")
+            scope = self.new_scope(
+                parent_function=None, inherit_errors=False, parent_type="class"
+            )
             for arg_pattern, arg_type in arguments:
                 scope.assign_to_pattern(arg_pattern, arg_type, True, certain=True)
             scope.type_check_command(class_body)
@@ -2325,10 +2415,11 @@ class Scope:
                 expr, ty = assert_type.children
                 expr_type = self.type_check_expr(expr)
                 check_type = self.parse_type(ty, False)
-                if (expr_type == None or check_type == None):
+                if expr_type == None or check_type == None:
                     self.errors.append(
                         TypeCheckError(
-                            command, "The expression or the type to check against evaluates to None, so the result is ambiguous as there is an error."
+                            command,
+                            "The expression or the type to check against evaluates to None, so the result is ambiguous as there is an error.",
                         )
                     )
                     return False
@@ -2338,7 +2429,12 @@ class Scope:
                         "hasPassed": not incompatible,
                         "fileLine": command.line,
                         "unitTestType": "type",
-                        "possibleTypes": yes((display_type(expr_type, False), display_type(check_type, True))),
+                        "possibleTypes": yes(
+                            (
+                                display_type(expr_type, False),
+                                display_type(check_type, True),
+                            )
+                        ),
                     }
                 )
             elif assert_type.data == "assert_val":

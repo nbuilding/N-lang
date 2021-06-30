@@ -36,7 +36,9 @@ class File:
     def get_text(self):
         return "\n".join(self.lines)
 
-    def display(self, start_line, start_col, end_line, end_col, color=Fore.RED, underline=True):
+    def display(
+        self, start_line, start_col, end_line, end_col, color=Fore.RED, underline=True
+    ):
         output = []
         if start_line == end_line:
             line = self.get_line(start_line)

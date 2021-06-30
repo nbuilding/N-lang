@@ -10,6 +10,7 @@ n_map_type = NTypeVars("map", [map_key_generic, map_value_generic])
 
 n_module_type = NTypeVars("module", [])
 
+
 class NMap(dict):
     def __init__(self, *args, **kw):
         super(NMap, self).__init__(*args, **kw)

@@ -82,6 +82,7 @@ async def parse_tree(global_scope, tree):
     else:
         raise SyntaxError("Unable to run parse_tree on non-starting branch")
 
+
 def run_file(filename, check=False):
     """
     Executes the N file at the given file path. Returns a human-readable string
@@ -106,7 +107,7 @@ def run_file(filename, check=False):
         errors, error_count, warning_count = type_check(global_scope, file, tree, check)
     except Exception as err:
         debug = os.environ.get("N_ST_DEBUG") == "dev"
-        if(debug):
+        if debug:
             raise err
         return stack_trace.display(global_scope.stack_trace, False)
 
@@ -124,9 +125,10 @@ def run_file(filename, check=False):
         return None
     except Exception as err:
         debug = os.environ.get("N_ST_DEBUG") == "dev"
-        if(debug):
+        if debug:
             raise err
         return stack_trace.display(global_scope.stack_trace)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -150,7 +152,9 @@ if __name__ == "__main__":
         exit()
 
     if args.update:
-        response = requests.get("https://api.github.com/repos/nbuilding/N-Lang/releases/latest")
+        response = requests.get(
+            "https://api.github.com/repos/nbuilding/N-Lang/releases/latest"
+        )
         if VERSION == response.json()["name"]:
             print("You already have the newest version.")
             exit()
@@ -160,15 +164,21 @@ if __name__ == "__main__":
             exit()
         print("Installing...")
         if platform == "win32":
-            os.system("PowerShell.exe -command \"iwr https://github.com/nbuilding/N-lang/raw/main/install.ps1 -useb | iex\"")
+            os.system(
+                'PowerShell.exe -command "iwr https://github.com/nbuilding/N-lang/raw/main/install.ps1 -useb | iex"'
+            )
             exit()
         elif platform == "darwin":
-            os.system("curl -fsSL https://github.com/nbuilding/N-lang/raw/main/install.sh | sh")
+            os.system(
+                "curl -fsSL https://github.com/nbuilding/N-lang/raw/main/install.sh | sh"
+            )
             exit()
         print("You are on an unsupported OS.")
 
     if args.newest:
-        response = requests.get("https://api.github.com/repos/nbuilding/N-Lang/releases/latest")
+        response = requests.get(
+            "https://api.github.com/repos/nbuilding/N-Lang/releases/latest"
+        )
         print(response.json()["name"])
         exit()
 

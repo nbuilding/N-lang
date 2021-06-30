@@ -28,7 +28,7 @@ _, _, file_names = next(walk(path.join(basepath, "../tests/assertions/")))
 for file_name in file_names:
     if not file_name.endswith(".n"):
         continue
-    SyntaxTestCases.add_assertion_test_case(file_name)
+    AssertionTestCases.add_assertion_test_case(file_name)
 
 if __name__ == "__main__":
     unittest.main()

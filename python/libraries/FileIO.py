@@ -26,6 +26,7 @@ async def read(path):
     except:
         return none
 
+
 async def writeBytes(path, content):
     async with async_open(path, "w+", encoding="utf-8") as f:
         await f.write("".join([chr(c) for c in content]))
@@ -46,12 +47,14 @@ async def readBytes(path):
     except:
         return none
 
+
 async def getFiles(path):
     can_run = os.environ.get("FILE_ALLOW") == "true"
     if not can_run:
         return []
 
     return [(isfile(join(path, f)), f) for f in listdir(path)]
+
 
 def _values():
     return {
@@ -64,11 +67,21 @@ def _values():
             "str",
             n_cmd_type.with_typevars([n_maybe_type.with_typevars(["str"])]),
         ),
-        "writeBytes": ("str", n_list_type.with_typevars(["int"]), n_cmd_type.with_typevars(["unit"])),
-        "appendBytes": ("str", n_list_type.with_typevars(["int"]), n_cmd_type.with_typevars(["unit"])),
+        "writeBytes": (
+            "str",
+            n_list_type.with_typevars(["int"]),
+            n_cmd_type.with_typevars(["unit"]),
+        ),
+        "appendBytes": (
+            "str",
+            n_list_type.with_typevars(["int"]),
+            n_cmd_type.with_typevars(["unit"]),
+        ),
         "readBytes": (
             "str",
-            n_cmd_type.with_typevars([n_maybe_type.with_typevars([n_list_type.with_typevars(["int"])])]),
+            n_cmd_type.with_typevars(
+                [n_maybe_type.with_typevars([n_list_type.with_typevars(["int"])])]
+            ),
         ),
         "getFiles": ("str", n_list_type.with_typevars([["bool", "str"]])),
     }
