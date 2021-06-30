@@ -62,6 +62,11 @@ prefixExpression -> postfixExpression {% id %}
 postfixExpression -> value {% id %}
 	| postfixExpressionImpure {% id %}
 	| postfixExpression (_ "." _) anyIdentifier {% from(ast.RecordAccess) %}
+	# A newline would be ok after `type`, but I think it's better to be
+	# symmetrical with ordinary function call.
+	# Notably, `type("hi", "hello")` will return "str, str" rather than being a
+	# type error.
+	| ("type" _spaces "(" _) expression (_ ")") {% from(ast.TypeCall) %}
 
 postfixExpressionImpure -> postfixExpression _ "!" {% suffix(ast.UnaryOperator.AWAIT) %}
 	# No newlines allowed between the function and its arguments

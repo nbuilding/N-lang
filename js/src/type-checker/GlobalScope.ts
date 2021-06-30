@@ -86,7 +86,6 @@ variables.set(
   'range',
   makeFunction(() => [int, int, int, list.instance([int])]),
 )
-// TODO: The `type` function?
 variables.set(
   'print',
   makeFunction(t => [t, t], 't'),

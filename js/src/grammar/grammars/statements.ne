@@ -16,7 +16,7 @@ statement -> "import" _ identifier {% from(ast.ImportStmt) %}
 	| postfixExpressionImpure {% id %}
 	| pipeOperation {% id %}
 	| returnExpression {% id %}
-	| "{" _ block _ "}" {% includeBrackets %}
+	| ("{" _) block (_ "}") {% from(ast.WrappedBlock) %}
 
 letStatement -> ("let" _) ("pub" _):? declaration (_ "=" _) expression {% from(ast.LetStmt) %}
 
