@@ -1,5 +1,5 @@
 // Based on docs/features/importing_n_files.md
 
-let importedThings = imp "./import.n"
+let importedThings = imp "./imports/import.n"
 
 assert value importedThings.test = "hello"

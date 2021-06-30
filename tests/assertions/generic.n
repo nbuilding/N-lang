@@ -9,7 +9,7 @@ assert type filterMap : [a, b] (a -> maybe[b]) -> list[a] -> list[b]
 
 let map: [a, b] (a -> b) -> list[a] -> list[b] = [[x, y] transform:(x -> y) list:list[x]] -> list[y] {
 	let filter: x -> maybe[y] = [item: x] -> maybe[y] {
-		return yes(item)
+		return yes(transform(item))
 	}
 	return list |> filterMap(filter)
 }

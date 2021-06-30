@@ -10,4 +10,4 @@ assert type addOne : int -> int
 
 assert value addOne(2) = 3
 
-assert value 2 |> sum(1) = 3
+assert value (2 |> sum(1)) = 3

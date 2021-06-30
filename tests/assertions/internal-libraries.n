@@ -14,7 +14,7 @@ let pub main = [_: ()] -> cmd[()] {
 	assert type FileIO.append : str -> str -> cmd[()]
 	assert value FileIO.append("./ignored/test.txt", "test")! = ()
 
-	assert type FileIO.read : str -> cmd[maybe[str]]
+	assert type FileIO.read : str -> cmd[str]
 	// QUESTION: Is there a trailing newline?
 	assert value FileIO.read("./ignored/test.txt")! = "testtest"
 
@@ -43,12 +43,12 @@ let pub main = [_: ()] -> cmd[()] {
 		response: str
 		return: json.value
 	}]
-	assert value request.get("https://httpbin.org/base64/SFRUUEJJTiBpcyBhd2Vzb21l", mapfrom([]))! = {
+	assert value request.get("https://httpbin.org/base64/SFRUUEJJTiBpcyBhd2Vzb21l", mapFrom([]))! = {
 		code: 200
 		response: "OK"
 		return: json.string("HTTPBIN is awesome")
 	}
-	assert value request.get("definitely invalid url", mapfrom([("","")]))! = {
+	assert value request.get("definitely invalid url", mapFrom([("","")]))! = {
 		code: 0
 		response: ""
 		return: json.null
@@ -59,10 +59,10 @@ let pub main = [_: ()] -> cmd[()] {
 		response: str
 		text: str
 	}]
-	let response = request.post("https://httpbin.org/post", mapFrom([]), mapfrom([]))!
+	let response = request.post("https://httpbin.org/post", mapFrom([]), mapFrom([]))!
 	assert value (response.code, response.response) = (200, "OK")
 	assert value len(response.text) > 100
-	assert value request.post("definitely invalid url", mapFrom(["hello", "hello"]), mapfrom([("","")]))! = {
+	assert value request.post("definitely invalid url", mapFrom([("hello", "hello")]), mapFrom([("","")]))! = {
 		code: 0
 		response: ""
 		text: ""
@@ -70,8 +70,8 @@ let pub main = [_: ()] -> cmd[()] {
 
 	import SystemIO
 
-	assert type SystemIO.imp : str -> cmd[str]
-	// TODO: How to test SystemIO.imp?
+	assert type SystemIO.inp : str -> cmd[str]
+	// TODO: How to test SystemIO.inp?
 
 	import times
 
@@ -80,7 +80,7 @@ let pub main = [_: ()] -> cmd[()] {
 
 	import websocket
 
-	assert type websocket.connect : websocketconnectOptions -> str -> cmd[maybe[str]]
+	assert type websocket.connect : websocket.connectOptions -> str -> cmd[maybe[str]]
 
 	assert value websocket.connect({
 		onOpen: [send: websocket.send] -> cmd[bool] {
