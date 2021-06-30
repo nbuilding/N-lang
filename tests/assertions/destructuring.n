@@ -6,7 +6,7 @@ assert value b = 2
 
 let { x; z: y } = { x: 1; z: 1 }
 assert value x = 1
-assert value z = 1
+assert value y = 1
 
 if let [a, b] = [1, 2] {
 	assert value (a, b) = (1, 2)

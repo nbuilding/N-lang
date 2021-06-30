@@ -27,7 +27,7 @@
 	}
 }
 
-let divideBy2 = [number: int] -> result[int, string] {
+let divideBy2 = [number: int] -> result[int, str] {
 	if number % 2 = 1 {
 		return err("Odd numbers are not divisible by two.")
 	} else if not number = 42 {

@@ -2,13 +2,12 @@
 
 @{%
 import moo from 'moo'
-import * as ast from './ast'
+import * as ast from '../ast/index'
+import { from, includeBrackets } from './from-nearley'
 
 const {
-	from,
-	includeBrackets,
 	Operation: { operation },
-	UnaryOperation: { operation: unaryOperation },
+	UnaryOperation: { prefix, suffix },
 } = ast
 
 const escapes: { [key: string]: string } = {
@@ -34,33 +33,49 @@ const lexer = moo.states({
 		symbol: [
 			'->', ':', '.', ',',
 		],
+		await: '!',
+		funcOperator: [
+			'|>',
+		],
+		comparisonOperator: [
+			'<=', '==', '>=', '/=', '<', '=', '>',
+		],
 		arithmeticOperator: [
 			'+', '-', '*', '%', '/', '^',
 		],
-		comparisonOperator: [
-			'<=', '==', '=>', '/=', '!=', '<', '=', '>',
-		],
 		booleanOperator: [
-			'&&', '||', '&', '|', '!', '~',
+			'&&', '||', '&', '|', '~',
 		],
-		lbracket: ['{', '[', '(', '<'],
-		rbracket: ['}', ']', ')', '>'],
+		lbracket: ['{', '[', '('],
+		rbracket: ['}', ']', ')'],
 		semicolon: ';',
 		identifier: {
 			match: /_?[a-zA-Z]\w*/,
 			type: moo.keywords({
 				'import keyword': 'import',
-				'print keyword': 'print',
+				'import N keyword': 'imp',
 				'return keyword': 'return',
 				'let keyword': 'let',
+				'vary keyword': 'var',
+				'alias keyword': 'alias',
+				'class keyword': 'class',
+				'type keyword': 'type',
+				'public keyword': 'pub',
+				'if keyword': 'if',
 				'else keyword': 'else',
 				'for keyword': 'for',
+				'in keyword': 'in',
+				'break reserved word': 'break',
+				'continue reserved word': 'continue',
+				'with reserved word': 'with',
+				'yield reserved word': 'yield',
+				'do reserved word': 'do',
 				'not operator': 'not',
 			}),
 		},
 		discard: '_',
-		float: /-?(?:\d+\.\d*|\.\d+)/,
-		number: /-?\d+/,
+		float: /-?(?:\d+\.\d*|\.\d+)(?:e\d+)?/,
+		number: /-?(?:0b[01]+|0o[0-7]+|0x[0-9a-fA-F]+|\d+)/,
 		string: {
 			match: /"(?:[^\r\n\\"]|\\(?:[nrtv0fb"\\]|u\{[0-9a-fA-F]+\}|\{(?:.|[\uD800-\uDBFF][\uDC00-\uDFFF])\}))*"/,
 			value: string => unescape(string.slice(1, -1)),
@@ -81,118 +96,45 @@ const lexer = moo.states({
 })
 %}
 
+# Can't use macros because they can't be imported
+# https://github.com/kach/nearley/issues/387
+# and also the linter gets pissed.
+
 @lexer lexer
+
+@include "./grammars/statements.ne"
+@include "./grammars/expressions.ne"
+@include "./grammars/patterns.ne"
+@include "./grammars/types.ne"
 
 main -> _ block _ {% ([, block]) => block %}
 	| _ {% () => ast.Block.empty() %}
 
-# statement
-# ...
-block -> (statement blockSeparator):* statement {% from(ast.Block) %}
+identifier -> %identifier {% from(ast.Identifier) %}
 
-statement -> expression {% id %}
-	| "import" __ %identifier {% from(ast.ImportStmt) %}
-	| "let" __ declaration _ "=" _ expression {% from(ast.VarStmt) %}
+# Isn't this repetitive? Yes. Oh well.
+keyword -> "import" {% from(ast.Identifier) %}
+	| "imp" {% from(ast.Identifier) %}
+	| "return" {% from(ast.Identifier) %}
+	| "let" {% from(ast.Identifier) %}
+	| "var" {% from(ast.Identifier) %}
+	| "alias" {% from(ast.Identifier) %}
+	| "class" {% from(ast.Identifier) %}
+	| "type" {% from(ast.Identifier) %}
+	| "pub" {% from(ast.Identifier) %}
+	| "if" {% from(ast.Identifier) %}
+	| "else" {% from(ast.Identifier) %}
+	| "for" {% from(ast.Identifier) %}
+	| "in" {% from(ast.Identifier) %}
+	| "not" {% from(ast.Identifier) %}
+	| "break" {% from(ast.Identifier) %}
+	| "continue" {% from(ast.Identifier) %}
+	| "with" {% from(ast.Identifier) %}
+	| "yield" {% from(ast.Identifier) %}
+	| "do" {% from(ast.Identifier) %}
 
-expression -> tupleExpression {% id %}
-	| "print" __ expression {% from(ast.Print) %}
-	| "print" bracketedExpression {% from(ast.Print) %}
-	| "return" __ expression {% from(ast.Return) %}
-	| "return" bracketedExpression {% from(ast.Return) %}
-	| ifExpression {% id %}
-	| funcExpr {% id %}
-	| forLoop {% id %}
-
-bracketedExpression -> bracketedValue {% id %}
-	| funcExpr {% id %}
-
-funcExpr -> "[" _ declaration (__ declaration):* _ "]" _ "->" _ type _ ("{" _ block _ "}" | ":" _ expression) {% from(ast.Function) %}
-
-funcDefParams -> declaration {% ([decl]) => [decl] %}
-	| funcDefParams __ declaration {% ([params, , decl]) => [...params, decl] %}
-
-forLoop -> "for" _ declaration _ value _ value {% from(ast.For) %}
-
-declaration -> %identifier (_ ":" _ type):? {% from(ast.Declaration) %}
-	| "_" (_ ":" _ type):? {% from(ast.Declaration) %}
-
-type -> tupleTypeExpr {% id %}
-
-tupleTypeExpr -> funcTypeExpr {% id %}
-	| (funcTypeExpr _ "," _):+ funcTypeExpr {% from(ast.TupleType) %}
-
-funcTypeExpr -> typeValue {% id %}
-	| typeValue _ "->" _ funcTypeExpr {% from(ast.FuncType) %}
-
-typeValue -> modIdentifier {% id %}
-	| "(" _ type _ ")" {% includeBrackets %}
-	| "(" _ ")" {% from(ast.UnitType) %}
-
-tupleExpression -> booleanExpression {% id %}
-	| (booleanExpression _ "," _):+ booleanExpression {% from(ast.Tuple) %}
-
-booleanExpression -> notExpression {% id %}
-	| booleanExpression _ ("&&" | "&") _ notExpression {% operation(ast.Operator.AND) %}
-	| booleanExpression _ ("||" | "|") _ notExpression {% operation(ast.Operator.OR) %}
-
-notExpression -> compareExpression {% id %}
-	| "not" _ notExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
-
-compareExpression -> sumExpression {% id %}
-	| (sumExpression _ compareOperator _):+ sumExpression {% from(ast.Comparisons) %}
-
-compareOperator -> ("==" | "=") {% ([token]) => ({ ...token[0], value: ast.Compare.EQUAL }) %}
-	| ">" {% ([token]) => ({ ...token, value: ast.Compare.GREATER }) %}
-	| "<" {% ([token]) => ({ ...token, value: ast.Compare.LESS }) %}
-	| ">=" {% ([token]) => ({ ...token, value: ast.Compare.GEQ }) %}
-	| "<=" {% ([token]) => ({ ...token, value: ast.Compare.LEQ }) %}
-	| ("!=" | "/=") {% ([token]) => ({ ...token[0], value: ast.Compare.NEQ }) %}
-
-# Avoid syntactic ambiguity with negation:
-# a - b is subtraction.
-# a -b is a and then negative b.
-# a- b is odd, but it can be subtraction.
-# a-b is subtraction.
-sumExpression -> productExpression {% id %}
-	| sumExpression _ "+" _ productExpression {% operation(ast.Operator.ADD) %}
-	| sumExpression _ "-" __ productExpression {% operation(ast.Operator.MINUS) %}
-	| sumExpression empty "-" empty productExpression {% operation(ast.Operator.MINUS) %}
-
-productExpression -> exponentExpression {% id %}
-	| productExpression _ "*" _ exponentExpression {% operation(ast.Operator.MULTIPLY) %}
-	| productExpression _ "/" _ exponentExpression {% operation(ast.Operator.DIVIDE) %}
-	| productExpression _ "%" _ exponentExpression {% operation(ast.Operator.MODULO) %}
-
-exponentExpression -> unaryExpression {% id %}
-	| exponentExpression _ "^" _ unaryExpression {% operation(ast.Operator.EXPONENT) %}
-
-unaryExpression -> value {% id %}
-	| "-" empty unaryExpression {% unaryOperation(ast.UnaryOperator.NEGATE) %}
-	| ("!" | "~") _ unaryExpression {% unaryOperation(ast.UnaryOperator.NOT) %}
-
-# Generally, values are the same as expressions except they require some form of
-# enclosing brackets for more complex expressions, which can help avoid syntax
-# ambiguities.
-value -> modIdentifier {% id %}
-	| %number {% from(ast.Number) %}
-	| %float {% from(ast.Float) %}
-	| %string {% from(ast.String) %}
-	| %char {% from(ast.Char) %}
-	| bracketedValue {% id %}
-
-# Separate rule here to allow a special case for print/return to not have a
-# space between the keyword and a bracket
-bracketedValue -> "(" _ expression _ ")" {% includeBrackets %}
-	| functionCall {% id %}
-	| "{" _ block _ "}" {% includeBrackets %}
-	| "(" _ ")" {% from(ast.Unit) %}
-
-# identifier [...parameters]
-functionCall -> "<" _ value (__ value):* _ ">" {% from(ast.CallFunc) %}
-
-ifExpression -> "if" __ expression __ value (__ "else" __ expression):? {% from(ast.If) %}
-
-modIdentifier -> (%identifier "."):* %identifier {% from(ast.Identifier) %}
+anyIdentifier -> identifier {% id %}
+	| keyword {% id %}
 
 # // comment
 lineComment -> %comment {% () => null %}
@@ -206,6 +148,7 @@ blockSeparator -> (_spaces (newline | ";")):+ _spaces {% () => null %}
 
 newline -> lineComment:? %newline {% () => null %}
 
+# Optional whitespace but without newlines
 _spaces -> (%spaces:? multilineComment):* %spaces:? {% () => null %}
 
 # Obligatory whitespace

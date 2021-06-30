@@ -40,8 +40,8 @@ assert type len : [t] t -> int
 assert value len("abc") = 3
 assert value len(100) = 0
 
-assert type split : char -> string -> list[str]
-assert value split(\{b}, "abc") = [b]
+assert type split : char -> str -> list[str]
+assert value split(\{b}, "abc") = ["a", "c"]
 assert value split(\{b}, "") = []
 assert value split(\{b}, "apple") = ["apple"]
 
@@ -57,7 +57,7 @@ assert value range(0, 30, 5) = [0, 5, 10, 15, 20, 25]
 assert value range(0, 10, 3) = [0, 3, 6, 9]
 assert value range(0, -10, -1) = [0, -1, -2, -3, -4, -5, -6, -7, -8, -9]
 assert value range(0, 0, 1) = []
-assert value range(1, 0) = []
+assert value range(1, 0, 1) = []
 
 // `type` is not a "function" per se
 assert value type(10.0) = "float"

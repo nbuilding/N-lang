@@ -1,6 +1,4 @@
 export { ParseOptions, ParseError } from './grammar/parse'
-export { Base, Block } from './grammar/ast'
+export { Base, Block } from './ast'
 export { compileToJS } from './compiler/to-js'
-export { TypeChecker, Warning, CheckerOptions } from './type-checker/checker'
-export { FileLines, FileLinesOptions } from './type-checker/display-lines'
-export { default as NType, display as displayType } from './type-checker/n-type'
+export { TypeChecker, CheckerOptions } from './type-checker/TypeChecker'
