@@ -1,2 +1,30 @@
-assert value 1 == 2
-assert type 1:int
+import websocket // Used for connecting to WebSockets
+import times
+
+let thing2 = [] -> cmd[()] {
+	let websocketTest = websocket.connect({
+		onOpen: [send: websocket.send] -> cmd[bool] {
+			print("Open!")
+			let _ = send("hello A")!
+      print("Hello A sent, sleeping for 2s")
+      let _ = times.sleep(2000)!
+      print("Slept for 2 seconds")
+      let _ = send("hello B")!
+      print("Hello B sent")
+			return false
+		}
+		onMessage: [send: websocket.send message: str] -> cmd[bool] {
+			print(("RECEIVED", message))
+			let _ = send("hello 1")!
+      print("Hello 1 sent, sleeping for 1s")
+      let _ = times.sleep(1000)!
+      print("Slept for 1 second")
+      let _ = send("hello 2")!
+      print("Hello 2 sent")
+			return message == "hello"
+		}
+	}, "ws://localhost:3000")!
+	print(websocketTest)
+}
+
+let pub test = thing2()

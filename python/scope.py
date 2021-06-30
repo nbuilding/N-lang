@@ -175,7 +175,7 @@ class Scope:
         warnings=None,
         base_path="",
         file_path="",
-        parent_imports=None
+        parent_imports=None,
         parent_type="top",
         stack_trace=None,
         unit_tests=None,
