@@ -12,5 +12,5 @@ async def getTime():
 def _values():
     return {
         "sleep": ("int", n_cmd_type.with_typevars(["unit"])),
-        "getTime": (n_cmd_type.with_typevars(["float"]),),
+        "getTime": ("unit", n_cmd_type.with_typevars(["float"]),),
     }
