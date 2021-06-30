@@ -2,7 +2,7 @@ from colorama import Fore, Style
 
 def display(stack_trace, runtime=True):
     if not runtime:
-        print("An unexpected error occured! Please open an issue on GitHub https://github.com/nbuilding/N-Lang/issues. Set N_ST_DEBUG to \"dev\" to see the python stack trace.")
+        return "An unexpected error occured! Please open an issue on GitHub https://github.com/nbuilding/N-Lang/issues. Set N_ST_DEBUG to \"dev\" to see the python stack trace."
         return
     output = "An unexpected error occured! Please open an issue on GitHub https://github.com/nbuilding/N-Lang/issues. Printing out stack trace:\n"
     for trace in stack_trace:
@@ -16,4 +16,4 @@ def display(stack_trace, runtime=True):
             area.end_column,
             underline=False,
         ) + "\n"
-    print(output)
+    return output

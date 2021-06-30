@@ -55,8 +55,8 @@ pyinstaller -y --add-data="syntax.lark;." n.py
 Windows users should use `py`, and everyone else should use `python3`.
 
 ```sh
-# Test syntax
-python -m unittest parse_test.py
+# Test syntax and type/value assertions
+N_ST_DEBUG=dev python -m unittest parse_test.py type_check_test.py
 ```
 
 ## Formatting

@@ -25,62 +25,12 @@ from file import File
 
 init()
 
-parser = argparse.ArgumentParser(
-    description="Allows to only show warnings and choose the file location"
-)
-parser.add_argument(
-    "--file",
-    type=str,
-    default="run.n",
-    help="The file to read. (optional. if not included, it'll just run run.n)",
-)
-parser.add_argument("--check", action="store_true")
-parser.add_argument("--newest", action="store_true")
-parser.add_argument("--version", action="store_true")
-parser.add_argument("--update", action="store_true")
-
-args = parser.parse_args()
-
 VERSION = "N v1.3.0"
 
-if args.version:
-    print(VERSION)
-    exit()
 
-if args.update:
-    response = requests.get("https://api.github.com/repos/nbuilding/N-Lang/releases/latest")
-    if VERSION == response.json()["name"]:
-        print("You already have the newest version.")
-        exit()
-    print("Newer version detected: " + response.json()["name"])
-    if input("Are you sure you want to update? [y/n] ").lower() != "y":
-        print("Aborting...")
-        exit()
-    print("Installing...")
-    if platform == "win32":
-        os.system("PowerShell.exe -command \"iwr https://github.com/nbuilding/N-lang/raw/main/install.ps1 -useb | iex\"")
-        exit()
-    elif platform == "darwin":
-        os.system("curl -fsSL https://github.com/nbuilding/N-lang/raw/main/install.sh | sh")
-        exit()
-    print("You are on an unsupported OS.")
+def type_check(global_scope, file, tree, check):
+    errors = ""
 
-if args.newest:
-	response = requests.get("https://api.github.com/repos/nbuilding/N-Lang/releases/latest")
-	print(response.json()["name"])
-	exit()
-
-filename = args.file
-
-with open(filename, "r", encoding="utf-8") as f:
-    file = File(f)
-
-file_path = path.abspath(filename)
-global_scope = Scope(base_path=path.dirname(file_path), file_path=file_path)
-add_funcs(global_scope)
-
-
-def type_check(file, tree):
     scope = global_scope.new_scope(inherit_errors=False)
     if tree.data == "start":
         for child in tree.children:
@@ -92,14 +42,12 @@ def type_check(file, tree):
             )
         )
 
-    if len(scope.errors) > 0 or args.check:
-        print(
-            "\n".join(
-                [warning.display("warning", file) for warning in scope.warnings]
-                + [error.display("error", file) for error in scope.errors]
-            )
+    if len(scope.errors) > 0 or check:
+        errors = "\n".join(
+            [warning.display("warning", file) for warning in scope.warnings]
+            + [error.display("error", file) for error in scope.errors]
         )
-        
+
     error_len = 0
 
     for error in scope.errors:
@@ -118,10 +66,10 @@ def type_check(file, tree):
 
     global_scope.unit_tests = scope.unit_tests[:]
 
-    return (error_len, warning_len)
+    return (errors, error_len, warning_len)
 
 
-async def parse_tree(tree):
+async def parse_tree(global_scope, tree):
     if tree.data == "start":
         scope = global_scope.new_scope()
         for child in tree.children:
@@ -134,43 +82,96 @@ async def parse_tree(tree):
     else:
         raise SyntaxError("Unable to run parse_tree on non-starting branch")
 
+def run_file(filename, check=False):
+    """
+    Executes the N file at the given file path. Returns a human-readable string
+    if there was an error or None if everything went well.
+    """
 
-try:
-    tree = file.parse(n_parser)
-except lark.exceptions.UnexpectedCharacters as e:
-    format_error(e, file)
-except lark.exceptions.UnexpectedEOF as e:
-    format_error(e, file)
+    with open(filename, "r", encoding="utf-8") as f:
+        file = File(f)
 
-try:
-    error_count, warning_count = type_check(file, tree)
-except Exception as err:
-    debug = os.environ.get("N_ST_DEBUG") == "dev"
-    if(debug):
-        raise err
-    stack_trace.display(global_scope.stack_trace, False)
-    exit()
-
-if error_count > 0 or args.check:
-    error_s = ""
-    warning_s = ""
-    if error_count != 1:
-        error_s = "s"
-    if warning_count != 1:
-        warning_s = "s"
-    print(
-        f"{Fore.BLUE}Ran with {Fore.RED}{error_count} error{error_s}{Fore.BLUE} and {Fore.YELLOW}{warning_count} warning{warning_s}{Fore.BLUE}.{Style.RESET_ALL}"
-    )
-    exit()
-
-if __name__ == "__main__":
-    # https://github.com/aio-libs/aiohttp/issues/4324#issuecomment-676675779
+    file_path = path.abspath(filename)
+    global_scope = Scope(base_path=path.dirname(file_path), file_path=file_path)
+    add_funcs(global_scope)
 
     try:
-        asyncio.get_event_loop().run_until_complete(parse_tree(tree))    
+        tree = file.parse(n_parser)
+    except lark.exceptions.UnexpectedCharacters as e:
+        return format_error(e, file)
+    except lark.exceptions.UnexpectedEOF as e:
+        return format_error(e, file)
+
+    try:
+        errors, error_count, warning_count = type_check(global_scope, file, tree, check)
     except Exception as err:
         debug = os.environ.get("N_ST_DEBUG") == "dev"
         if(debug):
             raise err
-        stack_trace.display(global_scope.stack_trace)
+        return stack_trace.display(global_scope.stack_trace, False)
+
+    if error_count > 0 or check:
+        error_s = ""
+        warning_s = ""
+        if error_count != 1:
+            error_s = "s"
+        if warning_count != 1:
+            warning_s = "s"
+        return f"{errors}\n{Fore.BLUE}Ran with {Fore.RED}{error_count} error{error_s}{Fore.BLUE} and {Fore.YELLOW}{warning_count} warning{warning_s}{Fore.BLUE}.{Style.RESET_ALL}"
+
+    try:
+        asyncio.get_event_loop().run_until_complete(parse_tree(global_scope, tree))
+        return None
+    except Exception as err:
+        debug = os.environ.get("N_ST_DEBUG") == "dev"
+        if(debug):
+            raise err
+        return stack_trace.display(global_scope.stack_trace)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Allows to only show warnings and choose the file location"
+    )
+    parser.add_argument(
+        "--file",
+        type=str,
+        default="run.n",
+        help="The file to read. (optional. if not included, it'll just run run.n)",
+    )
+    parser.add_argument("--check", action="store_true")
+    parser.add_argument("--newest", action="store_true")
+    parser.add_argument("--version", action="store_true")
+    parser.add_argument("--update", action="store_true")
+
+    args = parser.parse_args()
+
+    if args.version:
+        print(VERSION)
         exit()
+
+    if args.update:
+        response = requests.get("https://api.github.com/repos/nbuilding/N-Lang/releases/latest")
+        if VERSION == response.json()["name"]:
+            print("You already have the newest version.")
+            exit()
+        print("Newer version detected: " + response.json()["name"])
+        if input("Are you sure you want to update? [y/n] ").lower() != "y":
+            print("Aborting...")
+            exit()
+        print("Installing...")
+        if platform == "win32":
+            os.system("PowerShell.exe -command \"iwr https://github.com/nbuilding/N-lang/raw/main/install.ps1 -useb | iex\"")
+            exit()
+        elif platform == "darwin":
+            os.system("curl -fsSL https://github.com/nbuilding/N-lang/raw/main/install.sh | sh")
+            exit()
+        print("You are on an unsupported OS.")
+
+    if args.newest:
+        response = requests.get("https://api.github.com/repos/nbuilding/N-Lang/releases/latest")
+        print(response.json()["name"])
+        exit()
+
+    errors = run_file(args.file, args.check)
+    if errors is not None:
+        print(errors)
