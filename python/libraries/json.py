@@ -1,4 +1,5 @@
 import json
+import math
 
 from enums import EnumType, EnumValue
 from native_types import n_list_type, n_map_type, NMap, n_maybe_type, yes
@@ -102,13 +103,11 @@ def convert_float_to_int(value):
     if isinstance(value, float):
         if value % 1 == 0:
             value = round(value)
+        elif math.isnan(value) or math.isinf(value):
+            value = None
     elif isinstance(value, dict):
         for i in value.keys():
-            if isinstance(value[i], dict) or isinstance(value[i], list):
-                value[i] = convert_float_to_int(value[i])
-            elif isinstance(value[i], float):
-                if value[i] % 1 == 0:
-                    value[i] = round(value[i])
+            value[i] = convert_float_to_int(value[i])
     elif isinstance(value, list):
         for i in range(len(value)):
             if isinstance(value[i], dict) or isinstance(value[i], list):
