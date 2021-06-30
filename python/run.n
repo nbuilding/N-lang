@@ -16,7 +16,6 @@ let textToBytes = [text:str] -> list[int] {
 }
 
 let thing = [] -> cmd[()] {
-
 	let imageData = FileIO.readBytes("C:\\Users\\Ashvin Ranjan\\Downloads\\IMG_1499.jpg")! |> default([1])
 	let image = ""
 	for (byte in imageData) {

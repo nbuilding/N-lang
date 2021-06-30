@@ -51,8 +51,8 @@ elif __file__:
 syntaxpath = os.path.join(basepath, "syntax.lark")
 
 
-def parse_file(file_path, base_path):
-    import_scope = Scope(base_path=base_path, file_path=file_path)
+def parse_file(file_path, base_path, parent_imports):
+    import_scope = Scope(base_path=base_path, file_path=file_path, parent_imports=parent_imports)
     native_functions.add_funcs(import_scope)
 
     with open(syntaxpath, "r") as f:
@@ -72,8 +72,8 @@ def parse_file(file_path, base_path):
     return import_scope, tree, file
 
 
-async def eval_file(file_path, base_path):
-    import_scope, tree, _ = parse_file(file_path, base_path)
+async def eval_file(file_path, base_path, parent_imports):
+    import_scope, tree, _ = parse_file(file_path, base_path, parent_imports)
 
     import_scope.variables = {
         **import_scope.variables,
@@ -82,8 +82,8 @@ async def eval_file(file_path, base_path):
     return import_scope
 
 
-def type_check_file(file_path, base_path):
-    import_scope, tree, text_file = parse_file(file_path, base_path)
+def type_check_file(file_path, base_path, parent_imports):
+    import_scope, tree, text_file = parse_file(file_path, base_path, parent_imports)
 
     scope = type_check(tree, import_scope)
     import_scope.variables = {**import_scope.variables, **scope.variables}
@@ -175,6 +175,7 @@ class Scope:
         warnings=None,
         base_path="",
         file_path="",
+        parent_imports=None
         parent_type="top",
         stack_trace=None,
         unit_tests=None,
@@ -191,6 +192,8 @@ class Scope:
         self.base_path = base_path
         # The path of the file the Scope is associated with.
         self.file_path = file_path
+        # The other files it has been imported from to prevent circular imports
+        self.parent_imports = parent_imports if parent_imports is not None else []
         self.parent_type = parent_type
 
         self.stack_trace = stack_trace if stack_trace is not None else []
@@ -204,6 +207,7 @@ class Scope:
             warnings=self.warnings if inherit_errors else [],
             base_path=self.base_path,
             file_path=self.file_path,
+            parent_imports=self.parent_imports,
             parent_type=parent_type or self.parent_type,
             stack_trace=self.stack_trace if inherit_stack_trace else [],
             unit_tests=self.unit_tests if inherit_unit_tests else [],
@@ -826,6 +830,8 @@ class Scope:
             arg_values = []
             for arg in arguments:
                 arg_values.append(await self.eval_expr(arg))
+            if len(arg_values) == 0:
+                arg_values = [()]
             func = await self.eval_expr(function)
             if not isinstance(func, NativeFunction):
                 with open(self.file_path, "r", encoding="utf-8") as f:
@@ -964,7 +970,7 @@ class Scope:
             file_path = os.path.join(os.path.dirname(self.file_path), rel_file_path)
             with open(self.file_path, "r", encoding="utf-8") as f:
                 self.stack_trace.append((expr, File(f, name=os.path.relpath(self.file_path, start=self.base_path))))
-            val = await eval_file(file_path, self.base_path)
+            val = await eval_file(file_path, self.base_path, self.parent_imports + [os.path.normpath(self.file_path)])
             self.stack_trace += val.stack_trace
             holder = {}
             for key in val.variables.keys():
@@ -1457,6 +1463,9 @@ class Scope:
                 mainarg = expr.children[0]
                 function, *arguments = expr.children[1].children
                 arguments.append(mainarg)
+
+            if len(arguments) == 0:
+                arguments.append("unit")
             func_type = self.type_check_expr(function)
             if func_type is None:
                 return None
@@ -1475,7 +1484,9 @@ class Scope:
             for n, (argument, arg_type) in enumerate(
                 zip(arguments, arg_types), start=1
             ):
-                check_type = self.type_check_expr(argument)
+                check_type = argument
+                if(argument != "unit"):
+                    check_type = self.type_check_expr(check_type)
                 if check_type is None:
                     parameters_have_none = True
                 resolved_arg_type = apply_generics(arg_type, check_type, generics)
@@ -1776,8 +1787,22 @@ class Scope:
                 # Support old syntax
                 rel_file_path = expr.children[0].value + ".n"
             file_path = os.path.join(os.path.dirname(self.file_path), rel_file_path)
+            if os.path.normpath(file_path) == os.path.normpath(self.file_path):
+                self.errors.append(
+                    TypeCheckError(
+                        expr.children[0], "You cannot import the file that is running"
+                    )
+                )
+                return None
             if os.path.isfile(file_path):
-                impn, f = type_check_file(file_path, self.base_path)
+                if os.path.normpath(file_path) in self.parent_imports:
+                    self.errors.append(
+                        TypeCheckError(
+                            expr.children[0], "Circular imports are not allowed"
+                        )
+                    )
+                    return None
+                impn, f = type_check_file(file_path, self.base_path, self.parent_imports + [os.path.normpath(self.file_path)])
                 if len(impn.errors) != 0:
                     self.errors.append(ImportedError(impn.errors[:], f))
                 if len(impn.warnings) != 0:
