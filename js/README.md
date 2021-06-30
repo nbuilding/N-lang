@@ -11,11 +11,28 @@ npm install
 npm run build:ne
 
 # Run
-ts-node src/n-lang.ts ../examples/test.n
+ts-node --pretty src/n-lang.ts ../examples/test.n
 ```
 
-Alternatively, you can combine the last two steps if you're working on the grammar:
+Alternatively, you can combine the last two steps if you're working on the
+grammar:
 
 ```sh
-npm run build:ne && ts-node src/n-lang.ts ../examples/test.n
+npm run build:ne && ts-node --pretty src/n-lang.ts ../examples/test.n
+```
+
+## Development
+
+This repository uses the [JavaScript Standard style](https://standardjs.com/)
+but with the trailing commas typical of TypeScript.
+
+```sh
+# Global dependencies
+npm install --global prettier-standard eslint
+
+# Autoformats the files in place
+prettier-standard --format
+
+# Lint with recommended TypeScript rules
+npm run lint
 ```
