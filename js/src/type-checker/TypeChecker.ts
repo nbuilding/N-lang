@@ -53,7 +53,11 @@ export class TypeCheckerResults {
     return file
   }
 
-  syntaxError (absolutePath: string, source: string, error: ParseError) {
+  syntaxError (
+    absolutePath: string,
+    source: string,
+    error: ParseError,
+  ): SyntaxErrorForFile {
     const result = new SyntaxErrorForFile(
       this,
       absolutePath,

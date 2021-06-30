@@ -1,9 +1,7 @@
 import { ErrorType } from '../../type-checker/errors/Error'
 import {
   EnumSpec,
-  EnumVariant as EnumTypeVariant,
   TypeSpec as NamedTypeSpec,
-  unknown,
 } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'

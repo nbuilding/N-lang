@@ -26,7 +26,7 @@ export class CheckPatternContext extends ScopeBaseContext {
   }
 }
 
-export interface CheckPatternResult {}
+export type CheckPatternResult = Record<string, never>
 
 export interface Pattern extends Base {
   checkPattern(context: CheckPatternContext): CheckPatternResult

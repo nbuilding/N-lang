@@ -15,11 +15,11 @@ export class ScopeBaseContext {
     this._defaultBase = base
   }
 
-  err (error: ErrorMessage, base: Base = this._defaultBase) {
+  err (error: ErrorMessage, base: Base = this._defaultBase): void {
     this.scope.results.errors.push({ message: error, base })
   }
 
-  warn (warning: WarningMessage, base: Base = this._defaultBase) {
+  warn (warning: WarningMessage, base: Base = this._defaultBase): void {
     this.scope.results.warnings.push({ message: warning, base })
   }
 
@@ -47,7 +47,7 @@ export class ScopeBaseContext {
     type: NType,
     isPublic = false,
     warnAboutExportability = true,
-  ) {
+  ): void {
     if (this.scope.variables.has(name.value)) {
       this.err({ type: ErrorType.DUPLICATE_VARIABLE }, name)
       this.scope.variables.set(name.value, unknown)
@@ -73,7 +73,11 @@ export class ScopeBaseContext {
     }
   }
 
-  defineType (name: Identifier, type: TypeSpec | 'error', isPublic = false) {
+  defineType (
+    name: Identifier,
+    type: TypeSpec | 'error',
+    isPublic = false,
+  ): void {
     if (this.scope.types.has(name.value)) {
       this.err({ type: ErrorType.DUPLICATE_TYPE }, name)
       this.scope.types.set(name.value, 'error')

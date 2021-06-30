@@ -12,3 +12,6 @@ rules:
       argsIgnorePattern: ^_
   '@typescript-eslint/no-explicit-any': off
   '@typescript-eslint/no-extra-semi': off
+  no-constant-condition:
+    - error
+    - checkLoops: false

@@ -95,9 +95,5 @@ export class WrappedBlock extends Base implements Statement {
     return `{\n\t${this.block.toString().replace(/\n/g, '\n\t')}\n}`
   }
 
-  static schema = schema.tuple([
-    schema.any,
-    schema.instance(Block),
-    schema.any,
-  ])
+  static schema = schema.tuple([schema.any, schema.instance(Block), schema.any])
 }

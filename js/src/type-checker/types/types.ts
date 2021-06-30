@@ -4,7 +4,7 @@ export class TypeSpec {
   name: string
   typeVarCount: number
 
-  constructor (name: string, typeVarCount: number = 0) {
+  constructor (name: string, typeVarCount = 0) {
     this.name = name
     this.typeVarCount = typeVarCount
   }
@@ -95,7 +95,7 @@ export class EnumSpec extends TypeSpec {
     name: string,
     variantMaker: (...typeVars: NamedType[]) => [string, NType[]][],
     ...typeVarNames: string[]
-  ) {
+  ): EnumSpec {
     const typeVars = typeVarNames.map(name => new TypeSpec(name))
     return new EnumSpec(
       name,
@@ -169,7 +169,7 @@ export class FuncTypeVarSpec extends TypeSpec {
     super(name, 0)
   }
 
-  clone () {
+  clone (): FuncTypeVarSpec {
     return new FuncTypeVarSpec(this.name)
   }
 
@@ -234,7 +234,7 @@ export function functionFromTypes (
 export function makeFunction (
   typesMaker: (...typeVars: NamedType[]) => NType[],
   ...typeVarNames: string[]
-) {
+): NFunction {
   const typeVars = typeVarNames.map(name => new FuncTypeVarSpec(name))
   return functionFromTypes(
     typesMaker(...typeVars.map((typeSpec): NamedType => typeSpec.instance())),

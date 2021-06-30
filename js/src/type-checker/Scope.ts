@@ -60,7 +60,7 @@ export class Scope {
     }
   }
 
-  inner (options?: ScopeOptions) {
+  inner (options?: ScopeOptions): Scope {
     return new Scope(this.results, this, options)
   }
 
@@ -116,7 +116,7 @@ export class Scope {
     }
   }
 
-  reportInternalError (error: unknown, base: Base) {
+  reportInternalError (error: unknown, base: Base): void {
     this.results.errors.push({
       message: {
         type: ErrorType.INTERNAL_ERROR,
@@ -199,7 +199,7 @@ export class Scope {
     }
   }
 
-  end () {
+  end (): void {
     for (const deferred of this.deferred) {
       deferred()
     }

@@ -88,7 +88,7 @@ function isNearleyError (
 }
 
 // tfw you have to parse errors from a parser
-const lineColRegex = /^(?:invalid syntax|Syntax error) at line (\d+) col (\d+):\n\n  [^\n]+\n   *\^/
+const lineColRegex = /^(?:invalid syntax|Syntax error) at line (\d+) col (\d+):\n\n {2}[^\n]+\n {2,}\^/
 const unexpectedRegex = /Unexpected (?:input(?: ("(?:[^"]|\\")+"))? \(lexer error\)|(.+) token: "(?:[^"]|\\")+")\./
 const basedOnRegex = /A ("(?:[^"]|\\")+"|.+ token) based on:/g
 /*

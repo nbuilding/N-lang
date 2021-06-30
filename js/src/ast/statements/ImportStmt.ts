@@ -22,7 +22,7 @@ export class ImportStmt extends Base implements Statement {
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
-    if (modules.hasOwnProperty(this.name.value)) {
+    if (Object.prototype.hasOwnProperty.call(modules, this.name.value)) {
       context.defineVariable(this.name, {
         type: 'module',
         path: this.name.value,

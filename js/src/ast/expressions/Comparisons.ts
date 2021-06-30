@@ -11,11 +11,11 @@ import { bool, float, int } from '../../type-checker/types/builtins'
 import { compareEqualTypes } from '../../type-checker/types/comparisons/compare-equal'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { equalableTypes } from '../../type-checker/types/operations'
-import { NType } from '../..'
 import {
   AliasSpec,
   EnumSpec,
   iterateType,
+  NType,
 } from '../../type-checker/types/types'
 
 // Ideally, there would be a more descriptive type error for this, like "^^^ I
@@ -24,8 +24,8 @@ function typeEqualable (testType: NType): boolean {
   for (const type of iterateType(testType)) {
     if (type.type === 'named') {
       if (type.typeSpec instanceof EnumSpec) {
-        for (const types of type.typeSpec.variants) {
-          if (!types.every(typeEqualable)) {
+        for (const [, types] of type.typeSpec.variants) {
+          if (types.types && !types.types.every(typeEqualable)) {
             return false
           }
         }
@@ -118,7 +118,7 @@ export class Comparisons extends Base implements Expression {
   typeCheck (context: TypeCheckContext): TypeCheckResult {
     let { type, exitPoint } = context.scope.typeCheck(this.comparisons[0].a)
     for (const comparison of this.comparisons) {
-      let { type: typeB, exitPoint: exit } = context.scope.typeCheck(
+      const { type: typeB, exitPoint: exit } = context.scope.typeCheck(
         comparison.b,
       )
       const result = compareEqualTypes([type, typeB])

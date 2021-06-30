@@ -8,7 +8,6 @@ import {
 import { Base, BasePosition } from '../base'
 import { checkCondition, Condition, isCondition } from '../condition/Condition'
 import { compareEqualTypes } from '../../type-checker/types/comparisons/compare-equal'
-import { unknown } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
 
 export class IfExpression extends Base implements Expression {

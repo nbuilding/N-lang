@@ -12,7 +12,7 @@ import {
 } from './builtins'
 import { Operator } from './operations/Operator'
 import { UnaryOperator } from './operations/UnaryOperator'
-import { makeFunction, NFunction, NType, TypeSpec } from './types'
+import { makeFunction, NFunction, TypeSpec } from './types'
 
 export const operations: Record<Operator, NFunction[]> = {
   [Operator.ADD]: [
