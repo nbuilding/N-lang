@@ -978,6 +978,8 @@ class Scope:
                 else:
                     raise SyntaxError("Unexpected escape code: %s" % code)
             else:
+                if (val.type == "HEX"):
+                    return eval_value(val.value)
                 return val.value
         elif expr.data == "value":
             token_or_tree = expr.children[0]
