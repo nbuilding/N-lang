@@ -108,6 +108,7 @@ def special_print(val):
         print(display)
     return val
 
+
 def subsection_list(lower, upper, l):
     if lower < 0:
         lower = 0
@@ -115,10 +116,12 @@ def subsection_list(lower, upper, l):
         upper = len(l)
     return l[lower:upper]
 
+
 def to_module(possible_module):
     if isinstance(possible_module, NModule):
         return yes(possible_module)
     return none
+
 
 # Define global functions/variables
 def add_funcs(global_scope):
@@ -349,14 +352,16 @@ def add_funcs(global_scope):
     global_scope.add_native_function(
         "getUnitTestResults",
         [("possibleModule", n_module_type)],
-        n_list_type.with_typevars([
-            {
-                "hasPassed": "bool",
-                "fileLine": "int",
-                "unitTestType": "str",
-                "possibleTypes": n_maybe_type.with_typevars([["str", "str"]])
-            }
-        ]),
+        n_list_type.with_typevars(
+            [
+                {
+                    "hasPassed": "bool",
+                    "fileLine": "int",
+                    "unitTestType": "str",
+                    "possibleTypes": n_maybe_type.with_typevars([["str", "str"]]),
+                }
+            ]
+        ),
         lambda module: scope.unit_test_results[module.mod_name][:],
     )
 

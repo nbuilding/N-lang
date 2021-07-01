@@ -99,6 +99,7 @@ def parseSafe(string):
     except:
         return None
 
+
 def convert_float_to_int(value):
     if isinstance(value, float):
         if value % 1 == 0:
@@ -117,6 +118,7 @@ def convert_float_to_int(value):
                     value[i] = round(value[i])
 
     return value
+
 
 # TODO: Formatting options?
 # TODO: Convert NaN and infinities to null, per spec.

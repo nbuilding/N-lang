@@ -26,7 +26,16 @@ binary_operation_types = {
     "DIVIDE": [("int", "int", "int"), ("float", "float", "float")],
     "SHIFTL": [("int", "int", "int")],
     "SHIFTR": [("int", "int", "int")],
-    "IN": [("char", "str", "bool"), ("str", "str", "bool"), (in_generic, n_list_type.with_typevars([in_generic]), "bool"), (in_map_generic, n_map_type.with_typevars([in_map_generic, in_value_generic]), "bool")],
+    "IN": [
+        ("char", "str", "bool"),
+        ("str", "str", "bool"),
+        (in_generic, n_list_type.with_typevars([in_generic]), "bool"),
+        (
+            in_map_generic,
+            n_map_type.with_typevars([in_map_generic, in_value_generic]),
+            "bool",
+        ),
+    ],
     "ROUNDDIV": [("int", "int", "int"), ("float", "float", "float")],
     "MODULO": [("int", "int", "int"), ("float", "float", "float")],
     # Exponents are weird because negative powers result in non-integers.
