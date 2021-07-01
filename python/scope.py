@@ -799,7 +799,7 @@ class Scope:
                 return float(value)
             return int(value)
         elif value.type == "STRING":
-            return bytes(unescape(value[1:-1]), "utf-8").decode("unicode_escape")
+            return unescape(value[1:-1])
         elif value.type == "BOOLEAN":
             if value.value == "false":
                 return False
@@ -1005,9 +1005,7 @@ class Scope:
                 return self.eval_value(token_or_tree)
         elif expr.data == "impn":
             if expr.children[0].type == "STRING":
-                rel_file_path = bytes(unescape(expr.children[0].value[1:-1]), "utf-8").decode(
-                    "unicode_escape"
-                )
+                rel_file_path = unescape(expr.children[0].value[1:-1])
             else:
                 # Support old syntax
                 rel_file_path = expr.children[0].value + ".n"
@@ -1883,9 +1881,7 @@ class Scope:
                 return n_list_type.with_typevars([contained_type])
         elif expr.data == "impn":
             if expr.children[0].type == "STRING":
-                rel_file_path = bytes(unescape(expr.children[0].value[1:-1]), "utf-8").decode(
-                    "unicode_escape"
-                )
+                rel_file_path = unescape(expr.children[0].value[1:-1])
             else:
                 # Support old syntax
                 rel_file_path = expr.children[0].value + ".n"
