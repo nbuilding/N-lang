@@ -140,21 +140,23 @@ if __name__ == "__main__":
         default="run.n",
         help="The file to read. (optional. if not included, it'll just run run.n)",
     )
-    parser.add_argument("--check",
+    parser.add_argument(
+        "--check",
         action="store_true",
-        help="This goes through the file and prints out the errors and warnings without running it."
+        help="This goes through the file and prints out the errors and warnings without running it.",
     )
-    parser.add_argument("--newest",
-        action="store_true",
-        help="Shows the newest version of N."
+    parser.add_argument(
+        "--newest", action="store_true", help="Shows the newest version of N."
     )
-    parser.add_argument("--version",
+    parser.add_argument(
+        "--version",
         action="store_true",
-        help="Shows the current version of N installed."
+        help="Shows the current version of N installed.",
     )
-    parser.add_argument("--update",
+    parser.add_argument(
+        "--update",
         action="store_true",
-        help="This updates to the newest version of N if you are behind."
+        help="This updates to the newest version of N if you are behind.",
     )
 
     args = parser.parse_args()
