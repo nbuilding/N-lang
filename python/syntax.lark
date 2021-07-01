@@ -227,7 +227,8 @@ AWAIT: "!"
 PUBLIC: "pub"
 UNIT: "()"
 EMPTY: "_"
-%import common.ESCAPED_STRING -> STRING
+STRING: /"(?:[^\r\n\\"]|\\(?:[nrtvfb"\\]|u\{[0-9a-fA-F]+\}|\{.\}))*"/
+
 %import common.SIGNED_NUMBER  -> NUMBER
 %import common.CNAME
 %import common.WS
