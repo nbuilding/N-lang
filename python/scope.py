@@ -168,10 +168,19 @@ def get_arguments(tree):
     else:
         return [], arguments
 
+
 escapes = {
-    'n': '\n', 'r': '\r', 't': '\t', 'v': '\v', '0': '\0',
-    'f': '\f', 'b': '\b', '"': '"', '\\': '\\',
+    "n": "\n",
+    "r": "\r",
+    "t": "\t",
+    "v": "\v",
+    "0": "\0",
+    "f": "\f",
+    "b": "\b",
+    '"': '"',
+    "\\": "\\",
 }
+
 
 def unescape_sequence(escape_sequence_match):
     if escape_sequence_match[1]:
@@ -181,8 +190,12 @@ def unescape_sequence(escape_sequence_match):
     else:
         return escape_sequence_match[3]
 
+
 def unescape(string):
-    return re.sub(r'\\(?:([nrtv0fb"\\])|u\{([0-9a-fA-F]+)\}|\{(.)\})', unescape_sequence, string)
+    return re.sub(
+        r'\\(?:([nrtv0fb"\\])|u\{([0-9a-fA-F]+)\}|\{(.)\})', unescape_sequence, string
+    )
+
 
 class Scope:
     def __init__(
@@ -994,7 +1007,7 @@ class Scope:
                 else:
                     raise SyntaxError("Unexpected escape code: %s" % code)
             else:
-                if (val.type == "HEX"):
+                if val.type == "HEX":
                     return self.eval_value(val)
                 return val.value
         elif expr.data == "value":
