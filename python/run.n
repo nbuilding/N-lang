@@ -70,7 +70,7 @@ let thing2 = [] -> cmd[()] {
 			onMessage: [user:websocket.user message:str] -> cmd[bool] {
         print(message)
         let _ = user.send(message)!
-        /* user.disconnect(); */
+        // user.disconnect()
         return false
       }
 			onDisconnect: [user:websocket.user exitData:maybe[{ code: int; reason:str }]] -> cmd[bool] { return false }
