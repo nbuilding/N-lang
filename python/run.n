@@ -51,6 +51,13 @@ let thing = [] -> cmd[()] {
 	)!
 }
 
+let hex:int = 0xff
+print(hex)
+let bin:int = 0b11111111
+print(bin)
+let octal:int = 0o377
+print(octal)
+
 let thing2 = [] -> cmd[()] {
 	print("opening the websocket!")
 	let _ = websocket.createServer(

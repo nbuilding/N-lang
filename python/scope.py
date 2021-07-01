@@ -772,6 +772,12 @@ class Scope:
             list_val.append(val)
 
     def eval_value(self, value):
+        if value.type == "HEX":
+            return int(value.value, 16)
+        if value.type == "BINARY":
+            return int(value.value, 2)
+        if value.type == "OCTAL":
+            return int(value.value, 8)
         if value.type == "NUMBER":
             if "." in str(value.value):
                 return float(value)
@@ -1315,6 +1321,8 @@ class Scope:
         if isinstance(value, lark.Tree):
             if value.data == "char":
                 return "char"
+        if value.type == "HEX" or value.type == "BINARY" or value.type == "OCTAL":
+            return "int"
         if value.type == "NUMBER":
             if "." in str(value.value):
                 return "float"
