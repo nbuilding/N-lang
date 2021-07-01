@@ -182,6 +182,9 @@ value: NUMBER
      | listval
      | recordval
      | impn
+     | HEX
+     | BINARY
+     | OCTAL
 
 // Make sure that keywords are not in NAME
 NAME: /(?!(\b(let|type|var|alias|for|in|import|imp|return|if|else|class|pub|break|continue|with|yield|do|not|match)\b))/ CNAME
@@ -195,6 +198,9 @@ NAME: /(?!(\b(let|type|var|alias|for|in|import|imp|return|if|else|class|pub|brea
 
 //constants
 BOOLEAN: ("true" | "false")
+HEX: /0x[0-9a-fA-F]+/
+BINARY: /0b[01]+/
+OCTAL: /0o[0-8]+/
 COMMENT: "/*" /(.|\n|\r)+/ "*/"
        | "//" /[^\n]/*
 MULTILINE_COMMENT: "/*" /.+(?=\*\/)/*
