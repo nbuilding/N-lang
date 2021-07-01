@@ -169,7 +169,7 @@ def get_arguments(tree):
         return [], arguments
 
 escapes = {
-    'n': '\n', 'r': '\r', 't': '\t', 'v': '\v',
+    'n': '\n', 'r': '\r', 't': '\t', 'v': '\v', '0': '\0',
     'f': '\f', 'b': '\b', '"': '"', '\\': '\\',
 }
 
@@ -182,7 +182,7 @@ def unescape_sequence(escape_sequence_match):
         return escape_sequence_match[3]
 
 def unescape(string):
-    return re.sub(r'\\(?:([nrtv0fb"\\])|u\{([0-9a-fA-F]+)\}|\{(.)\})"', unescape_sequence, string)
+    return re.sub(r'\\(?:([nrtv0fb"\\])|u\{([0-9a-fA-F]+)\}|\{(.)\})', unescape_sequence, string)
 
 class Scope:
     def __init__(
