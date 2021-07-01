@@ -132,7 +132,7 @@ def run_file(filename, check=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Allows to only show warnings and choose the file location"
+        description="Allows to only show warnings and errors, choose the file location, see the newest version of N, check the version of N, and update N to the newest version."
     )
     parser.add_argument(
         "--file",
@@ -140,10 +140,22 @@ if __name__ == "__main__":
         default="run.n",
         help="The file to read. (optional. if not included, it'll just run run.n)",
     )
-    parser.add_argument("--check", action="store_true")
-    parser.add_argument("--newest", action="store_true")
-    parser.add_argument("--version", action="store_true")
-    parser.add_argument("--update", action="store_true")
+    parser.add_argument("--check",
+        action="store_true",
+        help="This goes through the file and prints out the errors and warnings without running it."
+    )
+    parser.add_argument("--newest",
+        action="store_true",
+        help="Shows the newest version of N."
+    )
+    parser.add_argument("--version",
+        action="store_true",
+        help="Shows the current version of N installed."
+    )
+    parser.add_argument("--update",
+        action="store_true",
+        help="This updates to the newest version of N if you are behind."
+    )
 
     args = parser.parse_args()
 
