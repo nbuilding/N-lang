@@ -5,4 +5,4 @@ let wow = [a: int] -> int {
   return a + 1
 }
 
-print(wow(3))
+assert value wow(3) == 4

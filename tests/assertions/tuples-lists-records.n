@@ -18,3 +18,32 @@ assert value listvalue == ["a", "b", "c"]
 
 let listindexvalue = itemAt(1, listvalue)
 assert value listindexvalue == yes("b")
+
+// Spread operator, from #168
+let errer = [1, 2, 3]
+assert value [..errer, 5, 5, 5, ..errer] == [1, 2, 3, 5, 5, 5, 1, 2, 3]
+
+let r = {
+	test: 1
+	test1: 2
+}
+
+assert value {
+	..r
+	test1: 3
+	test2: "reer"
+} == {
+  test: 1
+  test1: 3
+  test2: "reer"
+}
+
+assert value {
+	test1: 3
+	test2: "reer"
+	..r
+} == {
+  test: 1
+  test1: 2
+  test2: "reer"
+}

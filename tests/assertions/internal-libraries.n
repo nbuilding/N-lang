@@ -13,6 +13,20 @@ let pub main = [_: ()] -> cmd[()] {
 	// QUESTION: Is there a trailing newline?
 	assert value FileIO.read("./ignored/test.txt")! = yes("testtest")
 
+	assert type FileIO.writeBytes : str -> list[int] -> cmd[()]
+	assert value FileIO.writeBytes("./ignored/bytes.txt", [1, 2, 3])! == ()
+
+	assert type FileIO.appendBytes : str -> list[int] -> cmd[()]
+	assert value FileIO.appendBytes("./ignored/bytes.txt", [4, 5, 6])! == ()
+
+	assert type FileIO.readBytes : str -> cmd[maybe[list[int]]]
+	assert value FileIO.readBytes("./ignored/bytes.txt")! == yes([1, 2, 3, 4, 5, 6])
+
+	assert type FileIO.getFiles : str -> cmd[list[(bool, str)]]
+	let files = FileIO.getFiles("./ignored/")!
+	assert value (true, "text.txt") in files
+	assert value (true, "bytes.txt") in files
+
 	import json
 
 	let value = json.object(mapFrom([
@@ -63,6 +77,46 @@ let pub main = [_: ()] -> cmd[()] {
 		text: ""
 	}
 
+	// TODO: Runtime tests for these types of requests
+
+	assert type request.delete : str -> map[str, str] -> cmd[{
+		code: int
+		response: str
+		return: json.value
+	}]
+
+	assert type request.head : str -> map[str, str] -> cmd[{
+		code: int
+		response: str
+		return: json.value
+	}]
+
+	assert type request.options : str -> map[str, str] -> cmd[{
+		code: int
+		response: str
+		return: json.value
+	}]
+
+	assert type request.patch : str -> map[str, str] -> cmd[{
+		code: int
+		response: str
+		text: str
+	}]
+
+	assert type request.put : str -> map[str, str] -> cmd[{
+		code: int
+		response: str
+		text: str
+	}]
+
+	alias onRequest = str -> str -> json.value -> cmd[{
+		responseCode: int
+		data: data[int]
+		headers: map[str, str]
+		mimetype: str
+	}]
+	assert type request.createServer : int -> onRequest -> cmd[()]
+
 	import SystemIO
 
 	assert type SystemIO.inp : str -> cmd[str]
@@ -71,11 +125,21 @@ let pub main = [_: ()] -> cmd[()] {
 	import times
 
 	assert type times.sleep : int -> cmd[()]
-	// TODO: How to test times.sleep?
+	assert type times.getTime : () -> cmd[float]
+
+	let now = times.getTime()!
+	times.sleep(1000)!
+	// Allow some wiggle room because timing is hard
+	// Also note that times.sleep takes ms but times.getTime outputs seconds
+	assert value times.getTime()! - now > 0.8
 
 	import websocket
 
-	assert type websocket.connect : { onOpen: websocket.send -> cmd[bool]; onMessage: websocket.send -> cmd[bool] } -> str -> cmd[maybe[str]]
+	alias connectOptions = {
+		onOpen: websocket.send -> cmd[bool]
+		onMessage: websocket.send -> cmd[bool]
+	}
+	assert type websocket.connect : connectOptions -> str -> cmd[maybe[str]]
 
 	assert value websocket.connect({
 		onOpen: [send: websocket.send] -> cmd[bool] {
@@ -99,4 +163,11 @@ let pub main = [_: ()] -> cmd[()] {
 			return true
 		}
 	}, "definitely invalid url")! /= none
+
+	alias setupOptions = {
+		onConnect: websocket.user -> str -> cmd[bool]
+		onMessage: websocket.user -> str -> cmd[bool]
+		onDisconnect: websocket.user -> maybe[{ code: int; reason: str }] -> cmd[bool]
+	}
+	assert type websocket.createServer : setupOptions -> int -> cmd[maybe[()]]
 }
