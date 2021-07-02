@@ -1,0 +1,19 @@
+// Number and string literal syntax to ensure they're supported
+
+let binary = 0b10101
+let octal = 0o70707
+let hex = 0x123AbC
+
+// TODO: Do we allow something like `50e10`?
+let scinot = -5.000000000000001e-231
+
+let newline = \n
+let char = \{🐑}
+let unicode = \u{1f382}
+
+let allTogether = "\n\{🐑}\u{1f382}\\\\\\\\"
+
+let unit = ()
+
+let trailingComma = { a: (1, 2,); b: 2; }
+let inList: map[str, str,] = mapFrom([("ah", "pple",), ("ahh", "ppple",),],)
