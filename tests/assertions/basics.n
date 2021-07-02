@@ -1,0 +1,26 @@
+// No equivalent in the documentation 😳
+
+// Floats are double-precision :postpissedchil:
+
+// Division of nonzero numbers by zero; negative zero
+let inf = 1.0 / 0.0
+assert value 1.0 / -0.0 == -inf
+assert value 0.0 == -0.0
+
+// NaN
+let nan = inf - inf
+assert value nan /= nan
+assert value 0.0 / 0.0 /= 0.0 / 0.0
+
+assert value 0.1 + 0.2 == 0.30000000000000004
+
+assert value 9007199254740992.0 + 1.0 == 9007199254740992.0
+
+// Strings
+
+assert value "\{🕴}" == "🕴"
+assert value "\0\b\t\n\v\f\r\"\\" == "\u{0}\u{8}\u{9}\u{a}\u{b}\u{c}\u{d}\u{22}\u{5c}"
+
+// Chars
+
+assert value \v == \u{b}

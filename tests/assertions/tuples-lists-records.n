@@ -1,9 +1,20 @@
 // Based on docs/features/tuples_lists_records.md
 
-assert type 1, \{a} : int, char
+let tuplevalue = 1, \{a}
+assert type tuplevalue : int, char
 
 let recordValue = { value: 1 }
 assert type recordValue : { value: int }
-assert type recordValue.value : int
 
-assert type ["a", "b", "c"] : list[str]
+let value = recordvalue.value
+assert type value : int
+assert value value == 1
+
+let listvalue = ["a", "b", "c"]
+assert type listvalue : list[str]
+
+assert value append("d", listvalue) == ["a", "b", "c", "d"]
+assert value listvalue == ["a", "b", "c"]
+
+let listindexvalue = itemAt(1, listvalue)
+assert value listindexvalue == yes("b")
