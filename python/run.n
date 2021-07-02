@@ -58,8 +58,7 @@ print(bin)
 let octal:int = 0o377
 print(octal)
 print(\u{ff} + "")
-printWithEnd("\u{ff} ", "\r")
-print("asdfasdf")
+print("\u{ff} \" \0 \f \v \n \r")
 
 let thing2 = [] -> cmd[()] {
 	print("opening the websocket!")

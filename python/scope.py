@@ -173,6 +173,9 @@ escapes = {
     "n": "\n",
     "r": "\r",
     "t": "\t",
+    "v": "\v",
+    "0": "\0",
+    "f": "\f",
     "b": "\b",
     '"': '"',
     "\\": "\\",
@@ -190,7 +193,7 @@ def unescape_sequence(escape_sequence_match):
 
 def unescape(string):
     return re.sub(
-        r'\\(?:([nrtb"\\])|u\{([0-9a-fA-F]+)\}|\{(.)\})', unescape_sequence, string
+        r'\\(?:([nrtv0fb"\\])|u\{([0-9a-fA-F]+)\}|\{(.)\})', unescape_sequence, string
     )
 
 
