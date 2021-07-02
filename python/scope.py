@@ -173,9 +173,6 @@ escapes = {
     "n": "\n",
     "r": "\r",
     "t": "\t",
-    "v": "\v",
-    "0": "\0",
-    "f": "\f",
     "b": "\b",
     '"': '"',
     "\\": "\\",
@@ -183,6 +180,7 @@ escapes = {
 
 
 def unescape_sequence(escape_sequence_match):
+    print(escape_sequence_match)
     if escape_sequence_match[1]:
         return escapes[escape_sequence_match[1]]
     elif escape_sequence_match[2]:
@@ -193,7 +191,7 @@ def unescape_sequence(escape_sequence_match):
 
 def unescape(string):
     return re.sub(
-        r'\\(?:([nrtv0fb"\\])|u\{([0-9a-fA-F]+)\}|\{(.)\})', unescape_sequence, string
+        r'\\(?:([nrtb"\\])|u\{([0-9a-fA-F]+)\}|\{(.)\})', unescape_sequence, string
     )
 
 
@@ -997,6 +995,10 @@ class Scope:
         elif expr.data == "char":
             val = expr.children[0]
             if isinstance(val, lark.Tree):
+                if val.data == "hex_pattern":
+                    hex_val = val.children[0]
+                    hex_val.type = "HEX"
+                    return chr(self.eval_value(hex_val))
                 code = val.children[0].value
                 if code == "n":
                     return "\n"
@@ -1007,8 +1009,6 @@ class Scope:
                 else:
                     raise SyntaxError("Unexpected escape code: %s" % code)
             else:
-                if val.type == "HEX":
-                    return self.eval_value(val)
                 return val.value
         elif expr.data == "value":
             token_or_tree = expr.children[0]

@@ -22,7 +22,7 @@ assert value charCode(\{🕴}) = 0x1f574
 
 assert type intCode : int -> char
 assert value intCode(32) = \{ }
-assert value intCode(-1) = \u{0xFFFD}
+assert value intCode(-1) = \u{FFFD}
 
 assert type charAt : int -> str -> maybe[char]
 assert value charAt(1, "abc") = yes(\{b})

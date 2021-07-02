@@ -102,7 +102,6 @@ def entries(n_map):
 
 def special_print(val):
     if isinstance(val, str):
-        print(val)
         print(scope.unescape(val))
     else:
         display, _ = scope.display_value(val, indent="  ")
