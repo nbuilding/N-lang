@@ -3,7 +3,7 @@ import os.path
 import sys
 
 import lark
-import regex as re
+import re
 from lark import Lark
 from colorama import Fore, Style
 
@@ -180,7 +180,6 @@ escapes = {
 
 
 def unescape_sequence(escape_sequence_match):
-    print(escape_sequence_match)
     if escape_sequence_match[1]:
         return escapes[escape_sequence_match[1]]
     elif escape_sequence_match[2]:

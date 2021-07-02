@@ -100,12 +100,12 @@ def entries(n_map):
     return list(n_map.items())
 
 
-def special_print(val):
+def special_print(val, end="\n"):
     if isinstance(val, str):
-        print(scope.unescape(val))
+        print(val, end=end)
     else:
         display, _ = scope.display_value(val, indent="  ")
-        print(display)
+        print(display, end=end)
     return val
 
 
@@ -211,6 +211,10 @@ def add_funcs(global_scope):
     print_generic = NGenericType("t")
     global_scope.add_native_function(
         "print", [("val", print_generic)], print_generic, special_print
+    )
+    print_with_end_generic = NGenericType("t")
+    global_scope.add_native_function(
+        "printWithEnd", [("val", print_generic), ("end", "str")], print_generic, special_print
     )
     item_at_generic = NGenericType("t")
     global_scope.add_native_function(

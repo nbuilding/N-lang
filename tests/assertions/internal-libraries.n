@@ -9,9 +9,9 @@ let pub main = [_: ()] -> cmd[()] {
 	assert type FileIO.append : str -> str -> cmd[()]
 	assert value FileIO.append("./ignored/test.txt", "test")! = ()
 
-	assert type FileIO.read : str -> cmd[str]
+	assert type FileIO.read : str -> cmd[maybe[str]]
 	// QUESTION: Is there a trailing newline?
-	assert value FileIO.read("./ignored/test.txt")! = "testtest"
+	assert value FileIO.read("./ignored/test.txt")! = yes("testtest")
 
 	import json
 
@@ -75,7 +75,7 @@ let pub main = [_: ()] -> cmd[()] {
 
 	import websocket
 
-	assert type websocket.connect : { onOpen: [websocket.send] -> cmd[bool]; onMessage: [websocket.send] -> cmd[bool] } -> str -> cmd[maybe[str]]
+	assert type websocket.connect : { onOpen: websocket.send -> cmd[bool]; onMessage: websocket.send -> cmd[bool] } -> str -> cmd[maybe[str]]
 
 	assert value websocket.connect({
 		onOpen: [send: websocket.send] -> cmd[bool] {
