@@ -66,7 +66,7 @@ generic_declaration: "[" (NAME ",")* NAME "]"
 anonymous_func: arguments "->" NAME ":" (instruction (";" instruction)*)
 char: "\\" ( escape_code | "{" /./ "}" | "u{" hex_pattern "}")
 hex_pattern: /[0-9a-fA-F]+/
-escape_code: /[tnr]/
+escape_code: /[nrtv0fb]/
 tupledef: "(" types ("," types)* ")"
 recorddef: "{" (record_entry_lit (";" | "\n"))* record_entry_lit (";" | "\n")? "}"
 spread: ".." NAME
