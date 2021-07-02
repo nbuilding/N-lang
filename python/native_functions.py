@@ -1,3 +1,4 @@
+import asyncio
 import math
 import lark
 
@@ -24,6 +25,7 @@ from native_types import (
     err,
     n_module_type,
 )
+from ncmd import Cmd
 
 
 def substr(start, end, string):
@@ -80,6 +82,25 @@ def cmd_then(n_function, cmd):
     return cmd.then(then)
 
 
+def cmd_parallel(cmd):
+    async def in_parallel():
+        return await cmd.eval()
+
+    async def run_in_parallel():
+        # Run `cmd` in parallel
+        task = asyncio.create_task(in_parallel())
+
+        # The async function resolves when `cmd` is done
+        async def get_parallel_result():
+            return await task
+
+        # Return a `cmd` based on `get_parallel_result`
+        return Cmd(lambda _: get_parallel_result)
+
+    # Return a `cmd` based on `run_in_parallel`
+    return Cmd(lambda _: run_in_parallel)
+
+
 def map_from(entries):
     # NMap extends dict so it's basically a dict, but this way we can
     # distinguish between a record and a map.
@@ -107,7 +128,7 @@ def special_print(val):
         display, _ = scope.display_value(val, indent="  ")
         print(display)
     return val
-    
+
 
 def special_print_with_end(end, val):
     if isinstance(val, str):
@@ -223,7 +244,10 @@ def add_funcs(global_scope):
     )
     print_with_end_generic = NGenericType("t")
     global_scope.add_native_function(
-        "printWithEnd", [("end", "str"), ("val", print_with_end_generic)], print_with_end_generic, special_print_with_end
+        "printWithEnd",
+        [("end", "str"), ("val", print_with_end_generic)],
+        print_with_end_generic,
+        special_print_with_end,
     )
     item_at_generic = NGenericType("t")
     global_scope.add_native_function(
@@ -312,6 +336,15 @@ def add_funcs(global_scope):
         ],
         n_cmd_type.with_typevars([then_generic_out]),
         cmd_then,
+    )
+    parallel_generic = NGenericType("a")
+    global_scope.add_native_function(
+        "parallel",
+        [
+            ("cmd", n_cmd_type.with_typevars([parallel_generic])),
+        ],
+        n_cmd_type.with_typevars([n_cmd_type.with_typevars([parallel_generic])]),
+        cmd_parallel,
     )
     map_from_generic_key = NGenericType("k")
     map_from_generic_value = NGenericType("v")
