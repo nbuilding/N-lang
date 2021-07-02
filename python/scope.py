@@ -1008,6 +1008,14 @@ class Scope:
                     return "\t"
                 elif code == "r":
                     return "\r"
+                elif code == "v":
+                    return "\v"
+                elif code == "0":
+                    return "\0"
+                elif code == "f":
+                    return "\f"
+                elif code == "b":
+                    return "\b"
                 else:
                     raise SyntaxError("Unexpected escape code: %s" % code)
             else:

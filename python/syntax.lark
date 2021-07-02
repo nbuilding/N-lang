@@ -56,13 +56,13 @@ assert: "assert" assert_value
 //helpers
 name_type: pattern [":" types]
 function_dec_call: NAME (" " [name_type (" " name_type)*])?
-function_call: literal "(" [expression ("," expression)*] ")"
-pipe_function_call: literal ["(" [expression ("," expression)*] ")"]
+function_call: literal "(" [expression ("," expression)*]  (",")? ")"
+pipe_function_call: literal ["(" [expression ("," expression)*]  (",")? ")"]
 code_block: "{" [main_instruction* last_instruction] "}"
 function_def: arguments "->" types code_block
 arguments: "[" generic_declaration? arg_name_type* "]"
 arg_name_type: definite_pattern [":" types]
-generic_declaration: "[" (NAME ",")* NAME "]"
+generic_declaration: "[" (NAME ",")* NAME (",")? "]"
 anonymous_func: arguments "->" NAME ":" (instruction (";" instruction)*)
 char: "\\" ( escape_code | "{" /./ "}" | "u{" hex_pattern "}")
 hex_pattern: /[0-9a-fA-F]+/
@@ -71,8 +71,8 @@ tupledef: "(" types ("," types)* ")"
 recorddef: "{" (record_entry_lit (";" | "\n"))* record_entry_lit (";" | "\n")? "}"
 spread: ".." NAME
 record_entry_lit: CNAME ":" types
-with_typevars: module_type "[" types ("," types)* "]"
-declaration_with_typevars: NAME ("[" NAME ("," NAME)* "]")?
+with_typevars: module_type "[" types ("," types)* (",")? "]"
+declaration_with_typevars: NAME ("[" NAME ("," NAME)* (",")? "]")?
 tupleval: "(" expression ("," expression)* (",")? ")"
 listval: "[" (list_expression ("," list_expression)* (",")?)? "]"
 recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
