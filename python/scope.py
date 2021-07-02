@@ -3,6 +3,7 @@ import os.path
 import sys
 
 import lark
+import re
 from lark import Lark
 from colorama import Fore, Style
 
@@ -166,6 +167,34 @@ def get_arguments(tree):
         return arguments[0].children, arguments[1:]
     else:
         return [], arguments
+
+
+escapes = {
+    "n": "\n",
+    "r": "\r",
+    "t": "\t",
+    "v": "\v",
+    "0": "\0",
+    "f": "\f",
+    "b": "\b",
+    '"': '"',
+    "\\": "\\",
+}
+
+
+def unescape_sequence(escape_sequence_match):
+    if escape_sequence_match[1]:
+        return escapes[escape_sequence_match[1]]
+    elif escape_sequence_match[2]:
+        return chr(int(escape_sequence_match[2], 16))
+    else:
+        return escape_sequence_match[3]
+
+
+def unescape(string):
+    return re.sub(
+        r'\\(?:([nrtv0fb"\\])|u\{([0-9a-fA-F]+)\}|\{(.)\})', unescape_sequence, string
+    )
 
 
 class Scope:
@@ -783,7 +812,7 @@ class Scope:
                 return float(value)
             return int(value)
         elif value.type == "STRING":
-            return bytes(value[1:-1], "utf-8").decode("unicode_escape")
+            return unescape(value[1:-1])
         elif value.type == "BOOLEAN":
             if value.value == "false":
                 return False
@@ -968,6 +997,10 @@ class Scope:
         elif expr.data == "char":
             val = expr.children[0]
             if isinstance(val, lark.Tree):
+                if val.data == "hex_pattern":
+                    hex_val = val.children[0]
+                    hex_val.type = "HEX"
+                    return chr(self.eval_value(hex_val))
                 code = val.children[0].value
                 if code == "n":
                     return "\n"
@@ -987,9 +1020,7 @@ class Scope:
                 return self.eval_value(token_or_tree)
         elif expr.data == "impn":
             if expr.children[0].type == "STRING":
-                rel_file_path = bytes(expr.children[0].value[1:-1], "utf-8").decode(
-                    "unicode_escape"
-                )
+                rel_file_path = unescape(expr.children[0].value[1:-1])
             else:
                 # Support old syntax
                 rel_file_path = expr.children[0].value + ".n"
@@ -1865,9 +1896,7 @@ class Scope:
                 return n_list_type.with_typevars([contained_type])
         elif expr.data == "impn":
             if expr.children[0].type == "STRING":
-                rel_file_path = bytes(expr.children[0].value[1:-1], "utf-8").decode(
-                    "unicode_escape"
-                )
+                rel_file_path = unescape(expr.children[0].value[1:-1])
             else:
                 # Support old syntax
                 rel_file_path = expr.children[0].value + ".n"

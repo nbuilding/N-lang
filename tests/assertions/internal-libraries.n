@@ -1,11 +1,6 @@
 // Based on docs/features/internal_libraries.md
 
 let pub main = [_: ()] -> cmd[()] {
-	import fek
-
-	assert type fek.paer : str -> cmd[()]
-	assert value fek.paer("hi")! = ()
-
 	import FileIO
 
 	assert type FileIO.write : str -> str -> cmd[()]
@@ -14,9 +9,9 @@ let pub main = [_: ()] -> cmd[()] {
 	assert type FileIO.append : str -> str -> cmd[()]
 	assert value FileIO.append("./ignored/test.txt", "test")! = ()
 
-	assert type FileIO.read : str -> cmd[str]
+	assert type FileIO.read : str -> cmd[maybe[str]]
 	// QUESTION: Is there a trailing newline?
-	assert value FileIO.read("./ignored/test.txt")! = "testtest"
+	assert value FileIO.read("./ignored/test.txt")! = yes("testtest")
 
 	import json
 
@@ -80,18 +75,18 @@ let pub main = [_: ()] -> cmd[()] {
 
 	import websocket
 
-	assert type websocket.connect : websocket.connectOptions -> str -> cmd[maybe[str]]
+	assert type websocket.connect : { onOpen: websocket.send -> cmd[bool]; onMessage: websocket.send -> cmd[bool] } -> str -> cmd[maybe[str]]
 
 	assert value websocket.connect({
 		onOpen: [send: websocket.send] -> cmd[bool] {
 			assert type send : str -> cmd[()]
-			send("hi")!
+			let _ = send("hi")!
 			return false
 		}
 		onMessage: [send: websocket.send message: str] -> cmd[bool] {
 			assert type send : str -> cmd[()]
 			assert value message = "hi" | message = "hello"
-			send("hello")!
+			let _ = send("hello")!
 			return message == "hello"
 		}
 	}, "wss://echo.websocket.org")! = none

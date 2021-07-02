@@ -107,6 +107,15 @@ def special_print(val):
         display, _ = scope.display_value(val, indent="  ")
         print(display)
     return val
+    
+
+def special_print_with_end(end, val):
+    if isinstance(val, str):
+        print(val, end=end)
+    else:
+        display, _ = scope.display_value(val, indent="  ")
+        print(display, end=end)
+    return val
 
 
 def subsection_list(lower, upper, l):
@@ -211,6 +220,10 @@ def add_funcs(global_scope):
     print_generic = NGenericType("t")
     global_scope.add_native_function(
         "print", [("val", print_generic)], print_generic, special_print
+    )
+    print_with_end_generic = NGenericType("t")
+    global_scope.add_native_function(
+        "printWithEnd", [("end", "str"), ("val", print_with_end_generic)], print_with_end_generic, special_print_with_end
     )
     item_at_generic = NGenericType("t")
     global_scope.add_native_function(
