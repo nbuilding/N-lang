@@ -1,6 +1,6 @@
 // Based on docs/features/enums.md
 
-{
+let _ = [] -> () {
 	type state = mainMenu | ongoing | ended
 
 	assert type mainMenu : state
@@ -10,7 +10,7 @@
 	assert type gameState : state
 }
 
-{
+let _ = [] -> () {
 	type state =
 		| mainMenu
 		| <ongoing int>

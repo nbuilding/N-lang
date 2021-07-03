@@ -60,7 +60,7 @@ assert value range(0, 0, 1) = []
 assert value range(1, 0, 1) = []
 
 // `type` is not a "function" per se
-assert value type(10.0) = "float"
+assert value getType(10.0) = "float"
 
 assert type print : [t] t -> t
 assert value print("test") = "test"
@@ -86,8 +86,8 @@ assert value default("test1", none) = "test1"
 
 assert type then : [a, b] (a -> cmd[b]) -> cmd[a] -> cmd[b]
 import FileIO
-assert type then([text: str] -> cmd[()] {
-	assert value len(text) > 0
+assert type then([text: maybe[str]] -> cmd[()] {
+	assert value len(text |> default("")) > 0
 }, FileIO.read("./README.md")) : cmd[()]
 
 assert type mapFrom : [k, v] list[(k, v)] -> map[k, v]

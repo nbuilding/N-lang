@@ -63,9 +63,7 @@ async def filter_map(transformer, lis):
 
 
 def type_display(o):
-    if isinstance(o, Function):
-        return str(o)
-    return type(o).__name__
+    return display_type(o, False)
 
 
 def with_default(default_value, maybe_value):
@@ -153,6 +151,12 @@ def to_module(possible_module):
     return none
 
 
+def char_with_replace(num):
+    try:
+        return chr(num)
+    except ValueError:
+        return u'\ufffd'
+
 # Define global functions/variables
 def add_funcs(global_scope):
     global_scope.variables["none"] = Variable(n_maybe_type, none)
@@ -191,7 +195,7 @@ def add_funcs(global_scope):
         "intCode",
         [("number", "int")],
         "char",
-        chr,
+        char_with_replace,
     )
     global_scope.add_native_function(
         "charAt",
@@ -233,7 +237,7 @@ def add_funcs(global_scope):
         lambda start, end, step: list(range(start, end, step)),
     )
     global_scope.add_native_function(
-        "type",
+        "getType",
         [("obj", NGenericType("t"))],
         "str",
         type_display,
