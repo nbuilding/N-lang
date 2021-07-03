@@ -36,7 +36,6 @@ binary_operation_types = {
             "bool",
         ),
     ],
-    "ROUNDDIV": [("int", "int", "int"), ("float", "float", "float")],
     "MODULO": [("int", "int", "int"), ("float", "float", "float")],
     # Exponents are weird because negative powers result in non-integers.
     # TODO: Make int ^ int an int; negative powers should result in 0.

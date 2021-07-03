@@ -1,0 +1,7 @@
+// From #104
+assert value match ("How are you?") {
+  "Who are you?" -> "I am an example."
+  "How are you?" -> "I am good."
+  "Why are you?" -> "Why are *you*?"
+  _ -> "I don't understand."
+} == "I am good."

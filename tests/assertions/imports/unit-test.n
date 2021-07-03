@@ -1,0 +1,9 @@
+// For native-functions.N
+
+assert value true
+
+assert value false
+
+assert type "wow" : str
+
+assert type "definitely int" : int
