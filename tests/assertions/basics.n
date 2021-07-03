@@ -1,5 +1,52 @@
 // No equivalent in the documentation 😳
 
+// Basic operations
+
+assert value (false | true) == true
+assert value (0b1100 | 0b1110) == 0b1110
+
+assert value (false & true) == false
+assert value (0b1100 & 0b1110) == 0b1000
+
+assert value 2 + 2 == 4
+assert value 2.75 + 2.75 == 5.5
+assert value "happy" + "sheep" == "happysheep"
+// :couple_with_heart_person_person_medium_light_skin_tone_medium_dark_skin_tone:
+assert value \{🧑} + \u{1f3fc} + \u{200d} + "❤\u{fe0f}" + \u{200d} + "🧑🏾" == "🧑🏼‍❤️‍🧑🏾"
+assert value [1, 2, 3] + [4, 5, 6] == [1, 2, 3, 4, 5, 6]
+
+assert value 1 - 2 - 3 == -4
+assert value -1.5 - -0.25 == -1.25
+
+assert value 10 * 10 == 100
+assert value 0.5 * 0.5 == 0.25
+
+assert value 7 / 2 == 3
+assert value 7.0 / 2.0 == 3.5
+
+assert value 0b1101 << 3 == 0b1101000
+// From https://github.com/nbuilding/N-lang/pull/181
+assert value 2 << 3 == 2 * 2^3
+
+assert value 0b1101011 >> 3 == 0b1101
+assert value 0x123 >> 4 == 0x12
+
+assert value \{🐑} in "Is there a 🐑 here?"
+assert value not "yes" in "There is no sheep here! I promise."
+assert value 3 in [2, 3, 5, 7]
+assert value "wow" in mapFrom([("nice", "wee"), ("wow", "lol")])
+
+assert value 36 % 7 == 1
+assert value -36 % 7 == 6
+assert value 36 % -7 == -6
+assert value -36 % -7 == -1
+
+assert value 2 ^ -2 == 0.25
+assert value 0.7 < 0.5 ^ 0.5 < 0.71
+
+assert value (not not true) == true
+assert value (not not -1) == -1
+
 // Floats are double-precision :postpissedchil:
 
 // Division of nonzero numbers by zero; negative zero
