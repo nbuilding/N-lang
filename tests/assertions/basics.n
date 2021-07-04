@@ -26,7 +26,7 @@ assert value 7.0 / 2.0 == 3.5
 
 assert value 0b1101 << 3 == 0b1101000
 // From https://github.com/nbuilding/N-lang/pull/181
-assert value 2 << 3 == floor(toFloat(2) * 2^3)
+assert value 2 << 3 == 2 * floor(2^3)
 
 assert value 0b1101011 >> 3 == 0b1101
 assert value 0x123 >> 4 == 0x12

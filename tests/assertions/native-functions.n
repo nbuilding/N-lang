@@ -37,7 +37,7 @@ assert value substring(2, 100, "hi") = ""
 assert value substring(5, 3, "hello world") = ""
 
 assert type toFloat : int -> float
-assert type toFloat(3) == 3.0
+assert value toFloat(3) == 3.0
 
 assert type len : [t] t -> int
 assert value len("abc") = 3
@@ -132,29 +132,38 @@ if let <yes module> = intoModule(imp "./imports/unit-test.n") {
 
 	assert value len(results) == 4
 
-	assert value results[0] == {
+	assert value (results |> itemAt(0)) == yes({
 		hasPassed: true
 		fileLine: 3
 		unitTestType: "value"
 		possibleTypes: none
-	}
+	})
 
-	assert value results[1] == {
+	assert value (results |> itemAt(1)) == yes({
 		hasPassed: false
 		fileLine: 5
 		unitTestType: "value"
 		possibleTypes: none
+	})
+
+	for (result in (results |> subsection(2, 4))) {
+		assert value result.hasPassed
+		assert value result.unitTestType == "type"
+		// I'm not sure if `display_type`'s output is standardised yet
+		assert value if let <yes _> = result.possibleTypes { true } else { false }
 	}
 
-	assert value results[2].hasPassed
-	assert value results[2].fileLine == 7
-	assert value results[2].unitTestType == "type"
-	// I'm not sure if `display_type`'s output is standardised yet
-	assert value if let <yes _> = results[2].possibleTypes { true } else { false }
+	assert value (results |> itemAt(2) |> default({
+		hasPassed: true
+		fileLine: 0
+		unitTestType: "value"
+		possibleTypes: none
+	})).fileLine == 7
 
-	assert value not results[3].hasPassed
-	assert value results[3].fileLine == 9
-	assert value results[3].unitTestType == "type"
-	// I'm not sure if `display_type`'s output is standardised yet
-	assert value if let <yes _> = results[3].possibleTypes { true } else { false }
+	assert value (results |> itemAt(3) |> default({
+		hasPassed: true
+		fileLine: 0
+		unitTestType: "value"
+		possibleTypes: none
+	})).fileLine == 9
 }
