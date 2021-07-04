@@ -41,13 +41,14 @@ export class Identifier extends Literal implements Pattern {
     }
   }
 
-  compilePattern(scope: CompilationScope, valueName: string): PatternCompilationResult {
+  compilePattern (
+    scope: CompilationScope,
+    valueName: string,
+  ): PatternCompilationResult {
     const varName = scope.context.genVarName(this.value)
     scope.names.set(this.value, varName)
     return {
-      statements: [
-        `${varName} = ${valueName};`
-      ],
+      statements: [`${varName} = ${valueName};`],
       varNames: [varName],
     }
   }

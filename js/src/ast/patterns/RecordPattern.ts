@@ -98,12 +98,18 @@ export class RecordPattern extends Base implements Pattern {
     return {}
   }
 
-  compilePattern(scope: CompilationScope, valueName: string): PatternCompilationResult {
+  compilePattern (
+    scope: CompilationScope,
+    valueName: string,
+  ): PatternCompilationResult {
     const statements: string[] = []
     const varNames: string[] = []
     const mangledKeys = scope.context.normaliseRecord()
     for (const entry of this.entries) {
-      const { statements: s, varNames: v } = entry.value.compilePattern(scope, `${valueName}.${mangledKeys[entry.key.value]}`)
+      const { statements: s, varNames: v } = entry.value.compilePattern(
+        scope,
+        `${valueName}.${mangledKeys[entry.key.value]}`,
+      )
       statements.push(...s)
       varNames.push(...v)
     }

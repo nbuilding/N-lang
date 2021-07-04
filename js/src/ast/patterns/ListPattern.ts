@@ -50,11 +50,17 @@ export class ListPattern extends Base implements Pattern {
     return {}
   }
 
-  compilePattern(scope: CompilationScope, valueName: string): PatternCompilationResult {
+  compilePattern (
+    scope: CompilationScope,
+    valueName: string,
+  ): PatternCompilationResult {
     const statements: string[] = []
     const varNames: string[] = []
     this.patterns.forEach((pattern, i) => {
-      const { statements: s, varNames: v } = pattern.compilePattern(scope, `${valueName}[${i}]`)
+      const { statements: s, varNames: v } = pattern.compilePattern(
+        scope,
+        `${valueName}[${i}]`,
+      )
       statements.push(...s)
       varNames.push(...v)
     })

@@ -50,13 +50,19 @@ export class IfExpression extends Base implements Expression {
   }
 
   compile (scope: CompilationScope): CompilationResult {
-    const { statements: condS, expression: condE } = this.condition.compile(scope)
-    const { statements: thenS, expression: thenE } = this.then.compile(scope.inner())
-    const { statements: elseS, expression: elseE } = this.else.compile(scope.inner())
+    const { statements: condS, expression: condE } = this.condition.compile(
+      scope,
+    )
+    const { statements: thenS, expression: thenE } = this.then.compile(
+      scope.inner(),
+    )
+    const { statements: elseS, expression: elseE } = this.else.compile(
+      scope.inner(),
+    )
     if (thenS.length === 0 && elseS.length === 0) {
       return {
         statements: condS,
-        expression: `${condE} ? ${thenE} : ${elseE}`
+        expression: `${condE} ? ${thenE} : ${elseE}`,
       }
     } else {
       const result = scope.context.genVarName('ifCond')
@@ -65,18 +71,12 @@ export class IfExpression extends Base implements Expression {
           ...condS,
           `var ${result};`,
           `if (${condE}) {`,
-          ...scope.context.indent([
-            ...thenS,
-            `${result} = ${thenE};`
-          ]),
+          ...scope.context.indent([...thenS, `${result} = ${thenE};`]),
           `} else {`,
-          ...scope.context.indent([
-            ...elseS,
-            `${result} = ${elseE};`
-          ]),
+          ...scope.context.indent([...elseS, `${result} = ${elseE};`]),
           `}`,
         ],
-        expression: result
+        expression: result,
       }
     }
   }

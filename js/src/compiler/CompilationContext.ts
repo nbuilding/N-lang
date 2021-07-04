@@ -1,6 +1,6 @@
-import { generateNames } from "../../test/unit/utils/generate-names";
-import { Base } from "../ast/base";
-import { NRecord, NType } from "../type-checker/types/types";
+import { generateNames } from '../../test/unit/utils/generate-names'
+import { Base } from '../ast/base'
+import { NRecord, NType } from '../type-checker/types/types'
 
 export class CompilationContext {
   // TODO

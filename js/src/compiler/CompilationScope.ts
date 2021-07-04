@@ -1,4 +1,4 @@
-import { CompilationContext } from "./CompilationContext"
+import { CompilationContext } from './CompilationContext'
 
 export class CompilationScope {
   context: CompilationContext

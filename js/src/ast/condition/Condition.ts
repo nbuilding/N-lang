@@ -3,7 +3,11 @@ import { ErrorType } from '../../type-checker/errors/Error'
 import { Scope } from '../../type-checker/Scope'
 import { ScopeBaseContext } from '../../type-checker/ScopeBaseContext'
 import { bool } from '../../type-checker/types/builtins'
-import { CompilationResult, Expression, isExpression } from '../expressions/Expression'
+import {
+  CompilationResult,
+  Expression,
+  isExpression,
+} from '../expressions/Expression'
 import { Return } from '../expressions/Return'
 import { IfLet } from './IfLet'
 
@@ -31,7 +35,10 @@ export function checkCondition (
   }
 }
 
-export function compileCondition (scope: CompilationScope, condition: Condition): CompilationResult & { scope: CompilationScope } {
+export function compileCondition (
+  scope: CompilationScope,
+  condition: Condition,
+): CompilationResult & { scope: CompilationScope } {
   if (condition instanceof IfLet) {
     return {
       //

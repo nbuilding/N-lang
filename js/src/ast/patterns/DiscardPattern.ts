@@ -1,7 +1,12 @@
 import { CompilationScope } from '../../compiler/CompilationScope'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
-import { CheckPatternContext, CheckPatternResult, Pattern, PatternCompilationResult } from './Pattern'
+import {
+  CheckPatternContext,
+  CheckPatternResult,
+  Pattern,
+  PatternCompilationResult,
+} from './Pattern'
 
 export class DiscardPattern extends Base implements Pattern {
   constructor (
@@ -15,7 +20,10 @@ export class DiscardPattern extends Base implements Pattern {
     return {}
   }
 
-  compilePattern(_scope: CompilationScope, _valueName: string): PatternCompilationResult {
+  compilePattern (
+    _scope: CompilationScope,
+    _valueName: string,
+  ): PatternCompilationResult {
     return {
       statements: [],
       varNames: [],

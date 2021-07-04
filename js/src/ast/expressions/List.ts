@@ -60,7 +60,7 @@ export class List extends Base implements Expression {
     }
     return {
       statements,
-      expression: `[${expressions.join(', ')}]`
+      expression: `[${expressions.join(', ')}]`,
     }
   }
 

@@ -37,7 +37,10 @@ export type PatternCompilationResult = {
 export interface Pattern extends Base {
   checkPattern(context: CheckPatternContext): CheckPatternResult
 
-  compilePattern(scope: CompilationScope, valueName: string): PatternCompilationResult
+  compilePattern(
+    scope: CompilationScope,
+    valueName: string,
+  ): PatternCompilationResult
 }
 
 export function isPattern (value: unknown): value is Pattern {

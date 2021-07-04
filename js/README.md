@@ -28,7 +28,10 @@ but with the trailing commas typical of TypeScript.
 
 ```sh
 # Global dependencies
-npm install --global prettier-standard eslint
+# (The prettier-standard package has been unmaintained and doesn't support
+# modern TypeScript syntax, so we're using a branch made by a dependency updater
+# bot.)
+npm install --global sheerun/prettier-standard#snyk-fix-9db5557ac6db798b421e149e10797a39 eslint
 
 # Autoformats the files in place
 prettier-standard --format
