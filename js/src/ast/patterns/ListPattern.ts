@@ -68,7 +68,7 @@ export class ListPattern extends Base implements Pattern {
       statements: [
         `if (${valueName}.length === ${this.patterns.length}) {`,
         ...scope.context.indent(statements),
-        '} else return;',
+        '} else return false;',
       ],
       varNames,
     }

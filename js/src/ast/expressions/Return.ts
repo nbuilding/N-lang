@@ -1,5 +1,6 @@
 import schema, * as schem from '../../utils/schema'
 import {
+  CompilationResult,
   Expression,
   isExpression,
   TypeCheckContext,
@@ -15,6 +16,7 @@ import { unknown } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { cmd } from '../../type-checker/types/builtins'
 import { attemptAssign } from '../../type-checker/types/comparisons/compare-assignable'
+import { CompilationScope } from '../../compiler/CompilationScope'
 
 export class Return extends Base implements Expression, Statement {
   value: Expression
@@ -56,6 +58,14 @@ export class Return extends Base implements Expression, Statement {
     return {
       type: unknown,
       exitPoint: exitPoint || this,
+    }
+  }
+
+  compile (scope: CompilationScope): CompilationResult {
+    const { statements, expression } = this.value.compile(scope)
+    return {
+      statements: [...statements, `return ${expression}`],
+      expression: 'undefined',
     }
   }
 

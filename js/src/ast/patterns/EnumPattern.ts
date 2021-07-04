@@ -1,3 +1,4 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { EnumSpec, unknown } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
@@ -8,11 +9,13 @@ import {
   CheckPatternResult,
   isPattern,
   Pattern,
+  PatternCompilationResult,
 } from './Pattern'
 
 export class EnumPattern extends Base implements Pattern {
   variant: Identifier
   patterns: Pattern[]
+  type?: EnumSpec
 
   constructor (
     pos: BasePosition,
@@ -26,6 +29,7 @@ export class EnumPattern extends Base implements Pattern {
 
   checkPattern (context: CheckPatternContext): CheckPatternResult {
     if (EnumSpec.isEnum(context.type)) {
+      this.type = context.type.typeSpec
       if (context.type.typeSpec.variants.size > 1 && context.definite) {
         context.err({
           type: ErrorType.ENUM_PATTERN_DEF_MULT_VARIANTS,
@@ -74,6 +78,40 @@ export class EnumPattern extends Base implements Pattern {
       context.checkPattern(pattern, unknown)
     }
     return {}
+  }
+
+  compilePattern (
+    scope: CompilationScope,
+    valueName: string,
+  ): PatternCompilationResult {
+    const statements: string[] = []
+    const varNames: string[] = []
+    const {
+      mangled: { [this.variant.value]: mangled },
+      nullable,
+    } = scope.context.normaliseEnum(this.type!)
+    if (mangled) {
+      this.patterns.forEach((pattern, i) => {
+        const { statements: s, varNames: v } = pattern.compilePattern(
+          scope,
+          `${valueName}.${mangled[i]}`,
+        )
+        statements.push(...s)
+        varNames.push(...v)
+      })
+    }
+    return {
+      statements: [
+        mangled === null
+          ? `if (!${valueName}) {`
+          : `if (${nullable ? `${valueName} && ` : ''}'${
+              mangled[0]
+            }' in ${valueName}) {`,
+        ...scope.context.indent(statements),
+        '} else return false;',
+      ],
+      varNames,
+    }
   }
 
   toString (): string {

@@ -1,6 +1,11 @@
 import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
-import { AliasSpec, unknown } from '../../type-checker/types/types'
+import {
+  AliasSpec,
+  NModule,
+  NRecord,
+  unknown,
+} from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
@@ -43,6 +48,7 @@ export class RecordPatternEntry extends Base {
 
 export class RecordPattern extends Base implements Pattern {
   entries: RecordPatternEntry[]
+  type?: NRecord | NModule
 
   constructor (
     pos: BasePosition,
@@ -58,6 +64,7 @@ export class RecordPattern extends Base implements Pattern {
   checkPattern (context: CheckPatternContext): CheckPatternResult {
     const resolved = AliasSpec.resolve(context.type)
     if (resolved.type === 'record' || resolved.type === 'module') {
+      this.type = resolved
       const keys: Set<string> = new Set()
       for (const entry of this.entries) {
         if (keys.has(entry.key.value)) {
@@ -104,7 +111,7 @@ export class RecordPattern extends Base implements Pattern {
   ): PatternCompilationResult {
     const statements: string[] = []
     const varNames: string[] = []
-    const mangledKeys = scope.context.normaliseRecord()
+    const mangledKeys = scope.context.normaliseRecord(this.type!)
     for (const entry of this.entries) {
       const { statements: s, varNames: v } = entry.value.compilePattern(
         scope,

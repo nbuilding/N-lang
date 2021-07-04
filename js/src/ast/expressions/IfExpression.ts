@@ -7,7 +7,12 @@ import {
   TypeCheckResult,
 } from './Expression'
 import { Base, BasePosition } from '../base'
-import { checkCondition, Condition, isCondition } from '../condition/Condition'
+import {
+  checkCondition,
+  compileCondition,
+  Condition,
+  isCondition,
+} from '../condition/Condition'
 import { compareEqualTypes } from '../../type-checker/types/comparisons/compare-equal'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { CompilationContext } from '../../compiler/CompilationContext'
@@ -50,11 +55,13 @@ export class IfExpression extends Base implements Expression {
   }
 
   compile (scope: CompilationScope): CompilationResult {
-    const { statements: condS, expression: condE } = this.condition.compile(
-      scope,
-    )
+    const {
+      statements: condS,
+      expression: condE,
+      scope: thenScope,
+    } = compileCondition(scope, this.condition)
     const { statements: thenS, expression: thenE } = this.then.compile(
-      scope.inner(),
+      thenScope,
     )
     const { statements: elseS, expression: elseE } = this.else.compile(
       scope.inner(),

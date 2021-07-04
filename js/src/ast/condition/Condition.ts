@@ -40,8 +40,28 @@ export function compileCondition (
   condition: Condition,
 ): CompilationResult & { scope: CompilationScope } {
   if (condition instanceof IfLet) {
+    const { statements: exprS, expression } = condition.expression.compile(
+      scope,
+    )
+    const expressionName = scope.context.genVarName('ifLetValue')
+    const innerScope = scope.inner()
+    const {
+      statements: pattS,
+      varNames,
+    } = condition.declaration.pattern.compilePattern(innerScope, expressionName)
+    const resultName = scope.context.genVarName('ifLetResult')
     return {
-      //
+      statements: [
+        ...exprS,
+        `var ${expressionName} = ${expression}${varNames
+          .map(name => `  , ${name}`)
+          .join('')};`,
+        `var ${resultName} = (function () {`,
+        ...scope.context.indent([...pattS, 'return true;']),
+        `})();`,
+      ],
+      expression: resultName,
+      scope: innerScope,
     }
   } else {
     return {

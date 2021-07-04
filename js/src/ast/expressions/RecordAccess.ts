@@ -1,5 +1,6 @@
 import schema, * as schem from '../../utils/schema'
 import {
+  CompilationResult,
   Expression,
   isExpression,
   TypeCheckContext,
@@ -7,12 +8,19 @@ import {
 } from './Expression'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
-import { AliasSpec, unknown } from '../../type-checker/types/types'
+import {
+  AliasSpec,
+  NModule,
+  NRecord,
+  unknown,
+} from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
+import { CompilationScope } from '../../compiler/CompilationScope'
 
 export class RecordAccess extends Base implements Expression {
   value: Expression
   field: Identifier
+  type?: NRecord | NModule
 
   constructor (
     pos: BasePosition,
@@ -27,6 +35,7 @@ export class RecordAccess extends Base implements Expression {
     const { type, exitPoint } = context.scope.typeCheck(this.value)
     const resolved = AliasSpec.resolve(type)
     if (resolved.type === 'record' || resolved.type === 'module') {
+      this.type = resolved
       const fieldType = resolved.types.get(this.field.value)
       if (!fieldType) {
         context.err({
@@ -41,6 +50,15 @@ export class RecordAccess extends Base implements Expression {
         })
       }
       return { type: unknown, exitPoint }
+    }
+  }
+
+  compile (scope: CompilationScope): CompilationResult {
+    const { statements, expression } = this.value.compile(scope)
+    const mangledKeys = scope.context.normaliseRecord(this.type!)
+    return {
+      statements,
+      expression: `(${expression}).${mangledKeys[this.field.value]}`,
     }
   }
 

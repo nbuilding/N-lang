@@ -1,7 +1,9 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import schema, * as schem from '../../utils/schema'
 import { isToken } from '../../utils/type-guards'
 import { Base, BasePosition } from '../base'
 import {
+  CompilationResult,
   Expression,
   TypeCheckContext,
   TypeCheckResult,
@@ -16,6 +18,8 @@ export abstract class Literal extends Base implements Expression {
   }
 
   abstract typeCheck (context: TypeCheckContext): TypeCheckResult
+
+  abstract compile (scope: CompilationScope): CompilationResult
 
   toString (): string {
     return this.value
