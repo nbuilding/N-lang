@@ -1,3 +1,4 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { Scope } from '../../type-checker/Scope'
 import { ScopeBaseContext } from '../../type-checker/ScopeBaseContext'
 import { NType } from '../../type-checker/types/types'
@@ -28,8 +29,15 @@ export class CheckPatternContext extends ScopeBaseContext {
 
 export type CheckPatternResult = Record<string, never>
 
+export type PatternCompilationResult = {
+  statements: string[]
+  varNames: string[]
+}
+
 export interface Pattern extends Base {
   checkPattern(context: CheckPatternContext): CheckPatternResult
+
+  compilePattern(scope: CompilationScope, valueName: string): PatternCompilationResult
 }
 
 export function isPattern (value: unknown): value is Pattern {

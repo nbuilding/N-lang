@@ -1,3 +1,4 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { Scope } from '../../type-checker/Scope'
 import { ScopeBaseContext } from '../../type-checker/ScopeBaseContext'
 import { NType } from '../../type-checker/types/types'
@@ -15,8 +16,15 @@ export interface TypeCheckResult {
   exitPoint?: Return
 }
 
+export type CompilationResult = {
+  statements: string[]
+  expression: string
+}
+
 export interface Expression extends Base {
   typeCheck(context: TypeCheckContext): TypeCheckResult
+
+  compile(scope: CompilationScope): CompilationResult
 }
 
 export function isExpression (value: unknown): value is Expression {

@@ -10,6 +10,10 @@ let value = recordvalue.value
 assert type value : int
 assert value value == 1
 
+// Ensure that record fields can be in any order
+assert type { b: 3.14; a: "pi" } : { a: str; b: float }
+assert value { a: "pi"; b: 3.14 } == { b: 3.14; a: "pi" }
+
 let listvalue = ["a", "b", "c"]
 assert type listvalue : list[str]
 
@@ -18,3 +22,6 @@ assert value listvalue == ["a", "b", "c"]
 
 let listindexvalue = itemAt(1, listvalue)
 assert value listindexvalue == yes("b")
+
+// Ensure that map fields can be in any order
+assert value mapFrom([("a", 1), ("b", 2)]) == mapFrom([("b", 2), ("a", 1)])

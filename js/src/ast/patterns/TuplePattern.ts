@@ -1,3 +1,4 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { AliasSpec, unknown } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
@@ -7,6 +8,7 @@ import {
   CheckPatternResult,
   isPattern,
   Pattern,
+  PatternCompilationResult,
 } from './Pattern'
 
 export class TuplePattern extends Base implements Pattern {
@@ -49,6 +51,20 @@ export class TuplePattern extends Base implements Pattern {
       }
     }
     return {}
+  }
+
+  compilePattern(scope: CompilationScope, valueName: string): PatternCompilationResult {
+    const statements: string[] = []
+    const varNames: string[] = []
+    this.patterns.map((pattern, i) => {
+      const { statements: s, varNames: v } = pattern.compilePattern(scope, `${valueName}[${i}]`)
+      statements.push(...s)
+      varNames.push(...v)
+    })
+    return {
+      statements,
+      varNames,
+    }
   }
 
   toString (): string {

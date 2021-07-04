@@ -1,5 +1,6 @@
 import schema, * as schem from '../../utils/schema'
 import {
+  CompilationResult,
   Expression,
   isExpression,
   TypeCheckContext,
@@ -9,6 +10,9 @@ import { Base, BasePosition } from '../base'
 import { checkCondition, Condition, isCondition } from '../condition/Condition'
 import { compareEqualTypes } from '../../type-checker/types/comparisons/compare-equal'
 import { ErrorType } from '../../type-checker/errors/Error'
+import { CompilationContext } from '../../compiler/CompilationContext'
+import { NType } from '../../type-checker/types/types'
+import { CompilationScope } from '../../compiler/CompilationScope'
 
 export class IfExpression extends Base implements Expression {
   condition: Condition
@@ -43,6 +47,38 @@ export class IfExpression extends Base implements Expression {
       })
     }
     return { type: result.type, exitPoint }
+  }
+
+  compile (scope: CompilationScope): CompilationResult {
+    const { statements: condS, expression: condE } = this.condition.compile(scope)
+    const { statements: thenS, expression: thenE } = this.then.compile(scope.inner())
+    const { statements: elseS, expression: elseE } = this.else.compile(scope.inner())
+    if (thenS.length === 0 && elseS.length === 0) {
+      return {
+        statements: condS,
+        expression: `${condE} ? ${thenE} : ${elseE}`
+      }
+    } else {
+      const result = scope.context.genVarName('ifCond')
+      return {
+        statements: [
+          ...condS,
+          `var ${result};`,
+          `if (${condE}) {`,
+          ...scope.context.indent([
+            ...thenS,
+            `${result} = ${thenE};`
+          ]),
+          `} else {`,
+          ...scope.context.indent([
+            ...elseS,
+            `${result} = ${elseE};`
+          ]),
+          `}`,
+        ],
+        expression: result
+      }
+    }
   }
 
   toString (): string {

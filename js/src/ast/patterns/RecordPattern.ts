@@ -1,3 +1,4 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { AliasSpec, unknown } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
@@ -8,6 +9,7 @@ import {
   CheckPatternResult,
   isPattern,
   Pattern,
+  PatternCompilationResult,
 } from './Pattern'
 
 export class RecordPatternEntry extends Base {
@@ -94,6 +96,21 @@ export class RecordPattern extends Base implements Pattern {
       }
     }
     return {}
+  }
+
+  compilePattern(scope: CompilationScope, valueName: string): PatternCompilationResult {
+    const statements: string[] = []
+    const varNames: string[] = []
+    const mangledKeys = scope.context.normaliseRecord()
+    for (const entry of this.entries) {
+      const { statements: s, varNames: v } = entry.value.compilePattern(scope, `${valueName}.${mangledKeys[entry.key.value]}`)
+      statements.push(...s)
+      varNames.push(...v)
+    }
+    return {
+      statements,
+      varNames,
+    }
   }
 
   toString (): string {
