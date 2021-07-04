@@ -170,7 +170,7 @@ func_type: generic_declaration? (func_inner_type "->")+ not_func_type
 ?await_expression: record_access
                  | await_expression AWAIT
 ?record_access: value
-              | record_access "." CNAME
+              | await_expression "." CNAME
 value: NUMBER
      | BOOLEAN
      | STRING
