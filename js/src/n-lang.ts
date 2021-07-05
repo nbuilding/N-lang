@@ -3,7 +3,7 @@
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import * as util from 'util'
-import parseArgs = require('minimist')
+import parseArgs from 'minimist'
 // import { compileToJS, TypeChecker, FileLines } from './index'
 import { parse } from './grammar/parse'
 import { NOT_FOUND, TypeChecker } from './type-checker/TypeChecker'
@@ -76,7 +76,7 @@ async function main () {
         })
         if (block instanceof Block) {
           if (ast) console.log(util.inspect(block, false, null, true))
-          if (repr) console.log(block.toString(true))
+          if (repr) console.log(block.toString())
           return { source: file, block }
         } else {
           return { source: file, error: block }

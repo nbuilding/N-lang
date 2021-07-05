@@ -12,14 +12,15 @@ import {
   CheckStatementResult,
   Statement,
 } from '../statements/Statement'
-import { unknown } from '../../type-checker/types/types'
+import { NType, unknown } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
-import { cmd } from '../../type-checker/types/builtins'
+import { cmd, isUnit } from '../../type-checker/types/builtins'
 import { attemptAssign } from '../../type-checker/types/comparisons/compare-assignable'
 import { CompilationScope } from '../../compiler/CompilationScope'
 
 export class Return extends Base implements Expression, Statement {
   value: Expression
+  private _type?: NType
 
   constructor (
     pos: BasePosition,
@@ -36,6 +37,7 @@ export class Return extends Base implements Expression, Statement {
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {
     const { type, exitPoint } = context.scope.typeCheck(this.value)
+    this._type = type
     const returnType = context.scope.getReturnType()
     if (returnType) {
       const error = attemptAssign(returnType, type)
@@ -64,7 +66,10 @@ export class Return extends Base implements Expression, Statement {
   compile (scope: CompilationScope): CompilationResult {
     const { statements, expression } = this.value.compile(scope)
     return {
-      statements: [...statements, `return ${expression}`],
+      statements: [
+        ...statements,
+        isUnit(this._type!) ? 'return;' : `return ${expression};`,
+      ],
       expression: 'undefined',
     }
   }

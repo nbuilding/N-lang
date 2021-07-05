@@ -1,10 +1,35 @@
-import { EnumSpec, NUnion, TypeSpec } from './types'
+import { EnumSpec, NType, NUnion, TypeSpec } from './types'
 
 export const str = new TypeSpec('str').instance()
 export const int = new TypeSpec('int').instance()
 export const float = new TypeSpec('float').instance()
 export const char = new TypeSpec('char').instance()
 export const unit = new TypeSpec('unit').instance()
+
+// Oddly specific, but it's used by Operation and UnaryOperation because int has
+// so many odd operator overloads.
+export function isInt (type: NType): boolean {
+  return type.type === 'named' && type.typeSpec === int.typeSpec
+}
+
+/**
+ * Note that a unit type in this sense is any type that has only one variant.
+ * This isn't just limited to the unit type `()`; an empty record type `{}` and
+ * enums with only one fieldless variant are also unit types in this sense.
+ *
+ * The compiler usually optimises these into JavaScript `undefined` values.
+ * Since there's only one variant of this type, the value is known at compile
+ * time and doesn't need to be stored during runtime.
+ */
+export function isUnit (type: NType): boolean {
+  return (
+    (type.type === 'named' && type.typeSpec === unit.typeSpec) ||
+    (type.type === 'record' && type.types.size === 0) ||
+    (EnumSpec.isEnum(type) &&
+      type.typeSpec.variants.size === 1 &&
+      [...type.typeSpec.variants.values()][0].types?.length === 0)
+  )
+}
 
 export const number: NUnion = {
   type: 'union',

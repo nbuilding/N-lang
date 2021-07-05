@@ -3,6 +3,10 @@ import { Base } from '../ast/base'
 import { EnumSpec, NModule, NRecord, NType } from '../type-checker/types/types'
 
 export class CompilationContext {
+  helpers = {
+    modulo: 'modulo_n',
+  }
+
   // TODO
   private _typeCache: Map<Base, NType> = new Map()
 

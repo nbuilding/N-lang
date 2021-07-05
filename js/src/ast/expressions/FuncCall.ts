@@ -1,5 +1,6 @@
 import schema, * as schem from '../../utils/schema'
 import {
+  CompilationResult,
   Expression,
   isExpression,
   TypeCheckContext,
@@ -14,11 +15,13 @@ import {
 import { AliasSpec, NType, unknown } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { callFunction } from '../../type-checker/types/comparisons/compare-assignable'
-import { unit } from '../../type-checker/types/builtins'
+import { isUnit, unit } from '../../type-checker/types/builtins'
+import { CompilationScope } from '../../compiler/CompilationScope'
 
 export class FuncCall extends Base implements Expression, Statement {
   func: Expression
   params: Expression[]
+  private _paramTypes: NType[]
 
   constructor (
     pos: BasePosition,
@@ -30,6 +33,7 @@ export class FuncCall extends Base implements Expression, Statement {
     super(pos, [func, ...params])
     this.func = func
     this.params = params
+    this._paramTypes = []
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
@@ -75,6 +79,7 @@ export class FuncCall extends Base implements Expression, Statement {
       if (paramExpr.exitPoint && !exitPoint) {
         exitPoint = paramExpr.exitPoint
       }
+      this._paramTypes[i] = paramExpr.type
       return [paramExpr.type, param]
     })
     if (paramTypes.length === 0) {
@@ -104,6 +109,32 @@ export class FuncCall extends Base implements Expression, Statement {
       argPos++
     }
     return { type: funcType, exitPoint }
+  }
+
+  compile (scope: CompilationScope): CompilationResult {
+    const { statements: funcS, expression } = this.func.compile(scope)
+    const statements = [...funcS]
+    // To support currying, functions with multiple arguments are called like
+    // func(arg1)(arg2)(arg3), but that might lose out on some browser
+    // optimisations.
+    const params: string[] = []
+    if (this.params.length > 0) {
+      this.params.forEach((param, i) => {
+        if (isUnit(this._paramTypes[i])) {
+          params.push('()')
+        } else {
+          const { statements: s, expression } = param.compile(scope)
+          statements.push(...s)
+          params.push(`(${expression})`)
+        }
+      })
+    } else {
+      params.push('()')
+    }
+    return {
+      statements,
+      expression: `(${expression})${params.join('')}`,
+    }
   }
 
   toString (): string {

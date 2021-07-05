@@ -20,7 +20,7 @@ import { CompilationScope } from '../../compiler/CompilationScope'
 export class RecordAccess extends Base implements Expression {
   value: Expression
   field: Identifier
-  type?: NRecord | NModule
+  private _type?: NRecord | NModule
 
   constructor (
     pos: BasePosition,
@@ -35,7 +35,7 @@ export class RecordAccess extends Base implements Expression {
     const { type, exitPoint } = context.scope.typeCheck(this.value)
     const resolved = AliasSpec.resolve(type)
     if (resolved.type === 'record' || resolved.type === 'module') {
-      this.type = resolved
+      this._type = resolved
       const fieldType = resolved.types.get(this.field.value)
       if (!fieldType) {
         context.err({
@@ -55,7 +55,7 @@ export class RecordAccess extends Base implements Expression {
 
   compile (scope: CompilationScope): CompilationResult {
     const { statements, expression } = this.value.compile(scope)
-    const mangledKeys = scope.context.normaliseRecord(this.type!)
+    const mangledKeys = scope.context.normaliseRecord(this._type!)
     return {
       statements,
       expression: `(${expression}).${mangledKeys[this.field.value]}`,

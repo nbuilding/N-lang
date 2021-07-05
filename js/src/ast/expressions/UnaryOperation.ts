@@ -1,6 +1,7 @@
 import schema, * as schem from '../../utils/schema'
 import { from, Preprocessor } from '../../grammar/from-nearley'
 import {
+  CompilationResult,
   Expression,
   isExpression,
   TypeCheckContext,
@@ -12,17 +13,19 @@ import {
   CheckStatementResult,
   Statement,
 } from '../statements/Statement'
-import { unknown } from '../../type-checker/types/types'
+import { NType, unknown } from '../../type-checker/types/types'
 import { unaryOperations } from '../../type-checker/types/operations'
 import { tryFunctions } from '../../type-checker/types/comparisons/compare-assignable'
-import { cmd } from '../../type-checker/types/builtins'
+import { cmd, isInt } from '../../type-checker/types/builtins'
 import { UnaryOperator } from '../../type-checker/types/operations/UnaryOperator'
 import { ErrorType } from '../../type-checker/errors/Error'
+import { CompilationScope } from '../../compiler/CompilationScope'
 
 export class UnaryOperation<O extends UnaryOperator> extends Base
   implements Expression, Statement {
   type: O
   value: Expression
+  private _operandType?: NType
 
   constructor (pos: BasePosition, operator: O, value: Expression) {
     super(pos, [value])
@@ -40,6 +43,7 @@ export class UnaryOperation<O extends UnaryOperator> extends Base
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {
     const { type, exitPoint } = context.scope.typeCheck(this.value)
+    this._operandType = type
     const operationType = tryFunctions(unaryOperations[this.type], [type])
     if (!operationType) {
       context.err({
@@ -61,6 +65,37 @@ export class UnaryOperation<O extends UnaryOperator> extends Base
       }
     }
     return { type: operationType || unknown, exitPoint }
+  }
+
+  compile (scope: CompilationScope): CompilationResult {
+    const { statements, expression } = this.value.compile(scope)
+    switch (this.type) {
+      case UnaryOperator.NEGATE: {
+        return {
+          statements,
+          expression: `-(${expression})`,
+        }
+      }
+      case UnaryOperator.NOT: {
+        if (isInt(this._operandType!)) {
+          return {
+            statements,
+            expression: `~(${expression})`,
+          }
+        } else {
+          return {
+            statements,
+            expression: `!(${expression})`,
+          }
+        }
+      }
+      case UnaryOperator.AWAIT: {
+        throw new Error('TODO')
+      }
+      default: {
+        throw new Error('What operator could this be? ' + this.type)
+      }
+    }
   }
 
   toString (): string {

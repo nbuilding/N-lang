@@ -48,7 +48,7 @@ export class RecordPatternEntry extends Base {
 
 export class RecordPattern extends Base implements Pattern {
   entries: RecordPatternEntry[]
-  type?: NRecord | NModule
+  private _type?: NRecord | NModule
 
   constructor (
     pos: BasePosition,
@@ -64,7 +64,7 @@ export class RecordPattern extends Base implements Pattern {
   checkPattern (context: CheckPatternContext): CheckPatternResult {
     const resolved = AliasSpec.resolve(context.type)
     if (resolved.type === 'record' || resolved.type === 'module') {
-      this.type = resolved
+      this._type = resolved
       const keys: Set<string> = new Set()
       for (const entry of this.entries) {
         if (keys.has(entry.key.value)) {
@@ -111,7 +111,7 @@ export class RecordPattern extends Base implements Pattern {
   ): PatternCompilationResult {
     const statements: string[] = []
     const varNames: string[] = []
-    const mangledKeys = scope.context.normaliseRecord(this.type!)
+    const mangledKeys = scope.context.normaliseRecord(this._type!)
     for (const entry of this.entries) {
       const { statements: s, varNames: v } = entry.value.compilePattern(
         scope,

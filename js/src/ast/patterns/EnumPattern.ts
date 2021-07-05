@@ -15,7 +15,7 @@ import {
 export class EnumPattern extends Base implements Pattern {
   variant: Identifier
   patterns: Pattern[]
-  type?: EnumSpec
+  private _type?: EnumSpec
 
   constructor (
     pos: BasePosition,
@@ -29,7 +29,7 @@ export class EnumPattern extends Base implements Pattern {
 
   checkPattern (context: CheckPatternContext): CheckPatternResult {
     if (EnumSpec.isEnum(context.type)) {
-      this.type = context.type.typeSpec
+      this._type = context.type.typeSpec
       if (context.type.typeSpec.variants.size > 1 && context.definite) {
         context.err({
           type: ErrorType.ENUM_PATTERN_DEF_MULT_VARIANTS,
@@ -89,7 +89,7 @@ export class EnumPattern extends Base implements Pattern {
     const {
       mangled: { [this.variant.value]: mangled },
       nullable,
-    } = scope.context.normaliseEnum(this.type!)
+    } = scope.context.normaliseEnum(this._type!)
     if (mangled) {
       this.patterns.forEach((pattern, i) => {
         const { statements: s, varNames: v } = pattern.compilePattern(
