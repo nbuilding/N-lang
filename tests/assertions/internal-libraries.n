@@ -52,12 +52,12 @@ let pub main = [_: ()] -> cmd[()] {
 		response: str
 		return: json.value
 	}]
-	assert value request.get("https://httpbin.org/base64/SFRUUEJJTiBpcyBhd2Vzb21l", mapFrom([("", "")]))! = {
+	assert value request.get("https://httpbin.org/base64/SFRUUEJJTiBpcyBhd2Vzb21l", mapFrom([]))! = {
 		code: 200
 		response: "OK"
 		return: json.string("HTTPBIN is awesome")
 	}
-	assert value request.get("definitely invalid url", mapFrom([("","")]))! = {
+	assert value request.get("definitely invalid url", mapFrom([]))! = {
 		code: 0
 		response: ""
 		return: json.null
@@ -68,10 +68,10 @@ let pub main = [_: ()] -> cmd[()] {
 		response: str
 		text: str
 	}]
-	let response = request.post("https://httpbin.org/post", mapFrom([("", "")]), mapFrom([("", "")]))!
+	let response = request.post("https://httpbin.org/post", mapFrom([]), mapFrom([]))!
 	assert value (response.code, response.response) = (200, "OK")
 	assert value len(response.text) > 100
-	assert value request.post("definitely invalid url", mapFrom([("hello", "hello")]), mapFrom([("","")]))! = {
+	assert value request.post("definitely invalid url", mapFrom([("hello", "hello")]), mapFrom([]))! = {
 		code: 0
 		response: ""
 		text: ""

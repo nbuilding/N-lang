@@ -61,47 +61,6 @@ async def filter_map(transformer, lis):
     return new_list
 
 
-def type_display(n_type):
-    display = ""
-    if isinstance(n_type, str):
-        display = "()" if n_type == "unit" else n_type
-    elif isinstance(n_type, Function):
-        display = str(n_type)
-    elif isinstance(n_type, list):
-        if len(n_type) > 0:
-            display = "list[" + type_display(n_type[0]) + "]"
-        else:
-            display = "list[]"
-    elif isinstance(n_type, tuple):
-        display = (
-            "(" + ", ".join(type_display(type) for type in n_type) + ")"
-        )
-    elif isinstance(n_type, NModule):
-        display = "module %s" % n_type.mod_name
-    elif isinstance(n_type, NClass):
-        display = n_type.class_name
-    elif isinstance(n_type, dict):
-        display = "{ %s }" % "; ".join(
-            "%s: %s" % (key, type_display(value))
-            for key, value in n_type.items()
-        )
-        if len(n_type) == 0:
-            display = "{}"
-    elif isinstance(n_type, NTypeVars):
-        display = n_type.name
-        if len(n_type.typevars) > 0:
-            display += "[%s]" % ", ".join(
-                type_display(typevar) for typevar in n_type.typevars
-            )
-    elif isinstance(n_type, NType):
-        display = n_type.name
-    elif n_type is None:
-        display = "unknown"
-    else:
-        return "???"
-    return display
-
-
 def with_default(default_value, maybe_value):
     if maybe_value.variant == "yes":
         return maybe_value.values[0]
@@ -271,12 +230,6 @@ def add_funcs(global_scope):
         [("start", "int"), ("end", "int"), ("step", "int")],
         n_list_type.with_typevars(["int"]),
         lambda start, end, step: list(range(start, end, step)),
-    )
-    global_scope.add_native_function(
-        "getType",
-        [("obj", NGenericType("t"))],
-        "str",
-        type_display,
     )
     print_generic = NGenericType("t")
     global_scope.add_native_function(
