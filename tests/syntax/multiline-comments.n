@@ -2,7 +2,7 @@
 // - inserted wherever reasonable (generally wherever whitespace is allowed)
 // - nested
 
-/* /* Nested */
+/* /* Multiline comments do not nest */
 
 // Ignored multiline comment /*
 
