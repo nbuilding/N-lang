@@ -1,11 +1,17 @@
 import schema, * as schem from '../../utils/schema'
-import { Expression, TypeCheckContext, TypeCheckResult } from './Expression'
+import {
+  CompilationResult,
+  Expression,
+  TypeCheckContext,
+  TypeCheckResult,
+} from './Expression'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
 import { String as AstString } from '../literals/String'
 import { unknown } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { NOT_FOUND } from '../../type-checker/TypeChecker'
+import { CompilationScope } from '../../compiler/CompilationScope'
 
 export class ImportFile extends Base implements Expression {
   path: Identifier | AstString
@@ -42,6 +48,10 @@ export class ImportFile extends Base implements Expression {
     return this.path instanceof Identifier
       ? this.path.value + '.n'
       : this.path.value
+  }
+
+  compile (scope: CompilationScope): CompilationResult {
+    throw new Error('Method not implemented.')
   }
 
   toString (): string {

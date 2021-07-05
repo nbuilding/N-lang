@@ -12,6 +12,7 @@ export function isInt (type: NType): boolean {
   return type.type === 'named' && type.typeSpec === int.typeSpec
 }
 
+// TODO: Module types are unit-like as well, I think
 /**
  * Note that a unit type in this sense is any type that has only one variant.
  * This isn't just limited to the unit type `()`; an empty record type `{}` and

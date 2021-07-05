@@ -1,3 +1,4 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { unit } from '../../type-checker/types/builtins'
 import {
@@ -12,7 +13,12 @@ import { Base, BasePosition } from '../base'
 import { Arguments } from '../declaration/Arguments'
 import { Block } from '../statements/Block'
 import { isType, Type } from '../types/Type'
-import { Expression, TypeCheckContext, TypeCheckResult } from './Expression'
+import {
+  CompilationResult,
+  Expression,
+  TypeCheckContext,
+  TypeCheckResult,
+} from './Expression'
 
 export class Function extends Base implements Expression {
   arguments: Arguments
@@ -78,6 +84,10 @@ export class Function extends Base implements Expression {
         substitute(returnType, substitutions),
       ]),
     }
+  }
+
+  compile (scope: CompilationScope): CompilationResult {
+    throw new Error('Method not implemented.')
   }
 
   toString (): string {

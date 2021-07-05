@@ -56,9 +56,10 @@ export function compileCondition (
         `var ${expressionName} = ${expression}${varNames
           .map(name => `  , ${name}`)
           .join('')};`,
-        `var ${resultName} = (function () {`,
-        ...scope.context.indent([...pattS, 'return true;']),
-        `})();`,
+        `var ${resultName} = false;`,
+        'do {',
+        ...scope.context.indent([...pattS, `${resultName} = true;`]),
+        `} while (false);`,
       ],
       expression: resultName,
       scope: innerScope,

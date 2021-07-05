@@ -1,6 +1,7 @@
 import schema, * as schem from '../../utils/schema'
 import { isEnum, isToken } from '../../utils/type-guards'
 import {
+  CompilationResult,
   Expression,
   isExpression,
   TypeCheckContext,
@@ -17,6 +18,7 @@ import {
   iterateType,
   NType,
 } from '../../type-checker/types/types'
+import { CompilationScope } from '../../compiler/CompilationScope'
 
 // Ideally, there would be a more descriptive type error for this, like "^^^ I
 // can't compare functions." One day!
@@ -65,6 +67,22 @@ function compareToString (self: Compare): string {
       return '<='
     case Compare.NEQ:
       return '/='
+    case Compare.GEQ:
+      return '>='
+  }
+}
+function compareToJs (self: Compare): string {
+  switch (self) {
+    case Compare.LESS:
+      return '<'
+    case Compare.EQUAL:
+      return '==='
+    case Compare.GREATER:
+      return '>'
+    case Compare.LEQ:
+      return '<='
+    case Compare.NEQ:
+      return '!=='
     case Compare.GEQ:
       return '>='
   }
@@ -159,6 +177,51 @@ export class Comparisons extends Base implements Expression {
       if (!exitPoint) exitPoint = exit
     }
     return { type: bool, exitPoint }
+  }
+
+  compile (scope: CompilationScope): CompilationResult {
+    const { statements: aS, expression } = this.comparisons[0].a.compile(scope)
+    if (this.comparisons.length === 1) {
+      // No fancy short circuiting is needed
+      const comparison = this.comparisons[0]
+      const { statements: bS, expression: bE } = comparison.b.compile(scope)
+      return {
+        statements: [...aS, ...bS],
+        expression:
+          comparison.type === Compare.EQUAL || comparison.type === Compare.NEQ
+            ? // TODO
+              "(function () { throw new Error('TODO'); })()"
+            : `${expression} ${compareToJs(comparison.type)} ${bE}`,
+      }
+    } else {
+      const last = scope.context.genVarName('compLeft')
+      const next = scope.context.genVarName('compRight')
+      const result = scope.context.genVarName('compResult')
+      const statements = [...aS, `var ${last} = ${expression}, ${next};`]
+
+      for (const comparison of this.comparisons) {
+        const { statements: s, expression } = comparison.b.compile(scope)
+        statements.push(
+          ...s,
+          `${next} = ${expression}`,
+          comparison.type === Compare.EQUAL || comparison.type === Compare.NEQ
+            ? // TODO
+              "throw new Error('TODO');"
+            : `if (!(${last} ${compareToJs(comparison.type)} ${next})) break;`,
+          `${last} = ${next};`,
+        )
+      }
+
+      return {
+        statements: [
+          `var ${result} = false;`,
+          'do {',
+          ...scope.context.indent([...statements, `${result} = true;`]),
+          '} while (false);',
+        ],
+        expression: result,
+      }
+    }
   }
 
   toString (): string {

@@ -108,7 +108,7 @@ export class EnumPattern extends Base implements Pattern {
               mangled[0]
             }' in ${valueName}) {`,
         ...scope.context.indent(statements),
-        '} else return false;',
+        '} else break;',
       ],
       varNames,
     }

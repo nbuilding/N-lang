@@ -35,6 +35,7 @@ export class CompilationContext {
     return lines.map(line => '  ' + line)
   }
 
+  // TODO: I think we should not make modules record-like during runtime
   /** Returns an object map between record field names and mangled names */
   normaliseRecord (recordType: NRecord | NModule): Record<string, string> {
     // Normalise keys by alphabetising them to get a unique record ID
