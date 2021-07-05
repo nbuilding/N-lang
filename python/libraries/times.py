@@ -8,7 +8,7 @@ async def sleep(time):
 
 
 async def getTime():
-    return t.time()
+    return t.time() * 1000
 
 
 def _values():

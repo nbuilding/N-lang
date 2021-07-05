@@ -131,7 +131,7 @@ let pub main = [_: ()] -> cmd[()] {
 	let _ = times.sleep(1000)!
 	// Allow some wiggle room because timing is hard
 	// Also note that times.sleep takes ms but times.getTime outputs seconds
-	assert value times.getTime()! - now > 0.8
+	assert value times.getTime()! - now > 800
 
 	import websocket
 
