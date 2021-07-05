@@ -1,12 +1,12 @@
 // Based on docs/features/tuples_lists_records.md
 
-let tuplevalue = 1, \{a}
-assert type tuplevalue : int, char
+let tuplevalue = (1, \{a})
+assert type tuplevalue : (int, char)
 
 let recordValue = { value: 1 }
 assert type recordValue : { value: int }
 
-let value = recordvalue.value
+let value = recordValue.value
 assert type value : int
 assert value value == 1
 

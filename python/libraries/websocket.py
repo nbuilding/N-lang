@@ -231,11 +231,11 @@ def _values():
             "str",
             n_cmd_type.with_typevars([n_maybe_type.with_typevars(["str"])]),
         ),
-        # createServer: setupOptions -> int -> cmd[maybe[str]]
+        # createServer: setupOptions -> int -> cmd[()]
         "createServer": (
             setup_options_type,
             "int",
-            n_cmd_type.with_typevars([n_maybe_type.with_typevars(["unit"])]),
+            n_cmd_type.with_typevars(["unit"]),
         ),
     }
 

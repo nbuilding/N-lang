@@ -83,5 +83,5 @@ def _values():
                 [n_maybe_type.with_typevars([n_list_type.with_typevars(["int"])])]
             ),
         ),
-        "getFiles": ("str", n_list_type.with_typevars([["bool", "str"]])),
+        "getFiles": ("str", n_cmd_type.with_typevars([n_list_type.with_typevars([["bool", "str"]])])),
     }

@@ -57,7 +57,7 @@ let pub main = [_: ()] -> cmd[()] {
 		response: "OK"
 		return: json.string("HTTPBIN is awesome")
 	}
-	assert value request.get("definitely invalid url", mapFrom([("","")]))! = {
+	assert value request.get("definitely invalid url", mapFrom([]))! = {
 		code: 0
 		response: ""
 		return: json.null
@@ -71,7 +71,7 @@ let pub main = [_: ()] -> cmd[()] {
 	let response = request.post("https://httpbin.org/post", mapFrom([]), mapFrom([]))!
 	assert value (response.code, response.response) = (200, "OK")
 	assert value len(response.text) > 100
-	assert value request.post("definitely invalid url", mapFrom([("hello", "hello")]), mapFrom([("","")]))! = {
+	assert value request.post("definitely invalid url", mapFrom([("hello", "hello")]), mapFrom([]))! = {
 		code: 0
 		response: ""
 		text: ""
@@ -111,7 +111,7 @@ let pub main = [_: ()] -> cmd[()] {
 
 	alias onRequest = str -> str -> json.value -> cmd[{
 		responseCode: int
-		data: data[int]
+		data: list[int]
 		headers: map[str, str]
 		mimetype: str
 	}]
@@ -128,7 +128,7 @@ let pub main = [_: ()] -> cmd[()] {
 	assert type times.getTime : () -> cmd[float]
 
 	let now = times.getTime()!
-	times.sleep(1000)!
+	let _ = times.sleep(1000)!
 	// Allow some wiggle room because timing is hard
 	// Also note that times.sleep takes ms but times.getTime outputs seconds
 	assert value times.getTime()! - now > 0.8

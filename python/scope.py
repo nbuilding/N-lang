@@ -1311,7 +1311,7 @@ class Scope:
                         "possibleTypes": none,
                     }
                 )
-            return False
+            return (False, None)
         else:
             await self.eval_expr(command)
 

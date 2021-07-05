@@ -6,8 +6,7 @@ import scope
 
 from variable import Variable
 from function import Function
-from type_check_error import display_type
-from type import NGenericType, NModule
+from type import NGenericType, NModule, NClass, NTypeVars, NType
 from enums import EnumType, EnumValue
 from native_types import (
     n_list_type,
@@ -60,12 +59,6 @@ async def filter_map(transformer, lis):
         if transformed.variant == "yes":
             new_list.append(transformed.values[0])
     return new_list
-
-
-def type_display(o):
-    if isinstance(o, Function):
-        return str(o)
-    return type(o).__name__
 
 
 def with_default(default_value, maybe_value):
@@ -153,6 +146,12 @@ def to_module(possible_module):
     return none
 
 
+def char_with_replace(num):
+    try:
+        return chr(num)
+    except ValueError:
+        return u'\ufffd'
+
 # Define global functions/variables
 def add_funcs(global_scope):
     global_scope.variables["none"] = Variable(n_maybe_type, none)
@@ -191,7 +190,7 @@ def add_funcs(global_scope):
         "intCode",
         [("number", "int")],
         "char",
-        chr,
+        char_with_replace,
     )
     global_scope.add_native_function(
         "charAt",
@@ -231,12 +230,6 @@ def add_funcs(global_scope):
         [("start", "int"), ("end", "int"), ("step", "int")],
         n_list_type.with_typevars(["int"]),
         lambda start, end, step: list(range(start, end, step)),
-    )
-    global_scope.add_native_function(
-        "type",
-        [("obj", NGenericType("t"))],
-        "str",
-        type_display,
     )
     print_generic = NGenericType("t")
     global_scope.add_native_function(
