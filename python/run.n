@@ -51,15 +51,9 @@ let thing = [] -> cmd[()] {
 	)!
 }
 
-let hex:int = 0xff
-print(hex)
-let bin:int = 0b11111111
-print(bin)
-let octal:int = 0o377
-print(octal)
-print(\u{ff} + "")
-printWithEnd("\r", "\u{ff}" + \f,)
-let l:list[int,] = [1]
+
+print(getType(thing))
+print(getType(imp "./runner.n"))
 
 let thing2 = [] -> cmd[()] {
 	print("opening the websocket!")

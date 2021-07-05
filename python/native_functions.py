@@ -6,8 +6,7 @@ import scope
 
 from variable import Variable
 from function import Function
-from type_check_error import display_type
-from type import NGenericType, NModule
+from type import NGenericType, NModule, NClass, NTypeVars, NType
 from enums import EnumType, EnumValue
 from native_types import (
     n_list_type,
@@ -62,8 +61,45 @@ async def filter_map(transformer, lis):
     return new_list
 
 
-def type_display(o):
-    return display_type(o, False)
+def type_display(n_type):
+    display = ""
+    if isinstance(n_type, str):
+        display = "()" if n_type == "unit" else n_type
+    elif isinstance(n_type, Function):
+        display = str(n_type)
+    elif isinstance(n_type, list):
+        if len(n_type) > 0:
+            display = "list[" + type_display(n_type[0]) + "]"
+        else:
+            display = "list[]"
+    elif isinstance(n_type, tuple):
+        display = (
+            "(" + ", ".join(type_display(type) for type in n_type) + ")"
+        )
+    elif isinstance(n_type, NModule):
+        display = "module %s" % n_type.mod_name
+    elif isinstance(n_type, NClass):
+        display = n_type.class_name
+    elif isinstance(n_type, dict):
+        display = "{ %s }" % "; ".join(
+            "%s: %s" % (key, type_display(value))
+            for key, value in n_type.items()
+        )
+        if len(n_type) == 0:
+            display = "{}"
+    elif isinstance(n_type, NTypeVars):
+        display = n_type.name
+        if len(n_type.typevars) > 0:
+            display += "[%s]" % ", ".join(
+                type_display(typevar) for typevar in n_type.typevars
+            )
+    elif isinstance(n_type, NType):
+        display = n_type.name
+    elif n_type is None:
+        display = "unknown"
+    else:
+        return "???"
+    return display
 
 
 def with_default(default_value, maybe_value):
