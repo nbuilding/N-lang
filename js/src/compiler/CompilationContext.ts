@@ -5,7 +5,10 @@ import { EnumSpec, NModule, NRecord, NType } from '../type-checker/types/types'
 export class CompilationContext {
   helpers = {
     modulo: 'modulo_n',
+    assertValue: 'assertValue_n',
   }
+
+  valueAssertions = 0
 
   // TODO
   private _typeCache: Map<Base, NType> = new Map()
@@ -37,7 +40,7 @@ export class CompilationContext {
 
   // TODO: I think we should not make modules record-like during runtime
   /** Returns an object map between record field names and mangled names */
-  normaliseRecord (recordType: NRecord | NModule): Record<string, string> {
+  normaliseRecord (recordType: NRecord): Record<string, string> {
     // Normalise keys by alphabetising them to get a unique record ID
     const sortedKeys = [...recordType.types.keys()].sort()
     const recordId = sortedKeys.join(' ')

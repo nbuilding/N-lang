@@ -1,12 +1,19 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
-import { checkCondition, Condition, isCondition } from '../condition/Condition'
+import {
+  checkCondition,
+  compileCondition,
+  Condition,
+  isCondition,
+} from '../condition/Condition'
 import { Block } from './Block'
 import {
   CheckStatementContext,
   CheckStatementResult,
   isStatement,
   Statement,
+  StatementCompilationResult,
 } from './Statement'
 
 export class IfStmt extends Base implements Statement {
@@ -40,6 +47,30 @@ export class IfStmt extends Base implements Statement {
     }
     return {
       exitPoint,
+    }
+  }
+
+  compileStatement (scope: CompilationScope): StatementCompilationResult {
+    const { statements: condS, result, scope: thenScope } = compileCondition(
+      scope,
+      this.condition,
+    )
+    const statements: string[] = [
+      ...condS,
+      `if (${result}) {`,
+      ...scope.context.indent(this.then.compileStatement(thenScope).statements),
+    ]
+    if (this.else) {
+      statements.push(
+        `} else {`,
+        ...scope.context.indent(
+          this.else.compileStatement(scope.inner()).statements,
+        ),
+      )
+    }
+    statements.push('}')
+    return {
+      statements,
     }
   }
 

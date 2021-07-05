@@ -1,3 +1,4 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
@@ -7,6 +8,7 @@ import {
   CheckStatementContext,
   CheckStatementResult,
   Statement,
+  StatementCompilationResult,
 } from './Statement'
 
 export class AssertType extends Base implements Statement {
@@ -27,6 +29,10 @@ export class AssertType extends Base implements Statement {
     const idealType = context.scope.getTypeFrom(this.type).type
     context.isTypeError(ErrorType.TYPE_ASSERTION_FAIL, idealType, type)
     return { exitPoint }
+  }
+
+  compileStatement (_scope: CompilationScope): StatementCompilationResult {
+    return { statements: [] }
   }
 
   toString (): string {

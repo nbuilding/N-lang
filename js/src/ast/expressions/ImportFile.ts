@@ -51,7 +51,12 @@ export class ImportFile extends Base implements Expression {
   }
 
   compile (scope: CompilationScope): CompilationResult {
-    throw new Error('Method not implemented.')
+    // Since the module type is known at compile time, we can treat it like a
+    // unit type and not bother with its runtime value
+    return {
+      statements: [],
+      expression: 'undefined',
+    }
   }
 
   toString (): string {

@@ -1,3 +1,4 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { modules } from '../../native-modules'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { unknown } from '../../type-checker/types/types'
@@ -8,6 +9,7 @@ import {
   CheckStatementContext,
   CheckStatementResult,
   Statement,
+  StatementCompilationResult,
 } from './Statement'
 
 export class ImportStmt extends Base implements Statement {
@@ -38,6 +40,12 @@ export class ImportStmt extends Base implements Statement {
       context.defineVariable(this.name, unknown)
     }
     return {}
+  }
+
+  compileStatement (scope: CompilationScope): StatementCompilationResult {
+    return {
+      statements: [],
+    }
   }
 
   toString (): string {

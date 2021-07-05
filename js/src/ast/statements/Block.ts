@@ -1,3 +1,4 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { WarningType } from '../../type-checker/errors/Warning'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
@@ -7,6 +8,7 @@ import {
   CheckStatementResult,
   isStatement,
   Statement,
+  StatementCompilationResult,
 } from './Statement'
 
 export class Block extends Base implements Statement {
@@ -52,6 +54,16 @@ export class Block extends Base implements Statement {
     }
   }
 
+  compileStatement (scope: CompilationScope): StatementCompilationResult {
+    const statements: string[] = []
+    for (const statement of this.statements) {
+      statements.push(...statement.compileStatement(scope).statements)
+    }
+    return {
+      statements,
+    }
+  }
+
   toString (): string {
     return this.statements.join('\n')
   }
@@ -88,6 +100,18 @@ export class WrappedBlock extends Base implements Statement {
     const result = scope.checkStatement(this.block)
     scope.end()
     return result
+  }
+
+  compileStatement (scope: CompilationScope): StatementCompilationResult {
+    return {
+      statements: [
+        '{',
+        ...scope.context.indent(
+          this.block.compileStatement(scope.inner()).statements,
+        ),
+        '}',
+      ],
+    }
   }
 
   toString (): string {

@@ -1,3 +1,4 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { WarningType } from '../../type-checker/errors/Warning'
 import schema, * as schem from '../../utils/schema'
@@ -8,6 +9,7 @@ import {
   CheckStatementContext,
   CheckStatementResult,
   Statement,
+  StatementCompilationResult,
 } from './Statement'
 
 export class VarStmt extends Base implements Statement {
@@ -48,6 +50,14 @@ export class VarStmt extends Base implements Statement {
       )
     }
     return { exitPoint }
+  }
+
+  compileStatement (scope: CompilationScope): StatementCompilationResult {
+    const { statements, expression } = this.value.compile(scope)
+    const name = scope.getName(this.var.value)
+    return {
+      statements: [...statements, `${name} = ${expression};`],
+    }
   }
 
   toString (): string {

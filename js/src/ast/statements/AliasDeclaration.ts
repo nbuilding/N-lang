@@ -1,3 +1,4 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
 import {
   AliasSpec,
@@ -11,6 +12,7 @@ import {
   CheckStatementContext,
   CheckStatementResult,
   Statement,
+  StatementCompilationResult,
 } from './Statement'
 
 export class AliasDeclaration extends Base implements Statement {
@@ -57,6 +59,11 @@ export class AliasDeclaration extends Base implements Statement {
     )
     scope.end()
     return {}
+  }
+
+  compileStatement (_scope: CompilationScope): StatementCompilationResult {
+    // TODO: Constructor function for record aliases
+    return { statements: [] }
   }
 
   toString (): string {

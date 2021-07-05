@@ -35,38 +35,41 @@ export function checkCondition (
   }
 }
 
+export type ConditionCompilationResult = {
+  statements: string[]
+  result: string
+  scope: CompilationScope
+}
+
 export function compileCondition (
   scope: CompilationScope,
   condition: Condition,
-): CompilationResult & { scope: CompilationScope } {
+): ConditionCompilationResult {
   if (condition instanceof IfLet) {
     const { statements: exprS, expression } = condition.expression.compile(
       scope,
     )
     const expressionName = scope.context.genVarName('ifLetValue')
     const innerScope = scope.inner()
-    const {
-      statements: pattS,
-      varNames,
-    } = condition.declaration.pattern.compilePattern(innerScope, expressionName)
     const resultName = scope.context.genVarName('ifLetResult')
     return {
       statements: [
         ...exprS,
-        `var ${expressionName} = ${expression}${varNames
-          .map(name => `  , ${name}`)
-          .join('')};`,
-        `var ${resultName} = false;`,
-        'do {',
-        ...scope.context.indent([...pattS, `${resultName} = true;`]),
-        `} while (false);`,
+        `var ${expressionName} = ${expression};`,
+        ...condition.declaration.compileDeclaration(
+          innerScope,
+          expressionName,
+          resultName,
+        ),
       ],
-      expression: resultName,
+      result: resultName,
       scope: innerScope,
     }
   } else {
+    const { statements, expression } = condition.compile(scope)
     return {
-      ...condition.compile(scope),
+      statements,
+      result: expression,
       scope: scope.inner(),
     }
   }

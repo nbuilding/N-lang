@@ -1,3 +1,4 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { ScopeBaseContext } from '../../type-checker/ScopeBaseContext'
 import { NType, unknown } from '../../type-checker/types/types'
@@ -65,6 +66,30 @@ export class Declaration extends Base {
       )
     }
     return typeAnnotation
+  }
+
+  /** `resultName` is null if the pattern is certain. */
+  compileDeclaration (
+    scope: CompilationScope,
+    valueName: string,
+    resultName: string | null = null,
+  ): string[] {
+    const { statements, varNames } = this.pattern.compilePattern(
+      scope,
+      valueName,
+    )
+    if (resultName) {
+      return [
+        `var ${[`${resultName} = false`, ...varNames].join(', ')};`,
+        'do {',
+        ...scope.context.indent([...statements, `${resultName} = true;`]),
+        `} while (false);`,
+      ]
+    } else {
+      return varNames.length > 0
+        ? [`var ${varNames.join(', ')};`, ...statements]
+        : statements
+    }
   }
 
   toString (): string {
