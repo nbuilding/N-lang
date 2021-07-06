@@ -64,7 +64,7 @@ export class OldFor extends Base implements Statement {
         `for (var ${index} = 0, ${end} = ${expression}; ${index} < ${end}; ++${index}) {`,
         ...scope.context.indent([
           ...declS,
-          ...this.body.compileStatement(scope).statements,
+          ...this.body.compileStatement(loopScope).statements,
         ]),
         '}',
       ],
@@ -132,7 +132,7 @@ export class For extends Base implements Statement {
         `for (var ${index} = 0, ${iterable} = ${expression}; ${index} < ${iterable}.length; ++${index}) {`,
         ...scope.context.indent([
           ...declS,
-          ...this.body.compileStatement(scope).statements,
+          ...this.body.compileStatement(loopScope).statements,
         ]),
         '}',
       ],

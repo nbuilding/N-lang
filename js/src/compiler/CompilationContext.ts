@@ -1,7 +1,13 @@
 import { generateNames } from '../../test/unit/utils/generate-names'
+import { Block } from '../ast'
 import { Base } from '../ast/base'
 import { EnumSpec, NModule, NRecord, NType } from '../type-checker/types/types'
+import { CompilationGlobalScope } from './CompilationGlobalScope'
 import { CompilationScope } from './CompilationScope'
+
+interface HasExports {
+  names: Map<string, string>
+}
 
 export class CompilationContext {
   helpers = {
@@ -12,7 +18,9 @@ export class CompilationContext {
   valueAssertions = 0
 
   /** Maps module absolute paths to their scopes */
-  modules: Record<string, CompilationScope> = {}
+  modules: Record<string, HasExports> = {}
+
+  globalScope = new CompilationGlobalScope(this)
 
   private _id = 0
 
@@ -97,5 +105,13 @@ export class CompilationContext {
     const result = { mangled, nullable }
     this._enumCache.set(enumTypeSpec, result)
     return result
+  }
+
+  compile (block: Block, moduleId?: string): string[] {
+    const scope = this.globalScope.inner()
+    if (moduleId) {
+      this.modules[moduleId] = scope
+    }
+    return block.compileStatement(scope).statements
   }
 }

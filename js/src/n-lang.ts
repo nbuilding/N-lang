@@ -104,12 +104,12 @@ async function main () {
       }),
     ).display,
   )
-  /*
-  const compiled = compileToJS(script, checker.types)
+
+  const compiled = checker.compile()
   if (js) console.log(compiled)
+  await fs.writeFile(fileName.replace(/\.n$/, '.js'), compiled)
   // Indirect call of eval to run in global scope
-  if (running) (null, eval)(compiled)
-  */
+  // if (running) (null, eval)(compiled)
 }
 
 main().catch(err => {

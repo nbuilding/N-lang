@@ -1,4 +1,5 @@
 import { Base, BasePosition, Block, ImportFile } from '../ast/index'
+import { CompilationContext } from '../compiler/CompilationContext'
 import {
   parse,
   ParseAmbiguityError,
@@ -22,9 +23,11 @@ function * getImportPaths (base: Base): Generator<string> {
   }
 }
 
+type Compiled = { compiled: string[]; exportNames: Map<string, string> }
+type Compilable = Block | Compiled
 type ModuleState =
   | { state: 'loading' }
-  | { state: 'loaded'; module: NModule | Unknown }
+  | { state: 'loaded'; module: NModule | Unknown; compilable: Compilable }
   | { state: 'error'; error: typeof NOT_FOUND | typeof BAD_PATH }
 
 export class TypeCheckerResults {
@@ -211,11 +214,13 @@ export const NOT_FOUND = Symbol('not found')
 export const BAD_PATH = Symbol('bad path')
 
 type ParsedBlockWithSource = { source: string; block: Block }
+type CompiledModule = { module: NModule; compiled: Compiled }
+type CompilableModule = { module: NModule; compilable: Compilable }
 type ParseErrorWithSource = { source: string; error: ParseError }
 export type ProvidedFile =
   | string
   | ParsedBlockWithSource
-  | NModule
+  | CompiledModule
   | ParseErrorWithSource
   | typeof NOT_FOUND
   | typeof BAD_PATH
@@ -252,11 +257,12 @@ export class TypeChecker {
     return results
   }
 
+  /** Try to parse and type check a module given by `provideFile` */
   private async _getResultFromProvided (
     results: TypeCheckerResults,
     modulePath: string,
     provided: ProvidedFile,
-  ): Promise<NModule | ParseErrorWithSource | null> {
+  ): Promise<CompilableModule | ParseErrorWithSource | null> {
     if (typeof provided === 'symbol') {
       this.moduleCache.set(modulePath, { state: 'error', error: provided })
       return null
@@ -303,7 +309,9 @@ export class TypeChecker {
       const scope = globalScope.inner({ exportsAllowed: true })
       scope.checkStatement(block)
       scope.end()
-      return scope.toModule(modulePath)
+      return { module: scope.toModule(modulePath), compilable: block }
+    } else if ('module' in provided) {
+      return { module: provided.module, compilable: provided.compiled }
     } else {
       return provided
     }
@@ -328,10 +336,38 @@ export class TypeChecker {
     if (result) {
       if ('error' in result) {
         results.syntaxError(modulePath, result.source, result.error)
-        this.moduleCache.set(modulePath, { state: 'loaded', module: unknown })
+        this.moduleCache.set(modulePath, {
+          state: 'loaded',
+          module: unknown,
+          compilable: Block.empty(),
+        })
       } else {
-        this.moduleCache.set(modulePath, { state: 'loaded', module: result })
+        this.moduleCache.set(modulePath, { state: 'loaded', ...result })
       }
     }
+  }
+
+  /**
+   * Call this after calling `start()`. Throws an error if this was called with
+   * type errors.
+   */
+  compile (): string {
+    const context = new CompilationContext()
+    const compiled: string[] = []
+    for (const [modulePath, state] of this.moduleCache) {
+      if (state.state !== 'loaded') {
+        throw new Error(`${modulePath} is of state ${state.state}`)
+      }
+      if (state.compilable instanceof Block) {
+        compiled.push(...context.compile(state.compilable, modulePath))
+      } else {
+        compiled.push(...state.compilable.compiled)
+        context.modules[modulePath] = { names: state.compilable.exportNames }
+      }
+    }
+    // TODO: Run last exported cmd
+    return (
+      ['(function () {', ...context.indent(compiled), '})();'].join('\n') + '\n'
+    )
   }
 }
