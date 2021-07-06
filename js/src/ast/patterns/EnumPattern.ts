@@ -84,33 +84,70 @@ export class EnumPattern extends Base implements Pattern {
     scope: CompilationScope,
     valueName: string,
   ): PatternCompilationResult {
+    const representation = scope.context.normaliseEnum(this._type!)
+    const variant = this.variant.value
+
     const statements: string[] = []
     const varNames: string[] = []
-    const {
-      mangled: { [this.variant.value]: mangled },
-      nullable,
-    } = scope.context.normaliseEnum(this._type!)
-    if (mangled) {
-      this.patterns.forEach((pattern, i) => {
-        const { statements: s, varNames: v } = pattern.compilePattern(
-          scope,
-          `${valueName}.${mangled[i]}`,
-        )
-        statements.push(...s)
-        varNames.push(...v)
-      })
-    }
-    return {
-      statements: [
-        mangled === null
-          ? `if (!${valueName}) {`
-          : `if (${nullable ? `${valueName} && ` : ''}'${
-              mangled[0]
-            }' in ${valueName}) {`,
-        ...scope.context.indent(statements),
-        '} else break;',
-      ],
-      varNames,
+    this.patterns.forEach((pattern, i) => {
+      const { statements: s, varNames: v } = pattern.compilePattern(
+        scope,
+        representation.type === 'maybe'
+          ? valueName
+          : representation.type === 'tuple'
+          ? `${valueName}[${i}]`
+          : `${valueName}[${i + 1}]`,
+      )
+      statements.push(...s)
+      varNames.push(...v)
+    })
+
+    if (representation.type === 'bool') {
+      // Statements should be empty because there's nothing to destructure from
+      // a bool
+      return {
+        statements: [
+          `if (${variant === 'true' ? '!' : ''}${valueName}) break;`,
+        ],
+        varNames,
+      }
+    } else if (representation.type === 'enum') {
+      const {
+        variants: { [variant]: variantId },
+        nullable,
+      } = representation
+      return {
+        statements: [
+          variantId === null
+            ? `if (!${valueName}) {`
+            : `if (${
+                nullable ? `${valueName} && ` : ''
+              }${valueName}[0] === ${variantId}) {`,
+          ...scope.context.indent(statements),
+          '} else break;',
+        ],
+        varNames,
+      }
+    } else {
+      if (representation.type !== 'unit' && representation.null) {
+        if (representation.type === 'maybe') {
+          statements.unshift(
+            `if (${valueName} ${
+              valueName === representation.null ? '!' : '='
+            }== undefined) break;`,
+          )
+        } else {
+          statements.unshift(
+            `if (${
+              valueName === representation.null ? '' : '!'
+            }${valueName}) break;`,
+          )
+        }
+      }
+      return {
+        statements,
+        varNames,
+      }
     }
   }
 

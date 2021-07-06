@@ -190,7 +190,7 @@ export class Comparisons extends Base implements Expression {
         expression:
           comparison.type === Compare.EQUAL || comparison.type === Compare.NEQ
             ? // TODO
-              "(function () { throw new Error('TODO'); })()"
+              `${expression} ${compareToJs(comparison.type)} ${bE}`
             : `${expression} ${compareToJs(comparison.type)} ${bE}`,
       }
     } else {
@@ -206,7 +206,7 @@ export class Comparisons extends Base implements Expression {
           `${next} = ${expression}`,
           comparison.type === Compare.EQUAL || comparison.type === Compare.NEQ
             ? // TODO
-              "throw new Error('TODO');"
+              `if (!(${last} ${compareToJs(comparison.type)} ${next})) break;`
             : `if (!(${last} ${compareToJs(comparison.type)} ${next})) break;`,
           `${last} = ${next};`,
         )

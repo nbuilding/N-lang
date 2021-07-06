@@ -1,5 +1,6 @@
 import { Base, BasePosition, Block, ImportFile } from '../ast/index'
 import { CompilationContext } from '../compiler/CompilationContext'
+import { helpers } from '../compiler/n-helpers'
 import {
   parse,
   ParseAmbiguityError,
@@ -354,6 +355,9 @@ export class TypeChecker {
   compile (): string {
     const context = new CompilationContext()
     const compiled: string[] = []
+    for (const helper of Object.values(helpers)) {
+      compiled.push(...helper)
+    }
     for (const [modulePath, state] of this.moduleCache) {
       if (state.state !== 'loaded') {
         throw new Error(`${modulePath} is of state ${state.state}`)
@@ -366,6 +370,11 @@ export class TypeChecker {
       }
     }
     // TODO: Run last exported cmd
+    compiled.push(
+      'return {',
+      '  valueAssertions: valueAssertionResults_n,',
+      '};',
+    )
     return (
       ['(function () {', ...context.indent(compiled), '})();'].join('\n') + '\n'
     )

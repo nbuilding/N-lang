@@ -51,7 +51,7 @@ export class Declaration extends Base {
   ): NType {
     const typeAnnotation: NType = this.type
       ? context.scope.getTypeFrom(this.type).type
-      : unknown
+      : valueType || unknown
     if (
       valueType &&
       context.isTypeError(ErrorType.LET_MISMATCH, typeAnnotation, valueType)

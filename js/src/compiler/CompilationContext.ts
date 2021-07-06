@@ -1,13 +1,55 @@
 import { generateNames } from '../../test/unit/utils/generate-names'
 import { Block } from '../ast'
 import { Base } from '../ast/base'
-import { EnumSpec, NModule, NRecord, NType } from '../type-checker/types/types'
+import { boolSpec } from '../type-checker/types/builtins'
+import { EnumSpec, NRecord } from '../type-checker/types/types'
 import { CompilationGlobalScope } from './CompilationGlobalScope'
-import { CompilationScope } from './CompilationScope'
 
 interface HasExports {
   names: Map<string, string>
 }
+
+/**
+ * The JS representation of an enum.
+ *
+ * A null variant is if the enum has exactly one variant with no fields; it's
+ * represented as `undefined` in JS.
+ *
+ * - `bool` - If the enum spec is `bool`, it'll use native JS booleans.
+ * - `unit` - If there's only one variant without any fields, it's unit-like and
+ *   is represented as `undefined`.
+ * - `tuple` - If there is only one non-null variant. It's represented as a
+ *   tuple (array) for each of its fields. Either the other variant is null or
+ *   there is no other variant.
+ * - `maybe` - A special case of `tuple` if there's only one non-unit-like field
+ *   in the non-null variant. It's represented as the field value itself, with
+ *   no array wrapped around it.
+ * - `enum` - For all other cases. It's represented as a tuple, but the first
+ *   item is a number identifying the variant.
+ */
+type EnumRepresentation =
+  | { type: 'bool' }
+  | { type: 'unit' }
+  | {
+      type: 'maybe' | 'tuple'
+
+      /** The name of the null variant, if it exists */
+      null?: string
+
+      /** The name of the non-null variant */
+      nonNull: string
+    }
+  | {
+      type: 'enum'
+
+      /**
+       * An object map between a variant name and its variant ID, or null if
+       * it's the null variant.
+       */
+      variants: Record<string, number | null>
+
+      nullable: boolean
+    }
 
 export class CompilationContext {
   helpers = {
@@ -26,10 +68,7 @@ export class CompilationContext {
 
   private _recordCache: Map<string, Record<string, string>> = new Map()
 
-  private _enumCache: Map<
-    EnumSpec,
-    { mangled: Record<string, string[] | null>; nullable: boolean }
-  > = new Map()
+  private _enumCache: Map<EnumSpec, EnumRepresentation> = new Map()
 
   genVarName (name: string = '') {
     return `${name}_${this._id++}`
@@ -58,51 +97,61 @@ export class CompilationContext {
   }
 
   /**
-   * Returns an object map between enum variant names and mangled property
-   * names. If an enum has exactly one variant, then it'll be null in the object
-   * map.
-   *
-   * Enums are represented as normal objects in JavaScript. For example,
-   * `result[str, float]` might be represented as `{ ok: string }` or `{ err:
-   * number }`. To determine the variant, N uses the `in` operator: `'ok' in
-   * result`. If a variant has no fields, then N uses `true`.
-   *
-   * Exceptions:
-   * - The native `bool` enum uses JavaScript booleans
-   * - If exactly one variant has no fields, then it'll be represented as
-   *   `undefined`. (The enum is called "nullable.")
-   * - If the enum only has one variant, then it'll be represented as a tuple
-   *   (array).
+   * See `EnumRepresentation` for how enums are represented in JS.
    */
-  normaliseEnum (
-    enumTypeSpec: EnumSpec,
-  ): { mangled: Record<string, string[] | null>; nullable: boolean } {
+  normaliseEnum (enumTypeSpec: EnumSpec): EnumRepresentation {
     const cached = this._enumCache.get(enumTypeSpec)
     if (cached) {
       return cached
     }
-    const nullable =
-      [...enumTypeSpec.variants.values()].filter(
-        variant => variant.types?.length === 0,
-      ).length === 1
-    const sorted = [...enumTypeSpec.variants].sort((a, b) =>
-      a[0].localeCompare(b[0]),
-    )
-    const mangled: Record<string, string[] | null> = {}
-    const names = generateNames()
-    for (const [name, variant] of sorted) {
-      if (!variant.types) continue
-      if (variant.types.length === 0) {
-        if (nullable) {
-          mangled[name] = null
+    let result: EnumRepresentation
+    if (enumTypeSpec === boolSpec) {
+      result = { type: 'bool' }
+    } else {
+      const fieldlessVariants: string[] = []
+      const fieldfulVariants: [string, number][] = []
+      for (const [name, variant] of enumTypeSpec.variants) {
+        if (!variant.types) {
+          throw new Error(
+            `Variant ${name} has types=null despite passing type checking??`,
+          )
+        }
+        if (variant.types.length === 0) {
+          fieldlessVariants.push(name)
         } else {
-          mangled[name] = [names.next().value]
+          fieldfulVariants.push([name, variant.types.length])
+        }
+      }
+      if (fieldlessVariants.length === 1 && fieldfulVariants.length === 0) {
+        result = { type: 'unit' }
+      } else if (
+        fieldlessVariants.length <= 1 &&
+        fieldfulVariants.length === 1
+      ) {
+        const [name, fields] = fieldfulVariants[0]
+        // `fields` must be >= 1; otherwise it'd be fieldless
+        result = {
+          type: fields === 1 ? 'maybe' : 'tuple',
+          nonNull: name,
+          null: fieldlessVariants[0],
         }
       } else {
-        mangled[name] = variant.types.map(() => names.next().value)
+        const nullable = fieldlessVariants.length === 1
+        const sorted = [...enumTypeSpec.variants].sort((a, b) =>
+          a[0].localeCompare(b[0]),
+        )
+        const variants: Record<string, number | null> = {}
+        sorted.forEach(([name, variant], i) => {
+          if (!variant.types) {
+            throw new Error(
+              `Variant ${name} has types=null despite passing type checking??`,
+            )
+          }
+          variants[name] = nullable && variant.types.length === 0 ? null : i
+        })
+        result = { type: 'enum', variants, nullable }
       }
     }
-    const result = { mangled, nullable }
     this._enumCache.set(enumTypeSpec, result)
     return result
   }

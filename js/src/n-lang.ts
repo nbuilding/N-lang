@@ -94,16 +94,16 @@ async function main () {
   })
   const result = await checker.start(path.resolve(fileName))
   if (!(js || running || checksOnly)) return
-  console.log(
-    result.displayAll(
-      new ErrorDisplayer({
-        type: 'console-color',
-        displayPath (absolutePath: string, basePath: string) {
-          return path.relative(path.dirname(basePath), absolutePath)
-        },
-      }),
-    ).display,
+  const { display, errors } = result.displayAll(
+    new ErrorDisplayer({
+      type: 'console-color',
+      displayPath (absolutePath: string, basePath: string) {
+        return path.relative(path.dirname(basePath), absolutePath)
+      },
+    }),
   )
+  console.log(display)
+  if (errors > 0) return
 
   const compiled = checker.compile()
   if (js) console.log(compiled)

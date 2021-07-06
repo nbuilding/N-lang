@@ -6,6 +6,7 @@ export class CompilationGlobalScope extends CompilationScope {
   names = new Map([
     ['print', 'console.log'],
     ['intInBase10', 'String'],
+    ['yes', 'a => a'],
   ])
 
   constructor (context: CompilationContext) {
