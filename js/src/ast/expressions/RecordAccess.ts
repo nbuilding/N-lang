@@ -55,10 +55,28 @@ export class RecordAccess extends Base implements Expression {
 
   compile (scope: CompilationScope): CompilationResult {
     const { statements, expression } = this.value.compile(scope)
-    const mangledKeys = scope.context.normaliseRecord(this._type!)
-    return {
-      statements,
-      expression: `(${expression}).${mangledKeys[this.field.value]}`,
+    const type = this._type!
+    if (type.type === 'record') {
+      const mangledKeys = scope.context.normaliseRecord(type)
+      return {
+        statements,
+        expression: `(${expression}).${mangledKeys[this.field.value]}`,
+      }
+    } else {
+      const exportName = scope.context.modules[type.path].names.get(
+        this.field.value,
+      )
+      if (!exportName) {
+        throw new ReferenceError(
+          `Module ${type.path} does not define such name ${this.field.value}`,
+        )
+      }
+      return {
+        // The statements do not matter much because we know what they evaluate
+        // to: the module type
+        statements: [],
+        expression: exportName,
+      }
     }
   }
 

@@ -1,6 +1,7 @@
 import { generateNames } from '../../test/unit/utils/generate-names'
 import { Base } from '../ast/base'
 import { EnumSpec, NModule, NRecord, NType } from '../type-checker/types/types'
+import { CompilationScope } from './CompilationScope'
 
 export class CompilationContext {
   helpers = {
@@ -10,8 +11,8 @@ export class CompilationContext {
 
   valueAssertions = 0
 
-  // TODO
-  private _typeCache: Map<Base, NType> = new Map()
+  /** Maps module absolute paths to their scopes */
+  modules: Record<string, CompilationScope> = {}
 
   private _id = 0
 
@@ -26,19 +27,10 @@ export class CompilationContext {
     return `${name}_${this._id++}`
   }
 
-  getType (base: Base): NType {
-    const type = this._typeCache.get(base)
-    if (!type) {
-      throw new Error('Why is there no cached type for this?')
-    }
-    return type
-  }
-
   indent (lines: string[]): string[] {
     return lines.map(line => '  ' + line)
   }
 
-  // TODO: I think we should not make modules record-like during runtime
   /** Returns an object map between record field names and mangled names */
   normaliseRecord (recordType: NRecord): Record<string, string> {
     // Normalise keys by alphabetising them to get a unique record ID

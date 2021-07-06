@@ -33,6 +33,9 @@ but with the trailing commas typical of TypeScript.
 # bot.)
 npm install --global sheerun/prettier-standard#snyk-fix-9db5557ac6db798b421e149e10797a39 eslint
 
+# Type check the entire project
+npx tsc --noEmit
+
 # Autoformats the files in place
 prettier-standard --format
 

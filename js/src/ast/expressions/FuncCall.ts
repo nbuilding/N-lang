@@ -11,6 +11,7 @@ import {
   CheckStatementContext,
   CheckStatementResult,
   Statement,
+  StatementCompilationResult,
 } from '../statements/Statement'
 import { AliasSpec, NType, unknown } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
@@ -134,6 +135,14 @@ export class FuncCall extends Base implements Expression, Statement {
     return {
       statements,
       expression: `(${expression})${params.join('')}`,
+    }
+  }
+
+  compileStatement (scope: CompilationScope): StatementCompilationResult {
+    // TODO: An option to optimise these away
+    const { statements, expression } = this.compile(scope)
+    return {
+      statements: [...statements, expression + ';'],
     }
   }
 

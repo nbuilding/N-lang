@@ -11,6 +11,7 @@ import {
   CheckStatementContext,
   CheckStatementResult,
   Statement,
+  StatementCompilationResult,
 } from '../statements/Statement'
 import { NType, unknown } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
@@ -71,6 +72,12 @@ export class Return extends Base implements Expression, Statement {
         isUnit(this._type!) ? 'return;' : `return ${expression};`,
       ],
       expression: 'undefined',
+    }
+  }
+
+  compileStatement (scope: CompilationScope): StatementCompilationResult {
+    return {
+      statements: this.compile(scope).statements,
     }
   }
 

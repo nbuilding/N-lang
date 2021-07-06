@@ -12,6 +12,7 @@ import {
   CheckStatementContext,
   CheckStatementResult,
   Statement,
+  StatementCompilationResult,
 } from '../statements/Statement'
 import { tryFunctions } from '../../type-checker/types/comparisons/compare-assignable'
 import { operations } from '../../type-checker/types/operations'
@@ -188,6 +189,14 @@ export class Operation<O extends Operator> extends Base
       default: {
         throw new Error('What operator could this be? ' + this.type)
       }
+    }
+  }
+
+  compileStatement (scope: CompilationScope): StatementCompilationResult {
+    // TODO: An option to optimise these away
+    const { statements, expression } = this.compile(scope)
+    return {
+      statements: [...statements, expression + ';'],
     }
   }
 

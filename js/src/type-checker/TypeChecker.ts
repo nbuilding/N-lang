@@ -235,6 +235,8 @@ export interface CheckerOptions {
 
 export class TypeChecker {
   options: CheckerOptions
+
+  /** Maps an absolute path to the module state */
   moduleCache: Map<string, ModuleState> = new Map()
 
   constructor (options: CheckerOptions) {

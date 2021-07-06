@@ -111,14 +111,33 @@ export class RecordPattern extends Base implements Pattern {
   ): PatternCompilationResult {
     const statements: string[] = []
     const varNames: string[] = []
-    const mangledKeys = scope.context.normaliseRecord(this._type!)
-    for (const entry of this.entries) {
-      const { statements: s, varNames: v } = entry.value.compilePattern(
-        scope,
-        `${valueName}.${mangledKeys[entry.key.value]}`,
-      )
-      statements.push(...s)
-      varNames.push(...v)
+    const type = this._type!
+    if (type.type === 'record') {
+      const mangledKeys = scope.context.normaliseRecord(type)
+      for (const entry of this.entries) {
+        const { statements: s, varNames: v } = entry.value.compilePattern(
+          scope,
+          `${valueName}.${mangledKeys[entry.key.value]}`,
+        )
+        statements.push(...s)
+        varNames.push(...v)
+      }
+    } else {
+      const module = scope.context.modules[type.path].names
+      for (const entry of this.entries) {
+        const exportName = module.get(entry.key.value)
+        if (!exportName) {
+          throw new ReferenceError(
+            `Module ${type.path} does not define such name ${entry.key.value}`,
+          )
+        }
+        const { statements: s, varNames: v } = entry.value.compilePattern(
+          scope,
+          exportName,
+        )
+        statements.push(...s)
+        varNames.push(...v)
+      }
     }
     return {
       statements,

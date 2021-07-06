@@ -1,4 +1,4 @@
-import { EnumSpec, NType, NUnion, TypeSpec } from './types'
+import { AliasSpec, EnumSpec, NType, NUnion, TypeSpec } from './types'
 
 export const str = new TypeSpec('str').instance()
 export const int = new TypeSpec('int').instance()
@@ -23,12 +23,13 @@ export function isInt (type: NType): boolean {
  * time and doesn't need to be stored during runtime.
  */
 export function isUnit (type: NType): boolean {
+  const resolved = AliasSpec.resolve(type)
   return (
-    (type.type === 'named' && type.typeSpec === unit.typeSpec) ||
-    (type.type === 'record' && type.types.size === 0) ||
-    (EnumSpec.isEnum(type) &&
-      type.typeSpec.variants.size === 1 &&
-      [...type.typeSpec.variants.values()][0].types?.length === 0)
+    (resolved.type === 'named' && resolved.typeSpec === unit.typeSpec) ||
+    (resolved.type === 'record' && resolved.types.size === 0) ||
+    (EnumSpec.isEnum(resolved) &&
+      resolved.typeSpec.variants.size === 1 &&
+      [...resolved.typeSpec.variants.values()][0].types?.length === 0)
   )
 }
 

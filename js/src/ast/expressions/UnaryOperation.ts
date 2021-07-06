@@ -12,6 +12,7 @@ import {
   CheckStatementContext,
   CheckStatementResult,
   Statement,
+  StatementCompilationResult,
 } from '../statements/Statement'
 import { NType, unknown } from '../../type-checker/types/types'
 import { unaryOperations } from '../../type-checker/types/operations'
@@ -96,6 +97,10 @@ export class UnaryOperation<O extends UnaryOperator> extends Base
         throw new Error('What operator could this be? ' + this.type)
       }
     }
+  }
+
+  compileStatement (scope: CompilationScope): StatementCompilationResult {
+    throw new Error('Method not implemented.')
   }
 
   toString (): string {
