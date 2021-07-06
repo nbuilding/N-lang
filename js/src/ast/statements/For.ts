@@ -53,7 +53,22 @@ export class OldFor extends Base implements Statement {
   }
 
   compileStatement (scope: CompilationScope): StatementCompilationResult {
-    throw new Error('Method not implemented.')
+    const end = scope.context.genVarName('oldForEnd')
+    const index = scope.context.genVarName('oldForIndex')
+    const { statements: valueS, expression } = this.value.compile(scope)
+    const loopScope = scope.inner()
+    const declS = this.var.compileDeclaration(loopScope, index)
+    return {
+      statements: [
+        ...valueS,
+        `for (var ${index} = 0, ${end} = ${expression}; ${index} < ${end}; ++${index}) {`,
+        ...scope.context.indent([
+          ...declS,
+          ...this.body.compileStatement(scope).statements,
+        ]),
+        '}',
+      ],
+    }
   }
 
   toString (): string {
@@ -102,7 +117,26 @@ export class For extends Base implements Statement {
   }
 
   compileStatement (scope: CompilationScope): StatementCompilationResult {
-    throw new Error('Method not implemented.')
+    // For loops can only iterate over lists
+    const iterable = scope.context.genVarName('forIterable')
+    const index = scope.context.genVarName('forIndex')
+    const { statements: valueS, expression } = this.value.compile(scope)
+    const loopScope = scope.inner()
+    const declS = this.var.compileDeclaration(
+      loopScope,
+      `${iterable}[${index}]`,
+    )
+    return {
+      statements: [
+        ...valueS,
+        `for (var ${index} = 0, ${iterable} = ${expression}; ${index} < ${iterable}.length; ++${index}) {`,
+        ...scope.context.indent([
+          ...declS,
+          ...this.body.compileStatement(scope).statements,
+        ]),
+        '}',
+      ],
+    }
   }
 
   toString (): string {
