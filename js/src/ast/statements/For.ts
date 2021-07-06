@@ -1,3 +1,4 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { WarningType } from '../../type-checker/errors/Warning'
 import { tryFunctions } from '../../type-checker/types/comparisons/compare-assignable'
@@ -15,6 +16,7 @@ import {
   CheckStatementContext,
   CheckStatementResult,
   Statement,
+  StatementCompilationResult,
 } from './Statement'
 
 export class OldFor extends Base implements Statement {
@@ -48,6 +50,10 @@ export class OldFor extends Base implements Statement {
     scope.checkStatement(this.body)
     scope.end()
     return { exitPoint }
+  }
+
+  compileStatement (scope: CompilationScope): StatementCompilationResult {
+    throw new Error('Method not implemented.')
   }
 
   toString (): string {
@@ -93,6 +99,10 @@ export class For extends Base implements Statement {
     scope.checkStatement(this.body)
     scope.end()
     return { exitPoint }
+  }
+
+  compileStatement (scope: CompilationScope): StatementCompilationResult {
+    throw new Error('Method not implemented.')
   }
 
   toString (): string {

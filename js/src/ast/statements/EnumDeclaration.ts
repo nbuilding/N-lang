@@ -1,3 +1,4 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
 import {
   EnumSpec,
@@ -12,6 +13,7 @@ import {
   CheckStatementContext,
   CheckStatementResult,
   Statement,
+  StatementCompilationResult,
 } from './Statement'
 
 export class EnumVariant extends Base {
@@ -119,6 +121,10 @@ export class EnumDeclaration extends Base implements Statement {
     context.defineType(this.typeSpec.name, typeSpec, this.public)
     scope.end()
     return {}
+  }
+
+  compileStatement (scope: CompilationScope): StatementCompilationResult {
+    throw new Error('Method not implemented.')
   }
 
   toString (): string {

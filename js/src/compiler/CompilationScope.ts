@@ -1,3 +1,4 @@
+import { Arguments } from '../ast/declaration/Arguments'
 import { CompilationContext } from './CompilationContext'
 
 export class CompilationScope {
@@ -16,6 +17,7 @@ export class CompilationScope {
     this._parent = parent
   }
 
+  /** Throws an error if the name can't be found. */
   getName (name: string): string {
     const varName = this.names.get(name)
     if (varName) {
@@ -29,5 +31,37 @@ export class CompilationScope {
 
   inner (): CompilationScope {
     return new CompilationScope(this.context, this)
+  }
+
+  functionExpression (
+    args: Arguments,
+    getBody: (scope: CompilationScope) => string[],
+    prefix = '',
+    suffix = '',
+  ): string[] {
+    const scope = this.inner()
+    const declarations = args.params.map(declaration => {
+      const argName = scope.context.genVarName('argument')
+      const statements = declaration.compileDeclaration(scope, argName)
+      return { argName, statements }
+    })
+    let statements = getBody(scope)
+    for (let i = declarations.length; i--; ) {
+      const { argName, statements: declS } = declarations[i]
+      if (i === 0) {
+        statements = [
+          `${prefix}function (${argName}) {`,
+          ...this.context.indent([...declS, ...statements]),
+          `}${suffix}`,
+        ]
+      } else {
+        statements = [
+          `return function (${argName}) {`,
+          ...this.context.indent([...declS, ...statements]),
+          '};',
+        ]
+      }
+    }
+    return statements
   }
 }
