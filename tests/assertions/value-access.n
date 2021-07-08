@@ -37,4 +37,4 @@ assert value "wow"[0] == yes(\{w})
 assert value "wow"[-1] == none
 
 let strings = ["happy", "sheep", "goes", "boing"]
-assert value strings[3][2] == yes(\{e})
+assert value strings[3][2] == yes(\{i})
