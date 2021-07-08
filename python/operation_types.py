@@ -60,7 +60,7 @@ binary_operation_types = {
         (
             "str",
             "int",
-            "char",
+            n_maybe_type.with_typevars(["char"]),
         ),
         (
             n_maybe_type.with_typevars([n_list_type.with_typevars([access_list_generic])]),
