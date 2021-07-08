@@ -1,0 +1,30 @@
+// Simple syntax test for the value access operator
+
+// The value access operator should be chainable like function calls and the
+// record access and await operators.
+let a = -b[if c { d } else { e }].f[[] -> () {}]![g |> h]()[i | j][[]]
+let b = [][()]
+
+
+let a = -(
+  (
+    (
+      (
+        (
+          (
+            (
+              (
+                (b)[(if c { d } else { e })]
+              ).f
+            )[([] -> () {})]
+          )!
+        )[(g |> h)]
+      )()
+    )([i | j)]
+  )[([])]
+)
+let b = (
+  // Allow a newline between the value and value access operator
+  []
+    [()]
+)
