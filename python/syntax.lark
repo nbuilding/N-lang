@@ -165,12 +165,18 @@ func_type: generic_declaration? (func_inner_type "->")+ not_func_type
 // Exponentiation right to left associative
 ?exponent_expression: unary_expression [EXPONENT exponent_expression]
 ?unary_expression: await_expression
-                 | NOT unary_expression
+                 | NOT 
                  | SUBTRACT unary_expression
+
 ?await_expression: record_access
                  | await_expression AWAIT
-?record_access: value
+
+?record_access: value_access
               | await_expression "." CNAME
+
+?value_access: value
+             | await_expression VALUEACCESS expression "]"
+
 value: NUMBER
      | BOOLEAN
      | STRING
@@ -227,6 +233,7 @@ AWAIT: "!"
 PUBLIC: "pub"
 UNIT: "()"
 EMPTY: "_"
+VALUEACCESS: "["
 STRING: /"(?:[^\r\n\\\"]|\\(?:[nrtv0fb\"\\]|u\{[0-9a-fA-F]+\}|\{.\}))*"/
 
 %import common.SIGNED_NUMBER  -> NUMBER
