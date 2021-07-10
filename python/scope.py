@@ -994,6 +994,19 @@ class Scope:
                 raise SyntaxError(
                     "Unexpected operation for unary_expression: %s" % operation
                 )
+        elif expr.data == "value_access":
+            left, _, right = expr.children
+            eval_left = await self.eval_expr(left)
+            if isinstance(eval_left, EnumValue) and eval_left == none:
+                return none
+            try:
+                if isinstance(eval_left, EnumValue):
+                    eval_left = eval_left.values[0]
+                return yes(eval_left[await self.eval_expr(right)])
+            except Exception as err:
+                if isinstance(err, IndexError) or isinstance(err, KeyError):
+                    return none
+                raise err
         elif expr.data == "char":
             val = expr.children[0]
             if isinstance(val, lark.Tree):
