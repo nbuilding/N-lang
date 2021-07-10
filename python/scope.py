@@ -1725,6 +1725,23 @@ class Scope:
             first_value_type = self.type_check_expr(first_value)
             for i, match_value in enumerate(match_block.children):
                 match, value = match_value.children
+                
+                if (
+                    i != len(match_block.children) - 1
+                    and isinstance(match, lark.Tree)
+                    and len(match.children) == 1
+                    and isinstance(match.children[0], lark.Token)
+                    and match.children[0].type == "NAME"
+                    and match.children[0].value == "_"
+                ):
+                    self.errors.append(
+                        TypeCheckError(
+                            match,
+                            "You cannot have more than one default in a match statement"
+                        )
+                    )
+                    continue
+
                 if (
                     i != len(match_block.children) - 1
                     and self.type_check_expr(match) != first_match_type
