@@ -1,1 +1,7 @@
-print(["12", "1", "2"][1][1])
+print(match ("Why are you?") {
+  "Who are you?" -> "I am an example."
+  "How are you?" -> "I am good."
+  "Why are you?" -> "Why are *you*?"
+  "Why are you?" -> "Why are *youu*?"
+  _ -> "I don't understand."
+})
