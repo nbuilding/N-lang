@@ -28,7 +28,7 @@ let nestedMap = mapFrom([
   ),
 ])
 assert type nestedMap["english"]["apple"] : maybe[str]
-assert value nestedMap["english"]["apple"] == "orangen't"
+assert value nestedMap["english"]["apple"] == yes("orangen't")
 
 // Strings
 

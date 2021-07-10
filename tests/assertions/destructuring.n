@@ -1,6 +1,6 @@
 // Based on docs/features/destructuring.md
 
-let a, b = 1, 2
+let a, b = (1, 2)
 assert value a = 1
 assert value b = 2
 

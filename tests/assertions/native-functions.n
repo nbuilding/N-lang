@@ -36,6 +36,9 @@ assert value substring(0, 100, "hi") = "hi"
 assert value substring(2, 100, "hi") = ""
 assert value substring(5, 3, "hello world") = ""
 
+assert type toFloat : int -> float
+assert value toFloat(3) == 3.0
+
 assert type len : [t] t -> int
 assert value len("abc") = 3
 assert value len(100) = 0
@@ -59,11 +62,13 @@ assert value range(0, -10, -1) = [0, -1, -2, -3, -4, -5, -6, -7, -8, -9]
 assert value range(0, 0, 1) = []
 assert value range(1, 0, 1) = []
 
-// `type` is not a "function" per se
-assert value type(10.0) = "float"
-
 assert type print : [t] t -> t
 assert value print("test") = "test"
+
+assert type printWithEnd : [t] str -> t -> t
+let printed = 3.14
+	|> printWithEnd(" ")
+assert value printed == 3.14
 
 assert type itemAt : [t] int -> list[t] -> maybe[t]
 assert value itemAt(1, [1, 2, 3]) = yes(2)
@@ -74,6 +79,13 @@ let list = [1, 2, 3]
 assert value append(4, list) = [1, 2, 3, 4]
 // `list` should not be mutated
 assert value list = [1, 2, 3]
+
+assert type subsection : [t] int -> int -> list[t] -> list[t]
+assert value subsection(2, 4, [0, 1, 2, 3, 4, 5]) == [2, 3]
+assert value subsection(4, 1000, [0, 1, 2, 3, 4, 5]) == [4, 5]
+assert value subsection(-3, -5, [1, 2, 3]) == []
+assert value subsection(-3, 1, [1, 2, 3]) == [1]
+assert value subsection(3, 2, [1, 2, 3]) == []
 
 assert type filterMap : [a, b] (a -> maybe[b]) -> list[a] -> list[b]
 assert value filterMap([value:int] -> maybe[int] {
@@ -86,8 +98,8 @@ assert value default("test1", none) = "test1"
 
 assert type then : [a, b] (a -> cmd[b]) -> cmd[a] -> cmd[b]
 import FileIO
-assert type then([text: str] -> cmd[()] {
-	assert value len(text) > 0
+assert type then([text: maybe[str]] -> cmd[()] {
+	assert value len(text |> default("")) > 0
 }, FileIO.read("./README.md")) : cmd[()]
 
 assert type mapFrom : [k, v] list[(k, v)] -> map[k, v]
@@ -102,3 +114,53 @@ assert value getValue("c", map) = none
 
 assert type entries : [k, v] map[k, v] -> list[(k, v)]
 assert value entries(map) = [("a", 1), ("b", 2)]
+
+assert type intoModule : [m] m -> maybe[module]
+assert type getUnitTestResults :
+	module -> list[{
+		hasPassed: bool
+		fileLine: int
+		unitTestType: str
+		possibleTypes: maybe[(str, str)]
+	}]
+
+if let <yes module> = intoModule(imp "./imports/unit-test.n") {
+	let results = getUnitTestResults(module)
+
+	assert value len(results) == 4
+
+	assert value (results |> itemAt(0)) == yes({
+		hasPassed: true
+		fileLine: 3
+		unitTestType: "value"
+		possibleTypes: none
+	})
+
+	assert value (results |> itemAt(1)) == yes({
+		hasPassed: false
+		fileLine: 5
+		unitTestType: "value"
+		possibleTypes: none
+	})
+
+	for (result in (results |> subsection(2, 4))) {
+		assert value result.hasPassed
+		assert value result.unitTestType == "type"
+		// I'm not sure if `display_type`'s output is standardised yet
+		assert value if let <yes _> = result.possibleTypes { true } else { false }
+	}
+
+	assert value (results |> itemAt(2) |> default({
+		hasPassed: true
+		fileLine: 0
+		unitTestType: "value"
+		possibleTypes: none
+	})).fileLine == 7
+
+	assert value (results |> itemAt(3) |> default({
+		hasPassed: true
+		fileLine: 0
+		unitTestType: "value"
+		possibleTypes: none
+	})).fileLine == 9
+}

@@ -13,7 +13,7 @@ class SyntaxTestCases(unittest.TestCase):
         file_path = path.join(basepath, "../tests/syntax/", file_name)
 
         def test_method(self):
-            with open(file_path, "r") as file:
+            with open(file_path, "r", encoding="utf-8") as file:
                 parts = re.split(r"(?:\r?\n){3}", file.read())
                 tree, *other_trees = [n_parser.parse(part) for part in parts]
                 for other_tree in other_trees:

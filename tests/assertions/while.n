@@ -1,0 +1,8 @@
+let wow = [a: int] -> int {
+  while (true) {
+    break
+  }
+  return a + 1
+}
+
+assert value wow(3) == 4

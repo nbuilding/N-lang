@@ -1,0 +1,121 @@
+// Ensure that the order of operations and the associativity direction of
+// operators correct.
+// Infix operators are annoying sometimes.
+
+let wow =
+a |
+	b &
+	not
+		c in
+		d
+	&
+	not
+		e
+			.nice
+		<
+		f /=
+		g >=
+			h +
+			i -
+				j *
+				k /
+				l %
+				m >>
+				n <<
+					o ^
+						p
+							!
+							.nice
+					^
+					-
+						q
+							.nice
+					^
+					~
+						r
+							.nice
+					^
+					imp s ^
+					([] -> () {})
+				<<
+				t >>
+				u %
+				v /
+				x *
+				y
+			-
+			z +
+			alpha
+		=
+		beta
+	&
+	gamma
+|
+delta
+
+
+let wow = (
+	(
+		(a) | (
+			(
+				(
+					(b) & (
+						not (
+							(c) in (d)
+						)
+					)
+				) & (
+					not (
+						(
+							(e).nice
+						) < (f) /= (g) >= (
+							(
+								(
+									(
+										(h) + (i)
+									) - (
+										(
+											(
+												(
+													(
+														(
+															(
+																(
+																	(
+																		(
+																			(j) * (k)
+																		) / (l)
+																	) % (m)
+																) >> (n)
+															) << (
+																(o) ^ (
+																	(
+																		((p)!).nice
+																	) ^ (
+																		(
+																			-((q).nice)
+																		) ^ (
+																			(
+																				~((r).nice)
+																			) ^ (
+																				(imp s) ^ ([] -> () {})
+																			)
+																		)
+																	)
+																)
+															)
+														) << (t)
+													) >> (u)
+												) % (v)
+											) / (x)
+										) * (y)
+									)
+								) - (z)
+							) + (alpha)
+						) = (beta)
+					)
+				)
+			) & (gamma)
+		)
+	) | (delta)
+)
