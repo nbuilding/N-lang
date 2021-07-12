@@ -102,9 +102,6 @@ async def connect(options, url):
                 None, [], None, lambda message: Cmd(lambda _: lambda: send_msg(message))
             )
 
-            on_message_task = None
-            on_connect_task = None
-
             async def on_message():
                 try:
                     async for message in websocket:
@@ -120,15 +117,14 @@ async def connect(options, url):
                         if isinstance(close, Cmd):
                             close = await close.eval()
                         if close:
-                            print("asdfasdf")
+                            print("closing")
                             await websocket.close()
                 except websockets.exceptions.ConnectionClosedError as err:
-                    if debug and isinstance(err, websockets.exceptions.ConnectionClosedError):
+                    if debug:
                         print(
                             f"[{url}] {Fore.CYAN}ERROR{Style.RESET_ALL} {Fore.RED}{err}{Style.RESET_ALL}"
                         )
                     return yes(err.reason)
-
 
             async def on_connect():
                 try:
@@ -138,40 +134,23 @@ async def connect(options, url):
                     if isinstance(close, Cmd):
                         close = await close.eval()
                     if close:
-                        print("digus")
                         await websocket.close()
                     # await options['onClose'].eval()
                     if debug:
                         debug_task.cancel()
+                    
                 except websockets.exceptions.ConnectionClosedError as err:
-                    if debug and isinstance(err, websockets.exceptions.ConnectionClosedError):
+                    if debug:
                         print(
                             f"[{url}] {Fore.CYAN}ERROR{Style.RESET_ALL} {Fore.RED}{err}{Style.RESET_ALL}"
                         )
                     return yes(err.reason)
 
-            try:
-                on_message_task = asyncio.create_task(on_message)
-                on_connect_task = asyncio.create_task(on_connect)
+            on_message_task = asyncio.create_task(on_message())
+            on_connect_task = asyncio.create_task(on_connect())
 
-                print("ja;lskdjfk;lasdjfk")
-
-                await on_message_task
-                await on_connect_task
-            except websockets.exceptions.ConnectionClosedError as err:
-                if debug and isinstance(err, websockets.exceptions.ConnectionClosedError):
-                    print(
-                        f"[{url}] {Fore.CYAN}ERROR{Style.RESET_ALL} {Fore.RED}{err}{Style.RESET_ALL}"
-                    )
-                return yes(err.reason)
-            except websockets.exceptions.ConnectionClosedOk as err:
-                if debug and isinstance(err, websockets.exceptions.ConnectionClosedError):
-                    print(
-                        f"[{url}] {Fore.CYAN}CLOSED OK{Style.RESET_ALL} {Fore.RED}{err}{Style.RESET_ALL}"
-                    )
-                return none
-            except asyncio.exceptions.InvalidStateError:
-                pass
+            await on_message_task
+            await on_connect_task
         if debug:
             print(f"[{url}] {Fore.BLUE}Closed.{Style.RESET_ALL}")
         return none
