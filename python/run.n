@@ -1,7 +1,17 @@
-print(match ("Why are you?") {
-  "Who are you?" -> "I am an example."
-  "How are you?" -> "I am good."
-  "Why are you?" -> "Why are *you*?"
-  "Why are you?" -> "Why are *youu*?"
-  _ -> "I don't understand."
-})
+let recordTemplate = {
+	listtest: [1, 2, 3, 4]
+	recordtest: {
+		one: 1
+		two: 2
+	}
+}
+
+let listTest = [..recordTemplate.listtest, 5, 6, 7]
+let recordTest = {
+	..recordTemplate.recordtest
+	three: 3
+	four: 4
+}
+
+print(listTest)
+print(recordTest)

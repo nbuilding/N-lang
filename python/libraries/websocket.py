@@ -101,14 +101,9 @@ async def connect(options, url):
             send = NativeFunction(
                 None, [], None, lambda message: Cmd(lambda _: lambda: send_msg(message))
             )
-            close = NativeFunction(
-                None,
-                [],
-                None,
-                lambda message: Cmd(
-                    lambda _: lambda: websocket.close()
-                ),  # TODO: add code and reason
-            )
+
+            on_message_task = None
+            on_connect_task = None
 
             async def on_message():
                 try:
@@ -125,31 +120,58 @@ async def connect(options, url):
                         if isinstance(close, Cmd):
                             close = await close.eval()
                         if close:
-                            break
+                            print("asdfasdf")
+                            await websocket.close()
                 except websockets.exceptions.ConnectionClosedError as err:
-                    if debug:
+                    if debug and isinstance(err, websockets.exceptions.ConnectionClosedError):
                         print(
                             f"[{url}] {Fore.CYAN}ERROR{Style.RESET_ALL} {Fore.RED}{err}{Style.RESET_ALL}"
                         )
                     return yes(err.reason)
 
+
             async def on_connect():
-                close = await options["onOpen"].run([send])
-                if debug:
-                    print(f"[{url}] {Fore.BLUE}onOpen handled.{Style.RESET_ALL}")
-                if isinstance(close, Cmd):
-                    close = await close.eval()
-                if close:
-                    websocket.close()
-                # await options['onClose'].eval()
-                if debug:
-                    debug_task.cancel()
+                try:
+                    close = await options["onOpen"].run([send])
+                    if debug:
+                        print(f"[{url}] {Fore.BLUE}onOpen handled.{Style.RESET_ALL}")
+                    if isinstance(close, Cmd):
+                        close = await close.eval()
+                    if close:
+                        print("digus")
+                        await websocket.close()
+                    # await options['onClose'].eval()
+                    if debug:
+                        debug_task.cancel()
+                except websockets.exceptions.ConnectionClosedError as err:
+                    if debug and isinstance(err, websockets.exceptions.ConnectionClosedError):
+                        print(
+                            f"[{url}] {Fore.CYAN}ERROR{Style.RESET_ALL} {Fore.RED}{err}{Style.RESET_ALL}"
+                        )
+                    return yes(err.reason)
 
-            on_message_task = asyncio.create_task(on_message())
-            on_connect_task = asyncio.create_task(on_connect())
+            try:
+                on_message_task = asyncio.create_task(on_message)
+                on_connect_task = asyncio.create_task(on_connect)
 
-            await on_message_task
-            await on_connect_task
+                print("ja;lskdjfk;lasdjfk")
+
+                await on_message_task
+                await on_connect_task
+            except websockets.exceptions.ConnectionClosedError as err:
+                if debug and isinstance(err, websockets.exceptions.ConnectionClosedError):
+                    print(
+                        f"[{url}] {Fore.CYAN}ERROR{Style.RESET_ALL} {Fore.RED}{err}{Style.RESET_ALL}"
+                    )
+                return yes(err.reason)
+            except websockets.exceptions.ConnectionClosedOk as err:
+                if debug and isinstance(err, websockets.exceptions.ConnectionClosedError):
+                    print(
+                        f"[{url}] {Fore.CYAN}CLOSED OK{Style.RESET_ALL} {Fore.RED}{err}{Style.RESET_ALL}"
+                    )
+                return none
+            except asyncio.exceptions.InvalidStateError:
+                pass
         if debug:
             print(f"[{url}] {Fore.BLUE}Closed.{Style.RESET_ALL}")
         return none
