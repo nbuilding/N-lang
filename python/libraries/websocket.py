@@ -117,7 +117,6 @@ async def connect(options, url):
                         if isinstance(close, Cmd):
                             close = await close.eval()
                         if close:
-                            print("closing")
                             await websocket.close()
                 except websockets.exceptions.ConnectionClosedError as err:
                     if debug:
@@ -138,7 +137,7 @@ async def connect(options, url):
                     # await options['onClose'].eval()
                     if debug:
                         debug_task.cancel()
-                    
+
                 except websockets.exceptions.ConnectionClosedError as err:
                     if debug:
                         print(

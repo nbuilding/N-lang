@@ -1920,7 +1920,6 @@ class Scope:
                 elif resolved_contained_type is not None:
                     # To deal with cases like [[], [3]] as list[int]
                     contained_type = resolved_contained_type
-
             if contained_type is None:
                 return None
             else:
