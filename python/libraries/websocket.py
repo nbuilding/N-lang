@@ -5,14 +5,14 @@ import uuid
 
 from colorama import Fore, Style
 
-from native_types import n_cmd_type, n_maybe_type, yes, none
+from native_types import n_cmd_type, n_maybe_type, n_result_type, yes, none
 from native_function import NativeFunction
 from type import NAliasType
 from ncmd import Cmd
 from libraries.SystemIO import inp as async_input
 
 # alias send = str -> cmd[()]
-send_type = "str", n_cmd_type.with_typevars(["unit"])
+send_type = "str", n_cmd_type.with_typevars([n_result_type.with_typevars(["unit", "int"])])
 
 close_type = ("unit", n_cmd_type.with_typevars(["unit"]))
 
@@ -95,7 +95,12 @@ async def connect(options, url):
                     print(
                         f"[{url}] {Fore.CYAN}send{Style.RESET_ALL} {Fore.GREEN}{message}{Style.RESET_ALL}"
                     )
-                await websocket.send(message)
+                try:
+                    await websocket.send(message)
+                    return ()
+                except websockets.exceptions.ConnectionClosed as err:
+                    # Ignore all runtime errors (eg when attempting sending to a closed websocket)
+                    return err.code
 
             # Why is this so complicated
             send = NativeFunction(
@@ -118,6 +123,7 @@ async def connect(options, url):
                             close = await close.eval()
                         if close:
                             await websocket.close()
+                            return
                 except websockets.exceptions.ConnectionClosedError as err:
                     if debug:
                         print(
@@ -134,6 +140,7 @@ async def connect(options, url):
                         close = await close.eval()
                     if close:
                         await websocket.close()
+                        return
                     # await options['onClose'].eval()
                     if debug:
                         debug_task.cancel()
