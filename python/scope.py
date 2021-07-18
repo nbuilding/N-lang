@@ -68,9 +68,11 @@ def parse_file(file_path, base_path, parent_imports):
     try:
         tree = file.parse(n_parser)
     except lark.exceptions.UnexpectedCharacters as e:
-        format_error(e, file)
+        print(format_error(e, file))
+        exit()
     except lark.exceptions.UnexpectedEOF as e:
-        format_error(e, file)
+        print(format_error(e, file))
+        exit()
 
     return import_scope, tree, file
 
@@ -796,8 +798,8 @@ class Scope:
     Deals with spread operators for lists
     """
 
-    def eval_spread_list(self, spread_tree, list_val):
-        for val in self.get_variable(spread_tree.children[0]).value:
+    async def eval_spread_list(self, spread_tree, list_val):
+        for val in await self.eval_expr(spread_tree.children[0]):
             list_val.append(val)
 
     def eval_value(self, value):
@@ -1079,7 +1081,7 @@ class Scope:
             values = []
             for e in expr.children:
                 if isinstance(e, lark.Tree) and e.data == "spread":
-                    self.eval_spread_list(e, values)
+                    await self.eval_spread_list(e, values)
                 else:
                     values.append(await self.eval_expr(e))
             return values
@@ -1090,7 +1092,7 @@ class Scope:
             for entry in expr.children:
                 entry_val = await self.eval_record_entry(entry)
                 if isinstance(entry_val, list):
-                    spreads.append(self.get_variable(entry_val[0]).value)
+                    spreads.append(await self.eval_expr(entry_val[0]))
                 else:
                     name, val = entry_val
                     non_spread[name] = val
@@ -1406,17 +1408,8 @@ class Scope:
     """
 
     def type_check_spread_list(self, spread_tree):
-        spread_var = self.get_variable(spread_tree.children[0], err=False)
-        if spread_var == None:
-            self.errors.append(
-                TypeCheckError(
-                    spread_tree.children[0],
-                    "The variable %s does not exist in this scope"
-                    % spread_tree.children[0],
-                )
-            )
-            return None
-        if not isinstance(spread_var.type, NTypeVars):
+        spread_var = self.type_check_expr(spread_tree.children[0])
+        if not isinstance(spread_var, NTypeVars):
             self.errors.append(
                 TypeCheckError(
                     spread_tree.children[0],
@@ -1424,7 +1417,7 @@ class Scope:
                 )
             )
             return None
-        if spread_var.type.name != "list":
+        if spread_var.name != "list":
             self.errors.append(
                 TypeCheckError(
                     spread_tree.children[0],
@@ -1432,7 +1425,7 @@ class Scope:
                 )
             )
             return None
-        return spread_var.type.typevars[0]
+        return spread_var.typevars[0]
 
     """
     Type checks an expression and returns its type.
@@ -1927,7 +1920,6 @@ class Scope:
                 elif resolved_contained_type is not None:
                     # To deal with cases like [[], [3]] as list[int]
                     contained_type = resolved_contained_type
-
             if contained_type is None:
                 return None
             else:
@@ -1990,17 +1982,8 @@ class Scope:
             for entry in expr.children:
                 entry_val = self.get_record_entry_type(entry)
                 if isinstance(entry_val, list):
-                    spread_var = self.get_variable(entry_val[0], err=False)
-                    if spread_var == None:
-                        self.errors.append(
-                            TypeCheckError(
-                                entry_val[0],
-                                "The variable %s does not exist in this scope"
-                                % entry_val[0],
-                            )
-                        )
-                        return None
-                    if not isinstance(spread_var.type, dict):
+                    spread_var = self.type_check_expr(entry_val[0])
+                    if not isinstance(spread_var, dict):
                         self.errors.append(
                             TypeCheckError(
                                 entry_val[0],
@@ -2008,7 +1991,7 @@ class Scope:
                             )
                         )
                         return None
-                    spreads.append(spread_var.type)
+                    spreads.append(spread_var)
                 else:
                     name, val = entry_val
                     non_spread[name] = val

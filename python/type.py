@@ -247,6 +247,8 @@ def resolve_equal_special_types(type_a, type_b):
             if problem:
                 return None, True
             resolved_types.append(resolved)
+        if isinstance(type_b, tuple):
+            resolved_types = tuple(resolved_types)
         return resolved_types, False
     elif isinstance(type_a, dict) and not isinstance(type_a, NModule):
         if (
