@@ -123,7 +123,7 @@ async def connect(options, url):
                             close = await close.eval()
                         if close:
                             await websocket.close()
-                            return
+                            on_close.set_result(None) # Mark `on_close` as done
                 except websockets.exceptions.ConnectionClosedError as err:
                     if debug:
                         print(
@@ -140,7 +140,7 @@ async def connect(options, url):
                         close = await close.eval()
                     if close:
                         await websocket.close()
-                        return
+                        on_close.set_result(None) # Mark `on_close` as done
                     # await options['onClose'].eval()
                     if debug:
                         debug_task.cancel()
@@ -152,11 +152,12 @@ async def connect(options, url):
                         )
                     return yes(err.reason)
 
-            on_message_task = asyncio.create_task(on_message())
-            on_connect_task = asyncio.create_task(on_connect())
+            on_close = asyncio.Future()
+            
+            asyncio.create_task(on_message())
+            asyncio.create_task(on_connect())
 
-            await on_message_task
-            await on_connect_task
+            await on_close
         if debug:
             print(f"[{url}] {Fore.BLUE}Closed.{Style.RESET_ALL}")
         return none
