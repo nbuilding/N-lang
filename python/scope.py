@@ -2095,7 +2095,7 @@ class Scope:
             if command.data == "for_legacy":
                 iterable_types_src = legacy_iterable_types
                 self.warnings.append(
-                    TypeCheckError(command, "This syntax is decapricated.")
+                    TypeCheckError(command, "This syntax is deprecated.")
                 )
             else:
                 iterable_types_src = iterable_types

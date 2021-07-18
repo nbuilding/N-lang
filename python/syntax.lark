@@ -165,7 +165,7 @@ func_type: generic_declaration? (func_inner_type "->")+ not_func_type
 // Exponentiation right to left associative
 ?exponent_expression: unary_expression [EXPONENT exponent_expression]
 ?unary_expression: await_expression
-                 | NOT 
+                 | NOT unary_expression
                  | SUBTRACT unary_expression
 
 ?await_expression: record_access
