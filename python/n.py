@@ -89,8 +89,14 @@ def run_file(filename, check=False):
     if there was an error or None if everything went well.
     """
 
-    with open(filename, "r", encoding="utf-8") as f:
-        file = File(f)
+    file = None
+
+    try:
+        with open(filename, "r", encoding="utf-8") as f:
+            file = File(f)
+    except FileNotFoundError:
+        print((Fore.RED + "Error" + Fore.RESET + ": File " + Fore.YELLOW + "%s" + Fore.RESET + " not found") % filename)
+        exit()
 
     file_path = path.abspath(filename)
     global_scope = Scope(base_path=path.dirname(file_path), file_path=file_path)
