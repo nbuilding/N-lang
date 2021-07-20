@@ -70,9 +70,9 @@ def with_default(default_value, maybe_value):
 
 def cmd_then(n_function, cmd):
     async def then(result):
-        return (await n_function.run([result])).eval
+        return await Cmd.wrap(await n_function.run([result])).eval()
 
-    return cmd.then(then)
+    return Cmd.wrap(cmd).then(lambda result: lambda: then(result))
 
 
 def cmd_parallel(cmd):

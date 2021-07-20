@@ -102,6 +102,17 @@ assert type then([text: maybe[str]] -> cmd[()] {
 	assert value len(text |> default("")) > 0
 }, FileIO.read("./README.md")) : cmd[()]
 
+// See #228
+let getData = () |> ([] -> cmd[map[str, str]] {
+	return mapFrom([("hi", "hello")])
+})
+let out = getData
+	|> then(
+		[data:map[str, str]] -> cmd[()] {
+			assert value data == mapFrom([("hi", "hello")])
+		}
+	)
+
 assert type mapFrom : [k, v] list[(k, v)] -> map[k, v]
 let map = mapFrom([("a", 1), ("b", 2)])
 assert type map : map[str, int]
@@ -164,3 +175,7 @@ if let <yes module> = intoModule(imp "./imports/unit-test.n") {
 		possibleTypes: none
 	})).fileLine == 9
 }
+
+let pub main = () |> ([] -> cmd[()] {
+	let _ = out!
+})
