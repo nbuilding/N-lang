@@ -77,7 +77,7 @@ def cmd_then(n_function, cmd):
 
 def cmd_parallel(cmd):
     async def in_parallel():
-        return await cmd.eval()
+        return await Cmd.wrap(cmd).eval()
 
     async def run_in_parallel():
         # Run `cmd` in parallel

@@ -106,12 +106,20 @@ assert type then([text: maybe[str]] -> cmd[()] {
 let getData = () |> ([] -> cmd[map[str, str]] {
 	return mapFrom([("hi", "hello")])
 })
-let out = getData
+let thenCmd = getData
 	|> then(
 		[data:map[str, str]] -> cmd[()] {
 			assert value data == mapFrom([("hi", "hello")])
 		}
 	)
+
+assert type parallel : [t] cmd[t] -> cmd[cmd[t]]
+let parallelCmd = () |> ([] -> cmd[()] {
+	let _ = parallel(() |> ([] -> cmd[()] {
+		// See #227
+		assert value true
+	}))!
+})
 
 assert type mapFrom : [k, v] list[(k, v)] -> map[k, v]
 let map = mapFrom([("a", 1), ("b", 2)])
@@ -177,5 +185,6 @@ if let <yes module> = intoModule(imp "./imports/unit-test.n") {
 }
 
 let pub main = () |> ([] -> cmd[()] {
-	let _ = out!
+	let _ = thenCmd!
+	let _ = parallelCmd!
 })
