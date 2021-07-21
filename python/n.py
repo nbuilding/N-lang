@@ -95,8 +95,8 @@ def run_file(filename, check=False):
     try:
         with open(filename, "r", encoding="utf-8") as f:
             file = File(f)
-    except FileNotFoundError:
-        print((Fore.RED + "Error" + Fore.RESET + ": File " + Fore.YELLOW + "%s" + Fore.RESET + " not found") % filename)
+    except:
+        print((Fore.RED + "Error" + Fore.RESET + ": Unable to read file " + Fore.YELLOW + "%s" + Fore.RESET) % filename)
         exit()
 
     file_path = path.abspath(filename)
