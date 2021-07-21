@@ -5,14 +5,14 @@ import uuid
 
 from colorama import Fore, Style
 
-from native_types import n_cmd_type, n_maybe_type, yes, none
+from native_types import n_cmd_type, n_maybe_type, n_result_type, yes, none
 from native_function import NativeFunction
 from type import NAliasType
 from ncmd import Cmd
 from libraries.SystemIO import inp as async_input
 
 # alias send = str -> cmd[()]
-send_type = "str", n_cmd_type.with_typevars(["unit"])
+send_type = "str", n_cmd_type.with_typevars([n_result_type.with_typevars(["unit", "int"])])
 
 close_type = ("unit", n_cmd_type.with_typevars(["unit"]))
 
@@ -95,19 +95,16 @@ async def connect(options, url):
                     print(
                         f"[{url}] {Fore.CYAN}send{Style.RESET_ALL} {Fore.GREEN}{message}{Style.RESET_ALL}"
                     )
-                await websocket.send(message)
+                try:
+                    await websocket.send(message)
+                    return ()
+                except websockets.exceptions.ConnectionClosed as err:
+                    # Ignore all runtime errors (eg when attempting sending to a closed websocket)
+                    return err.code
 
             # Why is this so complicated
             send = NativeFunction(
                 None, [], None, lambda message: Cmd(lambda _: lambda: send_msg(message))
-            )
-            close = NativeFunction(
-                None,
-                [],
-                None,
-                lambda message: Cmd(
-                    lambda _: lambda: websocket.close()
-                ),  # TODO: add code and reason
             )
 
             async def on_message():
@@ -125,7 +122,8 @@ async def connect(options, url):
                         if isinstance(close, Cmd):
                             close = await close.eval()
                         if close:
-                            break
+                            await websocket.close()
+                            on_close.set_result(None) # Mark `on_close` as done
                 except websockets.exceptions.ConnectionClosedError as err:
                     if debug:
                         print(
@@ -134,22 +132,32 @@ async def connect(options, url):
                     return yes(err.reason)
 
             async def on_connect():
-                close = await options["onOpen"].run([send])
-                if debug:
-                    print(f"[{url}] {Fore.BLUE}onOpen handled.{Style.RESET_ALL}")
-                if isinstance(close, Cmd):
-                    close = await close.eval()
-                if close:
-                    websocket.close()
-                # await options['onClose'].eval()
-                if debug:
-                    debug_task.cancel()
+                try:
+                    close = await options["onOpen"].run([send])
+                    if debug:
+                        print(f"[{url}] {Fore.BLUE}onOpen handled.{Style.RESET_ALL}")
+                    if isinstance(close, Cmd):
+                        close = await close.eval()
+                    if close:
+                        await websocket.close()
+                        on_close.set_result(None) # Mark `on_close` as done
+                    # await options['onClose'].eval()
+                    if debug:
+                        debug_task.cancel()
 
-            on_message_task = asyncio.create_task(on_message())
-            on_connect_task = asyncio.create_task(on_connect())
+                except websockets.exceptions.ConnectionClosedError as err:
+                    if debug:
+                        print(
+                            f"[{url}] {Fore.CYAN}ERROR{Style.RESET_ALL} {Fore.RED}{err}{Style.RESET_ALL}"
+                        )
+                    return yes(err.reason)
 
-            await on_message_task
-            await on_connect_task
+            on_close = asyncio.Future()
+            
+            asyncio.create_task(on_message())
+            asyncio.create_task(on_connect())
+
+            await on_close
         if debug:
             print(f"[{url}] {Fore.BLUE}Closed.{Style.RESET_ALL}")
         return none

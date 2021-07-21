@@ -1,32 +1,33 @@
-import lark
-import asyncio
-import sys
-import signal
-import argparse
-import os
+try:
+    import lark
+    import asyncio
+    import sys
+    import signal
+    import argparse
+    import os
 
-from os import path
-from colorama import init, Fore, Style
-from sys import exit, platform
-import requests
-from lark import Lark
+    from os import path
+    from colorama import init, Fore, Style
+    from sys import exit, platform
+    import requests
+    from lark import Lark
 
-import stack_trace
+    import stack_trace
 
-from syntax_error import format_error
-from ncmd import Cmd
-from imported_error import ImportedError
-from scope import Scope
-from type_check_error import TypeCheckError
-from native_functions import add_funcs
-from parse import n_parser
-from file import File
+    from syntax_error import format_error
+    from ncmd import Cmd
+    from imported_error import ImportedError
+    from scope import Scope
+    from type_check_error import TypeCheckError
+    from native_functions import add_funcs
+    from parse import n_parser
+    from file import File
 
+    init()
 
-init()
-
-VERSION = "N v1.3.0"
-
+    VERSION = "N v1.3.0"
+except KeyboardInterrupt:
+    exit()
 
 def type_check(global_scope, file, tree, check):
     errors = ""
@@ -89,8 +90,14 @@ def run_file(filename, check=False):
     if there was an error or None if everything went well.
     """
 
-    with open(filename, "r", encoding="utf-8") as f:
-        file = File(f)
+    file = None
+
+    try:
+        with open(filename, "r", encoding="utf-8") as f:
+            file = File(f)
+    except:
+        print((Fore.RED + "Error" + Fore.RESET + ": Unable to read file " + Fore.YELLOW + "%s" + Fore.RESET) % filename)
+        exit()
 
     file_path = path.abspath(filename)
     global_scope = Scope(base_path=path.dirname(file_path), file_path=file_path)
@@ -131,71 +138,74 @@ def run_file(filename, check=False):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Allows to only show warnings and errors, choose the file location, see the newest version of N, check the version of N, and update N to the newest version."
-    )
-    parser.add_argument(
-        "--file",
-        type=str,
-        default="run.n",
-        help="The file to read. (optional. if not included, it'll just run run.n)",
-    )
-    parser.add_argument(
-        "--check",
-        action="store_true",
-        help="This goes through the file and prints out the errors and warnings without running it.",
-    )
-    parser.add_argument(
-        "--newest", action="store_true", help="Shows the newest version of N."
-    )
-    parser.add_argument(
-        "--version",
-        action="store_true",
-        help="Shows the current version of N installed.",
-    )
-    parser.add_argument(
-        "--update",
-        action="store_true",
-        help="This updates to the newest version of N if you are behind.",
-    )
-
-    args = parser.parse_args()
-
-    if args.version:
-        print(VERSION)
-        exit()
-
-    if args.update:
-        response = requests.get(
-            "https://api.github.com/repos/nbuilding/N-Lang/releases/latest"
+    try:
+        parser = argparse.ArgumentParser(
+            description="Allows to only show warnings and errors, choose the file location, see the newest version of N, check the version of N, and update N to the newest version."
         )
-        if VERSION == response.json()["name"]:
-            print("You already have the newest version.")
-            exit()
-        print("Newer version detected: " + response.json()["name"])
-        if input("Are you sure you want to update? [y/n] ").lower() != "y":
-            print("Aborting...")
-            exit()
-        print("Installing...")
-        if platform == "win32":
-            os.system(
-                'PowerShell.exe -command "iwr https://github.com/nbuilding/N-lang/raw/main/install.ps1 -useb | iex"'
-            )
-            exit()
-        elif platform == "darwin":
-            os.system(
-                "curl -fsSL https://github.com/nbuilding/N-lang/raw/main/install.sh | sh"
-            )
-            exit()
-        print("You are on an unsupported OS.")
-
-    if args.newest:
-        response = requests.get(
-            "https://api.github.com/repos/nbuilding/N-Lang/releases/latest"
+        parser.add_argument(
+            "--file",
+            type=str,
+            default="run.n",
+            help="The file to read. (optional. if not included, it'll just run run.n)",
         )
-        print(response.json()["name"])
-        exit()
+        parser.add_argument(
+            "--check",
+            action="store_true",
+            help="This goes through the file and prints out the errors and warnings without running it.",
+        )
+        parser.add_argument(
+            "--newest", action="store_true", help="Shows the newest version of N."
+        )
+        parser.add_argument(
+            "--version",
+            action="store_true",
+            help="Shows the current version of N installed.",
+        )
+        parser.add_argument(
+            "--update",
+            action="store_true",
+            help="This updates to the newest version of N if you are behind.",
+        )
 
-    errors = run_file(args.file, args.check)
-    if errors is not None:
-        print(errors)
+        args = parser.parse_args()
+
+        if args.version:
+            print(VERSION)
+            exit()
+
+        if args.update:
+            response = requests.get(
+                "https://api.github.com/repos/nbuilding/N-Lang/releases/latest"
+            )
+            if VERSION == response.json()["name"]:
+                print("You already have the newest version.")
+                exit()
+            print("Newer version detected: " + response.json()["name"])
+            if input("Are you sure you want to update? [y/n] ").lower() != "y":
+                print("Aborting...")
+                exit()
+            print("Installing...")
+            if platform == "win32":
+                os.system(
+                    'PowerShell.exe -command "iwr https://github.com/nbuilding/N-lang/raw/main/install.ps1 -useb | iex"'
+                )
+                exit()
+            elif platform == "darwin":
+                os.system(
+                    "curl -fsSL https://github.com/nbuilding/N-lang/raw/main/install.sh | sh"
+                )
+                exit()
+            print("You are on an unsupported OS.")
+
+        if args.newest:
+            response = requests.get(
+                "https://api.github.com/repos/nbuilding/N-Lang/releases/latest"
+            )
+            print(response.json()["name"])
+            exit()
+
+        errors = run_file(args.file, args.check)
+        if errors is not None:
+            print(errors)
+    except KeyboardInterrupt:
+        exit()

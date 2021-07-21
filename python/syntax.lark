@@ -69,7 +69,7 @@ hex_pattern: /[0-9a-fA-F]+/
 escape_code: /[nrtv0fb]/
 tupledef: "(" types ("," types)+ (",")? ")"
 recorddef: "{" (record_entry_lit (";" | "\n"))* record_entry_lit (";" | "\n")? "}"
-spread: ".." NAME
+spread: ".." expression
 record_entry_lit: CNAME ":" types
 with_typevars: module_type "[" types ("," types)* (",")? "]"
 declaration_with_typevars: NAME ("[" NAME ("," NAME)* (",")? "]")?
@@ -165,7 +165,7 @@ func_type: generic_declaration? (func_inner_type "->")+ not_func_type
 // Exponentiation right to left associative
 ?exponent_expression: unary_expression [EXPONENT exponent_expression]
 ?unary_expression: await_expression
-                 | NOT 
+                 | NOT unary_expression
                  | SUBTRACT unary_expression
 
 ?await_expression: record_access
@@ -194,7 +194,7 @@ value: NUMBER
      | OCTAL
 
 // Make sure that keywords are not in NAME
-NAME: /(?!(\b(let|type|var|alias|for|in|import|imp|return|if|else|class|pub|break|continue|with|yield|do|not|match)\b))/ CNAME
+NAME: /(?!(\b(let|type|var|alias|for|in|import|imp|return|if|else|class|pub|break|continue|with|yield|do|not|match|while)\b))/ CNAME
 
 // Alias for unary_expression. Used for values that visually look tightly bound,
 // which is important for function arguments since they're separated by spaces.
