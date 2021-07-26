@@ -15,65 +15,114 @@ from ncmd import Cmd
 
 
 async def get(url, headers):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers) as r:
-            returndata = string(await r.text())
-            try:
-                returndata = python_to_json(json.loads(await r.text()))
-            except:
-                pass
-            return {"code": r.status, "response": r.reason, "return": returndata}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers) as r:
+                returndata = string(await r.text())
+                try:
+                    returndata = python_to_json(json.loads(await r.text()))
+                except:
+                    pass
+                return {"code": r.status, "response": r.reason, "return": returndata}
+    except aiohttp.client_exceptions.ClientConnectorError as err:
+        return {
+            "code": 400,
+            "response": "Cannot connect",
+            "return": str(err),
+        }
 
 
 async def delete(url, headers):
-    async with aiohttp.ClientSession() as session:
-        async with session.delete(url, headers=headers) as r:
-            returndata = string(await r.text())
-            try:
-                returndata = python_to_json(json.loads(await r.text()))
-            except:
-                pass
-            return {"code": r.status, "response": r.reason, "return": returndata}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.delete(url, headers=headers) as r:
+                returndata = string(await r.text())
+                try:
+                    returndata = python_to_json(json.loads(await r.text()))
+                except:
+                    pass
+                return {"code": r.status, "response": r.reason, "return": returndata}
+    except aiohttp.client_exceptions.ClientConnectorError as err:
+        return {
+            "code": 400,
+            "response": "Cannot connect",
+            "return": str(err),
+        }
 
 
 async def head(url, headers):
-    async with aiohttp.ClientSession() as session:
-        async with session.head(url, headers=headers) as r:
-            returndata = string(await r.text())
-            try:
-                returndata = python_to_json(json.loads(await r.text()))
-            except:
-                pass
-            return {"code": r.status, "response": r.reason, "return": returndata}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.head(url, headers=headers) as r:
+                returndata = string(await r.text())
+                try:
+                    returndata = python_to_json(json.loads(await r.text()))
+                except:
+                    pass
+                return {"code": r.status, "response": r.reason, "return": returndata}
+    except aiohttp.client_exceptions.ClientConnectorError as err:
+        return {
+            "code": 400,
+            "response": "Cannot connect",
+            "return": str(err),
+        }
 
 
 async def options(url, headers):
-    async with aiohttp.ClientSession() as session:
-        async with session.options(url, headers=headers) as r:
-            returndata = string(await r.text())
-            try:
-                returndata = python_to_json(json.loads(await r.text()))
-            except:
-                pass
-            return {"code": r.status, "response": r.reason, "return": returndata}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.options(url, headers=headers) as r:
+                returndata = string(await r.text())
+                try:
+                    returndata = python_to_json(json.loads(await r.text()))
+                except:
+                    pass
+                return {"code": r.status, "response": r.reason, "return": returndata}
+    except aiohttp.client_exceptions.ClientConnectorError as err:
+        return {
+            "code": 400,
+            "response": "Cannot connect",
+            "return": str(err),
+        }
 
 
 async def post(url, content, headers):
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, data=json.dumps(content), headers=headers) as r:
-            return {"code": r.status, "response": r.reason, "text": await r.text()}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=json.dumps(content), headers=headers) as r:
+                return {"code": r.status, "response": r.reason, "text": await r.text()}
+    except aiohttp.client_exceptions.ClientConnectorError as err:
+        return {
+            "code": 400,
+            "response": "Cannot connect",
+            "text": str(err),
+        }
 
 
 async def patch(url, content, headers):
-    async with aiohttp.ClientSession() as session:
-        async with session.patch(url, data=json.dumps(content), headers=headers) as r:
-            return {"code": r.status, "response": r.reason, "text": await r.text()}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.patch(url, data=json.dumps(content), headers=headers) as r:
+                return {"code": r.status, "response": r.reason, "text": await r.text()}
+    except aiohttp.client_exceptions.ClientConnectorError as err:
+        return {
+            "code": 400,
+            "response": "Cannot connect",
+            "text": str(err),
+        }
 
 
 async def put(url, content, headers):
-    async with aiohttp.ClientSession() as session:
-        async with session.put(url, data=json.dumps(content), headers=headers) as r:
-            return {"code": r.status, "response": r.reason, "text": await r.text()}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.put(url, data=json.dumps(content), headers=headers) as r:
+                return {"code": r.status, "response": r.reason, "text": await r.text()}
+    except aiohttp.client_exceptions.ClientConnectorError as err:
+        return {
+            "code": 400,
+            "response": "Cannot connect",
+            "text": str(err),
+        }
 
 
 async def createServer(port, page_handler):
