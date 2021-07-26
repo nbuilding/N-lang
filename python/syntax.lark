@@ -37,7 +37,7 @@ function_callback_pipe: literal "|>" pipe_function_call
                       | function_callback_pipe "|>" pipe_function_call
 for_legacy: "for" name_type NUMBER code_block
 for: "for" "(" name_type "in" value ")" code_block
-while: "while" "(" value ")" code_block
+while: "while" "(" expression ")" code_block
 imp: "import" NAME
 impn: "imp" (STRING | NAME)
 return: "return" expression
