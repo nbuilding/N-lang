@@ -991,7 +991,10 @@ class Scope:
             if operation.type == "SUBTRACT":
                 return -await self.eval_expr(value)
             elif operation.type == "NOT":
-                return not await self.eval_expr(value)
+                val = await self.eval_expr(value)
+                if isinstance(val, bool):
+                    return not val
+                return ~val 
             else:
                 raise SyntaxError(
                     "Unexpected operation for unary_expression: %s" % operation

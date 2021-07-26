@@ -1,1 +1,1 @@
-let runner = imp "./runner.n"
+print(~(1 == 1))
