@@ -69,10 +69,10 @@ def parse_file(file_path, base_path, parent_imports):
         tree = file.parse(n_parser)
     except lark.exceptions.UnexpectedCharacters as e:
         print(format_error(e, file))
-        exit()
+        sys.exit()
     except lark.exceptions.UnexpectedEOF as e:
         print(format_error(e, file))
-        exit()
+        sys.exit()
 
     return import_scope, tree, file
 
