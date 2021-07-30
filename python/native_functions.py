@@ -1,3 +1,4 @@
+import asyncio
 import math
 import lark
 
@@ -5,8 +6,7 @@ import scope
 
 from variable import Variable
 from function import Function
-from type_check_error import display_type
-from type import NGenericType
+from type import NGenericType, NModule, NClass, NTypeVars, NType
 from enums import EnumType, EnumValue
 from native_types import (
     n_list_type,
@@ -22,7 +22,9 @@ from native_types import (
     result_err_generic,
     ok,
     err,
+    n_module_type,
 )
+from ncmd import Cmd
 
 
 def substr(start, end, string):
@@ -59,12 +61,6 @@ async def filter_map(transformer, lis):
     return new_list
 
 
-def type_display(o):
-    if isinstance(o, Function):
-        return str(o)
-    return type(o).__name__
-
-
 def with_default(default_value, maybe_value):
     if maybe_value.variant == "yes":
         return maybe_value.values[0]
@@ -74,9 +70,28 @@ def with_default(default_value, maybe_value):
 
 def cmd_then(n_function, cmd):
     async def then(result):
-        return (await n_function.run([result])).eval
+        return await Cmd.wrap(await n_function.run([result])).eval()
 
-    return cmd.then(then)
+    return Cmd.wrap(cmd).then(lambda result: lambda: then(result))
+
+
+def cmd_parallel(cmd):
+    async def in_parallel():
+        return await Cmd.wrap(cmd).eval()
+
+    async def run_in_parallel():
+        # Run `cmd` in parallel
+        task = asyncio.create_task(in_parallel())
+
+        # The async function resolves when `cmd` is done
+        async def get_parallel_result():
+            return await task
+
+        # Return a `cmd` based on `get_parallel_result`
+        return Cmd(lambda _: get_parallel_result)
+
+    # Return a `cmd` based on `run_in_parallel`
+    return Cmd(lambda _: run_in_parallel)
 
 
 def map_from(entries):
@@ -107,6 +122,35 @@ def special_print(val):
         print(display)
     return val
 
+
+def special_print_with_end(end, val):
+    if isinstance(val, str):
+        print(val, end=end)
+    else:
+        display, _ = scope.display_value(val, indent="  ")
+        print(display, end=end)
+    return val
+
+
+def subsection_list(lower, upper, l):
+    if lower < 0:
+        lower = 0
+    if upper > len(l):
+        upper = len(l)
+    return l[lower:upper]
+
+
+def to_module(possible_module):
+    if isinstance(possible_module, NModule):
+        return yes(possible_module)
+    return none
+
+
+def char_with_replace(num):
+    try:
+        return chr(num)
+    except ValueError:
+        return u'\ufffd'
 
 # Define global functions/variables
 def add_funcs(global_scope):
@@ -146,7 +190,7 @@ def add_funcs(global_scope):
         "intCode",
         [("number", "int")],
         "char",
-        chr,
+        char_with_replace,
     )
     global_scope.add_native_function(
         "charAt",
@@ -159,6 +203,12 @@ def add_funcs(global_scope):
         [("start", "int"), ("end", "int"), ("string", "str")],
         "str",
         substr,
+    )
+    global_scope.add_native_function(
+        "toFloat",
+        [("number", "int")],
+        "float",
+        float,
     )
     global_scope.add_native_function(
         "len",
@@ -181,15 +231,16 @@ def add_funcs(global_scope):
         n_list_type.with_typevars(["int"]),
         lambda start, end, step: list(range(start, end, step)),
     )
-    global_scope.add_native_function(
-        "type",
-        [("obj", NGenericType("t"))],
-        "str",
-        type_display,
-    )
     print_generic = NGenericType("t")
     global_scope.add_native_function(
         "print", [("val", print_generic)], print_generic, special_print
+    )
+    print_with_end_generic = NGenericType("t")
+    global_scope.add_native_function(
+        "printWithEnd",
+        [("end", "str"), ("val", print_with_end_generic)],
+        print_with_end_generic,
+        special_print_with_end,
     )
     item_at_generic = NGenericType("t")
     global_scope.add_native_function(
@@ -203,11 +254,23 @@ def add_funcs(global_scope):
         "append",
         [
             ("item", append_generic),
-            ("list", n_list_type.with_typevars([item_at_generic])),
+            ("list", n_list_type.with_typevars([append_generic])),
         ],
-        n_list_type.with_typevars([item_at_generic]),
-        lambda item, l: l.__add__([item]),
+        n_list_type.with_typevars([append_generic]),
+        lambda i, l: l.__add__([i]),
     )
+    subsection_generic = NGenericType("t")
+    global_scope.add_native_function(
+        "subsection",
+        [
+            ("lower", "int"),
+            ("upper", "int"),
+            ("list", n_list_type.with_typevars([subsection_generic])),
+        ],
+        n_list_type.with_typevars([subsection_generic]),
+        subsection_list,
+    )
+
     filter_map_generic_a = NGenericType("a")
     filter_map_generic_b = NGenericType("b")
     global_scope.add_native_function(
@@ -267,6 +330,15 @@ def add_funcs(global_scope):
         n_cmd_type.with_typevars([then_generic_out]),
         cmd_then,
     )
+    parallel_generic = NGenericType("a")
+    global_scope.add_native_function(
+        "parallel",
+        [
+            ("cmd", n_cmd_type.with_typevars([parallel_generic])),
+        ],
+        n_cmd_type.with_typevars([n_cmd_type.with_typevars([parallel_generic])]),
+        cmd_parallel,
+    )
     map_from_generic_key = NGenericType("k")
     map_from_generic_value = NGenericType("v")
     global_scope.add_native_function(
@@ -309,6 +381,28 @@ def add_funcs(global_scope):
         n_list_type.with_typevars([[entries_generic_key, entries_generic_value]]),
         entries,
     )
+    into_module_generic_value = NGenericType("m")
+    global_scope.add_native_function(
+        "intoModule",
+        [("possibleModule", into_module_generic_value)],
+        n_maybe_type.with_typevars([n_module_type.with_typevars([])]),
+        to_module,
+    )
+    global_scope.add_native_function(
+        "getUnitTestResults",
+        [("possibleModule", n_module_type)],
+        n_list_type.with_typevars(
+            [
+                {
+                    "hasPassed": "bool",
+                    "fileLine": "int",
+                    "unitTestType": "str",
+                    "possibleTypes": n_maybe_type.with_typevars([["str", "str"]]),
+                }
+            ]
+        ),
+        lambda module: scope.unit_test_results[module.mod_name][:],
+    )
 
     global_scope.types["str"] = "str"
     global_scope.types["char"] = "char"
@@ -320,3 +414,4 @@ def add_funcs(global_scope):
     global_scope.types["cmd"] = n_cmd_type
     global_scope.types["maybe"] = n_maybe_type
     global_scope.types["result"] = n_result_type
+    global_scope.types["module"] = n_module_type

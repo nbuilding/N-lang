@@ -214,11 +214,8 @@ compounding errors.
 - resolve_equal_types(None, int) -> None, False
 """
 
-
-def resolve_equal_types(type_a, type_b):
-    if type_a is None or type_b is None:
-        return None, False
-    elif isinstance(type_a, NTypeVars):
+def resolve_equal_special_types(type_a, type_b):
+    if isinstance(type_a, NTypeVars):
         if (
             not isinstance(type_b, NTypeVars)
             or type_a.base_type is not type_b.base_type
@@ -227,7 +224,9 @@ def resolve_equal_types(type_a, type_b):
         base_type = type_a.base_type
         resolved_typevars = []
         for typevar_a, typevar_b in zip(type_a.typevars, type_b.typevars):
-            if isinstance(typevar_a, NGenericType) and typevar_a in base_type.typevars:
+            if isinstance(typevar_a, NGenericType) and isinstance(typevar_b, NGenericType):
+                resolved_typevars.append(typevar_a)
+            elif isinstance(typevar_a, NGenericType):
                 resolved_typevars.append(typevar_b)
             elif (
                 isinstance(typevar_b, NGenericType) and typevar_b in base_type.typevars
@@ -239,8 +238,8 @@ def resolve_equal_types(type_a, type_b):
                     return None, True
                 resolved_typevars.append(resolved)
         return type_a.with_typevars(resolved_typevars), False
-    elif isinstance(type_a, list):
-        if not isinstance(type_b, list) or len(type_a) != len(type_b):
+    elif isinstance(type_a, list) or isinstance(type_b, tuple):
+        if (not isinstance(type_b, list) and not isinstance(type_b, tuple)) or len(type_a) != len(type_b):
             return None, True
         resolved_types = []
         for item_a, item_b in zip(type_a, type_b):
@@ -248,6 +247,8 @@ def resolve_equal_types(type_a, type_b):
             if problem:
                 return None, True
             resolved_types.append(resolved)
+        if isinstance(type_b, tuple):
+            resolved_types = tuple(resolved_types)
         return resolved_types, False
     elif isinstance(type_a, dict) and not isinstance(type_a, NModule):
         if (
@@ -263,6 +264,17 @@ def resolve_equal_types(type_a, type_b):
                 return None, True
             resolved_types[key] = resolved
         return resolved_types, False
+    return None
+
+def resolve_equal_types(type_a, type_b):
+    type_a_special_resolved = resolve_equal_special_types(type_a, type_b)
+    type_b_special_resolved = resolve_equal_special_types(type_b, type_a)
+    if type_a is None or type_b is None:
+        return None, False
+    elif type_a_special_resolved:
+        return type_a_special_resolved
+    elif type_b_special_resolved:
+        return type_b_special_resolved
     elif type_a == type_b:
         return type_a, False
     else:

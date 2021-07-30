@@ -1,0 +1,40 @@
+// Lists
+
+let first = ["un", "du", "trois"][0]
+assert type first : maybe[str]
+assert value first == yes("un")
+
+let nested = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+assert type nested[-1][-1] : maybe[int]
+assert value nested[-1][-1] == none
+assert value nested[3][0] == none
+assert value nested[0][3] == none
+assert value nested[0][0] == yes(1)
+assert value nested[0][2] == yes(3)
+
+// Maps
+
+let sheep = mapFrom([("baa", "sheep"), ("moo", "cow")])["baa"]
+assert type sheep : maybe[str]
+assert value sheep == yes("sheep")
+
+let nestedMap = mapFrom([
+  (
+    "english",
+    mapFrom([
+      ("sheep", "a fluffy, ruminant animal"),
+      ("apple", "orangen't"),
+    ]),
+  ),
+])
+assert type nestedMap["english"]["apple"] : maybe[str]
+assert value nestedMap["english"]["apple"] == yes("orangen't")
+
+// Strings
+
+assert type "wow"[0] : maybe[char]
+assert value "wow"[0] == yes(\{w})
+assert value "wow"[-1] == none
+
+let strings = ["happy", "sheep", "goes", "boing"]
+assert value strings[3][2] == yes(\{i})

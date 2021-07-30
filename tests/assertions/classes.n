@@ -14,6 +14,6 @@ let test = Test(1, 2)
 
 assert type test : Test
 
-assert type test.sum : int
+assert type test.sum : () -> int
 
-assert value test.sum = 1 + 2
+assert value test.sum() = 1 + 2

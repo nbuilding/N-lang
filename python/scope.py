@@ -3,6 +3,7 @@ import os.path
 import sys
 
 import lark
+import re
 from lark import Lark
 from colorama import Fore, Style
 
@@ -22,7 +23,7 @@ from type import (
 )
 from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
-from native_types import n_list_type, n_cmd_type
+from native_types import n_list_type, n_cmd_type, none, yes
 from ncmd import Cmd
 from type_check_error import TypeCheckError, display_type
 from display import display_value
@@ -40,6 +41,8 @@ from syntax_error import format_error
 from classes import NConstructor
 from modules import libraries
 
+unit_test_results = {}
+
 basepath = ""
 if getattr(sys, "frozen", False):
     basepath = os.path.dirname(sys.executable)
@@ -50,7 +53,9 @@ syntaxpath = os.path.join(basepath, "syntax.lark")
 
 
 def parse_file(file_path, base_path, parent_imports):
-    import_scope = Scope(base_path=base_path, file_path=file_path, parent_imports=parent_imports)
+    import_scope = Scope(
+        base_path=base_path, file_path=file_path, parent_imports=parent_imports
+    )
     native_functions.add_funcs(import_scope)
 
     with open(syntaxpath, "r") as f:
@@ -63,9 +68,11 @@ def parse_file(file_path, base_path, parent_imports):
     try:
         tree = file.parse(n_parser)
     except lark.exceptions.UnexpectedCharacters as e:
-        format_error(e, file)
+        print(format_error(e, file))
+        exit()
     except lark.exceptions.UnexpectedEOF as e:
-        format_error(e, file)
+        print(format_error(e, file))
+        exit()
 
     return import_scope, tree, file
 
@@ -164,6 +171,34 @@ def get_arguments(tree):
         return [], arguments
 
 
+escapes = {
+    "n": "\n",
+    "r": "\r",
+    "t": "\t",
+    "v": "\v",
+    "0": "\0",
+    "f": "\f",
+    "b": "\b",
+    '"': '"',
+    "\\": "\\",
+}
+
+
+def unescape_sequence(escape_sequence_match):
+    if escape_sequence_match[1]:
+        return escapes[escape_sequence_match[1]]
+    elif escape_sequence_match[2]:
+        return chr(int(escape_sequence_match[2], 16))
+    else:
+        return escape_sequence_match[3]
+
+
+def unescape(string):
+    return re.sub(
+        r'\\(?:([nrtv0fb"\\])|u\{([0-9a-fA-F]+)\}|\{(.)\})', unescape_sequence, string
+    )
+
+
 class Scope:
     def __init__(
         self,
@@ -173,7 +208,10 @@ class Scope:
         warnings=None,
         base_path="",
         file_path="",
-        parent_imports=None
+        parent_imports=None,
+        parent_type="top",
+        stack_trace=None,
+        unit_tests=None,
     ):
         self.parent = parent
         self.parent_function = parent_function
@@ -189,8 +227,19 @@ class Scope:
         self.file_path = file_path
         # The other files it has been imported from to prevent circular imports
         self.parent_imports = parent_imports if parent_imports is not None else []
+        self.parent_type = parent_type
 
-    def new_scope(self, parent_function=None, inherit_errors=True):
+        self.stack_trace = stack_trace if stack_trace is not None else []
+        self.unit_tests = unit_tests if unit_tests is not None else []
+
+    def new_scope(
+        self,
+        parent_function=None,
+        inherit_errors=True,
+        parent_type=None,
+        inherit_stack_trace=True,
+        inherit_unit_tests=True,
+    ):
         return Scope(
             self,
             parent_function=parent_function or self.parent_function,
@@ -199,6 +248,9 @@ class Scope:
             base_path=self.base_path,
             file_path=self.file_path,
             parent_imports=self.parent_imports,
+            parent_type=parent_type or self.parent_type,
+            stack_trace=self.stack_trace if inherit_stack_trace else [],
+            unit_tests=self.unit_tests if inherit_unit_tests else [],
         )
 
     def get_variable(self, name, err=True):
@@ -234,6 +286,15 @@ class Scope:
                 return None
         else:
             return self.parent_function
+
+    def get_parent_types(self, types):
+        if self.parent_type not in types:
+            if self.parent:
+                return self.parent.get_parent_types(types)
+            else:
+                return None
+        else:
+            return self.parent_type
 
     def get_module_type(self, module_type, err=True):
         *modules, type_name = module_type.children
@@ -727,17 +788,33 @@ class Scope:
 
     async def eval_record_entry(self, entry):
         if isinstance(entry, lark.Tree):
+            if entry.data == "spread":
+                return [entry.children[0]]
             return entry.children[0].value, await self.eval_expr(entry.children[1])
         else:
             return entry.value, self.eval_value(entry)
 
+    """
+    Deals with spread operators for lists
+    """
+
+    async def eval_spread_list(self, spread_tree, list_val):
+        for val in await self.eval_expr(spread_tree.children[0]):
+            list_val.append(val)
+
     def eval_value(self, value):
+        if value.type == "HEX":
+            return int(value.value, 16)
+        if value.type == "BINARY":
+            return int(value.value, 2)
+        if value.type == "OCTAL":
+            return int(value.value, 8)
         if value.type == "NUMBER":
             if "." in str(value.value):
                 return float(value)
             return int(value)
         elif value.type == "STRING":
-            return bytes(value[1:-1], "utf-8").decode("unicode_escape")
+            return unescape(value[1:-1])
         elif value.type == "BOOLEAN":
             if value.value == "false":
                 return False
@@ -802,7 +879,21 @@ class Scope:
                 arg_values.append(await self.eval_expr(arg))
             if len(arg_values) == 0:
                 arg_values = [()]
-            return await (await self.eval_expr(function)).run(arg_values)
+            func = await self.eval_expr(function)
+            if not isinstance(func, NativeFunction):
+                with open(self.file_path, "r", encoding="utf-8") as f:
+                    self.stack_trace.append(
+                        (
+                            expr,
+                            File(
+                                f,
+                                name=os.path.relpath(
+                                    self.file_path, start=self.base_path
+                                ),
+                            ),
+                        )
+                    )
+            return await func.run(arg_values)
         elif expr.data == "or_expression":
             left, _, right = expr.children
             return await self.eval_expr(left) or await self.eval_expr(right)
@@ -812,6 +903,9 @@ class Scope:
         elif expr.data == "not_expression":
             _, value = expr.children
             return not await self.eval_expr(value)
+        elif expr.data == "in_expression":
+            left, _, right = expr.children
+            return await self.eval_expr(left) in await self.eval_expr(right)
         elif expr.data == "compare_expression":
             # compare_expression chains leftwards. It's rather complex because it
             # chains but doesn't accumulate a value unlike addition. Also, there's a
@@ -881,6 +975,10 @@ class Scope:
                 return dividend / divisor
             elif operation.type == "MODULO":
                 return await self.eval_expr(left) % await self.eval_expr(right)
+            elif operation.type == "SHIFTL":
+                return await self.eval_expr(left) << await self.eval_expr(right)
+            elif operation.type == "SHIFTR":
+                return await self.eval_expr(left) >> await self.eval_expr(right)
             else:
                 raise SyntaxError(
                     "Unexpected operation for product_expression: %s" % operation
@@ -898,9 +996,26 @@ class Scope:
                 raise SyntaxError(
                     "Unexpected operation for unary_expression: %s" % operation
                 )
+        elif expr.data == "value_access":
+            left, _, right = expr.children
+            eval_left = await self.eval_expr(left)
+            if isinstance(eval_left, EnumValue) and eval_left == none:
+                return none
+            try:
+                if isinstance(eval_left, EnumValue):
+                    eval_left = eval_left.values[0]
+                return yes(eval_left[await self.eval_expr(right)])
+            except Exception as err:
+                if isinstance(err, IndexError) or isinstance(err, KeyError):
+                    return none
+                raise err
         elif expr.data == "char":
             val = expr.children[0]
             if isinstance(val, lark.Tree):
+                if val.data == "hex_pattern":
+                    hex_val = val.children[0]
+                    hex_val.type = "HEX"
+                    return chr(self.eval_value(hex_val))
                 code = val.children[0].value
                 if code == "n":
                     return "\n"
@@ -908,6 +1023,14 @@ class Scope:
                     return "\t"
                 elif code == "r":
                     return "\r"
+                elif code == "v":
+                    return "\v"
+                elif code == "0":
+                    return "\0"
+                elif code == "f":
+                    return "\f"
+                elif code == "b":
+                    return "\b"
                 else:
                     raise SyntaxError("Unexpected escape code: %s" % code)
             else:
@@ -920,18 +1043,32 @@ class Scope:
                 return self.eval_value(token_or_tree)
         elif expr.data == "impn":
             if expr.children[0].type == "STRING":
-                rel_file_path = bytes(expr.children[0].value[1:-1], "utf-8").decode(
-                    "unicode_escape"
-                )
+                rel_file_path = unescape(expr.children[0].value[1:-1])
             else:
                 # Support old syntax
                 rel_file_path = expr.children[0].value + ".n"
             file_path = os.path.join(os.path.dirname(self.file_path), rel_file_path)
-            val = await eval_file(file_path, self.base_path, self.parent_imports + [os.path.normpath(self.file_path)])
+            with open(self.file_path, "r", encoding="utf-8") as f:
+                self.stack_trace.append(
+                    (
+                        expr,
+                        File(
+                            f,
+                            name=os.path.relpath(self.file_path, start=self.base_path),
+                        ),
+                    )
+                )
+            val = await eval_file(
+                file_path,
+                self.base_path,
+                self.parent_imports + [os.path.normpath(self.file_path)],
+            )
+            self.stack_trace += val.stack_trace
             holder = {}
             for key in val.variables.keys():
                 if val.variables[key].public:
                     holder[key] = val.variables[key].value
+            unit_test_results[rel_file_path] += val.unit_tests[:]
             return NModule(rel_file_path, holder)
         elif expr.data == "record_access":
             return (await self.eval_expr(expr.children[0]))[expr.children[1].value]
@@ -943,13 +1080,28 @@ class Scope:
         elif expr.data == "listval":
             values = []
             for e in expr.children:
-                values.append(await self.eval_expr(e))
+                if isinstance(e, lark.Tree) and e.data == "spread":
+                    await self.eval_spread_list(e, values)
+                else:
+                    values.append(await self.eval_expr(e))
             return values
         elif expr.data == "recordval":
-            entries = []
+            record_type = {}
+            spreads = []
+            non_spread = {}
             for entry in expr.children:
-                entries.append(await self.eval_record_entry(entry))
-            return dict(entries)
+                entry_val = await self.eval_record_entry(entry)
+                if isinstance(entry_val, list):
+                    spreads.append(await self.eval_expr(entry_val[0]))
+                else:
+                    name, val = entry_val
+                    non_spread[name] = val
+            for spread in spreads:
+                for k in spread.keys():
+                    record_type[k] = spread[k]
+            for k in non_spread.keys():
+                record_type[k] = non_spread[k]
+            return record_type
         elif expr.data == "await_expression":
             value, _ = expr.children
             command = await self.eval_expr(value)
@@ -964,6 +1116,20 @@ class Scope:
                 # they don't use await. That's fine because type checking will
                 # allow it, but the interpreter doesn't know that.
                 return command
+        elif expr.data == "match":
+            input_value, match_block = expr.children
+            inp = await self.eval_expr(input_value)
+            values = {}
+            default = match_block.children[-1].children[-1]
+
+            for match_value in match_block.children[0:-1]:
+                match, value = match_value.children
+                values[await self.eval_expr(match)] = value
+
+            if inp in values:
+                return await self.eval_expr(values[inp])
+
+            return await self.eval_expr(default)
         else:
             print("(parse tree):", expr)
             raise SyntaxError("Unexpected command/expression type %s" % expr.data)
@@ -975,7 +1141,13 @@ class Scope:
     async def eval_command(self, tree):
         if tree.data == "main_instruction" or tree.data == "last_instruction":
             tree = tree.children[0]
-        if tree.data == "if" or tree.data == "ifelse" or tree.data == "for" or tree.data == "for_legacy":
+        if (
+            tree.data == "if"
+            or tree.data == "ifelse"
+            or tree.data == "for"
+            or tree.data == "for_legacy"
+            or tree.data == "while"
+        ):
             tree = lark.tree.Tree("instruction", [tree])
         elif tree.data == "code_block":
             exit, value = (False, None)
@@ -1021,10 +1193,33 @@ class Scope:
 
                 scope.assign_to_pattern(pattern, i, certain=True)
                 exit, value = await scope.eval_command(code)
+                if exit == "continue":
+                    continue
+                if exit == "break":
+                    return False, None
                 if exit:
                     return True, value
+        elif command.data == "while":
+            var, code = command.children
+            val = await self.eval_expr(var)
+            while val:
+                scope = self.new_scope()
+
+                exit, value = await scope.eval_command(code)
+                if exit == "continue":
+                    val = await self.eval_expr(var)
+                    continue
+                if exit == "break":
+                    return False, None
+                if exit:
+                    return True, value
+                val = await self.eval_expr(var)
         elif command.data == "return":
             return (True, await self.eval_expr(command.children[0]))
+        elif command.data == "break":
+            return ("break", None)
+        elif command.data == "continue":
+            return ("continue", None)
         elif command.data == "declare":
             modifiers, name_type, value = command.children
             pattern, _ = self.get_name_type(name_type, get_type=False)
@@ -1048,7 +1243,7 @@ class Scope:
             if yes:
                 exit, value = await scope.eval_command(body)
                 if exit:
-                    return (True, value)
+                    return (exit, value)
         elif command.data == "ifelse":
             condition, if_true, if_false = command.children
             scope = self.new_scope()
@@ -1064,7 +1259,7 @@ class Scope:
             else:
                 exit, value = await self.new_scope().eval_command(if_false)
             if exit:
-                return (True, value)
+                return (exit, value)
         elif command.data == "enum_definition":
             _, type_def, constructors = command.children
             type_name, *_ = type_def.children
@@ -1118,6 +1313,20 @@ class Scope:
                 class_body,
                 public,
             )
+        elif command.data == "assert":
+            assert_type = command.children[0].children[0]
+            assert_type = command.children[0].children[0]
+            if assert_type.data == "assert_val":
+                expr = await self.eval_expr(assert_type.children[0])
+                self.unit_tests.append(
+                    {
+                        "hasPassed": expr,
+                        "fileLine": command.line,
+                        "unitTestType": "value",
+                        "possibleTypes": none,
+                    }
+                )
+            return (False, None)
         else:
             await self.eval_expr(command)
 
@@ -1156,6 +1365,8 @@ class Scope:
 
     def get_record_entry_type(self, entry):
         if isinstance(entry, lark.Tree):
+            if entry.data == "spread":
+                return [entry.children[0]]
             return entry.children[0].value, self.type_check_expr(entry.children[1])
         else:
             return entry.value, self.get_value_type(entry)
@@ -1164,6 +1375,8 @@ class Scope:
         if isinstance(value, lark.Tree):
             if value.data == "char":
                 return "char"
+        if value.type == "HEX" or value.type == "BINARY" or value.type == "OCTAL":
+            return "int"
         if value.type == "NUMBER":
             if "." in str(value.value):
                 return "float"
@@ -1189,6 +1402,30 @@ class Scope:
                 value, "Internal problem: I don't know the value type %s." % value.type
             )
         )
+
+    """
+    Type checks spread operators for lists
+    """
+
+    def type_check_spread_list(self, spread_tree):
+        spread_var = self.type_check_expr(spread_tree.children[0])
+        if not isinstance(spread_var, NTypeVars):
+            self.errors.append(
+                TypeCheckError(
+                    spread_tree.children[0],
+                    "The .. operator cannot be uses on a non-list type inside a list",
+                )
+            )
+            return None
+        if spread_var.name != "list":
+            self.errors.append(
+                TypeCheckError(
+                    spread_tree.children[0],
+                    "The .. operator cannot be uses on a non-list type inside a list",
+                )
+            )
+            return None
+        return spread_var.typevars[0]
 
     """
     Type checks an expression and returns its type.
@@ -1340,7 +1577,7 @@ class Scope:
                 zip(arguments, arg_types), start=1
             ):
                 check_type = argument
-                if(argument != "unit"):
+                if argument != "unit":
                     check_type = self.type_check_expr(check_type)
                 if check_type is None:
                     parameters_have_none = True
@@ -1473,7 +1710,72 @@ class Scope:
                     )
                 )
             return contained_type
+        elif expr.data == "match":
+            input_value, match_block = expr.children
+            value_type = self.type_check_expr(input_value)
+            first_match, first_value = match_block.children[0].children
+            first_match_type = self.type_check_expr(first_match)
+            first_value_type = self.type_check_expr(first_value)
+            for i, match_value in enumerate(match_block.children):
+                match, value = match_value.children
+                
+                if (
+                    i != len(match_block.children) - 1
+                    and isinstance(match, lark.Tree)
+                    and len(match.children) == 1
+                    and isinstance(match.children[0], lark.Token)
+                    and match.children[0].type == "NAME"
+                    and match.children[0].value == "_"
+                ):
+                    self.errors.append(
+                        TypeCheckError(
+                            match,
+                            "You cannot have more than one default in a match statement"
+                        )
+                    )
+                    continue
 
+                if (
+                    i != len(match_block.children) - 1
+                    and self.type_check_expr(match) != first_match_type
+                    and self.type_check_expr(match) != None
+                ):
+                    self.errors.append(
+                        TypeCheckError(
+                            match_value,
+                            "The match check #%s's type is %s while the first check's type is %s"
+                            % (
+                                str(i + 1),
+                                display_type(self.type_check_expr(match)),
+                                display_type(first_match_type),
+                            ),
+                        )
+                    )
+                if (
+                    self.type_check_expr(value) != first_value_type
+                    and self.type_check_expr(match) != None
+                ):
+                    self.errors.append(
+                        TypeCheckError(
+                            match_value,
+                            "The match value #%s's type is %s while the first value's type is %s"
+                            % (
+                                str(i + 1),
+                                display_type(self.type_check_expr(value)),
+                                display_type(first_value_type),
+                            ),
+                        )
+                    )
+
+            if value_type != first_match_type:
+                self.errors.append(
+                    TypeCheckError(
+                        input_value,
+                        "The input value's type is %s while the match's input type is %s"
+                        % (display_type(value_type), display_type(first_match_type)),
+                    )
+                )
+            return first_match_type
         if len(expr.children) == 2 and isinstance(expr.children[0], lark.Token):
             operation, value = expr.children
             operation_type = operation.type
@@ -1595,7 +1897,12 @@ class Scope:
             if len(expr.children) == 0:
                 return n_list_type
 
-            first, *rest = [self.type_check_expr(e) for e in expr.children]
+            first, *rest = [
+                self.type_check_spread_list(e)
+                if isinstance(e, lark.Tree) and e.data == "spread"
+                else self.type_check_expr(e)
+                for e in expr.children
+            ]
             contained_type = first
 
             for i, item_type in enumerate(rest):
@@ -1613,16 +1920,13 @@ class Scope:
                 elif resolved_contained_type is not None:
                     # To deal with cases like [[], [3]] as list[int]
                     contained_type = resolved_contained_type
-
             if contained_type is None:
                 return None
             else:
                 return n_list_type.with_typevars([contained_type])
         elif expr.data == "impn":
             if expr.children[0].type == "STRING":
-                rel_file_path = bytes(expr.children[0].value[1:-1], "utf-8").decode(
-                    "unicode_escape"
-                )
+                rel_file_path = unescape(expr.children[0].value[1:-1])
             else:
                 # Support old syntax
                 rel_file_path = expr.children[0].value + ".n"
@@ -1642,7 +1946,11 @@ class Scope:
                         )
                     )
                     return None
-                impn, f = type_check_file(file_path, self.base_path, self.parent_imports + [os.path.normpath(self.file_path)])
+                impn, f = type_check_file(
+                    file_path,
+                    self.base_path,
+                    self.parent_imports + [os.path.normpath(self.file_path)],
+                )
                 if len(impn.errors) != 0:
                     self.errors.append(ImportedError(impn.errors[:], f))
                 if len(impn.warnings) != 0:
@@ -1658,6 +1966,7 @@ class Scope:
                             "There was nothing to import from %s" % expr.children[0],
                         )
                     )
+                unit_test_results[rel_file_path] = impn.unit_tests[:]
                 return NModule(rel_file_path, holder, types=impn.public_types)
             else:
                 self.errors.append(
@@ -1667,9 +1976,30 @@ class Scope:
                 )
                 return None
         elif expr.data == "recordval":
-            record_type = dict(
-                self.get_record_entry_type(entry) for entry in expr.children
-            )
+            record_type = {}
+            spreads = []
+            non_spread = {}
+            for entry in expr.children:
+                entry_val = self.get_record_entry_type(entry)
+                if isinstance(entry_val, list):
+                    spread_var = self.type_check_expr(entry_val[0])
+                    if not isinstance(spread_var, dict):
+                        self.errors.append(
+                            TypeCheckError(
+                                entry_val[0],
+                                "The .. operator cannot be uses on a non-record type inside a record",
+                            )
+                        )
+                        return None
+                    spreads.append(spread_var)
+                else:
+                    name, val = entry_val
+                    non_spread[name] = val
+            for spread in spreads:
+                for k in spread.keys():
+                    record_type[k] = spread[k]
+            for k in non_spread.keys():
+                record_type[k] = non_spread[k]
             if None in record_type.values():
                 return None
             else:
@@ -1691,7 +2021,13 @@ class Scope:
     def type_check_command(self, tree):
         if tree.data == "main_instruction" or tree.data == "last_instruction":
             tree = tree.children[0]
-        if tree.data == "if" or tree.data == "ifelse" or tree.data == "for" or tree.data == "for_legacy":
+        if (
+            tree.data == "if"
+            or tree.data == "ifelse"
+            or tree.data == "for"
+            or tree.data == "for_legacy"
+            or tree.data == "while"
+        ):
             tree = lark.tree.Tree("instruction", [tree])
         elif tree.data == "code_block":
             exit_point = None
@@ -1759,7 +2095,7 @@ class Scope:
             if command.data == "for_legacy":
                 iterable_types_src = legacy_iterable_types
                 self.warnings.append(
-                    TypeCheckError(command, "This syntax is decapricated.")
+                    TypeCheckError(command, "This syntax is deprecated.")
                 )
             else:
                 iterable_types_src = iterable_types
@@ -1800,8 +2136,20 @@ class Scope:
                             ),
                         )
                     )
-            scope = self.new_scope()
+            scope = self.new_scope(parent_type="for")
             scope.assign_to_pattern(pattern, ty, True, certain=True)
+            return scope.type_check_command(code)
+        elif command.data == "while":
+            var, code = command.children
+            bool_type = self.type_check_expr(var)
+            if bool_type != "bool":
+                self.errors.append(
+                    TypeCheckError(
+                        iterable,
+                        "I need a bool not a %s." % display_type(bool_type),
+                    )
+                )
+            scope = self.new_scope(parent_type="while")
             return scope.type_check_command(code)
         elif command.data == "return":
             return_type = self.type_check_expr(command.children[0])
@@ -1845,6 +2193,24 @@ class Scope:
                             ),
                         )
                     )
+            return command
+        elif command.data == "continue":
+            if self.get_parent_types(["while", "for"]) == None:
+                self.errors.append(
+                    TypeCheckError(
+                        command,
+                        "The command continue can only be used inside while or for loops",
+                    )
+                )
+            return command
+        elif command.data == "break":
+            if self.get_parent_types(["while", "for", "if"]) == None:
+                self.errors.append(
+                    TypeCheckError(
+                        command,
+                        "The command continue can only be used inside if statements or while or for loops",
+                    )
+                )
             return command
         elif command.data == "declare":
             modifiers, name_type, value = command.children
@@ -1899,7 +2265,7 @@ class Scope:
                 variable.type = resolved_type
         elif command.data == "if":
             condition, body = command.children
-            scope = self.new_scope()
+            scope = self.new_scope(parent_type="if")
             if condition.data == "conditional_let":
                 pattern, value = condition.children
                 eval_type = self.type_check_expr(value)
@@ -1928,8 +2294,8 @@ class Scope:
             scope.type_check_command(body)
         elif command.data == "ifelse":
             condition, if_true, if_false = command.children
-            scope = self.new_scope()
-            elsescope = self.new_scope()
+            scope = self.new_scope(parent_type="if")
+            elsescope = self.new_scope(parent_type="if")
             if condition.data == "conditional_let":
                 pattern, value = condition.children
                 eval_type = self.type_check_expr(value)
@@ -2055,7 +2421,9 @@ class Scope:
                 [*(arg_type for _, arg_type in arguments), class_type]
             )
 
-            scope = self.new_scope(parent_function=None, inherit_errors=False)
+            scope = self.new_scope(
+                parent_function=None, inherit_errors=False, parent_type="class"
+            )
             for arg_pattern, arg_type in arguments:
                 scope.assign_to_pattern(arg_pattern, arg_type, True, certain=True)
             scope.type_check_command(class_body)
@@ -2087,7 +2455,7 @@ class Scope:
             )
             class_type = NClass(name)
 
-            scope = self.new_scope(parent_function=None)
+            scope = self.new_scope(parent_function=None, parent_type="class")
             for arg_pattern, arg_type in arguments:
                 scope.assign_to_pattern(arg_pattern, arg_type, True, certain=True)
             scope.type_check_command(class_body)
@@ -2099,6 +2467,44 @@ class Scope:
                         break
                     else:
                         class_type[prop_name] = var.type
+        elif command.data == "assert":
+            assert_type = command.children[0].children[0]
+            if assert_type.data == "assert_type":
+                expr, ty = assert_type.children
+                expr_type = self.type_check_expr(expr)
+                check_type = self.parse_type(ty, False)
+                if expr_type == None or check_type == None:
+                    self.errors.append(
+                        TypeCheckError(
+                            command,
+                            "The expression or the type to check against evaluates to None, so the result is ambiguous as there is an error.",
+                        )
+                    )
+                    return False
+                _, incompatible = resolve_equal_types(expr_type, check_type)
+                self.unit_tests.append(
+                    {
+                        "hasPassed": not incompatible,
+                        "fileLine": command.line,
+                        "unitTestType": "type",
+                        "possibleTypes": yes(
+                            (
+                                display_type(expr_type, False),
+                                display_type(check_type, True),
+                            )
+                        ),
+                    }
+                )
+            elif assert_type.data == "assert_val":
+                expr = assert_type.children[0]
+                expr_type = self.type_check_expr(expr)
+                if expr_type != "bool":
+                    self.errors.append(
+                        TypeCheckError(
+                            command, "Cannot use assert value on a %s." % expr_type
+                        )
+                    )
+            return False
         else:
             self.type_check_expr(command)
 

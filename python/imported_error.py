@@ -16,11 +16,11 @@ class ImportedError:
         return self.file == other.file
 
     def __len__(self):
-    	value = 0
-    	for error in self.err:
-    		if isinstance(error, ImportedError):
-    			value += len(error)
-    		else:
-    			value += 1
+        value = 0
+        for error in self.err:
+            if isinstance(error, ImportedError):
+                value += len(error)
+            else:
+                value += 1
 
-    	return value
+        return value

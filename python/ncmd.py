@@ -52,3 +52,22 @@ class Cmd:
             repr(self.map_functions),
             repr(self.dependent),
         )
+
+    @classmethod
+    def from_value(Cls, value):
+        """
+        Create a Cmd that simply returns the given value.
+        """
+
+        return Cls(lambda _: lambda: value)
+
+    @classmethod
+    def wrap(Cls, maybe_cmd):
+        """
+        Ensures that `maybe_cmd` is a Cmd by wrapping it in one if it's not.
+        """
+
+        if isinstance(maybe_cmd, Cls):
+            return maybe_cmd
+        else:
+            return Cls.from_value(maybe_cmd)

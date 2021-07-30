@@ -36,19 +36,21 @@ class File:
     def get_text(self):
         return "\n".join(self.lines)
 
-    def display(self, start_line, start_col, end_line, end_col, color=Fore.RED):
+    def display(
+        self, start_line, start_col, end_line, end_col, color=Fore.RED, underline=True
+    ):
         output = []
         if start_line == end_line:
             line = self.get_line(start_line)
             output.append(
                 f"{Fore.CYAN}{start_line:>{self.line_num_width}} | {Style.RESET_ALL}{line}"
             )
-            output.append(
-                " " * (self.line_num_width + 2 + start_col)
-                + color
-                + "^" * (end_col - start_col)
-                + Style.RESET_ALL
-            )
+            if underline:
+                output.append(
+                    " " * (self.line_num_width + 2 + start_col)
+                    + f"{color + '^' * (end_col - start_col) if underline else ''}"
+                    + Style.RESET_ALL
+                )
         else:
             for line_num, line in enumerate(
                 self.get_lines(start_line, end_line), start=start_line
@@ -56,19 +58,19 @@ class File:
                 if line_num == start_line:
                     line = (
                         line[: start_col - 1]
-                        + Fore.RED
+                        + f"{color if underline else ''}"
                         + line[start_col - 1 :]
                         + Style.RESET_ALL
                     )
                 elif line_num == end_line:
                     line = (
-                        Fore.RED
+                        f"{color if underline else ''}"
                         + line[: end_col - 1]
                         + Style.RESET_ALL
                         + line[end_col - 1 :]
                     )
                 else:
-                    line = Fore.RED + line + Style.RESET_ALL
+                    line = f"{color if underline else ''}" + line + Style.RESET_ALL
                 output.append(
                     f"{Fore.CYAN}{line_num:>{self.line_num_width}} | {Style.RESET_ALL}{line}"
                 )
