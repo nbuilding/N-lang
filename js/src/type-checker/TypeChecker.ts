@@ -358,7 +358,9 @@ export class TypeChecker {
     for (const helper of Object.values(helpers)) {
       compiled.push(...helper)
     }
-    for (const [modulePath, state] of this.moduleCache) {
+    // Reverse the module cache because insertion order probably happens from
+    // dependents -> dependencies
+    for (const [modulePath, state] of [...this.moduleCache].reverse()) {
       if (state.state !== 'loaded') {
         throw new Error(`${modulePath} is of state ${state.state}`)
       }

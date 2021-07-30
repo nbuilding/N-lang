@@ -72,9 +72,7 @@ export class RecordAccess extends Base implements Expression {
         )
       }
       return {
-        // The statements do not matter much because we know what they evaluate
-        // to: the module type
-        statements: [],
+        statements,
         expression: exportName,
       }
     }

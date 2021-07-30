@@ -7,6 +7,8 @@ export class CompilationGlobalScope extends CompilationScope {
     ['print', 'console.log'],
     ['intInBase10', 'String'],
     ['yes', 'a => a'],
+    ['false', 'false'],
+    ['true', 'true'],
   ])
 
   constructor (context: CompilationContext) {

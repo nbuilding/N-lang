@@ -1,27 +1,12 @@
-import times
+let test = imp "./test-import.n"
 
-let test1 = [] -> cmd[str] {
-  let _ = times.sleep(1000)!
-  print("1s")
-  return "one second later"
+let test2 = [hi: str] -> bool {
+  print((if hi == "hmm" {
+    return false
+  } else {
+    test
+  }).hello())
+  return true
 }
-
-let test2 = [] -> cmd[str] {
-  let _ = times.sleep(2000)!
-  print("2s")
-  return "two seconds later"
-}
-
-let test = [] -> cmd[()] {
-  let test1Done = parallel(test1())!
-  let test2Done = parallel(test2())!
-  print("0s")
-
-  let test2Result = test2Done!
-  let test1Result = test1Done!
-  let test1Result2 = test1Done!
-
-  print({ test2Result: test2Result; test1Result: test1Result; test1Result2: test1Result2 })
-}
-
-let pub main = test()
+print(test2("hi"))
+print(test2("hmm"))

@@ -43,7 +43,7 @@ export class IfExpression extends Base implements Expression {
     const { type: elseType, exitPoint: elseExit } = context.scope.typeCheck(
       this.else,
     )
-    const exitPoint = condExit || thenExit || elseExit
+    const exitPoint = condExit || elseExit && thenExit
     const result = compareEqualTypes([thenType, elseType])
     if (result.error) {
       context.err({
@@ -71,18 +71,18 @@ export class IfExpression extends Base implements Expression {
         expression: `${result} ? ${thenE} : ${elseE}`,
       }
     } else {
-      const result = scope.context.genVarName('ifCond')
+      const ifResult = scope.context.genVarName('ifCond')
       return {
         statements: [
           ...condS,
-          `var ${result};`,
+          `var ${ifResult};`,
           `if (${result}) {`,
-          ...scope.context.indent([...thenS, `${result} = ${thenE};`]),
+          ...scope.context.indent([...thenS, `${ifResult} = ${thenE};`]),
           `} else {`,
-          ...scope.context.indent([...elseS, `${result} = ${elseE};`]),
+          ...scope.context.indent([...elseS, `${ifResult} = ${elseE};`]),
           `}`,
         ],
-        expression: result,
+        expression: ifResult,
       }
     }
   }

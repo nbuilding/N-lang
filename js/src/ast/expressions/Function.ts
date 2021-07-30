@@ -87,7 +87,19 @@ export class Function extends Base implements Expression {
   }
 
   compile (scope: CompilationScope): CompilationResult {
-    throw new Error('Method not implemented.')
+    // TODO: Handle generics
+    const funcExprName = scope.context.genVarName('funcExpr')
+    return {
+      statements: [
+        ...scope.functionExpression(
+          this.arguments,
+          funcScope => [...this.body.compileStatement(funcScope).statements],
+          `var ${funcExprName} = `,
+          ';',
+        ),
+      ],
+      expression: funcExprName,
+    }
   }
 
   toString (): string {

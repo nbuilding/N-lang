@@ -46,6 +46,13 @@ export class CompilationScope {
       return { argName, statements }
     })
     let statements = getBody(scope)
+    if (args.params.length === 0) {
+      return [
+        `${prefix}function () {`,
+        ...this.context.indent(statements),
+        `}${suffix}`,
+      ]
+    }
     for (let i = declarations.length; i--; ) {
       const { argName, statements: declS } = declarations[i]
       if (i === 0) {

@@ -94,7 +94,7 @@ export class ClassDeclaration extends Base implements Statement {
               : // A class with no exported types is just an empty record and
                 // can be optimised like an empty unit type. Fortunately, `var`
                 // is undefined behaviour!
-                'return;',
+                '// Unit-like class',
           ],
           `var ${className} = `,
           ';',
