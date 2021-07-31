@@ -97,15 +97,13 @@ export class EnumPattern extends Base implements Pattern {
     const varNames: string[] = []
     let index = 0
     this.patterns.forEach((pattern, i) => {
-      // Don't bother matching unit-like types; they're not stored in the enum
-      // value anyways
-      if (isUnitLike(variantTypes[i])) {
-        return
-      }
+      const unitLike = isUnitLike(variantTypes[i])
 
       const { statements: s, varNames: v } = pattern.compilePattern(
         scope,
-        representation.type === 'maybe'
+        unitLike
+          ? 'undefined'
+          : representation.type === 'maybe'
           ? valueName
           : representation.type === 'tuple'
           ? `${valueName}[${index}]`
@@ -113,7 +111,9 @@ export class EnumPattern extends Base implements Pattern {
       )
       statements.push(...s)
       varNames.push(...v)
-      index++
+      if (!unitLike) {
+        index++
+      }
     })
 
     if (representation.type === 'bool') {
@@ -146,7 +146,7 @@ export class EnumPattern extends Base implements Pattern {
       }
     } else if (representation.type === 'union') {
       const { variants } = representation
-      const index = variants.find(variantName => variantName === variant)
+      const index = variants.findIndex(variantName => variantName === variant)
       return {
         statements: [
           `if (${valueName} === ${index}) {`,
@@ -160,13 +160,13 @@ export class EnumPattern extends Base implements Pattern {
         if (representation.type === 'maybe') {
           statements.unshift(
             `if (${valueName} ${
-              valueName === representation.null ? '!' : '='
+              variant === representation.null ? '!' : '='
             }== undefined) break;`,
           )
         } else {
           statements.unshift(
             `if (${
-              valueName === representation.null ? '' : '!'
+              variant === representation.null ? '' : '!'
             }${valueName}) break;`,
           )
         }

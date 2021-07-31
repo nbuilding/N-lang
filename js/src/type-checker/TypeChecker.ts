@@ -354,7 +354,9 @@ export class TypeChecker {
    */
   compile (): string {
     const context = new CompilationContext()
-    const compiled: string[] = []
+    const compiled: string[] = [
+      'var undefined; // This helps minifiers to use a shorter variable name than `void 0`.',
+    ]
     for (const helper of Object.values(helpers)) {
       compiled.push(...helper)
     }
@@ -373,6 +375,9 @@ export class TypeChecker {
     }
     // TODO: Run last exported cmd
     compiled.push(
+      `for (var i = 0; i < ${context.valueAssertions}; i++) {`,
+      '  if (!valueAssertionResults_n[i]) valueAssertionResults_n[i] = false;',
+      '}',
       'return {',
       '  valueAssertions: valueAssertionResults_n,',
       '};',
