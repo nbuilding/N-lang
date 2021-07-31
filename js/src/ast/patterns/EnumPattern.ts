@@ -1,5 +1,6 @@
 import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
+import { isUnitLike } from '../../type-checker/types/isUnitLike'
 import { unknown } from '../../type-checker/types/types'
 import { EnumSpec } from '../../type-checker/types/TypeSpec'
 import schema, * as schem from '../../utils/schema'
@@ -87,20 +88,32 @@ export class EnumPattern extends Base implements Pattern {
   ): PatternCompilationResult {
     const representation = this._type!.representation
     const variant = this.variant.value
+    const variantTypes = this._type!.variants.get(variant)?.types
+    if (!variantTypes) {
+      throw new Error(`${variant} either doesn't exist or has invalid types??`)
+    }
 
     const statements: string[] = []
     const varNames: string[] = []
+    let index = 0
     this.patterns.forEach((pattern, i) => {
+      // Don't bother matching unit-like types; they're not stored in the enum
+      // value anyways
+      if (isUnitLike(variantTypes[i])) {
+        return
+      }
+
       const { statements: s, varNames: v } = pattern.compilePattern(
         scope,
         representation.type === 'maybe'
           ? valueName
           : representation.type === 'tuple'
-          ? `${valueName}[${i}]`
-          : `${valueName}[${i + 1}]`,
+          ? `${valueName}[${index}]`
+          : `${valueName}[${index + 1}]`,
       )
       statements.push(...s)
       varNames.push(...v)
+      index++
     })
 
     if (representation.type === 'bool') {

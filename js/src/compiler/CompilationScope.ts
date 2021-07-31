@@ -34,19 +34,22 @@ export class CompilationScope {
   }
 
   functionExpression (
-    args: Arguments,
+    args: Arguments | { argName: string; statements: string[] }[],
     getBody: (scope: CompilationScope) => string[],
     prefix = '',
     suffix = '',
   ): string[] {
     const scope = this.inner()
-    const declarations = args.params.map(declaration => {
-      const argName = scope.context.genVarName('argument')
-      const statements = declaration.compileDeclaration(scope, argName)
-      return { argName, statements }
-    })
+    const declarations =
+      args instanceof Arguments
+        ? args.params.map(declaration => {
+            const argName = scope.context.genVarName('argument')
+            const statements = declaration.compileDeclaration(scope, argName)
+            return { argName, statements }
+          })
+        : args
     let statements = getBody(scope)
-    if (args.params.length === 0) {
+    if (declarations.length === 0) {
       return [
         `${prefix}function () {`,
         ...this.context.indent(statements),

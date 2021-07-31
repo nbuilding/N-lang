@@ -76,7 +76,8 @@ export function normaliseEnum (enumTypeSpec: EnumSpec): EnumRepresentation {
         `Variant ${name} has types=null despite passing type checking??`,
       )
     }
-    const nonUnitLikeTypeCount = variant.types.filter(isUnitLike).length
+    const nonUnitLikeTypeCount = variant.types.filter(type => !isUnitLike(type))
+      .length
     if (nonUnitLikeTypeCount === 0) {
       fieldlessVariants.push(name)
     } else {
@@ -101,17 +102,14 @@ export function normaliseEnum (enumTypeSpec: EnumSpec): EnumRepresentation {
     }
   } else {
     const nullable = fieldlessVariants.length === 1
-    const sorted = [...enumTypeSpec.variants].sort((a, b) =>
-      a[0].localeCompare(b[0]),
-    )
     const variants: Record<string, number | null> = {}
-    sorted.forEach(([name, variant], i) => {
+    ;[...enumTypeSpec.variants].forEach(([name, variant], i) => {
       if (!variant.types) {
         throw new Error(
           `Variant ${name} has types=null despite passing type checking??`,
         )
       }
-      variants[name] = nullable && variant.types.length === 0 ? null : i
+      variants[name] = nullable && fieldlessVariants[0] === name ? null : i
     })
     return { type: 'enum', variants, nullable }
   }
