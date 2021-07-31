@@ -1,5 +1,6 @@
 import { ErrorType } from '../../type-checker/errors/Error'
-import { FuncTypeVarSpec, NFunction } from '../../type-checker/types/types'
+import { NFunction } from '../../type-checker/types/types'
+import { FuncTypeVarSpec } from '../../type-checker/types/TypeSpec'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { TypeVars } from '../declaration/TypeVars'

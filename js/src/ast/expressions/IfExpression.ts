@@ -43,7 +43,7 @@ export class IfExpression extends Base implements Expression {
     const { type: elseType, exitPoint: elseExit } = context.scope.typeCheck(
       this.else,
     )
-    const exitPoint = condExit || elseExit && thenExit
+    const exitPoint = condExit || (elseExit && thenExit)
     const result = compareEqualTypes([thenType, elseType])
     if (result.error) {
       context.err({

@@ -1,0 +1,16 @@
+// Tests to make sure the JS branch isn't fooling around too much
+
+// JS ==/=== compares by reference rather than equivalence. This test ensures
+// the compiled version doesn't do that.
+
+assert value [1, 2, 3] == [1, 2, 3]
+assert value [1, 2, 3] /= [1, 2, 3, 4]
+
+assert value (1, 2, 3) == (1, 2, 3)
+assert value (1, 2, 3) /= (0, 2, 3)
+
+assert value { a: 1; b: 2 } == { a: 1; b: 2 } == { b: 2; a: 1 }
+assert value { a: 1; b: 2 } /= { a: 1; b: 2; c: 3 } /= { a: 1; b: 2 }
+
+// Uncomment when maps are supported
+// assert value mapFrom([("a", 1), ("b", 2)]) == mapFrom([("b", 2), ("a", 1)])

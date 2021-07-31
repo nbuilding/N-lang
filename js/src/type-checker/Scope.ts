@@ -11,7 +11,7 @@ import {
 } from '../ast/statements/Statement'
 import { ErrorType } from './errors/Error'
 import { TypeCheckerResultsForFile } from './TypeChecker'
-import { NModule, NType, TypeSpec, unknown } from './types/types'
+import { NModule, NType, unknown } from './types/types'
 import {
   CheckPatternContext,
   CheckPatternResult,
@@ -22,6 +22,7 @@ import { displayType } from '../utils/display-type'
 import { DeclarationOptions } from '../ast/declaration/Declaration'
 import { ScopeBaseContext } from './ScopeBaseContext'
 import { WarningType } from './errors/Warning'
+import { TypeSpec } from './types/TypeSpec'
 
 export interface ScopeOptions {
   returnType?: NType | 'class'

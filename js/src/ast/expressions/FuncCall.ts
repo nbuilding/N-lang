@@ -13,11 +13,13 @@ import {
   Statement,
   StatementCompilationResult,
 } from '../statements/Statement'
-import { AliasSpec, NType, unknown } from '../../type-checker/types/types'
+import { NType, unknown } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { callFunction } from '../../type-checker/types/comparisons/compare-assignable'
-import { isUnit, unit } from '../../type-checker/types/builtins'
+import { unit } from '../../type-checker/types/builtins'
 import { CompilationScope } from '../../compiler/CompilationScope'
+import { isUnitLike } from '../../type-checker/types/isUnitLike'
+import { AliasSpec } from '../../type-checker/types/TypeSpec'
 
 export class FuncCall extends Base implements Expression, Statement {
   func: Expression
@@ -121,7 +123,7 @@ export class FuncCall extends Base implements Expression, Statement {
     const params: string[] = []
     if (this.params.length > 0) {
       this.params.forEach((param, i) => {
-        if (isUnit(this._paramTypes[i])) {
+        if (isUnitLike(this._paramTypes[i])) {
           params.push('()')
         } else {
           const { statements: s, expression } = param.compile(scope)

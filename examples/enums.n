@@ -1,0 +1,26 @@
+// Seeing how enums are represented in JS
+// This assumes `print` directly prints the raw JS representation
+
+// Enums with variants that contain only unit-like fields (or have no fields)
+// will be treated as "unions" which are represented as numbers.
+
+type union = a | b | <c ()>
+
+print((a, 0))
+print((b, 1))
+print((c(), 2))
+
+// If there's only two variants, then it's represented as a boolean. The second
+// one will be `true`.
+
+type boolean = <non ()> | oui
+
+print((non(), false))
+print((oui, true))
+
+// If there's only one variant, then it's unit-like, and will be represented as
+// undefined, like the unit type.
+
+type unit = <justMe () ()>
+
+print((justMe()(), ()))

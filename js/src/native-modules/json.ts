@@ -6,7 +6,8 @@ import {
   maybe,
   str,
 } from '../type-checker/types/builtins'
-import { EnumSpec, makeFunction } from '../type-checker/types/types'
+import { makeFunction } from '../type-checker/types/types'
+import { EnumSpec } from '../type-checker/types/TypeSpec'
 
 export const value = EnumSpec.make('value', () => [
   ['null', []],

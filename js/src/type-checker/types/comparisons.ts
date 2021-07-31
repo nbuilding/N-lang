@@ -1,5 +1,6 @@
 import { fromEntries } from '../../utils/from-entries'
-import { FuncTypeVarSpec, NType } from './types'
+import { NType } from './types'
+import { FuncTypeVarSpec } from './TypeSpec'
 
 export type ComparisonResultType =
   | {

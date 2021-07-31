@@ -1,9 +1,6 @@
 import { bool, cmd, maybe, str, unit } from '../type-checker/types/builtins'
-import {
-  AliasSpec,
-  makeFunction,
-  makeRecord,
-} from '../type-checker/types/types'
+import { makeFunction, makeRecord } from '../type-checker/types/types'
+import { AliasSpec } from '../type-checker/types/TypeSpec'
 
 const send = new AliasSpec(
   'send',

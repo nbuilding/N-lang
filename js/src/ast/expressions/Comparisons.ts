@@ -12,13 +12,9 @@ import { bool, float, int } from '../../type-checker/types/builtins'
 import { compareEqualTypes } from '../../type-checker/types/comparisons/compare-equal'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { equalableTypes } from '../../type-checker/types/operations'
-import {
-  AliasSpec,
-  EnumSpec,
-  iterateType,
-  NType,
-} from '../../type-checker/types/types'
+import { iterateType, NType } from '../../type-checker/types/types'
 import { CompilationScope } from '../../compiler/CompilationScope'
+import { EnumSpec, AliasSpec } from '../../type-checker/types/TypeSpec'
 
 // Ideally, there would be a more descriptive type error for this, like "^^^ I
 // can't compare functions." One day!

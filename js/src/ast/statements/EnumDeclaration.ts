@@ -3,7 +3,7 @@ import { ErrorType } from '../../type-checker/errors/Error'
 import {
   EnumSpec,
   TypeSpec as NamedTypeSpec,
-} from '../../type-checker/types/types'
+} from '../../type-checker/types/TypeSpec'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { TypeSpec } from '../declaration/TypeSpec'
@@ -57,6 +57,7 @@ export class EnumDeclaration extends Base implements Statement {
   public: boolean
   typeSpec: TypeSpec
   variants: EnumVariant[]
+  private _type?: EnumSpec
 
   constructor (
     pos: BasePosition,
@@ -90,6 +91,7 @@ export class EnumDeclaration extends Base implements Statement {
       }
     }
     const typeSpec = new EnumSpec(this.typeSpec.name.value, new Map(), typeVars)
+    this._type = typeSpec
     for (const variant of this.variants) {
       const types = variant.types.map(
         type => context.scope.getTypeFrom(type).type,
@@ -124,7 +126,11 @@ export class EnumDeclaration extends Base implements Statement {
   }
 
   compileStatement (scope: CompilationScope): StatementCompilationResult {
-    throw new Error('Method not implemented.')
+    const representation = this._type!.representation
+
+    return {
+      statements: [],
+    }
   }
 
   toString (): string {

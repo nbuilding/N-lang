@@ -4,10 +4,9 @@ import { unit } from '../../type-checker/types/builtins'
 import {
   functionFromTypes,
   NamedType,
-  FuncTypeVarSpec,
   substitute,
-  TypeSpec,
 } from '../../type-checker/types/types'
+import { FuncTypeVarSpec, TypeSpec } from '../../type-checker/types/TypeSpec'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Arguments } from '../declaration/Arguments'

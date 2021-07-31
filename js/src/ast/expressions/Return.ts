@@ -15,9 +15,10 @@ import {
 } from '../statements/Statement'
 import { NType, unknown } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
-import { cmd, isUnit } from '../../type-checker/types/builtins'
+import { cmd } from '../../type-checker/types/builtins'
 import { attemptAssign } from '../../type-checker/types/comparisons/compare-assignable'
 import { CompilationScope } from '../../compiler/CompilationScope'
+import { isUnitLike } from '../../type-checker/types/isUnitLike'
 
 export class Return extends Base implements Expression, Statement {
   value: Expression
@@ -69,7 +70,7 @@ export class Return extends Base implements Expression, Statement {
     return {
       statements: [
         ...statements,
-        isUnit(this._type!) ? 'return;' : `return ${expression};`,
+        isUnitLike(this._type!) ? 'return;' : `return ${expression};`,
       ],
       expression: 'undefined',
     }

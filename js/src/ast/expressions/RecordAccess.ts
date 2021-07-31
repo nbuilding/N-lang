@@ -8,14 +8,10 @@ import {
 } from './Expression'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
-import {
-  AliasSpec,
-  NModule,
-  NRecord,
-  unknown,
-} from '../../type-checker/types/types'
+import { NModule, NRecord, unknown } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { CompilationScope } from '../../compiler/CompilationScope'
+import { AliasSpec } from '../../type-checker/types/TypeSpec'
 
 export class RecordAccess extends Base implements Expression {
   value: Expression

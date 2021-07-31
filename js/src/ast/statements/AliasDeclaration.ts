@@ -3,7 +3,7 @@ import { ErrorType } from '../../type-checker/errors/Error'
 import {
   AliasSpec,
   TypeSpec as NamedTypeSpec,
-} from '../../type-checker/types/types'
+} from '../../type-checker/types/TypeSpec'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { TypeSpec } from '../declaration/TypeSpec'

@@ -1,6 +1,7 @@
 import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
-import { EnumSpec, unknown } from '../../type-checker/types/types'
+import { unknown } from '../../type-checker/types/types'
+import { EnumSpec } from '../../type-checker/types/TypeSpec'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
@@ -84,7 +85,7 @@ export class EnumPattern extends Base implements Pattern {
     scope: CompilationScope,
     valueName: string,
   ): PatternCompilationResult {
-    const representation = scope.context.normaliseEnum(this._type!)
+    const representation = this._type!.representation
     const variant = this.variant.value
 
     const statements: string[] = []
@@ -107,7 +108,9 @@ export class EnumPattern extends Base implements Pattern {
       // a bool
       return {
         statements: [
-          `if (${variant === 'true' ? '!' : ''}${valueName}) break;`,
+          `if (${
+            variant === representation.trueName ? '!' : ''
+          }${valueName}) break;`,
         ],
         varNames,
       }
@@ -123,6 +126,17 @@ export class EnumPattern extends Base implements Pattern {
             : `if (${
                 nullable ? `${valueName} && ` : ''
               }${valueName}[0] === ${variantId}) {`,
+          ...scope.context.indent(statements),
+          '} else break;',
+        ],
+        varNames,
+      }
+    } else if (representation.type === 'union') {
+      const { variants } = representation
+      const index = variants.find(variantName => variantName === variant)
+      return {
+        statements: [
+          `if (${valueName} === ${index}) {`,
           ...scope.context.indent(statements),
           '} else break;',
         ],

@@ -1,11 +1,8 @@
 import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { unit } from '../../type-checker/types/builtins'
-import {
-  AliasSpec,
-  functionFromTypes,
-  NRecord,
-} from '../../type-checker/types/types'
+import { functionFromTypes, NRecord } from '../../type-checker/types/types'
+import { AliasSpec } from '../../type-checker/types/TypeSpec'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Arguments } from '../declaration/Arguments'

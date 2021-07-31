@@ -1,4 +1,5 @@
-import { NType, TypeSpec } from '../type-checker/types/types'
+import { NType } from '../type-checker/types/types'
+import { TypeSpec } from '../type-checker/types/TypeSpec'
 import fek from './fek'
 import FileIO from './file-io'
 import json from './json'
