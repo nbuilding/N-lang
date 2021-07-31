@@ -78,25 +78,23 @@ export class ClassDeclaration extends Base implements Statement {
     scope.names.set(this.name.value, className)
     const mangledKeys = scope.context.normaliseRecord(this._type!)
     return {
-      statements: [
-        ...scope.functionExpression(
-          this.arguments,
-          funcScope => [
-            ...this.body.compileStatement(funcScope).statements,
-            this._type!.types.size > 0
-              ? `return { ${Array.from(
-                  this._type!.types.keys(),
-                  key => `${mangledKeys[key]}: ${scope.getName(key)}`,
-                ).join(', ')} };`
-              : // A class with no exported types is just an empty record and
-                // can be optimised like an empty unit type. Fortunately, `var`
-                // is undefined behaviour!
-                '// Unit-like class',
-          ],
-          `var ${className} = `,
-          ';',
-        ),
-      ],
+      statements: scope.functionExpression(
+        this.arguments,
+        funcScope => [
+          ...this.body.compileStatement(funcScope).statements,
+          this._type!.types.size > 0
+            ? `return { ${Array.from(
+                this._type!.types.keys(),
+                key => `${mangledKeys[key]}: ${funcScope.getName(key)}`,
+              ).join(', ')} };`
+            : // A class with no exported types is just an empty record and
+              // can be optimised like an empty unit type. Fortunately, `var`
+              // is undefined behaviour!
+              '// Unit-like class',
+        ],
+        `var ${className} = `,
+        ';',
+      ),
     }
   }
 

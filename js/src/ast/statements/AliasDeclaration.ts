@@ -1,12 +1,21 @@
 import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
 import {
+  functionFromTypes,
+  NRecord,
+  NType,
+  substitute,
+  unknown,
+} from '../../type-checker/types/types'
+import {
   AliasSpec,
+  FuncTypeVarSpec,
   TypeSpec as NamedTypeSpec,
 } from '../../type-checker/types/TypeSpec'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { TypeSpec } from '../declaration/TypeSpec'
+import { RecordType } from '../types/RecordType'
 import { isType, Type } from '../types/Type'
 import {
   CheckStatementContext,
@@ -19,6 +28,7 @@ export class AliasDeclaration extends Base implements Statement {
   public: boolean
   typeSpec: TypeSpec
   type: Type
+  private _type?: { type: NRecord; keys: string[] }
 
   constructor (
     pos: BasePosition,
@@ -48,22 +58,86 @@ export class AliasDeclaration extends Base implements Statement {
         }
       }
     }
-    context.defineType(
-      this.typeSpec.name,
-      new AliasSpec(
-        this.typeSpec.name.value,
-        scope.getTypeFrom(this.type).type,
-        typeVars,
-      ),
-      this.public,
+    const evaluatedType = scope.getTypeFrom(this.type).type
+    const alias = new AliasSpec(
+      this.typeSpec.name.value,
+      evaluatedType,
+      typeVars,
     )
+    context.defineType(this.typeSpec.name, alias, this.public)
+    if (this.type instanceof RecordType && evaluatedType.type === 'record') {
+      this._type = {
+        type: evaluatedType,
+        keys: this.type.entries.map(entry => entry.key.value),
+      }
+      const types = this.type.entries.map(
+        entry => evaluatedType.types.get(entry.key.value) || unknown,
+      )
+      // TODO: Warn if a variable with the name already exists
+      if (types.length === 0) {
+        context.defineVariable(
+          this.typeSpec.name,
+          alias.instance(typeVars.map(() => unknown)),
+          this.public,
+        )
+      } else {
+        const funcTypeVars = []
+        const substitutions: Map<NamedTypeSpec, NType> = new Map()
+        for (const typeVar of typeVars) {
+          const funcTypeVar = new FuncTypeVarSpec(typeVar.name)
+          funcTypeVars.push(funcTypeVar)
+          substitutions.set(typeVar, funcTypeVar.instance())
+        }
+        context.defineVariable(
+          this.typeSpec.name,
+          functionFromTypes(
+            [
+              ...types.map(type => substitute(type, substitutions)),
+              alias.instance(funcTypeVars.map(typeVar => typeVar.instance())),
+            ],
+            funcTypeVars,
+          ),
+          this.public,
+        )
+      }
+    }
     scope.end()
     return {}
   }
 
-  compileStatement (_scope: CompilationScope): StatementCompilationResult {
-    // TODO: Constructor function for record aliases
-    return { statements: [] }
+  compileStatement (scope: CompilationScope): StatementCompilationResult {
+    if (this._type) {
+      const { type, keys } = this._type
+      const constructorName = scope.context.genVarName(this.typeSpec.name.value)
+      scope.names.set(this.typeSpec.name.value, constructorName)
+      const mangledKeys = scope.context.normaliseRecord(type)
+      const aliasScope = scope.inner()
+      const statements =
+        keys.length > 0
+          ? aliasScope.functionExpression(
+              keys.map(key => {
+                const argName = scope.context.genVarName(key)
+                aliasScope.names.set(key, argName)
+                return {
+                  argName,
+                  statements: [],
+                }
+              }),
+              funcScope => [
+                `return { ${keys
+                  .map(key => `${mangledKeys[key]}: ${funcScope.getName(key)}`)
+                  .join(', ')} };`,
+              ],
+              `var ${constructorName} = `,
+              ';',
+            )
+          : [`var ${constructorName};`]
+      return {
+        statements,
+      }
+    } else {
+      return { statements: [] }
+    }
   }
 
   toString (): string {

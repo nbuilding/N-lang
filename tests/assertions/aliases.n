@@ -7,3 +7,12 @@ alias test = {
 }
 
 assert type { a: 1; b: 1; c: "test" } : test
+
+alias person = {
+	name: str
+	age: int
+}
+
+assert type person : str -> int -> person
+
+assert value person("Billy", 16) == { name: "Billy"; age: 16 }
