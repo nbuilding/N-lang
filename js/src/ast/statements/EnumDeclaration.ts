@@ -93,6 +93,7 @@ export class EnumDeclaration extends Base implements Statement {
     }
     const typeSpec = new EnumSpec(this.typeSpec.name.value, new Map(), typeVars)
     this._type = typeSpec
+    context.defineType(this.typeSpec.name, typeSpec, this.public)
     for (const variant of this.variants) {
       const types = variant.types.map(
         type => context.scope.getTypeFrom(type).type,
@@ -121,7 +122,6 @@ export class EnumDeclaration extends Base implements Statement {
         variant.public && !this.public,
       )
     }
-    context.defineType(this.typeSpec.name, typeSpec, this.public)
     scope.end()
     return {}
   }

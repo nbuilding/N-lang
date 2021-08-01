@@ -1,5 +1,5 @@
-import { CompilationContext } from './CompilationContext'
-import { CompilationScope } from './CompilationScope'
+import { CompilationContext } from '../compiler/CompilationContext'
+import { CompilationScope } from '../compiler/CompilationScope'
 
 export class CompilationGlobalScope extends CompilationScope {
   // TEMP

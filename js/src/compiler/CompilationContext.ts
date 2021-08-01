@@ -2,7 +2,7 @@ import { generateNames } from '../../test/unit/utils/generate-names'
 import { Block } from '../ast'
 import { modules } from '../native-modules'
 import { NRecord } from '../type-checker/types/types'
-import { CompilationGlobalScope } from './CompilationGlobalScope'
+import { CompilationGlobalScope } from '../global-scope/CompilationGlobalScope'
 import { helperNames } from './n-helpers'
 
 export interface HasExports {

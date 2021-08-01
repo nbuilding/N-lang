@@ -11,7 +11,7 @@ import {
 import { Error as NError } from './errors/Error'
 import { ErrorDisplayer, FilePathSpec } from './errors/ErrorDisplayer'
 import { Warning as NWarning } from './errors/Warning'
-import { GlobalScope } from './GlobalScope'
+import { GlobalScope } from '../global-scope/GlobalScope'
 import { cmd } from './types/builtins'
 import { NModule, NType, unknown, Unknown } from './types/types'
 

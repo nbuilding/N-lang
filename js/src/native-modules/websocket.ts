@@ -33,7 +33,7 @@ export default {
     const connect = context.genVarName('connect')
     return {
       statements: ['// TODO: websocket'],
-      exports: { connect,  },
+      exports: { connect },
     }
   },
 }
