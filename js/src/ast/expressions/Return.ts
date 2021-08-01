@@ -70,7 +70,13 @@ export class Return extends Base implements Expression, Statement {
     return {
       statements: [
         ...statements,
-        isUnitLike(this._type!) ? 'return;' : `return ${expression};`,
+        scope.procedure
+          ? isUnitLike(this._type!)
+            ? `return ${scope.procedure.callbackName}();`
+            : `return ${scope.procedure.callbackName}(${expression});`
+          : isUnitLike(this._type!)
+          ? 'return;'
+          : `return ${expression};`,
       ],
       expression: 'undefined',
     }

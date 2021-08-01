@@ -29,8 +29,11 @@ export class ProcedureContext {
 
   private _nextStatements: string[] = []
 
+  callbackName: string
+
   constructor (context: CompilationContext) {
     this.context = context
+    this.callbackName = context.genVarName('callback')
   }
 
   /**
