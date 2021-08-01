@@ -13,8 +13,10 @@ export default {
     return {
       statements: [
         `function ${paer}(value) {`,
-        '  console.log(value);',
-        `  return ${context.helpers.cmdWrap}();`,
+        '  return function (callback) {',
+        '    console.log(value);',
+        '    callback();',
+        '  };',
         '}',
       ],
       exports: { paer },

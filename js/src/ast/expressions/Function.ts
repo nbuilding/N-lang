@@ -98,14 +98,7 @@ export class Function extends Base implements Expression {
       statements: [
         ...scope.functionExpression(
           this.arguments,
-          funcScope => {
-            const { statements } = this.body.compileStatement(funcScope)
-            if (funcScope.procedure) {
-              return funcScope.procedure.toStatements(statements)
-            } else {
-              return statements
-            }
-          },
+          funcScope => this.body.compileStatement(funcScope).statements,
           `var ${funcExprName} = `,
           ';',
           isProcedure,

@@ -96,7 +96,7 @@ export class UnaryOperation<O extends UnaryOperator> extends Base
         if (!procContext) {
           throw new Error('Await not inside a procedure?')
         }
-        procContext.chain.push({ statements, cmd: expression, resultName })
+        procContext.addToChain({ statements, cmd: expression, resultName })
         return {
           statements: [],
           expression: resultName,

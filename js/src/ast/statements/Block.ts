@@ -55,9 +55,20 @@ export class Block extends Base implements Statement {
   }
 
   compileStatement (scope: CompilationScope): StatementCompilationResult {
-    const statements: string[] = []
+    let statements: string[] = []
     for (const statement of this.statements) {
-      statements.push(...statement.compileStatement(scope).statements)
+      if (scope.procedure) {
+        scope.procedure.chainModified = false
+      }
+      const { statements: s } = statement.compileStatement(scope)
+      if (scope.procedure && scope.procedure.chainModified) {
+        scope.procedure.prependStatements(statements)
+        statements = []
+      }
+      statements.push(...s)
+    }
+    if (scope.procedure) {
+      statements = scope.procedure.toStatements(statements)
     }
     return {
       statements,

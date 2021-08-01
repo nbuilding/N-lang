@@ -11,7 +11,13 @@ export default {
   compile (context: CompilationContext): CompiledModule {
     const sleep = context.genVarName('sleep')
     return {
-      statements: ['// TODO: times'],
+      statements: [
+        `function ${sleep}(delay) {`,
+        `  return function (callback) {`,
+        '    setTimeout(callback, delay);',
+        '  };',
+        '}',
+      ],
       exports: { sleep },
     }
   },

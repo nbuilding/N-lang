@@ -3,17 +3,14 @@ import { Block } from '../ast'
 import { modules } from '../native-modules'
 import { NRecord } from '../type-checker/types/types'
 import { CompilationGlobalScope } from './CompilationGlobalScope'
+import { helperNames } from './n-helpers'
 
 export interface HasExports {
   names: Map<string, string>
 }
 
 export class CompilationContext {
-  helpers = {
-    modulo: 'modulo_n',
-    assertValue: 'assertValue_n',
-    cmdWrap: 'cmdWrap_n',
-  }
+  helpers = helperNames
 
   /**
    * The next ID of an `assert value` assertion. This also represents the total

@@ -3,11 +3,13 @@
 import times
 
 let pub main = () |> [] -> cmd[()] {
-	for (item in [1, 2, 3]) {
-		if item == 2 {
+	times.sleep(101)!
+	for (item in [100, 200, 300]) {
+		if item == 200 {
 			print("Hello")
 		} else {
 			times.sleep(item)!
 		}
 	}
+	times.sleep(102)!
 }
