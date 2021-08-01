@@ -89,7 +89,6 @@ export class Function extends Base implements Expression {
   }
 
   compile (scope: CompilationScope): CompilationResult {
-    // TODO: Handle generics
     const returnType = this._returnType!
     const isProcedure =
       returnType.type === 'named' && returnType.typeSpec === cmd

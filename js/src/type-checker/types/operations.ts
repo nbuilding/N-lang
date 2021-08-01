@@ -6,7 +6,9 @@ import {
   int,
   list,
   map,
+  maybe,
   number,
+  result,
   str,
   unit,
 } from './builtins'
@@ -87,9 +89,3 @@ export const iterableTypes: NFunction[] = [
   makeFunction(a => [list.instance([a]), a], 'a'),
 ]
 export const legacyIterableTypes: NFunction[] = [makeFunction(() => [int, int])]
-
-export const equalableTypes: TypeSpec[] = [
-  ...[str, int, float, char, unit].map(type => type.typeSpec),
-  list,
-  map,
-]

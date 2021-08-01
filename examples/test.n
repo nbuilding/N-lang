@@ -1,20 +1,6 @@
-import times
+assert value { a: "pi"; b: 3.14 } == { b: 3.14; a: "pi" }
 
-let wow = [] -> cmd[int] {
-  print("wow")
-  return 1
-}
+let listvalue = ["a", "b", "c"]
+assert value listvalue == ["a", "b", "c"]
 
-let wow2 = [] -> cmd[int] {
-  print("wow2.1")
-  times.sleep(1000)!
-  print("wow2.2")
-  return wow()
-}
-
-let pub main = () |> [] -> cmd[()] {
-  let cmd = wow2()
-  print(cmd!)
-  times.sleep(2000)!
-  print(cmd!)
-}
+// assert value mapFrom([("a", 1), ("b", 2)]) == mapFrom([("b", 2), ("a", 1)])

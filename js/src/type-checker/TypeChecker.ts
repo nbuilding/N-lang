@@ -435,6 +435,7 @@ export class TypeChecker {
     }
     const prelude = [
       'var undefined; // This helps minifiers to use a shorter variable name than `void 0`.',
+      'var valueAssertionResults_n = {};',
       `for (var i = 0; i < ${context.valueAssertions}; i++) {`,
       '  valueAssertionResults_n[i] = false;',
       '}',
