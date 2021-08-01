@@ -38,9 +38,13 @@ export function checkCondition (
 export type ConditionCompilationResult = {
   statements: string[]
   result: string
-  scope: CompilationScope
 }
 
+/**
+ * `scope` is the scope specifically for the "then" branch of the if
+ * statement/expression. Unlike `checkCondition`, this function won't create an
+ * inner scope for you.
+ */
 export function compileCondition (
   scope: CompilationScope,
   condition: Condition,
@@ -50,27 +54,24 @@ export function compileCondition (
       scope,
     )
     const expressionName = scope.context.genVarName('ifLetValue')
-    const innerScope = scope.inner()
     const resultName = scope.context.genVarName('ifLetResult')
     return {
       statements: [
         ...exprS,
         `var ${expressionName} = ${expression};`,
         ...condition.declaration.compileDeclaration(
-          innerScope,
+          scope,
           expressionName,
           resultName,
         ),
       ],
       result: resultName,
-      scope: innerScope,
     }
   } else {
     const { statements, expression } = condition.compile(scope)
     return {
       statements,
       result: expression,
-      scope: scope.inner(),
     }
   }
 }

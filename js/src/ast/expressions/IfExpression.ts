@@ -55,8 +55,9 @@ export class IfExpression extends Base implements Expression {
   }
 
   compile (scope: CompilationScope): CompilationResult {
-    const { statements: condS, result, scope: thenScope } = compileCondition(
-      scope,
+    const thenScope = scope.inner()
+    const { statements: condS, result } = compileCondition(
+      thenScope,
       this.condition,
     )
     const { statements: thenS, expression: thenE } = this.then.compile(

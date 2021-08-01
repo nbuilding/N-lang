@@ -55,13 +55,29 @@ export class Block extends Base implements Statement {
   }
 
   compileStatement (scope: CompilationScope): StatementCompilationResult {
+    if (scope.procedure) {
+      // Keep track of awaits used in the block
+      scope.procedure.newChain()
+    }
     let statements: string[] = []
     for (const statement of this.statements) {
-      if (scope.procedure) {
-        scope.procedure.chainModified = false
-      }
       const { statements: s } = statement.compileStatement(scope)
-      if (scope.procedure && scope.procedure.chainModified) {
+      if (scope.procedure && scope.procedure.wasModified()) {
+        // statement1
+        // statement2
+        // someCmd!
+        // statement3
+        // statement4
+        //
+        // turns into
+        //
+        // statement1
+        // statement2
+        // someCmd(() => {
+        //   statement3
+        //   statement4
+        //   ...
+        // })
         scope.procedure.prependStatements(statements)
         statements = []
       }
@@ -69,6 +85,7 @@ export class Block extends Base implements Statement {
     }
     if (scope.procedure) {
       statements = scope.procedure.toStatements(statements)
+      scope.procedure.endChain()
     }
     return {
       statements,

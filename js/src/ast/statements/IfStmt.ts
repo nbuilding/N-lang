@@ -51,8 +51,9 @@ export class IfStmt extends Base implements Statement {
   }
 
   compileStatement (scope: CompilationScope): StatementCompilationResult {
-    const { statements: condS, result, scope: thenScope } = compileCondition(
-      scope,
+    const thenScope = scope.inner()
+    const { statements: condS, result } = compileCondition(
+      thenScope,
       this.condition,
     )
     const statements: string[] = [
