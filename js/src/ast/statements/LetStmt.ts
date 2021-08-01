@@ -1,3 +1,4 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
@@ -7,6 +8,7 @@ import {
   CheckStatementContext,
   CheckStatementResult,
   Statement,
+  StatementCompilationResult,
 } from './Statement'
 
 export class LetStmt extends Base implements Statement {
@@ -33,6 +35,16 @@ export class LetStmt extends Base implements Statement {
       context.err({ type: ErrorType.CANNOT_EXPORT })
     }
     return { exitPoint }
+  }
+
+  compileStatement (scope: CompilationScope): StatementCompilationResult {
+    const { statements, expression } = this.value.compile(scope)
+    return {
+      statements: [
+        ...statements,
+        ...this.declaration.compileDeclaration(scope, expression),
+      ],
+    }
   }
 
   toString (): string {

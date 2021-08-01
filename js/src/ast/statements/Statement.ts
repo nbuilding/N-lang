@@ -1,3 +1,4 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { Scope } from '../../type-checker/Scope'
 import { ScopeBaseContext } from '../../type-checker/ScopeBaseContext'
 import { Base } from '../base'
@@ -14,8 +15,14 @@ export interface CheckStatementResult {
   exitPointWarned?: boolean
 }
 
+export type StatementCompilationResult = {
+  statements: string[]
+}
+
 export interface Statement extends Base {
   checkStatement(context: CheckStatementContext): CheckStatementResult
+
+  compileStatement(scope: CompilationScope): StatementCompilationResult
 }
 
 export function isStatement (value: unknown): value is Statement {

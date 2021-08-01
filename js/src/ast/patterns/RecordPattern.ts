@@ -1,5 +1,7 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
-import { AliasSpec, unknown } from '../../type-checker/types/types'
+import { NModule, NRecord, unknown } from '../../type-checker/types/types'
+import { AliasSpec } from '../../type-checker/types/TypeSpec'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
@@ -8,6 +10,7 @@ import {
   CheckPatternResult,
   isPattern,
   Pattern,
+  PatternCompilationResult,
 } from './Pattern'
 
 export class RecordPatternEntry extends Base {
@@ -41,6 +44,7 @@ export class RecordPatternEntry extends Base {
 
 export class RecordPattern extends Base implements Pattern {
   entries: RecordPatternEntry[]
+  private _type?: NRecord | NModule
 
   constructor (
     pos: BasePosition,
@@ -56,6 +60,7 @@ export class RecordPattern extends Base implements Pattern {
   checkPattern (context: CheckPatternContext): CheckPatternResult {
     const resolved = AliasSpec.resolve(context.type)
     if (resolved.type === 'record' || resolved.type === 'module') {
+      this._type = resolved
       const keys: Set<string> = new Set()
       for (const entry of this.entries) {
         if (keys.has(entry.key.value)) {
@@ -94,6 +99,46 @@ export class RecordPattern extends Base implements Pattern {
       }
     }
     return {}
+  }
+
+  compilePattern (
+    scope: CompilationScope,
+    valueName: string,
+  ): PatternCompilationResult {
+    const statements: string[] = []
+    const varNames: string[] = []
+    const type = this._type!
+    if (type.type === 'record') {
+      const mangledKeys = scope.context.normaliseRecord(type)
+      for (const entry of this.entries) {
+        const { statements: s, varNames: v } = entry.value.compilePattern(
+          scope,
+          `${valueName}.${mangledKeys[entry.key.value]}`,
+        )
+        statements.push(...s)
+        varNames.push(...v)
+      }
+    } else {
+      const module = scope.context.getModule(type.path).names
+      for (const entry of this.entries) {
+        const exportName = module.get(entry.key.value)
+        if (!exportName) {
+          throw new ReferenceError(
+            `Module ${type.path} does not define such name ${entry.key.value}`,
+          )
+        }
+        const { statements: s, varNames: v } = entry.value.compilePattern(
+          scope,
+          exportName,
+        )
+        statements.push(...s)
+        varNames.push(...v)
+      }
+    }
+    return {
+      statements,
+      varNames,
+    }
   }
 
   toString (): string {

@@ -1,5 +1,6 @@
 import schema, * as schem from '../../utils/schema'
 import {
+  CompilationResult,
   Expression,
   isExpression,
   TypeCheckContext,
@@ -10,14 +11,25 @@ import {
   CheckStatementContext,
   CheckStatementResult,
   Statement,
+  StatementCompilationResult,
 } from '../statements/Statement'
-import { unknown } from '../../type-checker/types/types'
+import { NType, unknown } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { cmd } from '../../type-checker/types/builtins'
 import { attemptAssign } from '../../type-checker/types/comparisons/compare-assignable'
+import { CompilationScope } from '../../compiler/CompilationScope'
+import { isUnitLike } from '../../type-checker/types/isUnitLike'
 
 export class Return extends Base implements Expression, Statement {
   value: Expression
+  private _type?: NType
+
+  /**
+   * Whether the return expression returned a type that is actually the type
+   * contained inside the cmd. For example, returning an int in a function that
+   * should return cmd[int].
+   */
+  private _returnedContainedType = false
 
   constructor (
     pos: BasePosition,
@@ -34,6 +46,7 @@ export class Return extends Base implements Expression, Statement {
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {
     const { type, exitPoint } = context.scope.typeCheck(this.value)
+    this._type = type
     const returnType = context.scope.getReturnType()
     if (returnType) {
       const error = attemptAssign(returnType, type)
@@ -44,6 +57,7 @@ export class Return extends Base implements Expression, Statement {
             returnType.typeVars[0],
             type,
           )
+          this._returnedContainedType = true
         } else {
           context.err({ type: ErrorType.RETURN_MISMATCH, error })
         }
@@ -56,6 +70,31 @@ export class Return extends Base implements Expression, Statement {
     return {
       type: unknown,
       exitPoint: exitPoint || this,
+    }
+  }
+
+  compile (scope: CompilationScope): CompilationResult {
+    const { statements, expression } = this.value.compile(scope)
+    return {
+      statements: [
+        ...statements,
+        scope.procedure
+          ? isUnitLike(this._type!)
+            ? `return ${scope.procedure.callbackName}();`
+            : this._returnedContainedType
+            ? `return ${scope.procedure.callbackName}(${expression});`
+            : `return (${expression})(${scope.procedure.callbackName});`
+          : isUnitLike(this._type!)
+          ? 'return;'
+          : `return ${expression};`,
+      ],
+      expression: 'undefined',
+    }
+  }
+
+  compileStatement (scope: CompilationScope): StatementCompilationResult {
+    return {
+      statements: this.compile(scope).statements,
     }
   }
 

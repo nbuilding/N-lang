@@ -3,7 +3,7 @@
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import * as util from 'util'
-import parseArgs = require('minimist')
+import parseArgs from 'minimist'
 // import { compileToJS, TypeChecker, FileLines } from './index'
 import { parse } from './grammar/parse'
 import { NOT_FOUND, TypeChecker } from './type-checker/TypeChecker'
@@ -76,7 +76,7 @@ async function main () {
         })
         if (block instanceof Block) {
           if (ast) console.log(util.inspect(block, false, null, true))
-          if (repr) console.log(block.toString(true))
+          if (repr) console.log(block.toString())
           return { source: file, block }
         } else {
           return { source: file, error: block }
@@ -94,22 +94,22 @@ async function main () {
   })
   const result = await checker.start(path.resolve(fileName))
   if (!(js || running || checksOnly)) return
-  console.log(
-    result.displayAll(
-      new ErrorDisplayer({
-        type: 'console-color',
-        displayPath (absolutePath: string, basePath: string) {
-          return path.relative(path.dirname(basePath), absolutePath)
-        },
-      }),
-    ).display,
+  const { display, errors } = result.displayAll(
+    new ErrorDisplayer({
+      type: 'console-color',
+      displayPath (absolutePath: string, basePath: string) {
+        return path.relative(path.dirname(basePath), absolutePath)
+      },
+    }),
   )
-  /*
-  const compiled = compileToJS(script, checker.types)
+  console.log(display)
+  if (errors > 0) return
+
+  const compiled = checker.compile()
   if (js) console.log(compiled)
+  await fs.writeFile(fileName.replace(/\.n$/, '.js'), compiled)
   // Indirect call of eval to run in global scope
-  if (running) (null, eval)(compiled)
-  */
+  // if (running) (null, eval)(compiled)
 }
 
 main().catch(err => {

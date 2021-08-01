@@ -1,4 +1,6 @@
 import { Base, BasePosition, Block, ImportFile } from '../ast/index'
+import { CompilationContext } from '../compiler/CompilationContext'
+import { helpers } from '../compiler/n-helpers'
 import {
   parse,
   ParseAmbiguityError,
@@ -10,6 +12,7 @@ import { Error as NError } from './errors/Error'
 import { ErrorDisplayer, FilePathSpec } from './errors/ErrorDisplayer'
 import { Warning as NWarning } from './errors/Warning'
 import { GlobalScope } from './GlobalScope'
+import { cmd } from './types/builtins'
 import { NModule, NType, unknown, Unknown } from './types/types'
 
 /** Yields relative paths from `imp` expressions */
@@ -22,9 +25,11 @@ function * getImportPaths (base: Base): Generator<string> {
   }
 }
 
+type Compiled = { compiled: string[]; exportNames: Map<string, string> }
+type Compilable = Block | Compiled
 type ModuleState =
   | { state: 'loading' }
-  | { state: 'loaded'; module: NModule | Unknown }
+  | { state: 'loaded'; module: NModule | Unknown; compilable: Compilable }
   | { state: 'error'; error: typeof NOT_FOUND | typeof BAD_PATH }
 
 export class TypeCheckerResults {
@@ -211,11 +216,13 @@ export const NOT_FOUND = Symbol('not found')
 export const BAD_PATH = Symbol('bad path')
 
 type ParsedBlockWithSource = { source: string; block: Block }
+type CompiledModule = { module: NModule; compiled: Compiled }
+type CompilableModule = { module: NModule; compilable: Compilable }
 type ParseErrorWithSource = { source: string; error: ParseError }
 export type ProvidedFile =
   | string
   | ParsedBlockWithSource
-  | NModule
+  | CompiledModule
   | ParseErrorWithSource
   | typeof NOT_FOUND
   | typeof BAD_PATH
@@ -233,9 +240,57 @@ export interface CheckerOptions {
   provideFile(path: string): ProvidedFile | PromiseLike<ProvidedFile>
 }
 
+export interface CompilationOptions {
+  /**
+   * The type of module to compile to.
+   *
+   * The module will export:
+   * - `valueAssertions`, an object mapping from number keys to a boolean
+   *   determining whether the assertion passed.
+   * - `main`, a function that, given a callback, will execute the last exported
+   *   cmd and call the callback when finished.
+   *
+   * If you want to compile to a CommonJS or AMD module, then use `umd`.
+   *
+   * Default: `iife`.
+   */
+  module?:
+    | {
+        type: 'esm'
+      }
+    | {
+        type: 'iife'
+
+        /**
+         * Whether to immediately execute the main cmd. This is because the IIFE
+         * will return the exports as an object (for use with the `eval`
+         * function), but minifiers might discard this if the IIFE is on its
+         * own.
+         *
+         * Default: `false`
+         */
+        executeMain?: boolean
+      }
+    | {
+        type: 'umd'
+
+        /**
+         * Outside of a CommonJS or AMD module, the exports will be made global
+         * under this name.
+         *
+         * Default: `n`
+         */
+        name?: string
+      }
+}
+
 export class TypeChecker {
   options: CheckerOptions
+
+  /** Maps an absolute path to the module state */
   moduleCache: Map<string, ModuleState> = new Map()
+
+  _lastExportedCmd?: { moduleId: string; name: string }
 
   constructor (options: CheckerOptions) {
     this.options = options
@@ -246,15 +301,27 @@ export class TypeChecker {
    */
   async start (startPath: string): Promise<TypeCheckerResults> {
     const results = new TypeCheckerResults(this, startPath)
-    await this._ensureModuleLoaded(results, startPath)
+    const state = await this._ensureModuleLoaded(results, startPath)
+    if (state.state === 'loaded' && state.module.type === 'module') {
+      const lastExportedCmd = [...state.module.types]
+        .reverse()
+        .find(([, type]) => type.type === 'named' && type.typeSpec === cmd)
+      if (lastExportedCmd) {
+        this._lastExportedCmd = {
+          moduleId: startPath,
+          name: lastExportedCmd[0],
+        }
+      }
+    }
     return results
   }
 
+  /** Try to parse and type check a module given by `provideFile` */
   private async _getResultFromProvided (
     results: TypeCheckerResults,
     modulePath: string,
     provided: ProvidedFile,
-  ): Promise<NModule | ParseErrorWithSource | null> {
+  ): Promise<CompilableModule | ParseErrorWithSource | null> {
     if (typeof provided === 'symbol') {
       this.moduleCache.set(modulePath, { state: 'error', error: provided })
       return null
@@ -301,7 +368,9 @@ export class TypeChecker {
       const scope = globalScope.inner({ exportsAllowed: true })
       scope.checkStatement(block)
       scope.end()
-      return scope.toModule(modulePath)
+      return { module: scope.toModule(modulePath), compilable: block }
+    } else if ('module' in provided) {
+      return { module: provided.module, compilable: provided.compiled }
     } else {
       return provided
     }
@@ -314,22 +383,127 @@ export class TypeChecker {
   private async _ensureModuleLoaded (
     results: TypeCheckerResults,
     modulePath: string,
-  ) {
-    if (this.moduleCache.has(modulePath)) return
-    this.moduleCache.set(modulePath, { state: 'loading' })
+  ): Promise<ModuleState> {
+    if (!this.moduleCache.has(modulePath)) {
+      this.moduleCache.set(modulePath, { state: 'loading' })
 
-    const result = await this._getResultFromProvided(
-      results,
-      modulePath,
-      await this.options.provideFile(modulePath),
-    )
-    if (result) {
-      if ('error' in result) {
-        results.syntaxError(modulePath, result.source, result.error)
-        this.moduleCache.set(modulePath, { state: 'loaded', module: unknown })
-      } else {
-        this.moduleCache.set(modulePath, { state: 'loaded', module: result })
+      const result = await this._getResultFromProvided(
+        results,
+        modulePath,
+        await this.options.provideFile(modulePath),
+      )
+      if (result) {
+        if ('error' in result) {
+          results.syntaxError(modulePath, result.source, result.error)
+          this.moduleCache.set(modulePath, {
+            state: 'loaded',
+            module: unknown,
+            compilable: Block.empty(),
+          })
+        } else {
+          this.moduleCache.set(modulePath, { state: 'loaded', ...result })
+        }
       }
     }
+    return this.moduleCache.get(modulePath)!
+  }
+
+  /**
+   * Call this after calling `start()`. Throws an error if this was called with
+   * type errors.
+   */
+  compile ({
+    module = { type: 'iife', executeMain: true },
+  }: CompilationOptions = {}): string {
+    const context = new CompilationContext()
+    const compiled: string[] = []
+    for (const helper of Object.values(helpers)) {
+      compiled.push(...helper)
+    }
+    // Reverse the module cache because insertion order probably happens from
+    // dependents -> dependencies
+    for (const [modulePath, state] of [...this.moduleCache].reverse()) {
+      if (state.state !== 'loaded') {
+        throw new Error(`${modulePath} is of state ${state.state}`)
+      }
+      if (state.compilable instanceof Block) {
+        compiled.push(...context.compile(state.compilable, modulePath))
+      } else {
+        compiled.push(...state.compilable.compiled)
+        context.defineModuleNames(modulePath, state.compilable.exportNames)
+      }
+    }
+    const prelude = [
+      'var undefined; // This helps minifiers to use a shorter variable name than `void 0`.',
+      'var valueAssertionResults_n = {};',
+      `for (var i = 0; i < ${context.valueAssertions}; i++) {`,
+      '  valueAssertionResults_n[i] = false;',
+      '}',
+      ...context.dependencies,
+    ]
+    let main
+    if (this._lastExportedCmd) {
+      main = context
+        .getModule(this._lastExportedCmd.moduleId)
+        .names.get(this._lastExportedCmd.name)
+      if (!main) {
+        throw new ReferenceError(
+          `Cannot find name for ${this._lastExportedCmd.name}`,
+        )
+      }
+    } else {
+      main = context.genVarName('main')
+      prelude.push(`function ${main}(callback) {`, '  callback();', '}')
+    }
+    let lines
+    if (module.type === 'umd') {
+      // https://github.com/umdjs/umd/blob/master/templates/returnExports.js
+      lines = [
+        '(function (root, factory) {',
+        "  if (typeof define === 'function' && define.amd) {",
+        '    define([], factory);',
+        "  } else if (typeof module === 'object' && module.exports) {",
+        '    module.exports = factory();',
+        '  } else {',
+        `    root.${module.name ?? 'n'} = factory();`,
+        '  }',
+        "}(typeof self !== 'undefined' ? self : this, function () {",
+        ...context.indent([
+          ...prelude,
+          ...compiled,
+          'return {',
+          '  valueAssertions: valueAssertionResults_n,',
+          `  main: ${main},`,
+          '};',
+        ]),
+        '}));',
+      ]
+    } else if (module.type === 'iife') {
+      if (module.executeMain) {
+        compiled.push(`${main}(function () {});`)
+      }
+      lines = [
+        '(function () {',
+        ...context.indent([
+          ...prelude,
+          ...compiled,
+          'return {',
+          '  valueAssertions: valueAssertionResults_n,',
+          `  main: ${main},`,
+          '};',
+        ]),
+        '})();',
+      ]
+    } else {
+      lines = [
+        ...prelude,
+        ...compiled,
+        'export {',
+        '  valueAssertionResults_n as valueAssertions,',
+        `  ${main} as main,`,
+        '};',
+      ]
+    }
+    return lines.map(line => line + '\n').join('')
   }
 }

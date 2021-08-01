@@ -1,11 +1,13 @@
 import schema, * as schem from '../../utils/schema'
 import {
+  CompilationResult,
   Expression,
   isExpression,
   TypeCheckContext,
   TypeCheckResult,
 } from './Expression'
 import { Base, BasePosition } from '../base'
+import { CompilationScope } from '../../compiler/CompilationScope'
 
 export class Tuple extends Base implements Expression {
   values: Expression[]
@@ -30,6 +32,20 @@ export class Tuple extends Base implements Expression {
     // TODO: Is it possible for a tuple to contain just one item? (i.e. is this
     // enforced by syntax?)
     return { type: { type: 'tuple', types }, exitPoint }
+  }
+
+  compile (scope: CompilationScope): CompilationResult {
+    const statements: string[] = []
+    const expressions: string[] = []
+    for (const value of this.values) {
+      const { statements: s, expression } = value.compile(scope)
+      statements.push(...s)
+      expressions.push(expression)
+    }
+    return {
+      statements,
+      expression: `[${expressions.join(', ')}]`,
+    }
   }
 
   toString (): string {

@@ -6,15 +6,8 @@ import {
   CONTAINED,
   typeToResultType,
 } from '../comparisons'
-import {
-  AliasSpec,
-  FuncTypeVarSpec,
-  NFunction,
-  NType,
-  NTypeKnown,
-  substitute,
-  unknown,
-} from '../types'
+import { NFunction, NType, NTypeKnown, substitute, unknown } from '../types'
+import { AliasSpec, FuncTypeVarSpec } from '../TypeSpec'
 
 interface CompareEqualContext {
   substitutions: Map<FuncTypeVarSpec, NTypeKnown>

@@ -1,4 +1,19 @@
 // Based on docs/features/async.md
 
-// TODO: The async example is pretty bad at the moment because it doesn't show
-// an actual use of async
+import times
+
+let pub main = () |> [] -> cmd[()] {
+	print("Good morning!")
+	times.sleep(1001)!
+	print("A second later! I shall see you again in another second.")
+	for (item in [1000, 2000, 3000]) {
+		if item == 2000 {
+			print("A second has passed! 3 seconds later, this time?")
+		} else {
+			times.sleep(item)!
+		}
+	}
+	print("Excellent! Just another second; thank you for your patience.")
+	times.sleep(1002)!
+	print("Good night!")
+}

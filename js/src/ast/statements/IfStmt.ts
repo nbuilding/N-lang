@@ -1,12 +1,19 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
-import { checkCondition, Condition, isCondition } from '../condition/Condition'
+import {
+  checkCondition,
+  compileCondition,
+  Condition,
+  isCondition,
+} from '../condition/Condition'
 import { Block } from './Block'
 import {
   CheckStatementContext,
   CheckStatementResult,
   isStatement,
   Statement,
+  StatementCompilationResult,
 } from './Statement'
 
 export class IfStmt extends Base implements Statement {
@@ -40,6 +47,57 @@ export class IfStmt extends Base implements Statement {
     }
     return {
       exitPoint,
+    }
+  }
+
+  compileStatement (scope: CompilationScope): StatementCompilationResult {
+    const thenName = scope.context.genVarName('then')
+    const thenScope = scope.inner()
+    const { statements: condS, result } = compileCondition(
+      thenScope,
+      this.condition,
+    )
+    const { statements: thenS } = this.then.compileStatement(
+      thenScope,
+      thenName,
+    )
+    const thenUsedAwait =
+      scope.procedure && scope.procedure.didChildScopeUseAwait()
+    let elseS: string[] = []
+    if (this.else) {
+      elseS = this.else.compileStatement(scope.inner(), thenName).statements
+    }
+    const elseUsedAwait =
+      scope.procedure && scope.procedure.didChildScopeUseAwait()
+
+    const statements = [
+      ...condS,
+      `if (${result}) {`,
+      ...scope.context.indent(thenS),
+    ]
+    if (elseUsedAwait && !thenUsedAwait) {
+      statements.push(scope.context.indent([`${thenName}();`])[0])
+    }
+    if (this.else) {
+      statements.push(`} else {`, ...scope.context.indent(elseS))
+      if (thenUsedAwait && !elseUsedAwait) {
+        statements.push(scope.context.indent([`${thenName}();`])[0])
+      }
+    }
+    statements.push('}')
+
+    if (scope.procedure && (thenUsedAwait || elseUsedAwait)) {
+      scope.procedure.addToChain({
+        statements,
+        thenName,
+      })
+      return {
+        statements: [],
+      }
+    } else {
+      return {
+        statements,
+      }
     }
   }
 

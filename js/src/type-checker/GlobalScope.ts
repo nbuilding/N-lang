@@ -12,7 +12,8 @@ import {
   result,
   str,
 } from './types/builtins'
-import { makeFunction, NType, TypeSpec } from './types/types'
+import { makeFunction, NType } from './types/types'
+import { TypeSpec } from './types/TypeSpec'
 
 const variables: Map<string, NType> = new Map()
 const types: Map<string, TypeSpec> = new Map()

@@ -4,7 +4,8 @@ import { ErrorMessage, ErrorType, TypeErrorType } from './errors/Error'
 import { WarningMessage, WarningType } from './errors/Warning'
 import { Scope } from './Scope'
 import { attemptAssign } from './types/comparisons/compare-assignable'
-import { NType, TypeSpec, unknown } from './types/types'
+import { NType, unknown } from './types/types'
+import { TypeSpec } from './types/TypeSpec'
 
 export class ScopeBaseContext {
   scope: Scope

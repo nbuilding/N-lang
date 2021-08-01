@@ -1,0 +1,133 @@
+// Seeing how enums are represented in JS
+// This assumes `print` directly prints the raw JS representation
+
+// == Unions ==
+
+// Enums with variants that contain only unit-like fields (or have no fields)
+// will be treated as "unions" which are represented as numbers.
+
+type _union = a | b | <c ()>
+
+print((a, 0))
+print((b, 1))
+print((c(), 2))
+
+if let <a> = a { assert value true }
+if let <b> = b { assert value true }
+if let <c value> = c() { assert value value == () }
+
+// If there's only two variants, then it's represented as a boolean. The second
+// one will be `true`.
+
+type _boolean = <non ()> | oui
+
+print((non(), false))
+print((oui, true))
+
+if let <non value> = non() { assert value value == () }
+if let <oui> = oui { assert value true }
+
+// If there's only one variant, then it's unit-like, and will be represented as
+// undefined, like the unit type.
+
+type unit = <justMe () ()>
+
+print((justMe()(), ()))
+
+let <justMe value1 value2> = justMe()()
+assert value value1 == ()
+assert value value2 == ()
+
+// == Tuples ==
+
+// If only one variant has fields, and there's at most one other fieldless
+// variant, then the variant with fields will be stored like a tuple (array).
+
+type _tuple1 = <tuple1 int () str>
+type _tuple2 = <tuple2 int str> | <null ()>
+
+print((tuple1(1, (), "one"), (1, "one")))
+print((tuple2(2, "two"), (2, "two")))
+print((null(), ()))
+
+let <tuple1 valueA valueB valueC> = tuple1(1, (), "one")
+assert value valueA == 1
+assert value valueB == ()
+assert value valueC == "one"
+
+if let <tuple2 a b> = tuple2(2, "two") {
+	assert value a == 2
+	assert value b == "two"
+}
+if let <null value> = null() { assert value value == () }
+
+// If the variant with fields has only one non-unit-like field, then the field
+// value is stored directly without a wrapper array.
+
+type _myMaybe = <certainly () bool> | <nope unit>
+
+print((certainly((), false), false))
+print((nope(justMe()()), ()))
+
+if let <certainly a b> = certainly((), false) {
+	assert value a == ()
+	assert value not b
+}
+if let <nope value> = nope(justMe()()) {
+	assert value value == justMe()()
+}
+
+// == Actual enums ==
+
+// Otherwise, enums will be stored like tuples, except there's an additional
+// first item containing the variant ID.
+
+type _enum =
+	| <hello int () str>
+	| <hi str () int>
+	| empty
+	| alsoEmpty
+	| <alsoAlsoEmpty ()>
+
+print((hello(1, (), "one"), (0, 1, "one")))
+print((hi("two", (), 2), (1, "two", 2)))
+print((empty, [2]))
+print((alsoEmpty, [3]))
+print((alsoAlsoEmpty(), [4]))
+
+if let <hello a b c> = hello(1, (), "one") {
+	assert value a == 1
+	assert value b == ()
+	assert value c == "one"
+}
+if let <hi a b c> = hi("two", (), 2) {
+	assert value a == "two"
+	assert value b == ()
+	assert value c == 2
+}
+if let <empty> = empty { assert value true }
+if let <alsoEmpty> = alsoEmpty { assert value true }
+if let <alsoAlsoEmpty value> = alsoAlsoEmpty() { assert value value == () }
+
+// These enums are also nullable.
+
+type _nullableEnum =
+	| <wee int int>
+	| <thisIsNull unit>
+	| <wow int>
+
+print((wee(1, 2), (0, 1, 2)))
+print((thisIsNull(justMe()()), ()))
+// NOTE: The index doesn't skip the null variant
+print((wow(3), (2, 3)))
+
+if let <wee a b> = wee(1, 2) {
+	assert value a == 1
+	assert value b == 2
+}
+if let <thisIsNull value> = thisIsNull(justMe()()) {
+	assert value value == justMe()()
+}
+if let <wow value> = wow(3) {
+	assert value value == 3
+}

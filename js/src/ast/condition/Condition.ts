@@ -1,8 +1,13 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { Scope } from '../../type-checker/Scope'
 import { ScopeBaseContext } from '../../type-checker/ScopeBaseContext'
 import { bool } from '../../type-checker/types/builtins'
-import { Expression, isExpression } from '../expressions/Expression'
+import {
+  CompilationResult,
+  Expression,
+  isExpression,
+} from '../expressions/Expression'
 import { Return } from '../expressions/Return'
 import { IfLet } from './IfLet'
 
@@ -27,5 +32,46 @@ export function checkCondition (
     const { type, exitPoint } = context.scope.typeCheck(condition)
     context.isTypeError(ErrorType.CONDITION_NOT_BOOL, bool, type)
     return { scope: context.scope.inner(), exitPoint }
+  }
+}
+
+export type ConditionCompilationResult = {
+  statements: string[]
+  result: string
+}
+
+/**
+ * `scope` is the scope specifically for the "then" branch of the if
+ * statement/expression. Unlike `checkCondition`, this function won't create an
+ * inner scope for you.
+ */
+export function compileCondition (
+  scope: CompilationScope,
+  condition: Condition,
+): ConditionCompilationResult {
+  if (condition instanceof IfLet) {
+    const { statements: exprS, expression } = condition.expression.compile(
+      scope,
+    )
+    const expressionName = scope.context.genVarName('ifLetValue')
+    const resultName = scope.context.genVarName('ifLetResult')
+    return {
+      statements: [
+        ...exprS,
+        `var ${expressionName} = ${expression};`,
+        ...condition.declaration.compileDeclaration(
+          scope,
+          expressionName,
+          resultName,
+        ),
+      ],
+      result: resultName,
+    }
+  } else {
+    const { statements, expression } = condition.compile(scope)
+    return {
+      statements,
+      result: expression,
+    }
   }
 }

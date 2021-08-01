@@ -1,5 +1,8 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
-import { EnumSpec, unknown } from '../../type-checker/types/types'
+import { isUnitLike } from '../../type-checker/types/isUnitLike'
+import { unknown } from '../../type-checker/types/types'
+import { EnumSpec } from '../../type-checker/types/TypeSpec'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
@@ -8,11 +11,13 @@ import {
   CheckPatternResult,
   isPattern,
   Pattern,
+  PatternCompilationResult,
 } from './Pattern'
 
 export class EnumPattern extends Base implements Pattern {
   variant: Identifier
   patterns: Pattern[]
+  private _type?: EnumSpec
 
   constructor (
     pos: BasePosition,
@@ -26,6 +31,7 @@ export class EnumPattern extends Base implements Pattern {
 
   checkPattern (context: CheckPatternContext): CheckPatternResult {
     if (EnumSpec.isEnum(context.type)) {
+      this._type = context.type.typeSpec
       if (context.type.typeSpec.variants.size > 1 && context.definite) {
         context.err({
           type: ErrorType.ENUM_PATTERN_DEF_MULT_VARIANTS,
@@ -74,6 +80,102 @@ export class EnumPattern extends Base implements Pattern {
       context.checkPattern(pattern, unknown)
     }
     return {}
+  }
+
+  compilePattern (
+    scope: CompilationScope,
+    valueName: string,
+  ): PatternCompilationResult {
+    const representation = this._type!.representation
+    const variant = this.variant.value
+    const variantTypes = this._type!.variants.get(variant)?.types
+    if (!variantTypes) {
+      throw new Error(`${variant} either doesn't exist or has invalid types??`)
+    }
+
+    const statements: string[] = []
+    const varNames: string[] = []
+    let index = 0
+    this.patterns.forEach((pattern, i) => {
+      const unitLike = isUnitLike(variantTypes[i])
+
+      const { statements: s, varNames: v } = pattern.compilePattern(
+        scope,
+        unitLike
+          ? 'undefined'
+          : representation.type === 'maybe'
+          ? valueName
+          : representation.type === 'tuple'
+          ? `${valueName}[${index}]`
+          : `${valueName}[${index + 1}]`,
+      )
+      statements.push(...s)
+      varNames.push(...v)
+      if (!unitLike) {
+        index++
+      }
+    })
+
+    if (representation.type === 'bool') {
+      // Statements should be empty because there's nothing to destructure from
+      // a bool
+      return {
+        statements: [
+          `if (${
+            variant === representation.trueName ? '!' : ''
+          }${valueName}) break;`,
+        ],
+        varNames,
+      }
+    } else if (representation.type === 'enum') {
+      const {
+        variants: { [variant]: variantId },
+        nullable,
+      } = representation
+      return {
+        statements: [
+          variantId === null
+            ? `if (!${valueName}) {`
+            : `if (${
+                nullable ? `${valueName} && ` : ''
+              }${valueName}[0] === ${variantId}) {`,
+          ...scope.context.indent(statements),
+          '} else break;',
+        ],
+        varNames,
+      }
+    } else if (representation.type === 'union') {
+      const { variants } = representation
+      const index = variants.findIndex(variantName => variantName === variant)
+      return {
+        statements: [
+          `if (${valueName} === ${index}) {`,
+          ...scope.context.indent(statements),
+          '} else break;',
+        ],
+        varNames,
+      }
+    } else {
+      if (representation.type !== 'unit' && representation.null) {
+        if (representation.type === 'maybe') {
+          statements.unshift(
+            `if (${valueName} ${
+              variant === representation.null ? '!' : '='
+            }== undefined) break;`,
+          )
+        } else {
+          statements.unshift(
+            `if (${
+              variant === representation.null ? '' : '!'
+            }${valueName}) break;`,
+          )
+        }
+      }
+      return {
+        statements,
+        varNames,
+      }
+    }
   }
 
   toString (): string {

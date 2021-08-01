@@ -1,8 +1,10 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
+import { isUnitLike } from '../../type-checker/types/isUnitLike'
 import {
   EnumSpec,
   TypeSpec as NamedTypeSpec,
-} from '../../type-checker/types/types'
+} from '../../type-checker/types/TypeSpec'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { TypeSpec } from '../declaration/TypeSpec'
@@ -12,6 +14,7 @@ import {
   CheckStatementContext,
   CheckStatementResult,
   Statement,
+  StatementCompilationResult,
 } from './Statement'
 
 export class EnumVariant extends Base {
@@ -55,6 +58,7 @@ export class EnumDeclaration extends Base implements Statement {
   public: boolean
   typeSpec: TypeSpec
   variants: EnumVariant[]
+  private _type?: EnumSpec
 
   constructor (
     pos: BasePosition,
@@ -88,6 +92,7 @@ export class EnumDeclaration extends Base implements Statement {
       }
     }
     const typeSpec = new EnumSpec(this.typeSpec.name.value, new Map(), typeVars)
+    this._type = typeSpec
     for (const variant of this.variants) {
       const types = variant.types.map(
         type => context.scope.getTypeFrom(type).type,
@@ -119,6 +124,126 @@ export class EnumDeclaration extends Base implements Statement {
     context.defineType(this.typeSpec.name, typeSpec, this.public)
     scope.end()
     return {}
+  }
+
+  compileStatement (scope: CompilationScope): StatementCompilationResult {
+    const type = this._type!
+    const representation = type.representation
+    const statements: string[] = []
+
+    for (const [name, variant] of type.variants) {
+      if (!variant.types) {
+        throw new Error('aiya')
+      }
+      const constructorName = scope.context.genVarName(name)
+      scope.names.set(name, constructorName)
+      const argumentNames = variant.types.map(type =>
+        isUnitLike(type) ? '' : scope.context.genVarName('enumConstructorArg'),
+      )
+      if (argumentNames.length === 0) {
+        switch (representation.type) {
+          case 'unit': {
+            statements.push(`var ${constructorName};`)
+            break
+          }
+          case 'bool': {
+            statements.push(
+              `var ${constructorName} = ${representation.trueName === name};`,
+            )
+            break
+          }
+          case 'union': {
+            statements.push(
+              `var ${constructorName} = ${representation.variants.indexOf(
+                name,
+              )};`,
+            )
+            break
+          }
+          case 'tuple': {
+            statements.push(
+              representation.nonNull === name
+                ? `var ${constructorName} = [${argumentNames
+                    .filter(name => name)
+                    .join(', ')}];`
+                : `var ${constructorName};`,
+            )
+            break
+          }
+          case 'maybe': {
+            statements.push(
+              representation.nonNull === name
+                ? `var ${constructorName} = ${argumentNames.find(
+                    name => name,
+                  )};`
+                : `var ${constructorName};`,
+            )
+            break
+          }
+          default: {
+            const variantId = representation.variants[name]
+            statements.push(
+              variantId === null
+                ? `var ${constructorName};`
+                : `var ${constructorName} = [${variantId}${argumentNames
+                    .filter(name => name)
+                    .map(name => ', ' + name)
+                    .join('')}];`,
+            )
+          }
+        }
+      } else {
+        statements.push(
+          ...scope.functionExpression(
+            argumentNames.map(argName => ({ argName, statements: [] })),
+            () => {
+              switch (representation.type) {
+                case 'unit': {
+                  return []
+                }
+                case 'bool': {
+                  return [`return ${representation.trueName === name};`]
+                }
+                case 'union': {
+                  return [`return ${representation.variants.indexOf(name)};`]
+                }
+                case 'tuple': {
+                  return representation.nonNull === name
+                    ? [
+                        `return [${argumentNames
+                          .filter(name => name)
+                          .join(', ')}];`,
+                      ]
+                    : []
+                }
+                case 'maybe': {
+                  return representation.nonNull === name
+                    ? [`return ${argumentNames.find(name => name)};`]
+                    : []
+                }
+                default: {
+                  const variantId = representation.variants[name]
+                  return variantId === null
+                    ? []
+                    : [
+                        `return [${variantId}${argumentNames
+                          .filter(name => name)
+                          .map(name => ', ' + name)
+                          .join('')}];`,
+                      ]
+                }
+              }
+            },
+            `var ${constructorName} = `,
+            ';',
+          ),
+        )
+      }
+    }
+
+    return {
+      statements,
+    }
   }
 
   toString (): string {

@@ -1,23 +1,30 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
-import { unit } from '../../type-checker/types/builtins'
+import { cmd, unit } from '../../type-checker/types/builtins'
 import {
   functionFromTypes,
   NamedType,
-  FuncTypeVarSpec,
+  NType,
   substitute,
-  TypeSpec,
 } from '../../type-checker/types/types'
+import { FuncTypeVarSpec, TypeSpec } from '../../type-checker/types/TypeSpec'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Arguments } from '../declaration/Arguments'
 import { Block } from '../statements/Block'
 import { isType, Type } from '../types/Type'
-import { Expression, TypeCheckContext, TypeCheckResult } from './Expression'
+import {
+  CompilationResult,
+  Expression,
+  TypeCheckContext,
+  TypeCheckResult,
+} from './Expression'
 
 export class Function extends Base implements Expression {
   arguments: Arguments
   returnType: Type
   body: Block
+  private _returnType?: NType
 
   constructor (
     pos: BasePosition,
@@ -55,6 +62,7 @@ export class Function extends Base implements Expression {
       paramTypes.push(unit)
     }
     const returnType = typeVarScope.getTypeFrom(this.returnType).type
+    this._returnType = returnType
     context.scope.deferred.push(() => {
       // TODO: Isn't it possible to do something like
       // let a = [] -> () { print(b) }
@@ -77,6 +85,39 @@ export class Function extends Base implements Expression {
         ...paramTypes.map(param => substitute(param, substitutions)),
         substitute(returnType, substitutions),
       ]),
+    }
+  }
+
+  compile (scope: CompilationScope): CompilationResult {
+    const returnType = this._returnType!
+    const isProcedure =
+      returnType.type === 'named' && returnType.typeSpec === cmd
+    const funcExprName = scope.context.genVarName('funcExpr')
+    return {
+      statements: [
+        ...scope.functionExpression(
+          this.arguments,
+          funcScope => {
+            const { statements } = this.body.compileStatement(
+              funcScope,
+              funcScope.procedure?.callbackName,
+            )
+            if (funcScope.procedure) {
+              return [
+                `return function (${funcScope.procedure.callbackName}) {`,
+                ...scope.context.indent(statements),
+                '}',
+              ]
+            } else {
+              return statements
+            }
+          },
+          `var ${funcExprName} = `,
+          ';',
+          isProcedure,
+        ),
+      ],
+      expression: funcExprName,
     }
   }
 
