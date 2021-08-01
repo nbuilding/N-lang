@@ -1,3 +1,5 @@
+import { CompiledModule } from '.'
+import { CompilationContext } from '../compiler/CompilationContext'
 import {
   bool,
   float,
@@ -42,5 +44,31 @@ export default {
   },
   types: {
     value,
+  },
+
+  compile (context: CompilationContext): CompiledModule {
+    const jsonNull = context.genVarName('null')
+    const string = context.genVarName('string')
+    const number = context.genVarName('number')
+    const boolean = context.genVarName('boolean')
+    const array = context.genVarName('array')
+    const object = context.genVarName('object')
+    const parse = context.genVarName('parse')
+    const parseSafe = context.genVarName('parseSafe')
+    const stringify = context.genVarName('stringify')
+    return {
+      statements: ['// TODO: json'],
+      exports: {
+        null: jsonNull,
+        string,
+        number,
+        boolean,
+        array,
+        object,
+        parse,
+        parseSafe,
+        stringify,
+      },
+    }
   },
 }

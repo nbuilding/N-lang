@@ -1,9 +1,10 @@
 import { generateNames } from '../../test/unit/utils/generate-names'
 import { Block } from '../ast'
+import { modules } from '../native-modules'
 import { NRecord } from '../type-checker/types/types'
 import { CompilationGlobalScope } from './CompilationGlobalScope'
 
-interface HasExports {
+export interface HasExports {
   names: Map<string, string>
 }
 
@@ -11,18 +12,30 @@ export class CompilationContext {
   helpers = {
     modulo: 'modulo_n',
     assertValue: 'assertValue_n',
+    cmdWrap: 'cmdWrap_n',
   }
 
+  /**
+   * The next ID of an `assert value` assertion. This also represents the total
+   * number of `assert value` assertions.
+   */
   valueAssertions = 0
 
-  /** Maps module absolute paths to their scopes */
-  modules: Record<string, HasExports> = {}
+  /** Maps module IDs to their exported variable names */
+  private _modules: Map<string, HasExports> = new Map()
 
   globalScope = new CompilationGlobalScope(this)
 
+  /** ID used to ensure unique variable names */
   private _id = 0
 
+  /** Cache of normalised record key names */
   private _recordCache: Map<string, Record<string, string>> = new Map()
+
+  /**
+   * Statements for defining the native module dependencies used in the project.
+   */
+  dependencies: string[] = []
 
   genVarName (name: string = '') {
     return `${name}_${this._id++}`
@@ -50,11 +63,29 @@ export class CompilationContext {
     return mangled
   }
 
+  getModule (moduleId: string): HasExports {
+    let module = this._modules.get(moduleId)
+    if (!module) {
+      if (!modules.hasOwnProperty(moduleId)) {
+        throw new Error(`Unknown module ${moduleId}`)
+      }
+      const { statements, exports } = modules[moduleId].compile(this)
+      module = { names: new Map(Object.entries(exports)) }
+      this.dependencies.push(...statements)
+      this._modules.set(moduleId, module)
+    }
+    return module
+  }
+
   compile (block: Block, moduleId?: string): string[] {
     const scope = this.globalScope.inner()
     if (moduleId) {
-      this.modules[moduleId] = scope
+      this._modules.set(moduleId, scope)
     }
     return block.compileStatement(scope).statements
+  }
+
+  defineModuleNames (moduleId: string, names: Map<string, string>) {
+    this._modules.set(moduleId, { names })
   }
 }

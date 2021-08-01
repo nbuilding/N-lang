@@ -354,9 +354,7 @@ export class TypeChecker {
    */
   compile (): string {
     const context = new CompilationContext()
-    const compiled: string[] = [
-      'var undefined; // This helps minifiers to use a shorter variable name than `void 0`.',
-    ]
+    const compiled: string[] = []
     for (const helper of Object.values(helpers)) {
       compiled.push(...helper)
     }
@@ -370,20 +368,28 @@ export class TypeChecker {
         compiled.push(...context.compile(state.compilable, modulePath))
       } else {
         compiled.push(...state.compilable.compiled)
-        context.modules[modulePath] = { names: state.compilable.exportNames }
+        context.defineModuleNames(modulePath, state.compilable.exportNames)
       }
     }
     // TODO: Run last exported cmd
     compiled.push(
-      `for (var i = 0; i < ${context.valueAssertions}; i++) {`,
-      '  if (!valueAssertionResults_n[i]) valueAssertionResults_n[i] = false;',
-      '}',
       'return {',
       '  valueAssertions: valueAssertionResults_n,',
       '};',
     )
+    const prelude = [
+      'var undefined; // This helps minifiers to use a shorter variable name than `void 0`.',
+      `for (var i = 0; i < ${context.valueAssertions}; i++) {`,
+      '  valueAssertionResults_n[i] = false;',
+      '}',
+      ...context.dependencies,
+    ]
     return (
-      ['(function () {', ...context.indent(compiled), '})();'].join('\n') + '\n'
+      [
+        '(function () {',
+        ...context.indent([...prelude, ...compiled]),
+        '})();',
+      ].join('\n') + '\n'
     )
   }
 }

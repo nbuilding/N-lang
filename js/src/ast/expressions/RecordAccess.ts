@@ -59,9 +59,9 @@ export class RecordAccess extends Base implements Expression {
         expression: `(${expression}).${mangledKeys[this.field.value]}`,
       }
     } else {
-      const exportName = scope.context.modules[type.path].names.get(
-        this.field.value,
-      )
+      const exportName = scope.context
+        .getModule(type.path)
+        .names.get(this.field.value)
       if (!exportName) {
         throw new ReferenceError(
           `Module ${type.path} does not define such name ${this.field.value}`,

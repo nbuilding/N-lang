@@ -1,4 +1,13 @@
 // Based on docs/features/async.md
 
-// TODO: The async example is pretty bad at the moment because it doesn't show
-// an actual use of async
+import times
+
+let pub main = () |> [] -> cmd[()] {
+	for (item in [1, 2, 3]) {
+		if item == 2 {
+			print("Hello")
+		} else {
+			times.sleep(item)!
+		}
+	}
+}

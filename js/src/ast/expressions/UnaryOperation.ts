@@ -91,7 +91,16 @@ export class UnaryOperation<O extends UnaryOperator> extends Base
         }
       }
       case UnaryOperator.AWAIT: {
-        throw new Error('TODO')
+        const resultName = scope.context.genVarName('cmdResult')
+        const procContext = scope.procedure
+        if (!procContext) {
+          throw new Error('Await not inside a procedure?')
+        }
+        procContext.chain.push({ statements, cmd: expression, resultName })
+        return {
+          statements: [],
+          expression: resultName,
+        }
       }
       default: {
         throw new Error('What operator could this be? ' + this.type)
@@ -100,7 +109,9 @@ export class UnaryOperation<O extends UnaryOperator> extends Base
   }
 
   compileStatement (scope: CompilationScope): StatementCompilationResult {
-    throw new Error('Method not implemented.')
+    return {
+      statements: this.compile(scope).statements,
+    }
   }
 
   toString (): string {

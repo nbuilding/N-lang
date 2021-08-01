@@ -119,7 +119,7 @@ export class RecordPattern extends Base implements Pattern {
         varNames.push(...v)
       }
     } else {
-      const module = scope.context.modules[type.path].names
+      const module = scope.context.getModule(type.path).names
       for (const entry of this.entries) {
         const exportName = module.get(entry.key.value)
         if (!exportName) {

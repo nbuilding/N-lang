@@ -1,9 +1,10 @@
 import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
-import { unit } from '../../type-checker/types/builtins'
+import { cmd, unit } from '../../type-checker/types/builtins'
 import {
   functionFromTypes,
   NamedType,
+  NType,
   substitute,
 } from '../../type-checker/types/types'
 import { FuncTypeVarSpec, TypeSpec } from '../../type-checker/types/TypeSpec'
@@ -23,6 +24,7 @@ export class Function extends Base implements Expression {
   arguments: Arguments
   returnType: Type
   body: Block
+  private _returnType?: NType
 
   constructor (
     pos: BasePosition,
@@ -60,6 +62,7 @@ export class Function extends Base implements Expression {
       paramTypes.push(unit)
     }
     const returnType = typeVarScope.getTypeFrom(this.returnType).type
+    this._returnType = returnType
     context.scope.deferred.push(() => {
       // TODO: Isn't it possible to do something like
       // let a = [] -> () { print(b) }
@@ -87,14 +90,25 @@ export class Function extends Base implements Expression {
 
   compile (scope: CompilationScope): CompilationResult {
     // TODO: Handle generics
+    const returnType = this._returnType!
+    const isProcedure =
+      returnType.type === 'named' && returnType.typeSpec === cmd
     const funcExprName = scope.context.genVarName('funcExpr')
     return {
       statements: [
         ...scope.functionExpression(
           this.arguments,
-          funcScope => [...this.body.compileStatement(funcScope).statements],
+          funcScope => {
+            const { statements } = this.body.compileStatement(funcScope)
+            if (funcScope.procedure) {
+              return funcScope.procedure.toStatements(statements)
+            } else {
+              return statements
+            }
+          },
           `var ${funcExprName} = `,
           ';',
+          isProcedure,
         ),
       ],
       expression: funcExprName,

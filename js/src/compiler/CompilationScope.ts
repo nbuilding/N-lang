@@ -1,5 +1,6 @@
 import { Arguments } from '../ast/declaration/Arguments'
 import { CompilationContext } from './CompilationContext'
+import { ProcedureContext } from './ProcedureContext'
 
 export class CompilationScope {
   context: CompilationContext
@@ -12,9 +13,20 @@ export class CompilationScope {
 
   private _parent?: CompilationScope
 
-  constructor (context: CompilationContext, parent?: CompilationScope) {
+  procedure?: ProcedureContext
+
+  constructor (
+    context: CompilationContext,
+    parent?: CompilationScope,
+    procedure: boolean | ProcedureContext = false,
+  ) {
     this.context = context
     this._parent = parent
+    if (procedure instanceof ProcedureContext) {
+      this.procedure = procedure
+    } else {
+      this.procedure = new ProcedureContext(context)
+    }
   }
 
   /** Throws an error if the name can't be found. */
@@ -29,8 +41,16 @@ export class CompilationScope {
     }
   }
 
-  inner (): CompilationScope {
-    return new CompilationScope(this.context, this)
+  /**
+   * Specify `isProcedure` to prevent the scope inheriting the procedure-ness of
+   * the outer scope.
+   */
+  inner (isProcedure?: boolean): CompilationScope {
+    return new CompilationScope(
+      this.context,
+      this,
+      isProcedure !== undefined ? isProcedure : this.procedure,
+    )
   }
 
   functionExpression (
@@ -38,8 +58,9 @@ export class CompilationScope {
     getBody: (scope: CompilationScope) => string[],
     prefix = '',
     suffix = '',
+    isProcedure = false,
   ): string[] {
-    const scope = this.inner()
+    const scope = this.inner(isProcedure)
     const declarations =
       args instanceof Arguments
         ? args.params.map(declaration => {

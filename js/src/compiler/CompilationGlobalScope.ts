@@ -16,4 +16,12 @@ export class CompilationGlobalScope extends CompilationScope {
   constructor (context: CompilationContext) {
     super(context)
   }
+
+  getName (name: string): string {
+    try {
+      return super.getName(name)
+    } catch {
+      return `(function () { throw new Error("${name} not implemented."); })()`
+    }
+  }
 }
