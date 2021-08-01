@@ -5,10 +5,6 @@ assert value listvalue == ["a", "b", "c"]
 
 // assert value mapFrom([("a", 1), ("b", 2)]) == mapFrom([("b", 2), ("a", 1)])
 
-type value =
-  | null
-  | <string str>
-  | <number float>
-  | <boolean bool>
-  | <array list[value]>
-  | <object map[str, value]>
+type _result[o, e] =
+  | <_ok o>
+  | <_err e>

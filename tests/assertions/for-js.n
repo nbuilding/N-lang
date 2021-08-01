@@ -10,7 +10,7 @@ assert value (1, 2, 3) == (1, 2, 3)
 assert value (1, 2, 3) /= (0, 2, 3)
 
 assert value { a: 1; b: 2 } == { a: 1; b: 2 } == { b: 2; a: 1 }
-assert value { a: 1; b: 2 } /= { a: 1; b: 2; c: 3 } /= { a: 1; b: 2 }
+assert value { a: 1; b: 2 } /= { a: 1; b: 3 } /= { a: 1; b: 2 }
 
 // Uncomment when maps are supported
 // assert value mapFrom([("a", 1), ("b", 2)]) == mapFrom([("b", 2), ("a", 1)])

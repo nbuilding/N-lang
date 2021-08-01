@@ -18,15 +18,11 @@ export class CompilationScope {
   constructor (
     context: CompilationContext,
     parent?: CompilationScope,
-    procedure: boolean | ProcedureContext = false,
+    procedure?: ProcedureContext,
   ) {
     this.context = context
     this._parent = parent
-    if (procedure instanceof ProcedureContext) {
-      this.procedure = procedure
-    } else {
-      this.procedure = new ProcedureContext(context)
-    }
+    this.procedure = procedure
   }
 
   /** Throws an error if the name can't be found. */
@@ -49,7 +45,11 @@ export class CompilationScope {
     return new CompilationScope(
       this.context,
       this,
-      isProcedure !== undefined ? isProcedure : this.procedure,
+      isProcedure !== undefined
+        ? isProcedure
+          ? new ProcedureContext(this.context)
+          : undefined
+        : this.procedure,
     )
   }
 

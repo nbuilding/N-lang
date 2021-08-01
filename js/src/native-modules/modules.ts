@@ -35,7 +35,7 @@ const lines: Record<
   parse: (name, require) => [
     `function ${name}(json) {`,
     '  try {',
-    `    return ${require('jsValueToJson')}(JSON.parse(json));`,
+    `    return ${require('jsValueToJson')}(JSON.${name}(json));`,
     '  } catch (_) {',
     '    return;',
     '  }',
@@ -56,8 +56,8 @@ const lines: Record<
 
   stringify: (name, require) => [
     `function ${name}(value) {`,
-    '  // JSON.stringify: IE8+',
-    `  return JSON.stringify(${require('jsonValueToJs')}(value));`,
+    `  // JSON.${name}: IE8+`,
+    `  return JSON.${name}(${require('jsonValueToJs')}(value));`,
     '}',
   ],
 

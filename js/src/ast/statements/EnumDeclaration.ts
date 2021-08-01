@@ -96,7 +96,7 @@ export class EnumDeclaration extends Base implements Statement {
     context.defineType(this.typeSpec.name, typeSpec, this.public)
     for (const variant of this.variants) {
       const types = variant.types.map(
-        type => context.scope.getTypeFrom(type).type,
+        type => scope.getTypeFrom(type).type,
       )
       const existingVariant = typeSpec.variants.get(variant.variant.value)
       if (existingVariant) {

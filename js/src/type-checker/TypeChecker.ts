@@ -437,19 +437,41 @@ export class TypeChecker {
       '}',
       ...context.dependencies,
     ]
-    let main
+    const main = context.genVarName('main')
     if (this._lastExportedCmd) {
-      main = context
+      const mainVar = context
         .getModule(this._lastExportedCmd.moduleId)
         .names.get(this._lastExportedCmd.name)
-      if (!main) {
+      if (!mainVar) {
         throw new ReferenceError(
           `Cannot find name for ${this._lastExportedCmd.name}`,
         )
       }
+      compiled.push(
+        `function ${main}(callback) {`,
+        '  if (typeof Promise !== "undefined") {',
+        '    return new Promise(function (resolve) {',
+        `      ${mainVar}(function (result) {`,
+        '        resolve(result);',
+        '        if (callback) callback(result);',
+        '      });',
+        '    });',
+        '  } else {',
+        `    ${mainVar}(function (result) {`,
+        '      if (callback) callback(result);',
+        '    });',
+        '  }',
+        '}',
+      )
     } else {
-      main = context.genVarName('main')
-      prelude.push(`function ${main}(callback) {`, '  callback();', '}')
+      compiled.push(
+        `function ${main}(callback) {`,
+        '  if (callback) callback();',
+        '  if (typeof Promise !== "undefined") {',
+        '    return Promise.resolve()',
+        '  }',
+        '}',
+      )
     }
     let lines
     if (module.type === 'umd') {
@@ -476,7 +498,7 @@ export class TypeChecker {
       ]
     } else if (module.type === 'iife') {
       if (module.executeMain) {
-        compiled.push(`${main}(function () {});`)
+        compiled.push(`${main}();`)
       }
       lines = [
         '(function () {',
@@ -502,4 +524,9 @@ export class TypeChecker {
     }
     return lines.map(line => line + '\n').join('')
   }
+}
+
+export type CompiledExports = {
+  valueAssertions: { [id: number]: boolean }
+  main<T>(callback?: (result: T) => void): Promise<T>
 }

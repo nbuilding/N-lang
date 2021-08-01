@@ -1,3 +1,15 @@
+function yes (value) {
+  return value
+}
+
+function ok (value) {
+  return [0, value]
+}
+
+function err (value) {
+  return [1, value]
+}
+
 function intInBase10 (int) {
   return int.toString()
 }

@@ -55,15 +55,14 @@ async function jsFileToLines (path, requirableNames = []) {
       throw new Error("Couldn't get variable/function name of chunk")
     }
     const varName = match[1]
+    const varNameRegex = new RegExp(`\\b${varName}\\b`, 'g')
     const exportName = varName.endsWith('_') ? varName.slice(0, -1) : varName
     exportedNames.push(exportName)
     let requiresRequire = false
     const lines = chunk
       .split(/\r?\n/)
       .map((line, i) => {
-        if (i === 0) {
-          line = line.replace(varName, '${name}')
-        }
+        line = line.replace(varNameRegex, '${name}')
         if (requirables) {
           line = line.replace(requirables, name => {
             requiresRequire = true

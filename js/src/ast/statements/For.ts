@@ -49,10 +49,10 @@ abstract class BaseFor extends Base implements Statement {
   checkStatement (context: CheckStatementContext): CheckStatementResult {
     const { type, exitPoint } = context.scope.typeCheck(this.value)
     const scope = context.scope.inner()
-    const iteratedType = tryFunctions(iterableTypes, [type])
+    const iteratedType = tryFunctions(this.iterableTypes, [type])
     if (!iteratedType) {
       context.err({
-        type: ErrorType.FOR_NOT_ITERABLE,
+        type: this.notIterableError,
       })
     }
     scope.checkDeclaration(this.var, iteratedType || unknown)

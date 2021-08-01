@@ -2,6 +2,12 @@ const lines: Record<
   string,
   (name: string, require: (name: string) => string) => string[]
 > = {
+  yes: name => [`function ${name}(value) {`, '  return value;', '}'],
+
+  ok: name => [`function ${name}(value) {`, '  return [0, value];', '}'],
+
+  err: name => [`function ${name}(value) {`, '  return [1, value];', '}'],
+
   intInBase10: name => [
     `function ${name}(int) {`,
     '  return int.toString();',
@@ -11,7 +17,7 @@ const lines: Record<
   round: name => [
     `function ${name}(n) {`,
     '  if (isFinite(n)) {',
-    '    return Math.round(n);',
+    `    return Math.${name}(n);`,
     '  } else {',
     '    return 0;',
     '  }',
@@ -21,7 +27,7 @@ const lines: Record<
   floor: name => [
     `function ${name}() {`,
     '  if (isFinite(n)) {',
-    '    return Math.floor(n);',
+    `    return Math.${name}(n);`,
     '  } else {',
     '    return 0;',
     '  }',
@@ -31,7 +37,7 @@ const lines: Record<
   ceil: name => [
     `function ${name}() {`,
     '  if (isFinite(n)) {',
-    '    return Math.ceil(n);',
+    `    return Math.${name}(n);`,
     '  } else {',
     '    return 0;',
     '  }',
@@ -147,7 +153,7 @@ const lines: Record<
     '    if (string === "") {',
     '      return [];',
     '    } else {',
-    '      return string.split(char);',
+    `      return string.${name}(char);`,
     '    }',
     '  };',
     '}',
