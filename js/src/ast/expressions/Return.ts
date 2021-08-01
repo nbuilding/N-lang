@@ -24,6 +24,13 @@ export class Return extends Base implements Expression, Statement {
   value: Expression
   private _type?: NType
 
+  /**
+   * Whether the return expression returned a type that is actually the type
+   * contained inside the cmd. For example, returning an int in a function that
+   * should return cmd[int].
+   */
+  private _returnedContainedType = false
+
   constructor (
     pos: BasePosition,
     [, , expr]: schem.infer<typeof Return.schema>,
@@ -50,6 +57,7 @@ export class Return extends Base implements Expression, Statement {
             returnType.typeVars[0],
             type,
           )
+          this._returnedContainedType = true
         } else {
           context.err({ type: ErrorType.RETURN_MISMATCH, error })
         }
@@ -73,7 +81,9 @@ export class Return extends Base implements Expression, Statement {
         scope.procedure
           ? isUnitLike(this._type!)
             ? `return ${scope.procedure.callbackName}();`
-            : `return ${scope.procedure.callbackName}(${expression});`
+            : this._returnedContainedType
+            ? `return ${scope.procedure.callbackName}(${expression});`
+            : `return (${expression})(${scope.procedure.callbackName});`
           : isUnitLike(this._type!)
           ? 'return;'
           : `return ${expression};`,

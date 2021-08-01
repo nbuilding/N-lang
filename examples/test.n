@@ -9,7 +9,7 @@ let wow2 = [] -> cmd[int] {
   print("wow2.1")
   times.sleep(1000)!
   print("wow2.2")
-  return wow()! + 1
+  return wow()
 }
 
 let pub main = () |> [] -> cmd[()] {
