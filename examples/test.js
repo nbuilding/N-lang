@@ -29,6 +29,7 @@
       ((sleep_5)(1000))(function (cmdResult_6) {
         (console.log)("wow2.2");
         return ((wow_2)())(callback_4);
+        callback_4();
       });
     }
   };
@@ -43,6 +44,7 @@
         ((sleep_5)(2000))(function (cmdResult_12) {
           (cmd_10)(function (cmdResult_13) {
             (console.log)(cmdResult_13);
+            callback_9();
           });
         });
       });
@@ -50,7 +52,9 @@
   };
   var main_14;
   main_14 = (funcExpr_8)(undefined);
+  main_14(function () {});
   return {
     valueAssertions: valueAssertionResults_n,
+    main: main_14,
   };
 })();

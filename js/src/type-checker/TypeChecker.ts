@@ -12,6 +12,7 @@ import { Error as NError } from './errors/Error'
 import { ErrorDisplayer, FilePathSpec } from './errors/ErrorDisplayer'
 import { Warning as NWarning } from './errors/Warning'
 import { GlobalScope } from './GlobalScope'
+import { cmd } from './types/builtins'
 import { NModule, NType, unknown, Unknown } from './types/types'
 
 /** Yields relative paths from `imp` expressions */
@@ -239,11 +240,57 @@ export interface CheckerOptions {
   provideFile(path: string): ProvidedFile | PromiseLike<ProvidedFile>
 }
 
+export interface CompilationOptions {
+  /**
+   * The type of module to compile to.
+   *
+   * The module will export:
+   * - `valueAssertions`, an object mapping from number keys to a boolean
+   *   determining whether the assertion passed.
+   * - `main`, a function that, given a callback, will execute the last exported
+   *   cmd and call the callback when finished.
+   *
+   * If you want to compile to a CommonJS or AMD module, then use `umd`.
+   *
+   * Default: `iife`.
+   */
+  module?:
+    | {
+        type: 'esm'
+      }
+    | {
+        type: 'iife'
+
+        /**
+         * Whether to immediately execute the main cmd. This is because the IIFE
+         * will return the exports as an object (for use with the `eval`
+         * function), but minifiers might discard this if the IIFE is on its
+         * own.
+         *
+         * Default: `false`
+         */
+        executeMain?: boolean
+      }
+    | {
+        type: 'umd'
+
+        /**
+         * Outside of a CommonJS or AMD module, the exports will be made global
+         * under this name.
+         *
+         * Default: `n`
+         */
+        name?: string
+      }
+}
+
 export class TypeChecker {
   options: CheckerOptions
 
   /** Maps an absolute path to the module state */
   moduleCache: Map<string, ModuleState> = new Map()
+
+  _lastExportedCmd?: { moduleId: string; name: string }
 
   constructor (options: CheckerOptions) {
     this.options = options
@@ -254,7 +301,18 @@ export class TypeChecker {
    */
   async start (startPath: string): Promise<TypeCheckerResults> {
     const results = new TypeCheckerResults(this, startPath)
-    await this._ensureModuleLoaded(results, startPath)
+    const state = await this._ensureModuleLoaded(results, startPath)
+    if (state.state === 'loaded' && state.module.type === 'module') {
+      const lastExportedCmd = [...state.module.types]
+        .reverse()
+        .find(([, type]) => type.type === 'named' && type.typeSpec === cmd)
+      if (lastExportedCmd) {
+        this._lastExportedCmd = {
+          moduleId: startPath,
+          name: lastExportedCmd[0],
+        }
+      }
+    }
     return results
   }
 
@@ -325,34 +383,38 @@ export class TypeChecker {
   private async _ensureModuleLoaded (
     results: TypeCheckerResults,
     modulePath: string,
-  ) {
-    if (this.moduleCache.has(modulePath)) return
-    this.moduleCache.set(modulePath, { state: 'loading' })
+  ): Promise<ModuleState> {
+    if (!this.moduleCache.has(modulePath)) {
+      this.moduleCache.set(modulePath, { state: 'loading' })
 
-    const result = await this._getResultFromProvided(
-      results,
-      modulePath,
-      await this.options.provideFile(modulePath),
-    )
-    if (result) {
-      if ('error' in result) {
-        results.syntaxError(modulePath, result.source, result.error)
-        this.moduleCache.set(modulePath, {
-          state: 'loaded',
-          module: unknown,
-          compilable: Block.empty(),
-        })
-      } else {
-        this.moduleCache.set(modulePath, { state: 'loaded', ...result })
+      const result = await this._getResultFromProvided(
+        results,
+        modulePath,
+        await this.options.provideFile(modulePath),
+      )
+      if (result) {
+        if ('error' in result) {
+          results.syntaxError(modulePath, result.source, result.error)
+          this.moduleCache.set(modulePath, {
+            state: 'loaded',
+            module: unknown,
+            compilable: Block.empty(),
+          })
+        } else {
+          this.moduleCache.set(modulePath, { state: 'loaded', ...result })
+        }
       }
     }
+    return this.moduleCache.get(modulePath)!
   }
 
   /**
    * Call this after calling `start()`. Throws an error if this was called with
    * type errors.
    */
-  compile (): string {
+  compile ({
+    module = { type: 'iife', executeMain: true },
+  }: CompilationOptions = {}): string {
     const context = new CompilationContext()
     const compiled: string[] = []
     for (const helper of Object.values(helpers)) {
@@ -371,12 +433,6 @@ export class TypeChecker {
         context.defineModuleNames(modulePath, state.compilable.exportNames)
       }
     }
-    // TODO: Run last exported cmd
-    compiled.push(
-      'return {',
-      '  valueAssertions: valueAssertionResults_n,',
-      '};',
-    )
     const prelude = [
       'var undefined; // This helps minifiers to use a shorter variable name than `void 0`.',
       `for (var i = 0; i < ${context.valueAssertions}; i++) {`,
@@ -384,12 +440,69 @@ export class TypeChecker {
       '}',
       ...context.dependencies,
     ]
-    return (
-      [
+    let main
+    if (this._lastExportedCmd) {
+      main = context
+        .getModule(this._lastExportedCmd.moduleId)
+        .names.get(this._lastExportedCmd.name)
+      if (!main) {
+        throw new ReferenceError(
+          `Cannot find name for ${this._lastExportedCmd.name}`,
+        )
+      }
+    } else {
+      main = context.genVarName('main')
+      prelude.push(`function ${main}(callback) {`, '  callback();', '}')
+    }
+    let lines
+    if (module.type === 'umd') {
+      // https://github.com/umdjs/umd/blob/master/templates/returnExports.js
+      lines = [
+        '(function (root, factory) {',
+        "  if (typeof define === 'function' && define.amd) {",
+        '    define([], factory);',
+        "  } else if (typeof module === 'object' && module.exports) {",
+        '    module.exports = factory();',
+        '  } else {',
+        `    root.${module.name ?? 'n'} = factory();`,
+        '  }',
+        "}(typeof self !== 'undefined' ? self : this, function () {",
+        ...context.indent([
+          ...prelude,
+          ...compiled,
+          'return {',
+          '  valueAssertions: valueAssertionResults_n,',
+          `  main: ${main},`,
+          '};',
+        ]),
+        '}));',
+      ]
+    } else if (module.type === 'iife') {
+      if (module.executeMain) {
+        compiled.push(`${main}(function () {});`)
+      }
+      lines = [
         '(function () {',
-        ...context.indent([...prelude, ...compiled]),
+        ...context.indent([
+          ...prelude,
+          ...compiled,
+          'return {',
+          '  valueAssertions: valueAssertionResults_n,',
+          `  main: ${main},`,
+          '};',
+        ]),
         '})();',
-      ].join('\n') + '\n'
-    )
+      ]
+    } else {
+      lines = [
+        ...prelude,
+        ...compiled,
+        'export {',
+        '  valueAssertionResults_n as valueAssertions,',
+        `  ${main} as main,`,
+        '};',
+      ]
+    }
+    return lines.map(line => line + '\n').join('')
   }
 }
