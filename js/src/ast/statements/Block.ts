@@ -54,7 +54,10 @@ export class Block extends Base implements Statement {
     }
   }
 
-  compileStatement (scope: CompilationScope): StatementCompilationResult {
+  compileStatement (
+    scope: CompilationScope,
+    thenName?: string,
+  ): StatementCompilationResult {
     if (scope.procedure) {
       // Keep track of awaits used in the block
       scope.procedure.newChain()
@@ -63,27 +66,15 @@ export class Block extends Base implements Statement {
     for (const statement of this.statements) {
       const { statements: s } = statement.compileStatement(scope)
       if (scope.procedure && scope.procedure.wasModified()) {
-        // statement1
-        // statement2
-        // someCmd!
-        // statement3
-        // statement4
-        //
-        // turns into
-        //
-        // statement1
-        // statement2
-        // someCmd(() => {
-        //   statement3
-        //   statement4
-        //   ...
-        // })
         scope.procedure.prependStatements(statements)
         statements = []
       }
       statements.push(...s)
     }
     if (scope.procedure) {
+      if (thenName && scope.procedure.everModified()) {
+        statements.push(`${thenName}();`)
+      }
       statements = scope.procedure.toStatements(statements)
       scope.procedure.endChain()
     }

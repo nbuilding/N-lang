@@ -51,27 +51,53 @@ export class IfStmt extends Base implements Statement {
   }
 
   compileStatement (scope: CompilationScope): StatementCompilationResult {
+    const thenName = scope.context.genVarName('then')
     const thenScope = scope.inner()
     const { statements: condS, result } = compileCondition(
       thenScope,
       this.condition,
     )
-    const statements: string[] = [
+    const { statements: thenS } = this.then.compileStatement(
+      thenScope,
+      thenName,
+    )
+    const thenUsedAwait =
+      scope.procedure && scope.procedure.didChildScopeUseAwait()
+    let elseS: string[] = []
+    if (this.else) {
+      elseS = this.else.compileStatement(scope.inner(), thenName).statements
+    }
+    const elseUsedAwait =
+      scope.procedure && scope.procedure.didChildScopeUseAwait()
+
+    const statements = [
       ...condS,
       `if (${result}) {`,
-      ...scope.context.indent(this.then.compileStatement(thenScope).statements),
+      ...scope.context.indent(thenS),
     ]
+    if (elseUsedAwait && !thenUsedAwait) {
+      statements.push(scope.context.indent([`${thenName}();`])[0])
+    }
     if (this.else) {
-      statements.push(
-        `} else {`,
-        ...scope.context.indent(
-          this.else.compileStatement(scope.inner()).statements,
-        ),
-      )
+      statements.push(`} else {`, ...scope.context.indent(elseS))
+      if (thenUsedAwait && !elseUsedAwait) {
+        statements.push(scope.context.indent([`${thenName}();`])[0])
+      }
     }
     statements.push('}')
-    return {
-      statements,
+
+    if (scope.procedure && (thenUsedAwait || elseUsedAwait)) {
+      scope.procedure.addToChain({
+        statements,
+        thenName,
+      })
+      return {
+        statements: [],
+      }
+    } else {
+      return {
+        statements,
+      }
     }
   }
 

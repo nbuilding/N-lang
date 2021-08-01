@@ -6,10 +6,15 @@ type CmdChainElement = {
   resultName: string
 }
 
+type BlockChainElement = {
+  statements: string[]
+  thenName: string
+}
+
 type StackElement = {
-  chain: CmdChainElement[]
+  chain: (CmdChainElement | BlockChainElement)[]
   modified: boolean
-  modifiedEver: boolean
+  childScopeUsedAwait: boolean
 }
 
 /** A context for scopes inside a procedure. */
@@ -35,7 +40,7 @@ export class ProcedureContext {
     this._stack.push({
       chain: [],
       modified: false,
-      modifiedEver: false,
+      childScopeUsedAwait: false,
     })
   }
 
@@ -48,7 +53,7 @@ export class ProcedureContext {
    * to a chain of cmds. `toStatements` will turn this into a
    * callback-hell-esque chain of callbacks.
    */
-  addToChain (element: CmdChainElement) {
+  addToChain (element: CmdChainElement | BlockChainElement) {
     const item = this._lastItem()
     if (this._nextStatements.length > 0) {
       element.statements = [...this._nextStatements, ...element.statements]
@@ -56,7 +61,6 @@ export class ProcedureContext {
     }
     item.chain.push(element)
     item.modified = true
-    item.modifiedEver = true
   }
 
   /**
@@ -85,14 +89,28 @@ export class ProcedureContext {
     return modified
   }
 
+  /** Like `wasModified` but for `childScopeUsedAwait` (also IMPURE) */
+  didChildScopeUseAwait (): boolean {
+    const item = this._lastItem()
+    const used = item.childScopeUsedAwait
+    item.childScopeUsedAwait = false
+    return used
+  }
+
+  /** Whether the chain was ever modified (i.e. whether await was ever used) */
+  everModified (): boolean {
+    return this._lastItem().chain.length > 0
+  }
+
   /**
    * Create a chain of callbacks.
    */
   toStatements (statements: string[]): string[] {
     const { chain } = this._lastItem()
     for (let i = chain.length; i--; ) {
-      const { statements: s, cmd, resultName } = chain[i]
-      if (statements.length > 0) {
+      const element = chain[i]
+      if ('cmd' in element) {
+        const { statements: s, cmd, resultName } = element
         statements = [
           ...s,
           `(${cmd})(function (${resultName}) {`,
@@ -100,7 +118,13 @@ export class ProcedureContext {
           '});',
         ]
       } else {
-        statements = [...s, `${cmd}(${this.context.helpers.noop});`]
+        const { statements: s, thenName } = element
+        statements = [
+          `function ${thenName}() {`,
+          ...this.context.indent(statements),
+          '}',
+          ...s,
+        ]
       }
     }
     return statements
@@ -111,11 +135,12 @@ export class ProcedureContext {
    */
   endChain () {
     const item = this._stack.pop()
-    if (item?.modifiedEver) {
-      // Mark the parent as `modified` (TODO: Requires more thought)
+    if (item && item.chain.length > 0) {
+      // Mark the parent as `modified`
       const parent = this._lastItem()
-      parent.modified = true
-      parent.modifiedEver = true
+      if (parent) {
+        parent.childScopeUsedAwait = true
+      }
     }
   }
 }

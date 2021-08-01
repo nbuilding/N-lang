@@ -13,11 +13,6 @@ export const helperNames = {
    * Takes a number (the value assertion ID) and a boolean.
    */
   assertValue: 'assertValue_n',
-
-  /**
-   * A function that does nothing.
-   */
-  noop: 'noop_n',
 }
 
 export const helpers: Record<string, string[]> = {
@@ -32,5 +27,4 @@ export const helpers: Record<string, string[]> = {
     '  valueAssertionResults_n[valueAssertionId] = pass;',
     '}',
   ],
-  noop: [`function ${helperNames.noop}() {}`],
 }
