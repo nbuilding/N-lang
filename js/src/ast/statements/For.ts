@@ -61,16 +61,31 @@ abstract class BaseFor extends Base implements Statement {
     return { exitPoint }
   }
 
+  abstract loop (
+    scope: CompilationScope,
+    varName: string,
+    expression: string,
+    loopBody: string[],
+  ): string[]
+
+  abstract asyncLoop (
+    scope: CompilationScope,
+    varName: string,
+    expression: string,
+    loopDone: string,
+    step: string,
+    then: string,
+  ): string[]
+
   compileStatement (scope: CompilationScope): StatementCompilationResult {
-    const loopDoneName = scope.context.genVarName('done')
-    const end = scope.context.genVarName('oldForEnd')
-    const index = scope.context.genVarName('oldForIndex')
+    const loopDone = scope.context.genVarName('done')
+    const value = scope.context.genVarName('forValue')
 
     const { statements: valueS, expression } = this.value.compile(scope)
     const loopScope = scope.inner()
     const loopBody = [
-      ...this.var.compileDeclaration(loopScope, index),
-      ...this.body.compileStatement(loopScope, loopDoneName).statements,
+      ...this.var.compileDeclaration(loopScope, value),
+      ...this.body.compileStatement(loopScope, loopDone).statements,
     ]
     if (scope.procedure && scope.procedure.didChildScopeUseAwait()) {
       const thenName = scope.context.genVarName('then')
@@ -78,15 +93,7 @@ abstract class BaseFor extends Base implements Statement {
       scope.procedure.addToChain({
         statements: [
           ...valueS,
-          `var ${index} = 0, ${end} = ${expression};`,
-          `function ${loopDoneName}() {`,
-          `  if (${index} < ${end}) {`,
-          `    ++${index};`,
-          `    ${step}();`,
-          '  } else {',
-          `    ${thenName}();`,
-          '  }',
-          '}',
+          ...this.asyncLoop(scope, value, expression, loopDone, step, thenName),
           `function ${step}() {`,
           ...scope.context.indent(loopBody),
           '}',
@@ -101,9 +108,7 @@ abstract class BaseFor extends Base implements Statement {
       return {
         statements: [
           ...valueS,
-          `for (var ${index} = 0, ${end} = ${expression}; ${index} < ${end}; ++${index}) {`,
-          ...scope.context.indent(loopBody),
-          '}',
+          ...this.loop(scope, value, expression, loopBody),
         ],
       }
     }
@@ -123,6 +128,42 @@ export class OldFor extends BaseFor {
       type: WarningType.OLD_FOR,
     })
     return super.checkStatement(context)
+  }
+
+  loop (
+    scope: CompilationScope,
+    index: string,
+    expression: string,
+    loopBody: string[],
+  ): string[] {
+    const end = scope.context.genVarName('oldForEnd')
+    return [
+      `for (var ${index} = 0, ${end} = ${expression}; ${index} < ${end}; ++${index}) {`,
+      ...scope.context.indent(loopBody),
+      '}',
+    ]
+  }
+
+  asyncLoop (
+    scope: CompilationScope,
+    index: string,
+    expression: string,
+    loopDone: string,
+    step: string,
+    then: string,
+  ): string[] {
+    const end = scope.context.genVarName('oldForEnd')
+    return [
+      `var ${index} = 0, ${end} = ${expression};`,
+      `function ${loopDone}() {`,
+      `  if (${index} < ${end}) {`,
+      `    ++${index};`,
+      `    ${step}();`,
+      '  } else {',
+      `    ${then}();`,
+      '  }',
+      '}',
+    ]
   }
 
   toString (): string {
@@ -148,28 +189,46 @@ export class For extends BaseFor {
     super(pos, children)
   }
 
-  compileStatement (scope: CompilationScope): StatementCompilationResult {
-    // TODO: GENERALISE
-    // For loops can only iterate over lists
-    const iterable = scope.context.genVarName('forIterable')
-    const index = scope.context.genVarName('forIndex')
-    const { statements: valueS, expression } = this.value.compile(scope)
-    const loopScope = scope.inner()
-    const declS = this.var.compileDeclaration(
-      loopScope,
-      `${iterable}[${index}]`,
-    )
-    return {
-      statements: [
-        ...valueS,
-        `for (var ${index} = 0, ${iterable} = ${expression}; ${index} < ${iterable}.length; ++${index}) {`,
-        ...scope.context.indent([
-          ...declS,
-          ...this.body.compileStatement(loopScope).statements,
-        ]),
-        '}',
-      ],
-    }
+  loop (
+    scope: CompilationScope,
+    iterated: string,
+    expression: string,
+    loopBody: string[],
+  ): string[] {
+    const index = scope.context.genVarName('index')
+    const iterable = scope.context.genVarName('iterable')
+    return [
+      `for (var ${index} = 0, ${iterable} = ${expression}, iterated; ${index} < ${iterable}.length; ++${index}) {`,
+      ...scope.context.indent([
+        `${iterated} = ${iterable}[${index}];`,
+        ...loopBody,
+      ]),
+      '}',
+    ]
+  }
+
+  asyncLoop (
+    scope: CompilationScope,
+    iterated: string,
+    expression: string,
+    loopDone: string,
+    step: string,
+    then: string,
+  ): string[] {
+    const index = scope.context.genVarName('index')
+    const iterable = scope.context.genVarName('iterable')
+    return [
+      `var ${index} = 0, ${iterable} = ${expression}, ${iterated} = ${iterable}[${index}];`,
+      `function ${loopDone}() {`,
+      `  if (${index} < ${iterable}.length) {`,
+      `    ++${index};`,
+      `    ${iterated} = ${iterable}[${index}];`,
+      `    ${step}();`,
+      '  } else {',
+      `    ${then}();`,
+      '  }',
+      '}',
+    ]
   }
 
   toString (): string {

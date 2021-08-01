@@ -3,13 +3,17 @@
 import times
 
 let pub main = () |> [] -> cmd[()] {
-	times.sleep(101)!
-	for (item in [100, 200, 300]) {
-		if item == 200 {
-			print("Hello")
+	print("Good morning!")
+	times.sleep(1001)!
+	print("A second later! I shall see you again in another second.")
+	for (item in [1000, 2000, 3000]) {
+		if item == 2000 {
+			print("A second has passed! 3 seconds later, this time?")
 		} else {
 			times.sleep(item)!
 		}
 	}
-	times.sleep(102)!
+	print("Excellent! Just another second; thank you for your patience.")
+	times.sleep(1002)!
+	print("Good night!")
 }
