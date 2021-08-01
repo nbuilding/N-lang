@@ -35,7 +35,9 @@ export class AssertValue extends Base implements Statement {
       statements: [
         ...statements,
         // TODO: Maybe there should be an option to remove this altogether
-        `${scope.context.helpers.assertValue}(${valueAssertionId}, ${expression});`,
+        `${scope.context.require(
+          'assertValue',
+        )}(${valueAssertionId}, ${expression});`,
       ],
     }
   }

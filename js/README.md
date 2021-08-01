@@ -41,4 +41,8 @@ prettier-standard --format
 
 # Lint with recommended TypeScript rules
 npm run lint
+
+# Build helpers.js, globals.js, and modules.js into TypeScript files that
+# export the text content of the JS files
+npm run build:lines
 ```

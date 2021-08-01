@@ -38,7 +38,7 @@ function object (map) {
 
 function parse (json) {
   try {
-    return jsValueToJson(JSON.parse(e))
+    return jsValueToJson(JSON.parse(json))
   } catch (_) {
     return
   }
@@ -46,7 +46,7 @@ function parse (json) {
 
 function parseSafe (json) {
   try {
-    return jsValueToJson(JSON.parse(e))
+    return jsValueToJson(JSON.parse(json))
   } catch (_) {
     // TODO: json.null is represented as undefined as well; maybe[json.value]
     // needs to be wrapped

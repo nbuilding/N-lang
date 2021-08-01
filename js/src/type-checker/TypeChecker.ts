@@ -1,6 +1,5 @@
 import { Base, BasePosition, Block, ImportFile } from '../ast/index'
 import { CompilationContext } from '../compiler/CompilationContext'
-import { helpers } from '../compiler/n-helpers'
 import {
   parse,
   ParseAmbiguityError,
@@ -417,9 +416,6 @@ export class TypeChecker {
   }: CompilationOptions = {}): string {
     const context = new CompilationContext()
     const compiled: string[] = []
-    for (const helper of Object.values(helpers)) {
-      compiled.push(...helper)
-    }
     // Reverse the module cache because insertion order probably happens from
     // dependents -> dependencies
     for (const [modulePath, state] of [...this.moduleCache].reverse()) {

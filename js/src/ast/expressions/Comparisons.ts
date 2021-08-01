@@ -260,7 +260,7 @@ export class Comparisons extends Base implements Expression {
           default: {
             // It's easier to use deepEqual at this point lol
             const deepComp = `${equal ? '' : '!'}${
-              scope.context.helpers.deepEqual
+              scope.context.require('deepEqual')
             }(${a}, ${b})`
             if (representation.nullable) {
               return `(${a} ${conjunction} ${b} ? ${deepComp} : ${a} ${operator} ${b})`
@@ -271,7 +271,7 @@ export class Comparisons extends Base implements Expression {
         }
       } else if (type.typeSpec instanceof FuncTypeVarSpec) {
         return `${equal ? '' : '!'}${
-          scope.context.helpers.deepEqual
+          scope.context.require('deepEqual')
         }(${a}, ${b})`
       } else if (type.typeSpec === list) {
         return `${a}.length ${operator} ${b}.length ${conjunction} ${a}.every(function (item, i) { return ${this._compileEqual(

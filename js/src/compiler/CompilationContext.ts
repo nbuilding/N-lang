@@ -3,15 +3,13 @@ import { Block } from '../ast'
 import { modules } from '../native-modules'
 import { NRecord } from '../type-checker/types/types'
 import { CompilationGlobalScope } from '../global-scope/CompilationGlobalScope'
-import { helperNames } from './n-helpers'
+import { functions } from './functions'
 
 export interface HasExports {
   names: Map<string, string>
 }
 
 export class CompilationContext {
-  helpers = helperNames
-
   /**
    * The next ID of an `assert value` assertion. This also represents the total
    * number of `assert value` assertions.
@@ -28,6 +26,13 @@ export class CompilationContext {
 
   /** Cache of normalised record key names */
   private _recordCache: Map<string, Record<string, string>> = new Map()
+
+  /**
+   * Functions that have been required and added to `dependencies` already. A
+   * mapping between the normal name and the mangled name. (e.g. deepEqual ->
+   * deepEqual_0)
+   */
+  required: Map<string, string> = new Map()
 
   /**
    * Statements for defining the native module dependencies used in the project.
@@ -84,5 +89,21 @@ export class CompilationContext {
 
   defineModuleNames (moduleId: string, names: Map<string, string>) {
     this._modules.set(moduleId, { names })
+  }
+
+  require (name: string): string {
+    const cached = this.required.get(name)
+    if (cached) {
+      return cached
+    } else {
+      const mangled = this.genVarName(name)
+      if (!functions[name]) {
+        throw new ReferenceError(`'${name}' is not in functions.`)
+      }
+      const lines = functions[name](mangled, required => this.require(required))
+      this.dependencies.push(...lines)
+      this.required.set(name, mangled)
+      return mangled
+    }
   }
 }
