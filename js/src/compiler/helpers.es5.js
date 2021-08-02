@@ -76,3 +76,6 @@ function jsValueToJson (value) {
     throw new TypeError('This is not a JSON value.')
   }
 }
+
+// Some truthy value that isn't `undefined` and should be equal to itself
+var unit = {};

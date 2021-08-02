@@ -47,8 +47,6 @@ const lines: Record<
     '  try {',
     `    return ${require('jsValueToJson')}(JSON.parse(json));`,
     '  } catch (_) {',
-    '    // TODO: json.null is represented as undefined as well; maybe[json.value]',
-    '    // needs to be wrapped',
     '    return;',
     '  }',
     '}',

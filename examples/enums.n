@@ -131,3 +131,25 @@ if let <thisIsNull value> = thisIsNull(justMe()()) {
 if let <wow value> = wow(3) {
 	assert value value == 3
 }
+
+// Optimised enum representations can be problematic. For example, `maybe[()]`
+// could become `undefined` and `undefined`.
+
+// maybe[t] is normally represented as `t | undefined`, but if `t` is
+// `undefined`, then that becomes ambiguous.
+assert value yes(()) == yes(())
+assert value yes(()) /= none
+
+// Nullable tuples and enums are also problematic due to the `undefined`
+// ambiguity.
+assert value yes(null()) == yes(null())
+assert value yes(null()) /= none
+assert value yes(thisIsNull(justMe()())) == yes(thisIsNull(justMe()()))
+assert value yes(thisIsNull(justMe()())) /= none
+
+// Also, if I am careless, `maybe[bool]` might confuse `false` and `undefined`.
+assert value yes(false) == yes(false)
+assert value yes(false) /= none
+
+// And `len` might think enums are lists since it accepts any value.
+assert value len(wee(1, 2)) == 0

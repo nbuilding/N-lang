@@ -48,8 +48,6 @@ function parseSafe (json) {
   try {
     return jsValueToJson(JSON.parse(json))
   } catch (_) {
-    // TODO: json.null is represented as undefined as well; maybe[json.value]
-    // needs to be wrapped
     return
   }
 }

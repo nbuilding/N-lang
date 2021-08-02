@@ -1,4 +1,5 @@
 import { CompilationScope } from '../../compiler/CompilationScope'
+import { normaliseEnum } from '../../compiler/EnumRepresentation'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { isUnitLike } from '../../type-checker/types/isUnitLike'
 import {
@@ -95,9 +96,7 @@ export class EnumDeclaration extends Base implements Statement {
     this._type = typeSpec
     context.defineType(this.typeSpec.name, typeSpec, this.public)
     for (const variant of this.variants) {
-      const types = variant.types.map(
-        type => scope.getTypeFrom(type).type,
-      )
+      const types = variant.types.map(type => scope.getTypeFrom(type).type)
       const existingVariant = typeSpec.variants.get(variant.variant.value)
       if (existingVariant) {
         context.err(
@@ -128,7 +127,13 @@ export class EnumDeclaration extends Base implements Statement {
 
   compileStatement (scope: CompilationScope): StatementCompilationResult {
     const type = this._type!
-    const representation = type.representation
+    const representation = normaliseEnum({
+      type: 'named',
+      typeSpec: type,
+      typeVars: [
+        /* TODO */
+      ],
+    })
     const statements: string[] = []
 
     for (const [name, variant] of type.variants) {

@@ -3,6 +3,7 @@ import {
   normaliseEnum,
 } from '../../compiler/EnumRepresentation'
 import { uniqueId } from '../../utils/uuid'
+import { iterableTypes } from './operations'
 import {
   NType,
   NamedType,
@@ -38,7 +39,6 @@ export class EnumSpec extends TypeSpec {
   /** Invalid variants are null. */
   variants: Map<string, EnumVariant>
   typeVars: TypeSpec[]
-  private _representation?: EnumRepresentation
 
   constructor (
     name: string,
@@ -85,22 +85,32 @@ export class EnumSpec extends TypeSpec {
     }
   }
 
-  /** Get the types contained in each variant, excluding invalid ones. */
-  getVariants (typeVars: NType[]): NType[][] {
+  /** Throws an error if the variant doesn't exist. */
+  getVariant (variantName: string, typeVars: NType[]): NType[] {
+    const variant = this.variants.get(variantName)
+    if (!variant) {
+      throw new ReferenceError(`${variantName} is not a variant of this enum.`)
+    }
+    if (!variant.types) {
+      throw new Error('Variant has no types??')
+    }
     const substitutions: Map<TypeSpec, NType> = new Map()
     typeVars.forEach((typeVar, i) => {
       substitutions.set(this.typeVars[i], typeVar)
     })
-    return [...this.variants.values()].map(({ types }) =>
-      types ? types.map(type => substitute(type, substitutions)) : [],
-    )
+    return variant.types.map(type => substitute(type, substitutions))
   }
 
-  get representation (): EnumRepresentation {
-    if (!this._representation) {
-      this._representation = normaliseEnum(this)
-    }
-    return this._representation
+  /** Get the types contained in each variant, excluding invalid ones. */
+  getVariants (typeVars: NType[]): [string, NType[]][] {
+    const substitutions: Map<TypeSpec, NType> = new Map()
+    typeVars.forEach((typeVar, i) => {
+      substitutions.set(this.typeVars[i], typeVar)
+    })
+    return [...this.variants].map(([name, { types }]) => [
+      name,
+      types ? types.map(type => substitute(type, substitutions)) : [],
+    ])
   }
 
   /** Assumes that all variants are public */
@@ -123,6 +133,10 @@ export class EnumSpec extends TypeSpec {
 
   static isEnum (type: NType): type is EnumType {
     return type.type === 'named' && type.typeSpec instanceof EnumSpec
+  }
+
+  static getVariant (type: EnumType, name: string): NType[] {
+    return type.typeSpec.getVariant(name, type.typeVars)
   }
 }
 

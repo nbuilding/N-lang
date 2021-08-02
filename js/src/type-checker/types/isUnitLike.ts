@@ -1,3 +1,4 @@
+import { normaliseEnum } from '../../compiler/EnumRepresentation'
 import { NType } from './types'
 import { AliasSpec, EnumSpec } from './TypeSpec'
 
@@ -16,7 +17,6 @@ export function isUnitLike (type: NType): boolean {
     (resolved.type === 'named' && resolved.typeSpec.isUnit) ||
     (resolved.type === 'record' && resolved.types.size === 0) ||
     resolved.type === 'module' ||
-    (EnumSpec.isEnum(resolved) &&
-      resolved.typeSpec.representation.type === 'unit')
+    (EnumSpec.isEnum(resolved) && normaliseEnum(resolved).type === 'unit')
   )
 }

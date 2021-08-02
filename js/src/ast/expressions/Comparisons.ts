@@ -26,6 +26,7 @@ import {
   FuncTypeVarSpec,
 } from '../../type-checker/types/TypeSpec'
 import { isUnitLike } from '../../type-checker/types/isUnitLike'
+import { normaliseEnum } from '../../compiler/EnumRepresentation'
 
 // Ideally, there would be a more descriptive type error for this, like "^^^ I
 // can't compare functions." One day!
@@ -220,8 +221,8 @@ export class Comparisons extends Base implements Expression {
         ),
       ).join(` ${conjunction} `)
     } else if (type.type === 'named') {
-      if (type.typeSpec instanceof EnumSpec) {
-        const representation = type.typeSpec.representation
+      if (EnumSpec.isEnum(type)) {
+        const representation = normaliseEnum(type)
         switch (representation.type) {
           case 'unit': {
             return 'true'
@@ -259,9 +260,9 @@ export class Comparisons extends Base implements Expression {
           }
           default: {
             // It's easier to use deepEqual at this point lol
-            const deepComp = `${equal ? '' : '!'}${
-              scope.context.require('deepEqual')
-            }(${a}, ${b})`
+            const deepComp = `${equal ? '' : '!'}${scope.context.require(
+              'deepEqual',
+            )}(${a}, ${b})`
             if (representation.nullable) {
               return `(${a} ${conjunction} ${b} ? ${deepComp} : ${a} ${operator} ${b})`
             } else {
@@ -270,9 +271,9 @@ export class Comparisons extends Base implements Expression {
           }
         }
       } else if (type.typeSpec instanceof FuncTypeVarSpec) {
-        return `${equal ? '' : '!'}${
-          scope.context.require('deepEqual')
-        }(${a}, ${b})`
+        return `${equal ? '' : '!'}${scope.context.require(
+          'deepEqual',
+        )}(${a}, ${b})`
       } else if (type.typeSpec === list) {
         return `${a}.length ${operator} ${b}.length ${conjunction} ${a}.every(function (item, i) { return ${this._compileEqual(
           scope,

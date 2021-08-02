@@ -87,6 +87,8 @@ const lines: Record<
     '  }',
     '}',
   ],
+
+  unit: name => [`var ${name} = {};`],
 }
 
 export default lines

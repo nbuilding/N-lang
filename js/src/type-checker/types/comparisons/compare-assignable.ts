@@ -64,7 +64,8 @@ export function compareAssignable (
   ) {
     const substitution = context.substitutions.get(value.typeSpec)
     if (substitution) {
-      throw new Error('TODO: comparing annotation type variables')
+      // TODO: comparing annotation type variables
+      return typeToResultType(value)
     } else {
       context.substitutions.set(value.typeSpec, annotation)
       return typeToResultType(value)
@@ -76,7 +77,8 @@ export function compareAssignable (
     ) {
       const substitution = context.substitutions.get(annotation.typeSpec)
       if (substitution) {
-        throw new Error('TODO: comparing value type variables')
+        // TODO: comparing value type variables
+        return typeToResultType(value)
       } else {
         context.substitutions.set(annotation.typeSpec, value)
         return typeToResultType(value)
@@ -306,7 +308,11 @@ export function attemptAssign (
 export function callFunction (
   func: NFunction,
   value: NType,
-): { error: ComparisonResult | null; return: NType } {
+): {
+  error: ComparisonResult | null
+  return: NType
+  typeVarSubstitutions: Map<FuncTypeVarSpec, NTypeKnown>
+} {
   const context: CompareAssignableContext = {
     function: func,
     substitutions: new Map(),
@@ -333,6 +339,7 @@ export function callFunction (
   return {
     error: result.issue ? result : null,
     return: substituted,
+    typeVarSubstitutions: context.substitutions,
   }
 }
 

@@ -1,5 +1,5 @@
 import { isUnitLike } from '../type-checker/types/isUnitLike'
-import { EnumSpec } from '../type-checker/types/TypeSpec'
+import { EnumType } from '../type-checker/types/types'
 
 /**
  * The JS representation of an enum.
@@ -65,19 +65,16 @@ export type EnumRepresentation =
       nullable: boolean
     }
 
-export function normaliseEnum (enumTypeSpec: EnumSpec): EnumRepresentation {
+export function normaliseEnum ({
+  typeSpec,
+  typeVars,
+}: EnumType): EnumRepresentation {
   /** Variant names with no fields */
   const fieldlessVariants: string[] = []
   /** Variant names with the number of fields */
   const fieldfulVariants: [string, number][] = []
-  for (const [name, variant] of enumTypeSpec.variants) {
-    if (!variant.types) {
-      throw new Error(
-        `Variant ${name} has types=null despite passing type checking??`,
-      )
-    }
-    const nonUnitLikeTypeCount = variant.types.filter(type => !isUnitLike(type))
-      .length
+  for (const [name, types] of typeSpec.getVariants(typeVars)) {
+    const nonUnitLikeTypeCount = types.filter(type => !isUnitLike(type)).length
     if (nonUnitLikeTypeCount === 0) {
       fieldlessVariants.push(name)
     } else {
@@ -103,7 +100,7 @@ export function normaliseEnum (enumTypeSpec: EnumSpec): EnumRepresentation {
   } else {
     const nullable = fieldlessVariants.length === 1
     const variants: Record<string, number | null> = {}
-    ;[...enumTypeSpec.variants].forEach(([name, variant], i) => {
+    ;[...typeSpec.variants].forEach(([name, variant], i) => {
       if (!variant.types) {
         throw new Error(
           `Variant ${name} has types=null despite passing type checking??`,

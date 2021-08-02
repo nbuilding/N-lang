@@ -1,7 +1,8 @@
 import { CompilationScope } from '../../compiler/CompilationScope'
+import { normaliseEnum } from '../../compiler/EnumRepresentation'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { isUnitLike } from '../../type-checker/types/isUnitLike'
-import { unknown } from '../../type-checker/types/types'
+import { EnumType, unknown } from '../../type-checker/types/types'
 import { EnumSpec } from '../../type-checker/types/TypeSpec'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
@@ -17,7 +18,7 @@ import {
 export class EnumPattern extends Base implements Pattern {
   variant: Identifier
   patterns: Pattern[]
-  private _type?: EnumSpec
+  private _type?: EnumType
 
   constructor (
     pos: BasePosition,
@@ -31,7 +32,7 @@ export class EnumPattern extends Base implements Pattern {
 
   checkPattern (context: CheckPatternContext): CheckPatternResult {
     if (EnumSpec.isEnum(context.type)) {
-      this._type = context.type.typeSpec
+      this._type = context.type
       if (context.type.typeSpec.variants.size > 1 && context.definite) {
         context.err({
           type: ErrorType.ENUM_PATTERN_DEF_MULT_VARIANTS,
@@ -86,12 +87,9 @@ export class EnumPattern extends Base implements Pattern {
     scope: CompilationScope,
     valueName: string,
   ): PatternCompilationResult {
-    const representation = this._type!.representation
+    const representation = normaliseEnum(this._type!)
     const variant = this.variant.value
-    const variantTypes = this._type!.variants.get(variant)?.types
-    if (!variantTypes) {
-      throw new Error(`${variant} either doesn't exist or has invalid types??`)
-    }
+    const variantTypes = EnumSpec.getVariant(this._type!, variant)
 
     const statements: string[] = []
     const varNames: string[] = []
