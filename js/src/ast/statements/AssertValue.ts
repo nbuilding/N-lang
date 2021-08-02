@@ -13,6 +13,7 @@ import {
 
 export class AssertValue extends Base implements Statement {
   expression: Expression
+  private _id: number = -1
 
   constructor (
     pos: BasePosition,
@@ -23,21 +24,20 @@ export class AssertValue extends Base implements Statement {
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
+    this._id = context.scope.results.addValueAssertion(this)
+
     const { type, exitPoint } = context.scope.typeCheck(this.expression)
     context.isTypeError(ErrorType.VALUE_ASSERTION_NOT_BOOL, bool, type)
     return { exitPoint }
   }
 
   compileStatement (scope: CompilationScope): StatementCompilationResult {
-    const valueAssertionId = scope.context.valueAssertions++
     const { statements, expression } = this.expression.compile(scope)
     return {
       statements: [
         ...statements,
         // TODO: Maybe there should be an option to remove this altogether
-        `${scope.context.require(
-          'assertValue',
-        )}(${valueAssertionId}, ${expression});`,
+        `${scope.context.require('assertValue')}(${this._id}, ${expression});`,
       ],
     }
   }

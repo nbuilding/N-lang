@@ -1,6 +1,6 @@
 import colours from 'colors/safe'
 import { generateNames } from '../../../test/unit/utils/generate-names'
-import { Base, BasePosition } from '../../ast/index'
+import { AssertValue, Base, BasePosition } from '../../ast/index'
 import {
   ParseError,
   ParseUnexpectedInputError,
@@ -145,9 +145,8 @@ export class ErrorDisplayer {
     return this.options.type === 'console-color'
       ? colours.green('Hint')
       : this.options.type === 'html'
-      ? `<span class="${
-          this.options.classes?.hint ?? 'n-error-hint'
-        }">Hint</span>`
+      ? `<span class="${this.options.classes?.hint ??
+          'n-error-hint'}">Hint</span>`
       : 'Hint'
   }
 
@@ -156,9 +155,8 @@ export class ErrorDisplayer {
     return this.options.type === 'console-color'
       ? colours.cyan(str)
       : this.options.type === 'html'
-      ? `<span class="${
-          this.options.classes?.name ?? 'n-error-name'
-        }">${escapeHtml(str)}</span>`
+      ? `<span class="${this.options.classes?.name ??
+          'n-error-name'}">${escapeHtml(str)}</span>`
       : str
   }
 
@@ -180,9 +178,8 @@ export class ErrorDisplayer {
       this.options.type === 'console-color'
         ? colours.underline(colours.blue(url))
         : this.options.type === 'html'
-        ? `<span class="${
-            this.options.classes?.link ?? 'n-error-link'
-          }">${escapeHtml(url)}</span>`
+        ? `<span class="${this.options.classes?.link ??
+            'n-error-link'}">${escapeHtml(url)}</span>`
         : url
     }>`
   }
@@ -195,9 +192,8 @@ export class ErrorDisplayer {
     return this.options.type === 'console-color'
       ? colours.yellow(str)
       : this.options.type === 'html'
-      ? `<span class="${
-          this.options.classes?.types ?? 'n-error-types'
-        }">${escapeHtml(str)}</span>`
+      ? `<span class="${this.options.classes?.types ??
+          'n-error-types'}">${escapeHtml(str)}</span>`
       : str
   }
 
@@ -252,9 +248,8 @@ export class ErrorDisplayer {
     return this.options.type === 'console-color'
       ? colours.cyan(displayed)
       : this.options.type === 'html'
-      ? `<span class="${
-          this.options.classes?.lineNum ?? 'n-error-line-num'
-        }">${displayed}</span>`
+      ? `<span class="${this.options.classes?.lineNum ??
+          'n-error-line-num'}">${displayed}</span>`
       : displayed
   }
 
@@ -266,9 +261,8 @@ export class ErrorDisplayer {
     return this.options.type === 'console-color'
       ? colours.red(underline)
       : this.options.type === 'html'
-      ? `<span class="${
-          this.options.classes?.underline ?? 'n-error-underline'
-        }">${underline}</span>`
+      ? `<span class="${this.options.classes?.underline ??
+          'n-error-underline'}">${underline}</span>`
       : underline
   }
 
@@ -301,10 +295,8 @@ export class ErrorDisplayer {
     return this.options.type === 'console-color'
       ? colours.red(text)
       : this.options.type === 'html'
-      ? `<span class="${
-          this.options.classes?.multilineHighlight ??
-          'n-error-multiline-highlight'
-        }">${escapeHtml(text)}</span>`
+      ? `<span class="${this.options.classes?.multilineHighlight ??
+          'n-error-multiline-highlight'}">${escapeHtml(text)}</span>`
       : text
   }
 
@@ -327,9 +319,8 @@ export class ErrorDisplayer {
       this.options.type === 'console-color'
         ? colours.blue(displayed)
         : this.options.type === 'html'
-        ? `<span class="${
-            this.options.classes?.filePos ?? 'n-error-file-pos'
-          }">${escapeHtml(displayed)}</span>`
+        ? `<span class="${this.options.classes?.filePos ??
+            'n-error-file-pos'}">${escapeHtml(displayed)}</span>`
         : displayed
 
     if (base.line === base.endLine) {
@@ -369,9 +360,8 @@ export class ErrorDisplayer {
           this.options.type === 'console-color'
             ? colours.cyan(ellipses)
             : this.options.type === 'html'
-            ? `<span class="${
-                this.options.classes?.lineNum ?? 'n-error-line-num'
-              }">${ellipses}</span>`
+            ? `<span class="${this.options.classes?.lineNum ??
+                'n-error-line-num'}">${ellipses}</span>`
             : ellipses
 
         for (
@@ -486,9 +476,8 @@ export class ErrorDisplayer {
     return this.options.type === 'console-color'
       ? colours.white(message)
       : this.options.type === 'html'
-      ? `<span class="${
-          this.options.classes?.typeError ?? 'n-error-type-error'
-        }">${escapeHtml(message)}</span>`
+      ? `<span class="${this.options.classes?.typeError ??
+          'n-error-type-error'}">${escapeHtml(message)}</span>`
       : message
   }
 
@@ -709,9 +698,8 @@ export class ErrorDisplayer {
       return this.options.type === 'console-color'
         ? colours.yellow(displayed)
         : this.options.type === 'html'
-        ? `<span class="${
-            this.options.classes?.types ?? 'n-error-types'
-          }">${escapeHtml(displayed)}</span>`
+        ? `<span class="${this.options.classes?.types ??
+            'n-error-types'}">${escapeHtml(displayed)}</span>`
         : displayed
     }
   }
@@ -728,9 +716,8 @@ export class ErrorDisplayer {
       this.options.type === 'console-color'
         ? colours.bold(colours.red('Error'))
         : this.options.type === 'html'
-        ? `<span class="${
-            this.options.classes?.error ?? 'n-error-error'
-          }">Error</span>`
+        ? `<span class="${this.options.classes?.error ??
+            'n-error-error'}">Error</span>`
         : 'Error'
     str += ': '
     let firstLine = true
@@ -760,9 +747,8 @@ export class ErrorDisplayer {
       this.options.type === 'console-color'
         ? colours.bold(colours.yellow('Warning'))
         : this.options.type === 'html'
-        ? `<span class="${
-            this.options.classes?.warning ?? 'n-error-warning'
-          }">Warning</span>`
+        ? `<span class="${this.options.classes?.warning ??
+            'n-error-warning'}">Warning</span>`
         : 'Warning'
     str += ': '
     let firstLine = true
@@ -786,9 +772,8 @@ export class ErrorDisplayer {
       this.options.type === 'console-color'
         ? colours.bold(colours.red('Syntax error'))
         : this.options.type === 'html'
-        ? `<span class="${
-            this.options.classes?.error ?? 'n-error-error'
-          }">Syntax error</span>`
+        ? `<span class="${this.options.classes?.error ??
+            'n-error-error'}">Syntax error</span>`
         : 'Syntax error'
     str += ': '
     if (error instanceof ParseUnexpectedEOFError) {
@@ -833,5 +818,26 @@ export class ErrorDisplayer {
       }
     }
     return str
+  }
+
+  displayValueAssertionFailure (
+    path: FilePathSpec,
+    lines: string[],
+    assertion: AssertValue,
+  ): string {
+    return `${
+      this.options.type === 'console-color'
+        ? colours.bold(colours.red('Assertion failed'))
+        : this.options.type === 'html'
+        ? `<span class="${this.options.classes?.error ??
+            'n-error-error'}">Assertion failed</span>`
+        : 'Assertion failed'
+    }: The expression in the ${this._displayInlineCode(
+      'assert value',
+    )} statement returned false.\n\n${this._displayCode(
+      path,
+      lines,
+      assertion.expression,
+    )}`
   }
 }

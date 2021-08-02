@@ -6,7 +6,11 @@ import * as util from 'util'
 import parseArgs from 'minimist'
 // import { compileToJS, TypeChecker, FileLines } from './index'
 import { parse } from './grammar/parse'
-import { NOT_FOUND, TypeChecker } from './type-checker/TypeChecker'
+import {
+  CompiledExports,
+  NOT_FOUND,
+  TypeChecker,
+} from './type-checker/TypeChecker'
 import { Block } from './ast/statements/Block'
 import { ErrorDisplayer } from './type-checker/errors/ErrorDisplayer'
 // import { Block } from './ast/index'
@@ -94,22 +98,29 @@ async function main () {
   })
   const result = await checker.start(path.resolve(fileName))
   if (!(js || running || checksOnly)) return
-  const { display, errors } = result.displayAll(
-    new ErrorDisplayer({
-      type: 'console-color',
-      displayPath (absolutePath: string, basePath: string) {
-        return path.relative(path.dirname(basePath), absolutePath)
-      },
-    }),
-  )
+  const displayer = new ErrorDisplayer({
+    type: 'console-color',
+    displayPath (absolutePath: string, basePath: string) {
+      return path.relative(path.dirname(basePath), absolutePath)
+    },
+  })
+  const { display, errors } = result.displayAll(displayer)
   console.log(display)
   if (errors > 0) return
 
-  const compiled = checker.compile()
+  const compiled = checker.compile(result, { module: { type: 'iife' } })
   if (js) console.log(compiled)
-  await fs.writeFile(fileName.replace(/\.n$/, '.js'), compiled)
+  // await fs.writeFile(fileName.replace(/\.n$/, '.js'), compiled)
   // Indirect call of eval to run in global scope
-  // if (running) (null, eval)(compiled)
+  if (running) {
+    const { valueAssertions, main }: CompiledExports = (null, eval)(compiled)
+    await main()
+    const { display } = result.displayValueAssertions(
+      displayer,
+      valueAssertions,
+    )
+    console.log(display)
+  }
 }
 
 main().catch(err => {

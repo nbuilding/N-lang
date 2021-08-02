@@ -10,11 +10,6 @@ export interface HasExports {
 }
 
 export class CompilationContext {
-  /**
-   * The next ID of an `assert value` assertion. This also represents the total
-   * number of `assert value` assertions.
-   */
-  valueAssertions = 0
 
   /** Maps module IDs to their exported variable names */
   private _modules: Map<string, HasExports> = new Map()

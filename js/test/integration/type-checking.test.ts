@@ -3,7 +3,10 @@ import * as fs from 'fs/promises'
 import { resolve, join, dirname } from 'path'
 
 import { ErrorDisplayer } from '../../src/type-checker/errors/ErrorDisplayer'
-import { CompiledExports, TypeChecker } from '../../src/type-checker/TypeChecker'
+import {
+  CompiledExports,
+  TypeChecker,
+} from '../../src/type-checker/TypeChecker'
 
 const typeCheckTestsDir = resolve(__dirname, '../../../tests/assertions/')
 const files: { path: string; name: string }[] = []
@@ -28,19 +31,20 @@ before(async () => {
           },
         })
         const result = await checker.start(path)
-        const { display, errors } = result.displayAll(
-          new ErrorDisplayer({ type: 'console-color' }),
-        )
+        const displayer = new ErrorDisplayer({ type: 'console-color' })
+        const { display, errors } = result.displayAll(displayer)
         if (errors > 0) {
           throw new TypeError(display)
         }
-        const compiled = checker.compile()
+        const compiled = checker.compile(result, { module: { type: 'iife' } })
         const module: CompiledExports = (1, eval)(compiled)
         await module.main()
-        for (const [testId, passed] of Object.entries(module.valueAssertions)) {
-          if (!passed) {
-            throw new AssertionError(`Value assertion ${testId} failed.`)
-          }
+        const {
+          display: assertDisplay,
+          failures,
+        } = result.displayValueAssertions(displayer, module.valueAssertions)
+        if (failures > 0) {
+          throw new AssertionError(assertDisplay)
         }
       })
     }

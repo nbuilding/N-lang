@@ -1,4 +1,10 @@
-import { Base, BasePosition, Block, ImportFile } from '../ast/index'
+import {
+  AssertValue,
+  Base,
+  BasePosition,
+  Block,
+  ImportFile,
+} from '../ast/index'
 import { CompilationContext } from '../compiler/CompilationContext'
 import {
   parse,
@@ -33,9 +39,23 @@ type ModuleState =
 
 export class TypeCheckerResults {
   checker: TypeChecker
+
   startPath: string
+
   types: Map<Base, NType> = new Map()
+
   files: Map<string, BaseResultsForFile> = new Map()
+
+  /**
+   * All `assert value` assertions; the length of this array also represents the
+   * next ID of an `assert value` assertion.
+   */
+  valueAssertions: {
+    assertion: AssertValue
+    file: TypeCheckerResultsForFile
+  }[] = []
+
+  lastExportedCmd?: { moduleId: string; name: string }
 
   constructor (checker: TypeChecker, startPath: string) {
     this.checker = checker
@@ -92,6 +112,28 @@ export class TypeCheckerResults {
       warnings: allWarnings.length,
     }
   }
+
+  displayValueAssertions (
+    displayer: ErrorDisplayer,
+    results: { [id: number]: boolean },
+  ): { display: string; failures: number } {
+    const failures = []
+    for (const [id, passed] of Object.entries(results)) {
+      if (!passed) {
+        const {
+          assertion,
+          file: { path, lines },
+        } = this.valueAssertions[+id]
+        failures.push(
+          displayer.displayValueAssertionFailure(path, lines, assertion),
+        )
+      }
+    }
+    return {
+      display: failures.join('\n\n'),
+      failures: failures.length,
+    }
+  }
 }
 
 export abstract class BaseResultsForFile {
@@ -141,6 +183,14 @@ export class TypeCheckerResultsForFile extends BaseResultsForFile {
         displayer.displayWarning(this.path, this.lines, warning),
       ),
     }
+  }
+
+  /**
+   * Adds the `assert value` statement to the array of value assertions and
+   * returns its ID.
+   */
+  addValueAssertion (assertion: AssertValue): number {
+    return this.parent.valueAssertions.push({ assertion, file: this }) - 1
   }
 }
 
@@ -289,8 +339,6 @@ export class TypeChecker {
   /** Maps an absolute path to the module state */
   moduleCache: Map<string, ModuleState> = new Map()
 
-  _lastExportedCmd?: { moduleId: string; name: string }
-
   constructor (options: CheckerOptions) {
     this.options = options
   }
@@ -300,13 +348,15 @@ export class TypeChecker {
    */
   async start (startPath: string): Promise<TypeCheckerResults> {
     const results = new TypeCheckerResults(this, startPath)
-    const state = await this._ensureModuleLoaded(results, startPath)
-    if (state.state === 'loaded' && state.module.type === 'module') {
+    await this._ensureModuleLoaded(results, startPath)
+
+    const state = this.moduleCache.get(startPath)
+    if (state && state.state === 'loaded' && state.module.type === 'module') {
       const lastExportedCmd = [...state.module.types]
         .reverse()
         .find(([, type]) => type.type === 'named' && type.typeSpec === cmd)
       if (lastExportedCmd) {
-        this._lastExportedCmd = {
+        results.lastExportedCmd = {
           moduleId: startPath,
           name: lastExportedCmd[0],
         }
@@ -382,38 +432,37 @@ export class TypeChecker {
   private async _ensureModuleLoaded (
     results: TypeCheckerResults,
     modulePath: string,
-  ): Promise<ModuleState> {
-    if (!this.moduleCache.has(modulePath)) {
-      this.moduleCache.set(modulePath, { state: 'loading' })
+  ) {
+    if (this.moduleCache.has(modulePath)) return
+    this.moduleCache.set(modulePath, { state: 'loading' })
 
-      const result = await this._getResultFromProvided(
-        results,
-        modulePath,
-        await this.options.provideFile(modulePath),
-      )
-      if (result) {
-        if ('error' in result) {
-          results.syntaxError(modulePath, result.source, result.error)
-          this.moduleCache.set(modulePath, {
-            state: 'loaded',
-            module: unknown,
-            compilable: Block.empty(),
-          })
-        } else {
-          this.moduleCache.set(modulePath, { state: 'loaded', ...result })
-        }
+    const result = await this._getResultFromProvided(
+      results,
+      modulePath,
+      await this.options.provideFile(modulePath),
+    )
+    if (result) {
+      if ('error' in result) {
+        results.syntaxError(modulePath, result.source, result.error)
+        this.moduleCache.set(modulePath, {
+          state: 'loaded',
+          module: unknown,
+          compilable: Block.empty(),
+        })
+      } else {
+        this.moduleCache.set(modulePath, { state: 'loaded', ...result })
       }
     }
-    return this.moduleCache.get(modulePath)!
   }
 
   /**
    * Call this after calling `start()`. Throws an error if this was called with
    * type errors.
    */
-  compile ({
-    module = { type: 'iife', executeMain: true },
-  }: CompilationOptions = {}): string {
+  compile (
+    results: TypeCheckerResults,
+    { module = { type: 'iife', executeMain: true } }: CompilationOptions = {},
+  ): string {
     const context = new CompilationContext()
     const compiled: string[] = []
     // Reverse the module cache because insertion order probably happens from
@@ -432,19 +481,19 @@ export class TypeChecker {
     const prelude = [
       'var undefined; // This helps minifiers to use a shorter variable name than `void 0`.',
       'var valueAssertionResults_n = {};',
-      `for (var i = 0; i < ${context.valueAssertions}; i++) {`,
+      `for (var i = 0; i < ${results.valueAssertions.length}; i++) {`,
       '  valueAssertionResults_n[i] = false;',
       '}',
       ...context.dependencies,
     ]
     const main = context.genVarName('main')
-    if (this._lastExportedCmd) {
+    if (results.lastExportedCmd) {
       const mainVar = context
-        .getModule(this._lastExportedCmd.moduleId)
-        .names.get(this._lastExportedCmd.name)
+        .getModule(results.lastExportedCmd.moduleId)
+        .names.get(results.lastExportedCmd.name)
       if (!mainVar) {
         throw new ReferenceError(
-          `Cannot find name for ${this._lastExportedCmd.name}`,
+          `Cannot find name for ${results.lastExportedCmd.name}`,
         )
       }
       compiled.push(
