@@ -1,6 +1,8 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { list } from '../../type-checker/types/builtins'
-import { AliasSpec, NType, unknown } from '../../type-checker/types/types'
+import { NType, unknown } from '../../type-checker/types/types'
+import { AliasSpec } from '../../type-checker/types/TypeSpec'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import {
@@ -8,6 +10,7 @@ import {
   CheckPatternResult,
   isPattern,
   Pattern,
+  PatternCompilationResult,
 } from './Pattern'
 
 export class ListPattern extends Base implements Pattern {
@@ -46,6 +49,30 @@ export class ListPattern extends Base implements Pattern {
       context.checkPattern(pattern, innerType)
     }
     return {}
+  }
+
+  compilePattern (
+    scope: CompilationScope,
+    valueName: string,
+  ): PatternCompilationResult {
+    const statements: string[] = []
+    const varNames: string[] = []
+    this.patterns.forEach((pattern, i) => {
+      const { statements: s, varNames: v } = pattern.compilePattern(
+        scope,
+        `${valueName}[${i}]`,
+      )
+      statements.push(...s)
+      varNames.push(...v)
+    })
+    return {
+      statements: [
+        `if (${valueName}.length === ${this.patterns.length}) {`,
+        ...scope.context.indent(statements),
+        '} else break;',
+      ],
+      varNames,
+    }
   }
 
   toString (): string {

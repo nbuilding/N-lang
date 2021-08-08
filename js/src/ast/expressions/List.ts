@@ -1,5 +1,6 @@
 import schema, * as schem from '../../utils/schema'
 import {
+  CompilationResult,
   Expression,
   isExpression,
   TypeCheckContext,
@@ -10,6 +11,7 @@ import { compareEqualTypes } from '../../type-checker/types/comparisons/compare-
 import { list } from '../../type-checker/types/builtins'
 import { unknown } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
+import { CompilationScope } from '../../compiler/CompilationScope'
 
 export class List extends Base implements Expression {
   items: Expression[]
@@ -45,6 +47,20 @@ export class List extends Base implements Expression {
         })
       }
       return { type: list.instance([result.type]), exitPoint }
+    }
+  }
+
+  compile (scope: CompilationScope): CompilationResult {
+    const statements: string[] = []
+    const expressions: string[] = []
+    for (const item of this.items) {
+      const { statements: s, expression } = item.compile(scope)
+      statements.push(...s)
+      expressions.push(expression)
+    }
+    return {
+      statements,
+      expression: `[${expressions.join(', ')}]`,
     }
   }
 

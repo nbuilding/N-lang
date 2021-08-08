@@ -1,10 +1,8 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { unit } from '../../type-checker/types/builtins'
-import {
-  AliasSpec,
-  functionFromTypes,
-  NRecord,
-} from '../../type-checker/types/types'
+import { functionFromTypes, NRecord } from '../../type-checker/types/types'
+import { AliasSpec } from '../../type-checker/types/TypeSpec'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Arguments } from '../declaration/Arguments'
@@ -14,6 +12,7 @@ import {
   CheckStatementContext,
   CheckStatementResult,
   Statement,
+  StatementCompilationResult,
 } from './Statement'
 
 export class ClassDeclaration extends Base implements Statement {
@@ -21,6 +20,7 @@ export class ClassDeclaration extends Base implements Statement {
   name: Identifier
   arguments: Arguments
   body: Block
+  private _type?: NRecord
 
   constructor (
     pos: BasePosition,
@@ -35,6 +35,7 @@ export class ClassDeclaration extends Base implements Statement {
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
     const classType: NRecord = { type: 'record', types: new Map() }
+    this._type = classType
     const classAlias = new AliasSpec(this.name.value, classType)
     context.defineType(this.name, classAlias, this.public)
     const scope = context.scope.inner({
@@ -70,6 +71,31 @@ export class ClassDeclaration extends Base implements Statement {
     )
     scope.end()
     return {}
+  }
+
+  compileStatement (scope: CompilationScope): StatementCompilationResult {
+    const className = scope.context.genVarName(this.name.value)
+    scope.names.set(this.name.value, className)
+    const mangledKeys = scope.context.normaliseRecord(this._type!)
+    return {
+      statements: scope.functionExpression(
+        this.arguments,
+        funcScope => [
+          ...this.body.compileStatement(funcScope).statements,
+          this._type!.types.size > 0
+            ? `return { ${Array.from(
+                this._type!.types.keys(),
+                key => `${mangledKeys[key]}: ${funcScope.getName(key)}`,
+              ).join(', ')} };`
+            : // A class with no exported types is just an empty record and
+              // can be optimised like an empty unit type. Fortunately, `var`
+              // is undefined behaviour!
+              '// Unit-like class',
+        ],
+        `var ${className} = `,
+        ';',
+      ),
+    }
   }
 
   toString (): string {

@@ -5,15 +5,8 @@ import {
   CONTAINED,
   typeToResultType,
 } from '../comparisons'
-import {
-  AliasSpec,
-  FuncTypeVarSpec,
-  NFunction,
-  NType,
-  NTypeKnown,
-  substitute,
-  unknown,
-} from '../types'
+import { NFunction, NType, NTypeKnown, substitute, unknown } from '../types'
+import { FuncTypeVarSpec, AliasSpec } from '../TypeSpec'
 
 interface CompareAssignableContext {
   function?: NFunction

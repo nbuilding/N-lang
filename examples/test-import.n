@@ -1,0 +1,3 @@
+let pub hello = [] -> str {
+  return "hello"
+}

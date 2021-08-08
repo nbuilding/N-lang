@@ -1,7 +1,9 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { unit } from '../../type-checker/types/builtins'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import {
+  CompilationResult,
   Expression,
   TypeCheckContext,
   TypeCheckResult,
@@ -14,6 +16,15 @@ export class Unit extends Base implements Expression {
 
   typeCheck (_context: TypeCheckContext): TypeCheckResult {
     return { type: unit }
+  }
+
+  compile (scope: CompilationScope): CompilationResult {
+    return {
+      statements: [],
+      // () is represented as any value because we already know its value at
+      // compile time. Ideally this value should never be read directly.
+      expression: 'undefined',
+    }
   }
 
   toString (): string {

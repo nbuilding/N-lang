@@ -1,5 +1,6 @@
 import schema, * as schem from '../../utils/schema'
 import {
+  CompilationResult,
   Expression,
   isExpression,
   TypeCheckContext,
@@ -7,12 +8,15 @@ import {
 } from './Expression'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
-import { AliasSpec, unknown } from '../../type-checker/types/types'
+import { NModule, NRecord, unknown } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
+import { CompilationScope } from '../../compiler/CompilationScope'
+import { AliasSpec } from '../../type-checker/types/TypeSpec'
 
 export class RecordAccess extends Base implements Expression {
   value: Expression
   field: Identifier
+  private _type?: NRecord | NModule
 
   constructor (
     pos: BasePosition,
@@ -27,6 +31,7 @@ export class RecordAccess extends Base implements Expression {
     const { type, exitPoint } = context.scope.typeCheck(this.value)
     const resolved = AliasSpec.resolve(type)
     if (resolved.type === 'record' || resolved.type === 'module') {
+      this._type = resolved
       const fieldType = resolved.types.get(this.field.value)
       if (!fieldType) {
         context.err({
@@ -41,6 +46,31 @@ export class RecordAccess extends Base implements Expression {
         })
       }
       return { type: unknown, exitPoint }
+    }
+  }
+
+  compile (scope: CompilationScope): CompilationResult {
+    const { statements, expression } = this.value.compile(scope)
+    const type = this._type!
+    if (type.type === 'record') {
+      const mangledKeys = scope.context.normaliseRecord(type)
+      return {
+        statements,
+        expression: `(${expression}).${mangledKeys[this.field.value]}`,
+      }
+    } else {
+      const exportName = scope.context
+        .getModule(type.path)
+        .names.get(this.field.value)
+      if (!exportName) {
+        throw new ReferenceError(
+          `Module ${type.path} does not define such name ${this.field.value}`,
+        )
+      }
+      return {
+        statements,
+        expression: exportName,
+      }
     }
   }
 

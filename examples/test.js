@@ -1,53 +1,30 @@
-var sum = function(a) {
-  return function(b) {
-    if (a === 1) {
-      var _temp0;
-      if (b === 2) {
-        return 3;
-      } else {
-        _temp0 = b;
-      }
-      return a + _temp0 / 2;
-    }
-    return 2;
+(function () {
+  var undefined; // This helps minifiers to use a shorter variable name than `void 0`.
+  var valueAssertionResults_n = {};
+  for (var i = 0; i < 2; i++) {
+    valueAssertionResults_n[i] = false;
+  }
+  function main_5(callback) {
+    callback();
+  }
+  function modulo_n(a, b) {
+    return (a % b + b) % b;
+  }
+  function assertValue_n(valueAssertionId, pass) {
+    valueAssertionResults_n[valueAssertionId] = pass;
+  }
+  function deepEqual_n(a, b) {
+    return false;
+  }
+  var compA_0 = { a: "pi", b: 3.14 }, compB_1 = { b: 3.14, a: "pi" };
+  assertValue_n(0, compA_0.b === compB_1.b && compA_0.a === compB_1.a);
+  var listvalue_2;
+  listvalue_2 = ["a", "b", "c"];
+  var compA_3 = listvalue_2, compB_4 = ["a", "b", "c"];
+  assertValue_n(1, compA_3.length === compB_4.length && compA_3.every(function (item, i) { return item === compB_4[i] }));
+  main_5(function () {});
+  return {
+    valueAssertions: valueAssertionResults_n,
+    main: main_5,
   };
-};
-var _temp1 = [];
-for (var i_1 = 0; i_1 < 10; i_1++) {
-  console.log("test");
-  console.log("test2");
-  var _temp3;
-  var scopedVariable_1 = "wow";
-  _temp3 = scopedVariable_1 + scopedVariable_1;
-  console.log(_temp3);
-}
-var addOne = sum(1);
-var _temp6;
-var test_1;
-var _temp8 = 2;
-console.log(_temp8)
-var _temp7 = _temp8;
-var _temp9 = false;
-if (1 < _temp7) {
-  var _temp10 = 0;
-  console.log(_temp10);
-  var _temp11 = _temp10;
-  if (_temp7 > _temp11) {
-    _temp9 = true;
-  }
-}
-if (_temp9) {
-  test_1 = addOne(3);
-} else {
-  test_1 = addOne(5);
-}
-_temp6 = test_1 === 4;
-if (_temp6) {
-  console.log("wowwow")
-}
-var wow = [];
-for (var i_2 = 0; i_2 < 5; i_2++) {
-  if (__modulo(i_2, 2) === 0) {
-    wow.push(Math.pow(i + 1, 2));
-  }
-}
+})();

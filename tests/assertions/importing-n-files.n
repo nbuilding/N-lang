@@ -2,4 +2,4 @@
 
 let importedThings = imp "./imports/import.n"
 
-assert value importedThings.test = "hello"
+assert value importedThings.test = "Hello"

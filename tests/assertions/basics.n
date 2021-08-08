@@ -8,10 +8,6 @@ assert value (0b1100 | 0b1110) == 0b1110
 assert value (false & true) == false
 assert value (0b1100 & 0b1110) == 0b1000
 
-assert value ~true == false
-assert value ~false == true
-assert value ~1 == -2
-
 assert value 2 + 2 == 4
 assert value 2.75 + 2.75 == 5.5
 assert value "happy" + "sheep" == "happysheep"
@@ -50,6 +46,14 @@ assert value 0.7 < 0.5 ^ 0.5 < 0.71
 
 assert value (not not true) == true
 assert value (not not -1) == -1
+
+assert value ~true == true
+// #242
+assert value ~0 == -1
+if ~(false) {
+  // #230
+  assert value true
+}
 
 // Floats are double-precision :postpissedchil:
 

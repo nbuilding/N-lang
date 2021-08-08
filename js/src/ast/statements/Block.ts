@@ -1,3 +1,4 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { WarningType } from '../../type-checker/errors/Warning'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
@@ -7,6 +8,7 @@ import {
   CheckStatementResult,
   isStatement,
   Statement,
+  StatementCompilationResult,
 } from './Statement'
 
 export class Block extends Base implements Statement {
@@ -24,7 +26,7 @@ export class Block extends Base implements Statement {
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
-    // NOTE: Blocks do not create their own scope; WrappedBlocks do
+    // NOTE: Blocks do not create their own scope
     let blockExitPoint: Return | undefined
     let warned = false
     for (const statement of this.statements) {
@@ -52,6 +54,35 @@ export class Block extends Base implements Statement {
     }
   }
 
+  compileStatement (
+    scope: CompilationScope,
+    thenName?: string,
+  ): StatementCompilationResult {
+    if (scope.procedure) {
+      // Keep track of awaits used in the block
+      scope.procedure.newChain()
+    }
+    let statements: string[] = []
+    for (const statement of this.statements) {
+      const { statements: s } = statement.compileStatement(scope)
+      if (scope.procedure && scope.procedure.wasModified()) {
+        scope.procedure.prependStatements(statements)
+        statements = []
+      }
+      statements.push(...s)
+    }
+    if (scope.procedure) {
+      if (thenName && scope.procedure.everModified()) {
+        statements.push(`${thenName}();`)
+      }
+      statements = scope.procedure.toStatements(statements)
+      scope.procedure.endChain()
+    }
+    return {
+      statements,
+    }
+  }
+
   toString (): string {
     return this.statements.join('\n')
   }
@@ -70,30 +101,4 @@ export class Block extends Base implements Statement {
       endCol: 0,
     })
   }
-}
-
-export class WrappedBlock extends Base implements Statement {
-  block: Block
-
-  constructor (
-    pos: BasePosition,
-    [, block]: schem.infer<typeof WrappedBlock.schema>,
-  ) {
-    super(pos, [block])
-    this.block = block
-  }
-
-  checkStatement (context: CheckStatementContext): CheckStatementResult {
-    const scope = context.scope.inner()
-    const result = scope.checkStatement(this.block)
-    scope.end()
-    return result
-  }
-
-  toString (): string {
-    // Add additional indentation after every newline
-    return `{\n\t${this.block.toString().replace(/\n/g, '\n\t')}\n}`
-  }
-
-  static schema = schema.tuple([schema.any, schema.instance(Block), schema.any])
 }

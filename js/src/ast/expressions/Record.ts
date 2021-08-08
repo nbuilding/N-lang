@@ -1,9 +1,11 @@
+import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
-import { unknown } from '../../type-checker/types/types'
+import { NRecord, unknown } from '../../type-checker/types/types'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
 import {
+  CompilationResult,
   Expression,
   isExpression,
   TypeCheckContext,
@@ -41,6 +43,7 @@ export class RecordEntry extends Base {
 
 export class Record extends Base implements Expression {
   entries: RecordEntry[]
+  private _type?: NRecord
 
   constructor (
     pos: BasePosition,
@@ -69,7 +72,28 @@ export class Record extends Base implements Expression {
       }
       if (!exitPoint) exitPoint = exit
     }
-    return { type: { type: 'record', types }, exitPoint }
+    const type: NRecord = { type: 'record', types }
+    this._type = type
+    return { type, exitPoint }
+  }
+
+  compile (scope: CompilationScope): CompilationResult {
+    const mangledKeys = scope.context.normaliseRecord(this._type!)
+    const statements: string[] = []
+    const entries: string[] = []
+    for (const entry of this.entries) {
+      const { statements: s, expression } = entry.value.compile(scope)
+      statements.push(...s)
+      entries.push(`${mangledKeys[entry.key.value]}: ${expression}`)
+    }
+    return {
+      statements,
+      expression:
+        entries.length > 0
+          ? `{ ${entries.join(', ')} }`
+          : // An empty record is basically like a unit type
+            'undefined',
+    }
   }
 
   toString (): string {

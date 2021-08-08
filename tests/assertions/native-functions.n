@@ -3,18 +3,25 @@
 assert type intInBase10 : int -> str
 assert value intInBase10(10) = "10"
 
+// round, floor, and ceil convert infinities and NaN to 0 (#243)
+let infinity = 1.0 / 0.0
+let nan = 0.0 / 0.0
+
 assert type round : float -> int
 assert value round(10.5) = 11
 assert value round(-10.5) = -10
+assert value round(infinity) == 0
 
 assert type floor : float -> int
 assert value floor(10.5) = 10
 assert value floor(-10.5) = -11
+assert value floor(nan) == 0
 
 assert type ceil : float -> int
 assert value ceil(10.5) = 11
 assert value ceil(10.4) = 11
 assert value ceil(-10.5) = -10
+assert value ceil(-infinity) == 0
 
 assert type charCode : char -> int
 assert value charCode(\{a}) = 97
@@ -50,6 +57,8 @@ assert value split(\{b}, "apple") = ["apple"]
 
 assert type strip : str -> str
 assert value strip(" abc ") = "abc"
+// Entire list of characters that are removed by strip (#245)
+assert value strip("\u{9}\u{a}\u{a}\u{b}\u{c}\u{20}\u{a0}\u{1680}\u{2000}\u{2001}\u{2002}a  a\u{2003}\u{2004}\u{2005}\u{2006}\u{2007}\u{2008}\u{2009}\u{200a}\u{2028}\u{2029}\u{202f}\u{205f}\u{3000}\u{feff}") == "a  a"
 
 assert type range : int -> int -> int -> list[int]
 assert value range(0, 3, 1) = [0, 1, 2]
@@ -61,8 +70,8 @@ assert value range(0, 10, 3) = [0, 3, 6, 9]
 assert value range(0, -10, -1) = [0, -1, -2, -3, -4, -5, -6, -7, -8, -9]
 assert value range(0, 0, 1) = []
 assert value range(1, 0, 1) = []
-assert value range(1, 10, -1) = []
-assert value range(1, 10, 0) = []
+// If the step value is 0, then it returns an empty list (#246)
+assert value range(0, 10, 0) = []
 
 assert type print : [t] t -> t
 assert value print("test") = "test"

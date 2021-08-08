@@ -76,10 +76,12 @@ export function displayWarningMessage (
         display`You declared ${err.name} but never used it.`,
         base,
         err.value === 'variable'
-          ? display`${HINT}: If this is intentional, add an underscore (${'_'}) in front of the variable name: ${'_' +
-              err.name}.`
-          : display`${HINT}: If this is intentional, add an underscore (${'_'}) in front of the type name: ${'_' +
-              err.name}.`,
+          ? display`${HINT}: If this is intentional, add an underscore (${'_'}) in front of the variable name: ${
+              '_' + err.name
+            }.`
+          : display`${HINT}: If this is intentional, add an underscore (${'_'}) in front of the type name: ${
+              '_' + err.name
+            }.`,
       ]
     }
     case WarningType.EXPORT_UNDERSCORE:
