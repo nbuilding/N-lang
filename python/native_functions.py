@@ -152,6 +152,42 @@ def char_with_replace(num):
     except ValueError:
         return u'\ufffd'
 
+
+def round_without_error(number):
+    try: 
+        return round(number)
+    except:
+        return 0
+
+
+def floor_without_error(number):
+    try: 
+        return math.floor(number)
+    except:
+        return 0
+
+
+def ceil_without_error(number):
+    try: 
+        return math.ceil(number)
+    except:
+        return 0
+
+
+def range_without_error(start, end, step): 
+    try:
+        return list(range(start, end, step))
+    except:
+        return []
+
+def trim(string):
+    whitespace = [u'\u0009', u'\u000a', u'\u000a', u'\u000b', u'\u000c', u'\u0020', u'\u00a0', u'\u1680', u'\u2000', u'\u2001', u'\u2002', u'\u2003', u'\u2004', u'\u2005', u'\u2006', u'\u2007', u'\u2008', u'\u2009', u'\u200a', u'\u2028', u'\u2029', u'\u202f', u'\u205f', u'\u3000', u'\ufeff']
+    out = string
+    for character in whitespace:
+        out = out.strip(character)
+
+    return out
+
 # Define global functions/variables
 def add_funcs(global_scope):
     global_scope.variables["none"] = Variable(n_maybe_type, none)
@@ -166,19 +202,19 @@ def add_funcs(global_scope):
         "round",
         [("number", "float")],
         "int",
-        round,
+        round_without_error,
     )
     global_scope.add_native_function(
         "floor",
         [("number", "float")],
         "int",
-        math.floor,
+        floor_without_error,
     )
     global_scope.add_native_function(
         "ceil",
         [("number", "float")],
         "int",
-        math.ceil,
+        ceil_without_error,
     )
     global_scope.add_native_function(
         "charCode",
@@ -223,13 +259,13 @@ def add_funcs(global_scope):
         lambda splitter, string: string.split(splitter),
     )
     global_scope.add_native_function(
-        "strip", [("string", "str")], "str", lambda string: string.strip()
+        "strip", [("string", "str")], "str", trim
     )
     global_scope.add_native_function(
         "range",
         [("start", "int"), ("end", "int"), ("step", "int")],
         n_list_type.with_typevars(["int"]),
-        lambda start, end, step: list(range(start, end, step)),
+        range_without_error,
     )
     print_generic = NGenericType("t")
     global_scope.add_native_function(

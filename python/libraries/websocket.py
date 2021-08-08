@@ -5,7 +5,7 @@ import uuid
 
 from colorama import Fore, Style
 
-from native_types import n_cmd_type, n_maybe_type, n_result_type, yes, none, ok, err
+from native_types import n_cmd_type, n_maybe_type, n_result_type, yes, none, ok, err as error
 from native_function import NativeFunction
 from type import NAliasType
 from ncmd import Cmd
@@ -100,7 +100,7 @@ async def connect(options, url):
                     return ok(())
                 except websockets.exceptions.ConnectionClosed as err:
                     # Ignore all runtime errors (eg when attempting sending to a closed websocket)
-                    return err(err.code)
+                    return error(err.code)
 
             # Why is this so complicated
             send = NativeFunction(
@@ -123,7 +123,10 @@ async def connect(options, url):
                             close = await close.eval()
                         if close:
                             await websocket.close()
-                            on_close.set_result(None) # Mark `on_close` as done
+                            try:
+                                on_close.set_result(None) # Mark `on_close` as done
+                            except:
+                                pass
                 except websockets.exceptions.ConnectionClosedError as err:
                     if debug:
                         print(
@@ -140,7 +143,10 @@ async def connect(options, url):
                         close = await close.eval()
                     if close:
                         await websocket.close()
-                        on_close.set_result(None) # Mark `on_close` as done
+                        try:
+                            on_close.set_result(None) # Mark `on_close` as done
+                        except:
+                            pass
                     # await options['onClose'].eval()
                     if debug:
                         debug_task.cancel()

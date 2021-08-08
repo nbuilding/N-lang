@@ -7,8 +7,13 @@ from native_types import n_cmd_type, n_maybe_type, yes, none, n_list_type
 
 
 async def write(path, content):
-    async with async_open(path, "w+", encoding="utf-8") as f:
-        await f.write(content)
+    try:
+        if not os.path.exists(os.path.split(os.path.abspath(path))[0]):
+            os.mkdir(os.path.split(os.path.abspath(path))[0])
+        async with async_open(path, "w+", encoding="utf-8") as f:
+            await f.write(content)
+    except:
+        pass
 
 
 async def append(path, content):
@@ -28,8 +33,13 @@ async def read(path):
 
 
 async def writeBytes(path, content):
-    async with async_open(path, "w+", encoding="utf-8") as f:
-        await f.write("".join([chr(c) for c in content]))
+    try:
+        if not os.path.exists(os.path.split(os.path.abspath(path))[0]):
+            os.mkdir(os.path.split(os.path.abspath(path))[0])
+        async with async_open(path, "w+", encoding="utf-8") as f:
+            await f.write("".join([chr(c) for c in content]))
+    except:
+        pass
 
 
 async def appendBytes(path, content):

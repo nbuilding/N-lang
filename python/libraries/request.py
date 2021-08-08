@@ -24,11 +24,11 @@ async def get(url, headers):
                 except:
                     pass
                 return {"code": r.status, "response": r.reason, "return": returndata}
-    except aiohttp.client_exceptions.ClientConnectorError as err:
+    except aiohttp.client_exceptions.ClientError as err:
         return {
             "code": 400,
             "response": "Cannot connect",
-            "return": str(err),
+            "return": string(str(err)),
         }
 
 
@@ -42,11 +42,11 @@ async def delete(url, headers):
                 except:
                     pass
                 return {"code": r.status, "response": r.reason, "return": returndata}
-    except aiohttp.client_exceptions.ClientConnectorError as err:
+    except aiohttp.client_exceptions.ClientError as err:
         return {
             "code": 400,
             "response": "Cannot connect",
-            "return": str(err),
+            "return": string(str(err)),
         }
 
 
@@ -60,11 +60,11 @@ async def head(url, headers):
                 except:
                     pass
                 return {"code": r.status, "response": r.reason, "return": returndata}
-    except aiohttp.client_exceptions.ClientConnectorError as err:
+    except aiohttp.client_exceptions.ClientError as err:
         return {
             "code": 400,
             "response": "Cannot connect",
-            "return": str(err),
+            "return": string(str(err)),
         }
 
 
@@ -78,11 +78,11 @@ async def options(url, headers):
                 except:
                     pass
                 return {"code": r.status, "response": r.reason, "return": returndata}
-    except aiohttp.client_exceptions.ClientConnectorError as err:
+    except aiohttp.client_exceptions.ClientError as err:
         return {
             "code": 400,
             "response": "Cannot connect",
-            "return": str(err),
+            "return": string(str(err)),
         }
 
 
@@ -91,7 +91,7 @@ async def post(url, content, headers):
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=json.dumps(content), headers=headers) as r:
                 return {"code": r.status, "response": r.reason, "text": await r.text()}
-    except aiohttp.client_exceptions.ClientConnectorError as err:
+    except aiohttp.client_exceptions.ClientError as err:
         return {
             "code": 400,
             "response": "Cannot connect",
@@ -104,7 +104,7 @@ async def patch(url, content, headers):
         async with aiohttp.ClientSession() as session:
             async with session.patch(url, data=json.dumps(content), headers=headers) as r:
                 return {"code": r.status, "response": r.reason, "text": await r.text()}
-    except aiohttp.client_exceptions.ClientConnectorError as err:
+    except aiohttp.client_exceptions.ClientError as err:
         return {
             "code": 400,
             "response": "Cannot connect",
@@ -117,7 +117,7 @@ async def put(url, content, headers):
         async with aiohttp.ClientSession() as session:
             async with session.put(url, data=json.dumps(content), headers=headers) as r:
                 return {"code": r.status, "response": r.reason, "text": await r.text()}
-    except aiohttp.client_exceptions.ClientConnectorError as err:
+    except aiohttp.client_exceptions.ClientError as err:
         return {
             "code": 400,
             "response": "Cannot connect",

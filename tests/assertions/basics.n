@@ -8,6 +8,10 @@ assert value (0b1100 | 0b1110) == 0b1110
 assert value (false & true) == false
 assert value (0b1100 & 0b1110) == 0b1000
 
+assert value ~true == false
+assert value ~false == true
+assert value ~1 == -2
+
 assert value 2 + 2 == 4
 assert value 2.75 + 2.75 == 5.5
 assert value "happy" + "sheep" == "happysheep"

@@ -856,6 +856,7 @@ class Scope:
                 return await self.eval_expr(if_false)
         elif expr.data == "function_def":
             arguments, returntype, codeblock = expr.children
+            arguments = arguments.children
             return Function(
                 self,
                 [self.get_name_type(arg, get_type=False) for arg in arguments],
