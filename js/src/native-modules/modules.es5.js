@@ -1,20 +1,32 @@
 // FileIO
 
-function write () {
-  throw new Error('Not implemented')
+function write (path) {
+  return function (content) {
+    return function (callback) {
+      runtime.writeFile(path, content, callback)
+    }
+  }
 }
 
-function append () {
-  throw new Error('Not implemented')
+function append (path) {
+  return function (content) {
+    return function (callback) {
+      runtime.appendFile(path, content, callback)
+    }
+  }
 }
 
-function read () {
-  throw new Error('Not implemented')
+function read (path) {
+  return function (callback) {
+    runtime.readFile(path, function (content) {
+      callback(content === null ? undefined : content)
+    })
+  }
 }
 
 // json
 
-var null_;
+var null_
 
 function string (str) {
   return [1, str]
@@ -59,18 +71,35 @@ function stringify (value) {
 
 // request
 
-function post () {
-  throw new Error('Not implemented')
-}
+// IE11 only supports XMLHttpRequest
+// Deno only supports fetch
+// Node only supports require('http')
+// >_<
 
 function get () {
-  throw new Error('Not implemented')
+  return function (headers) {
+    return function (callback) {
+      httpRequest(url, 'GET', undefined, headers, true, callback)
+    }
+  }
+}
+
+function post (url) {
+  return function (body) {
+    return function (headers) {
+      return function (callback) {
+        httpRequest(url, 'POST', body, headers, false, callback)
+      }
+    }
+  }
 }
 
 // SystemIO
 
-function inp () {
-  throw new Error('Not implemented')
+function inp (question) {
+  return function (callback) {
+    runtime.readline(question, callback)
+  }
 }
 
 // times
@@ -83,6 +112,44 @@ function sleep (delay) {
 
 // websocket
 
-function connect () {
-  throw new Error('Not implemented')
+function connect (listeners) {
+  var onOpen = listeners.b
+  var onMessage = listeners.a
+  if (typeof WebSocket !== 'function') {
+    var WebSocket = require('ws')
+  }
+  return function (url) {
+    return function (callback) {
+      try {
+        var ws = new WebSocket(url)
+        function send (content) {
+          return function (callback) {
+            ws.send(content)
+            callback()
+          }
+        }
+        function onWhetherClose (close) {
+          if (close && ws.readyState === WebSocket.OPEN) {
+            ws.close()
+          }
+        }
+        ws.addEventListener('open', function () {
+          onOpen(send)(onWhetherClose)
+        })
+        var onMsg = onMessage(send)
+        ws.addEventListener('message', function (event) {
+          // NOTE: `data` can be a Blob
+          onMsg(event.data)(onWhetherClose)
+        })
+        ws.addEventListener('close', function () {
+          callback()
+        })
+        ws.addEventListener('error', function () {
+          callback('The content of this string is undefined behaviour.')
+        })
+      } catch (err) {
+        callback(err.message)
+      }
+    }
+  }
 }

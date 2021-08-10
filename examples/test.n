@@ -8,3 +8,20 @@ assert value listvalue == ["a", "b", "c"]
 type _result[o, e] =
   | <_ok o>
   | <_err e>
+
+print({
+  return: true
+  response: "OK"
+  code: 200
+})
+
+print({
+  text: "true"
+  response: "OK"
+  code: 200
+})
+
+print({
+  onOpen: [] -> () { return () }
+  onMessage: [] -> () { return () }
+})
