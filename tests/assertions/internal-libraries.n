@@ -61,8 +61,8 @@ let pub main = [_: ()] -> cmd[()] {
 		return: json.string("HTTPBIN is awesome")
 	}
 	assert value request.get("definitely invalid url", mapFrom([]))! = {
-		code: 0
-		response: ""
+		code: 400
+		response: "Cannot connect"
 		return: json.null
 	}
 
@@ -145,12 +145,12 @@ let pub main = [_: ()] -> cmd[()] {
 
 	assert value websocket.connect({
 		onOpen: [send: websocket.send] -> cmd[bool] {
-			assert type send : str -> cmd[()]
+			assert type send : str -> cmd[result[int, ()]]
 			let _ = send("hi")!
 			return false
 		}
 		onMessage: [send: websocket.send message: str] -> cmd[bool] {
-			assert type send : str -> cmd[()]
+			assert type send : str -> cmd[result[int, ()]]
 			assert value message = "hi" | message = "hello"
 			let _ = send("hello")!
 			return message == "hello"
@@ -173,3 +173,5 @@ let pub main = [_: ()] -> cmd[()] {
 	}
 	assert type websocket.createServer : setupOptions -> int -> cmd[maybe[()]]
 }
+
+let pub out = main()

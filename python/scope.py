@@ -69,10 +69,10 @@ def parse_file(file_path, base_path, parent_imports):
         tree = file.parse(n_parser)
     except lark.exceptions.UnexpectedCharacters as e:
         print(format_error(e, file))
-        exit()
+        sys.exit()
     except lark.exceptions.UnexpectedEOF as e:
         print(format_error(e, file))
-        exit()
+        sys.exit()
 
     return import_scope, tree, file
 
@@ -854,13 +854,9 @@ class Scope:
                 return await self.eval_expr(if_true)
             else:
                 return await self.eval_expr(if_false)
-        elif expr.data == "function_def" or expr.data == "anonymous_func":
-            if expr.data == "function_def":
-                arguments, returntype, codeblock = expr.children
-            else:
-                arguments, returntype, *codeblock = expr.children
-                codeblock = lark.tree.Tree("code_block", codeblock)
-            _, arguments = get_arguments(arguments)
+        elif expr.data == "function_def":
+            arguments, returntype, codeblock = expr.children
+            arguments = arguments.children
             return Function(
                 self,
                 [self.get_name_type(arg, get_type=False) for arg in arguments],
@@ -991,7 +987,10 @@ class Scope:
             if operation.type == "SUBTRACT":
                 return -await self.eval_expr(value)
             elif operation.type == "NOT":
-                return not await self.eval_expr(value)
+                val = await self.eval_expr(value)
+                if isinstance(val, bool):
+                    return not val
+                return ~val 
             else:
                 raise SyntaxError(
                     "Unexpected operation for unary_expression: %s" % operation
@@ -1485,12 +1484,8 @@ class Scope:
                         )
                     )
             return return_type
-        elif expr.data == "function_def" or expr.data == "anonymous_func":
-            if expr.data == "function_def":
-                arguments, returntype, codeblock = expr.children
-            else:
-                arguments, returntype, *cb = expr.children
-                codeblock = lark.tree.Tree("code_block", cb)
+        elif expr.data == "function_def":
+            arguments, returntype, codeblock = expr.children
             generic_types = []
             generics, arguments = get_arguments(arguments)
             wrap_scope = self.new_scope()

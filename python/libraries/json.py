@@ -2,7 +2,7 @@ import json
 import math
 
 from enums import EnumType, EnumValue
-from native_types import n_list_type, n_map_type, NMap, n_maybe_type, yes
+from native_types import n_list_type, n_map_type, NMap, n_maybe_type, yes, none
 
 json_value_type = EnumType(
     "value",
@@ -90,14 +90,17 @@ def json_to_python(enum_value):
 
 
 def parse(string):
-    return python_to_json(json.loads(string))
+    try:
+        return python_to_json(json.loads(string))
+    except:
+        return null
 
 
 def parseSafe(string):
     try:
         return yes(python_to_json(json.loads(string)))
     except:
-        return None
+        return none
 
 
 def convert_float_to_int(value):

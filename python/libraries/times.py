@@ -7,7 +7,7 @@ async def sleep(time):
     await asyncio.sleep(time / 1000)
 
 
-async def getTime():
+async def getTime(unit):
     return t.time() * 1000
 
 

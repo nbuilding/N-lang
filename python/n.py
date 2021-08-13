@@ -129,7 +129,7 @@ def run_file(filename, check=False):
 
     try:
         asyncio.get_event_loop().run_until_complete(parse_tree(global_scope, tree))
-        return None
+        return global_scope
     except Exception as err:
         debug = os.environ.get("N_ST_DEBUG") == "dev"
         if debug:
