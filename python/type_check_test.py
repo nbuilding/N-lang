@@ -15,8 +15,11 @@ class AssertionTestCases(unittest.TestCase):
 
         def test_method(self):
             errors = run_file(file_path)
-            if errors is not None:
+            if isinstance(errors, str):
                 raise Exception(errors)
+            for unit_test in errors.unit_tests:
+                if not unit_test["hasPassed"]:
+                    raise Exception(unit_test)
 
         # Dynamically add methods to the class
         # https://stackoverflow.com/a/17930262

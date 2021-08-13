@@ -169,7 +169,6 @@ let pub main = [_: ()] -> cmd[()] {
 		onDisconnect: websocket.user -> maybe[{ code: int; reason: str }] -> cmd[bool]
 	}
 	assert type websocket.createServer : setupOptions -> int -> cmd[maybe[()]]
-	assert value 1 == 2
 }
 
 let pub out = main()
