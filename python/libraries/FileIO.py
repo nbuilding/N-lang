@@ -5,18 +5,6 @@ from os.path import isfile, join
 from aiofile import async_open
 from native_types import n_cmd_type, n_maybe_type, yes, none, n_list_type
 
-def over_or_under_flow(numb):
-    out = numb
-
-    while out < 0:
-        out += 256
-
-    while out > 256:
-        out -= 256
-
-    return out
-
-
 async def write(path, content):
     try:
         if not os.path.exists(os.path.split(os.path.abspath(path))[0]):
@@ -48,7 +36,7 @@ async def writeBytes(path, content):
         if not os.path.exists(os.path.split(os.path.abspath(path))[0]):
             os.mkdir(os.path.split(os.path.abspath(path))[0])
         async with async_open(path, "w+", encoding="utf-8") as f:
-            await f.write("".join([chr(over_or_under_flow(c)) for c in content]))
+            await f.write("".join([chr(c % 256) for c in content]))
     except:
         pass
 
@@ -56,7 +44,7 @@ async def writeBytes(path, content):
 async def appendBytes(path, content):
     try:
         async with async_open(path, "a+", encoding="utf-8") as f:
-            await f.write("".join([chr(over_or_under_flow(c)) for c in content]))
+            await f.write("".join([chr(c % 256) for c in content]))
     except:
         pass
 
