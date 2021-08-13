@@ -239,7 +239,7 @@ def resolve_equal_special_types(type_a, type_b):
                 resolved_typevars.append(resolved)
         return type_a.with_typevars(resolved_typevars), False
     elif isinstance(type_a, list) or isinstance(type_b, tuple):
-        if (not isinstance(type_b, list) and not isinstance(type_b, tuple)) or len(type_a) != len(type_b):
+        if type_a is None or type_b is None or (not isinstance(type_b, list) and not isinstance(type_b, tuple)) or len(type_a) != len(type_b):
             return None, True
         resolved_types = []
         for item_a, item_b in zip(type_a, type_b):
