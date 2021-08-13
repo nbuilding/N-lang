@@ -25,7 +25,7 @@ try:
 
     init()
 
-    VERSION = "N v1.3.1"
+    VERSION = "N v1.3.2"
 except KeyboardInterrupt:
     exit()
 
