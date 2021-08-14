@@ -1,7 +1,7 @@
 (function () {
   var undefined; // This helps minifiers to use a shorter variable name than `void 0`.
   var valueAssertionResults_n = {};
-  for (var i = 0; i < 34; i++) {
+  for (var i = 0; i < 40; i++) {
     valueAssertionResults_n[i] = false;
   }
   function print_3(value) {
@@ -15,8 +15,41 @@
   function yes_154(value) {
     return value;
   }
-  var unit_158 = {};
-  function len_167(value) {
+  var unit_159 = {};
+  function deepEqual_190(a, b) {
+    if (typeof a === "object") {
+      // Array.isArray: IE9+
+      if (Array.isArray(a)) {
+        if (a.length !== b.length) {
+          return false;
+        }
+        for (var i = 0; i < a.length; i++) {
+          if (!deepEqual_190(a[i], b[i])) {
+            return false;
+          }
+        }
+      } else {
+        // Object.keys: IE9+
+        var keys = Object.keys(a);
+        if (keys.length !== Object.keys(b).length) {
+          return false;
+        }
+        for (var i = 0; i < keys.length; i++) {
+          if (keys[i] in b) {
+            if (!deepEqual_190(a[keys[i]], b[keys[i]])) {
+              return false;
+            }
+          } else {
+            return false;
+          }
+        }
+      }
+      return true;
+    } else {
+      return a === b;
+    }
+  }
+  function len_193(value) {
     if (typeof value === "string") {
       var highSurrogates = 0;
       for (var i = 0; i < string.length; i++) {
@@ -342,27 +375,61 @@
   }
   var funcExpr_157 = (yes_154);
   var transform_156 = function () {
-    return funcExpr_157(unit_158);
+    var return_158 = funcExpr_157(unit_159);
+    return "TODO";
   };
-  var compA_159 = transform_156(), compB_160 = undefined;
-  assertValue_7(29, compA_159 !== compB_160);
-  var compA_161 = (yes_154)((null_41)()), compB_162 = undefined;
-  assertValue_7(30, compA_161 !== compB_162);
-  var compA_163 = (yes_154)((thisIsNull_130)()), compB_164 = undefined;
-  assertValue_7(31, compA_163 !== compB_164);
-  var compA_165 = (yes_154)(false), compB_166 = undefined;
-  assertValue_7(32, compA_165 !== compB_166);
-  var compA_168 = (len_167)((wee_127)(1)(2)), compB_169 = 0;
-  assertValue_7(33, compA_168 === compB_169);
-  function main_170(callback) {
+  var funcExpr_162 = (yes_154);
+  var transform_161 = function () {
+    var return_163 = funcExpr_162(unit_159);
+    return "TODO";
+  };
+  var compA_164 = transform_156(), compB_165 = transform_161();
+  assertValue_7(29, compA_164 === compB_165);
+  var funcExpr_168 = (yes_154);
+  var transform_167 = function () {
+    var return_169 = funcExpr_168(unit_159);
+    return "TODO";
+  };
+  var compA_170 = transform_167(), compB_171 = undefined;
+  assertValue_7(30, compA_170 !== compB_171);
+  var compA_172 = (yes_154)((null_41)()), compB_173 = (yes_154)((null_41)());
+  assertValue_7(31, (compA_172 && compB_173 ? compA_172[0] === compB_173[0] : compA_172 === compB_173));
+  var compA_174 = (yes_154)((null_41)()), compB_175 = undefined;
+  assertValue_7(32, compA_174 !== compB_175);
+  var compA_176 = (yes_154)((thisIsNull_130)()), compB_177 = (yes_154)((thisIsNull_130)());
+  assertValue_7(33, (compA_176 && compB_177 ? compA_176[0] === compB_177[0] : compA_176 === compB_177));
+  var compA_178 = (yes_154)((thisIsNull_130)()), compB_179 = undefined;
+  assertValue_7(34, compA_178 !== compB_179);
+  var compA_180 = (yes_154)(false), compB_181 = (yes_154)(false);
+  assertValue_7(35, compA_180 === compB_181);
+  var compA_182 = (yes_154)(false), compB_183 = undefined;
+  assertValue_7(36, compA_182 !== compB_183);
+  var nullableEnum_184 = function (enumConstructorArg_185) {
+    return [enumConstructorArg_185];
+  };
+  var alsoNull_186;
+  var mayBeConfusedWithAlsoNull_187;
+  mayBeConfusedWithAlsoNull_187 = (nullableEnum_184)((thisIsNull_130)());
+  (print_3)(["AHHH 1", alsoNull_186, mayBeConfusedWithAlsoNull_187]);
+  var compA_188 = alsoNull_186, compB_189 = mayBeConfusedWithAlsoNull_187;
+  assertValue_7(37, (compA_188 && compB_189 ? (compA_188[0] && compB_189[0] ? !deepEqual_190(compA_188[0], compB_189[0]) : compA_188[0] !== compB_189[0]) : compA_188 !== compB_189));
+  var ifLetValue_191 = mayBeConfusedWithAlsoNull_187;
+  var ifLetResult_192 = false;
+  do {
+    if (ifLetValue_191) break;
+    ifLetResult_192 = true;
+  } while (false);
+  assertValue_7(38, ifLetResult_192 ? false : true);
+  var compA_194 = (len_193)((wee_127)(1)(2)), compB_195 = 0;
+  assertValue_7(39, compA_194 === compB_195);
+  function main_196(callback) {
     if (callback) callback();
     if (typeof Promise !== "undefined") {
       return Promise.resolve()
     }
   }
-  main_170();
   return {
     valueAssertions: valueAssertionResults_n,
-    main: main_170,
+    main: main_196,
   };
 })();

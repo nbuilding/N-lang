@@ -111,7 +111,7 @@ if let <alsoAlsoEmpty value> = alsoAlsoEmpty() { assert value value == () }
 
 // These enums are also nullable.
 
-type _nullableEnum =
+type nullableEnum =
 	| <wee int int>
 	| <thisIsNull unit>
 	| <wow int>
@@ -150,6 +150,16 @@ assert value yes(thisIsNull(justMe()())) /= none
 // Also, if I am careless, `maybe[bool]` might confuse `false` and `undefined`.
 assert value yes(false) == yes(false)
 assert value yes(false) /= none
+
+type _nullableInNullable =
+	| <nullableEnum nullableEnum>
+	| alsoNull
+
+let mayBeConfusedWithAlsoNull = nullableEnum(thisIsNull(justMe()()))
+print(("AHHH 1", alsoNull, mayBeConfusedWithAlsoNull))
+assert value alsoNull /= mayBeConfusedWithAlsoNull
+assert value
+	if let <alsoNull> = mayBeConfusedWithAlsoNull { false } else { true }
 
 // And `len` might think enums are lists since it accepts any value.
 assert value len(wee(1, 2)) == 0

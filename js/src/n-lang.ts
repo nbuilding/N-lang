@@ -109,8 +109,9 @@ async function main () {
   if (errors > 0) return
 
   const compiled = checker.compile(result, { module: { type: 'iife' } })
-  if (js) console.log(compiled)
-  // await fs.writeFile(fileName.replace(/\.n$/, '.js'), compiled)
+  if (js) {
+    await fs.writeFile(fileName.replace(/\.n$/, '.js'), compiled)
+  }
   // Indirect call of eval to run in global scope
   if (running) {
     const { valueAssertions, main }: CompiledExports = (null, eval)(compiled)

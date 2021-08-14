@@ -1,5 +1,26 @@
 import { isUnitLike } from '../type-checker/types/isUnitLike'
-import { EnumType } from '../type-checker/types/types'
+import { EnumType, NType } from '../type-checker/types/types'
+import { EnumSpec } from '../type-checker/types/TypeSpec'
+
+/**
+ * Determines whether `type` is an enum type whose representation is a nullable
+ * maybe.
+ *
+ * This is because if the nullable maybe enum is used in another nullable maybe
+ * enum, then because nullable maybe enum values are unprotected (not wrapped in
+ * an array or something), `undefined` will become ambiguous. Thus, the inner
+ * nullable maybe enum is not safe to be represented inside another nullable
+ * maybe enum (a one-item tuple is a suitable alternative).
+ */
+function isNullableMaybe (type: NType): boolean {
+  if (!EnumSpec.isEnum(type)) return false
+  const representation = normaliseEnum(type)
+  return (
+    ((representation.type === 'maybe' || representation.type === 'tuple') &&
+      representation.null !== undefined) ||
+    (representation.type === 'enum' && representation.nullable)
+  )
+}
 
 /**
  * The JS representation of an enum.
@@ -72,13 +93,13 @@ export function normaliseEnum ({
   /** Variant names with no fields */
   const fieldlessVariants: string[] = []
   /** Variant names with the number of fields */
-  const fieldfulVariants: [string, number][] = []
+  const fieldfulVariants: [string, NType[]][] = []
   for (const [name, types] of typeSpec.getVariants(typeVars)) {
-    const nonUnitLikeTypeCount = types.filter(type => !isUnitLike(type)).length
-    if (nonUnitLikeTypeCount === 0) {
+    const nonUnitLikeTypes = types.filter(type => !isUnitLike(type))
+    if (nonUnitLikeTypes.length === 0) {
       fieldlessVariants.push(name)
     } else {
-      fieldfulVariants.push([name, nonUnitLikeTypeCount])
+      fieldfulVariants.push([name, nonUnitLikeTypes])
     }
   }
   if (fieldfulVariants.length === 0) {
@@ -89,11 +110,12 @@ export function normaliseEnum ({
     } else {
       return { type: 'union', variants: fieldlessVariants }
     }
-  } else if (fieldlessVariants.length <= 1 && fieldfulVariants.length === 1) {
-    const [name, fields] = fieldfulVariants[0]
+  } else if (fieldfulVariants.length === 1 && fieldlessVariants.length <= 1) {
     // `fields` must be >= 1; otherwise it'd be fieldless
+    const [name, fields] = fieldfulVariants[0]
     return {
-      type: fields === 1 ? 'maybe' : 'tuple',
+      type:
+        fields.length === 1 && !isNullableMaybe(fields[0]) ? 'maybe' : 'tuple',
       nonNull: name,
       null: fieldlessVariants[0],
     }

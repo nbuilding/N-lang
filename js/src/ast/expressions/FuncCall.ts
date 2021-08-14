@@ -22,7 +22,7 @@ import {
 } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { callFunction } from '../../type-checker/types/comparisons/compare-assignable'
-import { bool, float, int, str, unit } from '../../type-checker/types/builtins'
+import { unit } from '../../type-checker/types/builtins'
 import { CompilationScope } from '../../compiler/CompilationScope'
 import { isUnitLike } from '../../type-checker/types/isUnitLike'
 import { AliasSpec, FuncTypeVarSpec } from '../../type-checker/types/TypeSpec'
@@ -150,12 +150,12 @@ export class FuncCall extends Base implements Expression, Statement {
 
             funcType = funcType.return
           }
-          console.log(args)
           const returnType = funcType
           // Create a function that receives each argument and then transforms
           // it to/from a FTV
           const transform = scope.context.genVarName('transform')
           const funcExpr = scope.context.genVarName('funcExpr')
+          const returnWithTypeVars = scope.context.genVarName('return')
           statements.push(
             `var ${funcExpr} = ${expression};`,
             ...scope.functionExpression(
@@ -164,15 +164,21 @@ export class FuncCall extends Base implements Expression, Statement {
                 statements: [],
               })),
               scope => [
-                // TODO: Transform return type (if necessary)
-                `return ${funcExpr}${args.map(
-                  ([argName, argType]) =>
-                    `(${
-                      isUnitLike(argType)
-                        ? scope.context.require('unit')
-                        : argName
-                    })`,
-                )};`,
+                `var ${returnWithTypeVars} = ${funcExpr}${args
+                  .map(
+                    ([argName, argType]) =>
+                      `(${scope.context.makeUnitConverter(
+                        argName,
+                        argType,
+                        true,
+                      ) ?? argName})`,
+                  )
+                  .join('')};`,
+                `return ${scope.context.makeUnitConverter(
+                  returnWithTypeVars,
+                  returnType,
+                  false,
+                ) ?? returnWithTypeVars};`,
               ],
               `var ${transform} = `,
               ';',

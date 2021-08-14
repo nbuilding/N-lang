@@ -834,10 +834,8 @@ export class ErrorDisplayer {
         : 'Assertion failed'
     }: The expression in the ${this._displayInlineCode(
       'assert value',
-    )} statement returned false.\n\n${this._displayCode(
-      path,
-      lines,
-      assertion.expression,
-    )}`
+    )} statement returned false. (Compiled ID ${
+      assertion.id
+    })\n\n${this._displayCode(path, lines, assertion.expression)}`
   }
 }

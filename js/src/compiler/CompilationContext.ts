@@ -1,16 +1,19 @@
 import { generateNames } from '../../test/unit/utils/generate-names'
 import { Block } from '../ast'
 import { modules } from '../native-modules'
-import { NRecord } from '../type-checker/types/types'
+import { NRecord, NType } from '../type-checker/types/types'
 import { CompilationGlobalScope } from '../global-scope/CompilationGlobalScope'
 import { functions } from './functions'
+import { list, cmd, map, str } from '../type-checker/types/builtins'
+import { isUnitLike } from '../type-checker/types/isUnitLike'
+import { EnumSpec } from '../type-checker/types/TypeSpec'
+import { normaliseEnum } from './EnumRepresentation'
 
 export interface HasExports {
   names: Map<string, string>
 }
 
 export class CompilationContext {
-
   /** Maps module IDs to their exported variable names */
   private _modules: Map<string, HasExports> = new Map()
 
@@ -99,6 +102,61 @@ export class CompilationContext {
       this.dependencies.push(...lines)
       this.required.set(name, mangled)
       return mangled
+    }
+  }
+
+  /**
+   * Create an expression that transforms `name` to replace all unit-like types
+   * with something truthy like `unit` (an empty object) if `toTypevar` is true
+   * or with `undefined` if `toTypevar` is false.
+   *
+   * Returns `null` if nothing needs changing. Prevents unnecessary `.map`s.
+   */
+  makeUnitConverter (
+    name: string,
+    type: NType,
+    toTypevar: boolean,
+  ): string | null {
+    if (isUnitLike(type)) {
+      return toTypevar ? this.require('unit') : 'undefined'
+    } else if (type.type === 'named') {
+      if (type.typeSpec === list) {
+        const typeVar = this.makeUnitConverter(
+          'item',
+          type.typeVars[0],
+          toTypevar,
+        )
+        // Array#map: IE9+
+        return typeVar && `${name}.map(function (item) { return ${typeVar}; })`
+      } else if (type.typeSpec === cmd) {
+        const typeVar = this.makeUnitConverter(
+          'result',
+          type.typeVars[0],
+          toTypevar,
+        )
+        return (
+          typeVar &&
+          `function (callback) { return ${name}(function (result) { callback(${typeVar}); }); }`
+        )
+      } else if (type.typeSpec === map) {
+        throw new Error('TODO: Maps')
+      } else if (EnumSpec.isEnum(type)) {
+        const representationWithUnit = normaliseEnum(type)
+        const representationWithTypeVars = normaliseEnum({
+          ...type,
+          // Really, any non-unit-like type would probably work.
+          typeVars: type.typeVars.map(() => str),
+        })
+        if (toTypevar) {
+          return '"TODO"'
+        } else {
+          return '"TODO"'
+        }
+      } else {
+        return null
+      }
+    } else {
+      return null
     }
   }
 }

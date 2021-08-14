@@ -228,10 +228,10 @@ export class Comparisons extends Base implements Expression {
             return 'true'
           }
           case 'bool':
-          case 'union':
-          case 'maybe': {
+          case 'union': {
             return `${a} ${operator} ${b}`
           }
+          case 'maybe':
           case 'tuple': {
             const nonNullVariant = type.typeSpec.variants.get(
               representation.nonNull,
@@ -241,21 +241,30 @@ export class Comparisons extends Base implements Expression {
                 `What happened to the ${representation.nonNull} variant?`,
               )
             }
-            const tupleComp = nonNullVariant.types
-              .map((type, i) =>
-                this._compileEqual(
-                  scope,
-                  `${a}[${i}]`,
-                  `${b}[${i}]`,
-                  type,
-                  equal,
-                ),
-              )
-              .join(` ${conjunction} `)
-            if (representation.null) {
-              return `(${a} ${conjunction} ${b} ? ${tupleComp} : ${a} ${operator} ${b})`
+            const comp =
+              representation.type === 'tuple'
+                ? nonNullVariant.types
+                    .map((type, i) =>
+                      this._compileEqual(
+                        scope,
+                        `${a}[${i}]`,
+                        `${b}[${i}]`,
+                        type,
+                        equal,
+                      ),
+                    )
+                    .join(` ${conjunction} `)
+                : this._compileEqual(
+                    scope,
+                    a,
+                    b,
+                    nonNullVariant.types[0],
+                    equal,
+                  )
+            if (representation.null && comp !== `${a} ${operator} ${b}`) {
+              return `(${a} && ${b} ? ${comp} : ${a} ${operator} ${b})`
             } else {
-              return tupleComp
+              return comp
             }
           }
           default: {
@@ -264,7 +273,7 @@ export class Comparisons extends Base implements Expression {
               'deepEqual',
             )}(${a}, ${b})`
             if (representation.nullable) {
-              return `(${a} ${conjunction} ${b} ? ${deepComp} : ${a} ${operator} ${b})`
+              return `(${a} && ${b} ? ${deepComp} : ${a} ${operator} ${b})`
             } else {
               return deepComp
             }
@@ -283,7 +292,7 @@ export class Comparisons extends Base implements Expression {
           equal,
         )} })`
       } else if (type.typeSpec === map) {
-        throw new Error("I haven't figured out maps yet")
+        throw new Error("TODO: I haven't figured out maps yet")
       } else {
         return `${a} ${operator} ${b}`
       }
