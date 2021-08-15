@@ -1,13 +1,37 @@
 import { generateNames } from '../../test/unit/utils/generate-names'
 import { Block } from '../ast'
 import { modules } from '../native-modules'
-import { NRecord, NType } from '../type-checker/types/types'
+import {
+  FuncTypeVar,
+  NRecord,
+  NType,
+  NTypeKnown,
+  substitute,
+} from '../type-checker/types/types'
 import { CompilationGlobalScope } from '../global-scope/CompilationGlobalScope'
 import { functions } from './functions'
 import { list, cmd, map, str } from '../type-checker/types/builtins'
 import { isUnitLike } from '../type-checker/types/isUnitLike'
-import { EnumSpec } from '../type-checker/types/TypeSpec'
+import { EnumSpec, FuncTypeVarSpec } from '../type-checker/types/TypeSpec'
 import { normaliseEnum } from './EnumRepresentation'
+import { fromEntries } from '../utils/from-entries'
+
+function surround (
+  lines: string[],
+  { prefix = '', suffix = '' } = {},
+): string[] {
+  if (lines.length === 0) {
+    return prefix + suffix ? [prefix + suffix] : []
+  } else if (lines.length === 1) {
+    return [prefix + lines[0] + suffix]
+  } else {
+    return [
+      prefix + lines[0],
+      ...lines.slice(1, -1),
+      lines[lines.length - 1] + suffix,
+    ]
+  }
+}
 
 export interface HasExports {
   names: Map<string, string>
@@ -115,48 +139,183 @@ export class CompilationContext {
   makeUnitConverter (
     name: string,
     type: NType,
-    toTypevar: boolean,
-  ): string | null {
-    if (isUnitLike(type)) {
-      return toTypevar ? this.require('unit') : 'undefined'
+    substitutions: Map<FuncTypeVarSpec, NTypeKnown>,
+    toTypeVar: boolean,
+    inTypeVar = false,
+  ): { statements: string[]; expression: string } | null {
+    if (inTypeVar && isUnitLike(type)) {
+      return {
+        statements: [],
+        expression: toTypeVar ? this.require('unit') : 'undefined',
+      }
     } else if (type.type === 'named') {
       if (type.typeSpec === list) {
+        const item = this.genVarName('item')
         const typeVar = this.makeUnitConverter(
-          'item',
+          item,
           type.typeVars[0],
-          toTypevar,
+          substitutions,
+          toTypeVar,
+          inTypeVar,
         )
-        // Array#map: IE9+
-        return typeVar && `${name}.map(function (item) { return ${typeVar}; })`
+        if (typeVar) {
+          const result = this.genVarName('result')
+          return {
+            statements: [
+              // Array#map: IE9+
+              `var ${result} = ${name}.map(function (${item}) {`,
+              ...this.indent([
+                ...typeVar.statements,
+                `return ${typeVar.expression};`,
+              ]),
+              `});`,
+            ],
+            expression: result,
+          }
+        }
       } else if (type.typeSpec === cmd) {
+        const result = this.genVarName('result')
         const typeVar = this.makeUnitConverter(
-          'result',
+          result,
           type.typeVars[0],
-          toTypevar,
+          substitutions,
+          toTypeVar,
+          inTypeVar,
         )
-        return (
-          typeVar &&
-          `function (callback) { return ${name}(function (result) { callback(${typeVar}); }); }`
-        )
+        if (typeVar) {
+          const callback = this.genVarName('callback')
+          return {
+            statements: [
+              `function (${callback}) {`,
+              `  return ${name}(function (${result}) {`,
+              ...this.indent(
+                this.indent([
+                  ...typeVar.statements,
+                  `${callback}(${typeVar.expression});`,
+                ]),
+              ),
+              '  });',
+              '}',
+            ],
+            expression: '',
+          }
+        }
       } else if (type.typeSpec === map) {
         throw new Error('TODO: Maps')
       } else if (EnumSpec.isEnum(type)) {
-        const representationWithUnit = normaliseEnum(type)
-        const representationWithTypeVars = normaliseEnum({
-          ...type,
-          // Really, any non-unit-like type would probably work.
-          typeVars: type.typeVars.map(() => str),
-        })
-        if (toTypevar) {
-          return '"TODO"'
-        } else {
-          return '"TODO"'
+        const substituted = substitute(type, substitutions)
+        if (!EnumSpec.isEnum(substituted)) {
+          throw new Error('Substituted enum is not enum anymore??')
         }
-      } else {
-        return null
+        const typeSpec = type.typeSpec
+        if (typeSpec !== substituted.typeSpec) {
+          throw new Error('Odd, type spec changed??')
+        }
+        const from = normaliseEnum(toTypeVar ? type : substituted)
+        const to = normaliseEnum(toTypeVar ? substituted : type)
+        if (JSON.stringify(from) !== JSON.stringify(to)) {
+          const rawEnum = this.genVarName('enum')
+          const variants = fromEntries(typeSpec.variants, (name, variant) => [
+            name,
+            variant.types ?? [],
+          ])
+          const variantNames = [...typeSpec.variants.keys()]
+          const toFields = (variantId: string | number) => {
+            let fieldIndex = 0
+            return `[${
+              typeof variantId === 'number'
+                ? variantId
+                : variantNames.indexOf(variantId)
+            }${variants[
+              typeof variantId === 'number'
+                ? variantNames[variantId]
+                : variantId
+            ].map(
+              type =>
+                `, ${
+                  isUnitLike(type)
+                    ? this.require('unit')
+                    : this.makeUnitConverter(
+                        `${name}[${fieldIndex++}]`,
+                        type,
+                        substitutions,
+                        toTypeVar,
+                        inTypeVar,
+                      )
+                }`,
+            )}]`
+          }
+          // 1. Convert the enum to the common form (basically, the `enum`
+          //    representation but with unit-like types filled in)
+          const statements = [`var ${rawEnum};`]
+          switch (from.type) {
+            case 'unit': {
+              statements.push(`${rawEnum} = ${toFields(0)};`)
+              break
+            }
+            case 'bool': {
+              statements.push(
+                `if (${name}) {`,
+                `  ${rawEnum} = ${toFields(1)};`,
+                '} else {',
+                `  ${rawEnum} = ${toFields(0)};`,
+                '}',
+              )
+              break
+            }
+            case 'union': {
+              for (let i = 0; i < variantNames.length; i++) {
+                statements.push(
+                  i === 0
+                    ? `if (${name} === 0) {`
+                    : i === variantNames.length - 1
+                    ? '} else {'
+                    : `} else if (${name} === ${i}) {`,
+                  `  ${rawEnum} = ${toFields(i)}`,
+                )
+              }
+              statements.push('}')
+              break
+            }
+            case 'maybe': {
+              if (from.null) {
+                statements.push(
+                  `if (${name} === undefined) {`,
+                  `  ${rawEnum} = ${toFields(from.null)};`,
+                  '} else {',
+                  `  ${rawEnum} = ${toFields(from.nonNull)};`,
+                  '}',
+                )
+              } else {
+                statements.push(`${rawEnum} = ${toFields(from.nonNull)};`)
+              }
+              break
+            }
+            case 'tuple': {
+              if (from.null) {
+                //
+              }
+              break
+            }
+            case 'enum': {
+              //
+              break
+            }
+          }
+        }
+      } else if (!inTypeVar && type.typeSpec instanceof FuncTypeVarSpec) {
+        const substitution = substitutions.get(type.typeSpec)
+        if (substitution) {
+          return this.makeUnitConverter(
+            name,
+            substitution,
+            substitutions,
+            toTypeVar,
+            true,
+          )
+        }
       }
-    } else {
-      return null
     }
+    return null
   }
 }

@@ -1,9 +1,4 @@
-import {
-  EnumRepresentation,
-  normaliseEnum,
-} from '../../compiler/EnumRepresentation'
 import { uniqueId } from '../../utils/uuid'
-import { iterableTypes } from './operations'
 import {
   NType,
   NamedType,

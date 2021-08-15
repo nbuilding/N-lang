@@ -12,7 +12,7 @@ import { EnumSpec } from '../type-checker/types/TypeSpec'
  * nullable maybe enum is not safe to be represented inside another nullable
  * maybe enum (a one-item tuple is a suitable alternative).
  */
-function isNullableMaybe (type: NType): boolean {
+export function isNullableMaybe (type: NType): boolean {
   if (!EnumSpec.isEnum(type)) return false
   const representation = normaliseEnum(type)
   return (

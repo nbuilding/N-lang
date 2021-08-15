@@ -26,12 +26,18 @@ import { unit } from '../../type-checker/types/builtins'
 import { CompilationScope } from '../../compiler/CompilationScope'
 import { isUnitLike } from '../../type-checker/types/isUnitLike'
 import { AliasSpec, FuncTypeVarSpec } from '../../type-checker/types/TypeSpec'
+import { isNullableMaybe } from '../../compiler/EnumRepresentation'
 
 export class FuncCall extends Base implements Expression, Statement {
   func: Expression
   params: Expression[]
   private _paramTypes: NType[]
   private _substitutions: Map<FuncTypeVarSpec, NTypeKnown>[]
+  /**
+   * A list of function types containing all the remaining arguments. Contains
+   * the unsubstituted (unresolved) function argument types, which may include
+   * the type variables.
+   */
   private _funcTypes: NFunction[]
 
   constructor (
@@ -136,15 +142,12 @@ export class FuncCall extends Base implements Expression, Statement {
     if (this.params.length > 0) {
       this.params.forEach((param, i) => {
         // Keep only FTV resolutions to unit-like values
-        const substitutions = [...this._substitutions[i]].filter(([, type]) =>
-          isUnitLike(type),
+        const substitutions = [...this._substitutions[i]].filter(
+          ([, type]) => isUnitLike(type) || isNullableMaybe(type),
         )
         if (substitutions.length > 0) {
           const args: [string, NType][] = []
-          let funcType: NType = substitute(
-            this._funcTypes[i],
-            this._substitutions[i],
-          )
+          let funcType: NType = this._funcTypes[i]
           while (funcType.type === 'function') {
             args.push([scope.context.genVarName('arg'), funcType.argument])
 
@@ -170,6 +173,7 @@ export class FuncCall extends Base implements Expression, Statement {
                       `(${scope.context.makeUnitConverter(
                         argName,
                         argType,
+                        this._substitutions[i],
                         true,
                       ) ?? argName})`,
                   )
@@ -177,6 +181,7 @@ export class FuncCall extends Base implements Expression, Statement {
                 `return ${scope.context.makeUnitConverter(
                   returnWithTypeVars,
                   returnType,
+                  this._substitutions[i],
                   false,
                 ) ?? returnWithTypeVars};`,
               ],
