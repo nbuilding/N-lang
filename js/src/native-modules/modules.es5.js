@@ -58,7 +58,7 @@ function parse (json) {
 
 function parseSafe (json) {
   try {
-    return jsValueToJson(JSON.parse(json))
+    return [jsValueToJson(JSON.parse(json))]
   } catch (_) {
     return
   }

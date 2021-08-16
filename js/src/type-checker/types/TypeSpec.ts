@@ -89,6 +89,9 @@ export class EnumSpec extends TypeSpec {
     if (!variant.types) {
       throw new Error('Variant has no types??')
     }
+    if (this.typeVars.length === 0) {
+      return variant.types
+    }
     const substitutions: Map<TypeSpec, NType> = new Map()
     typeVars.forEach((typeVar, i) => {
       substitutions.set(this.typeVars[i], typeVar)

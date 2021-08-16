@@ -1,5 +1,5 @@
 import { isUnitLike } from '../type-checker/types/isUnitLike'
-import { EnumType, NType } from '../type-checker/types/types'
+import { EnumType, NType, substitute } from '../type-checker/types/types'
 import { EnumSpec } from '../type-checker/types/TypeSpec'
 
 /**
@@ -94,8 +94,11 @@ export function normaliseEnum ({
   const fieldlessVariants: string[] = []
   /** Variant names with the number of fields */
   const fieldfulVariants: [string, NType[]][] = []
-  for (const [name, types] of typeSpec.getVariants(typeVars)) {
-    const nonUnitLikeTypes = types.filter(type => !isUnitLike(type))
+  for (const [name, variant] of typeSpec.variants) {
+    if (variant.types === null) {
+      throw new Error('Why are the types null?')
+    }
+    const nonUnitLikeTypes = variant.types.filter(type => !isUnitLike(type))
     if (nonUnitLikeTypes.length === 0) {
       fieldlessVariants.push(name)
     } else {
@@ -113,9 +116,17 @@ export function normaliseEnum ({
   } else if (fieldfulVariants.length === 1 && fieldlessVariants.length <= 1) {
     // `fields` must be >= 1; otherwise it'd be fieldless
     const [name, fields] = fieldfulVariants[0]
+    let type: 'maybe' | 'tuple' = 'tuple'
+    if (fields.length === 1) {
+      // For cases like maybe[()] or maybe[json.value], the contained value
+      // might also be `undefined`, so they can't be stored unwrapped.
+      const substituted = typeSpec.getVariant(name, typeVars)[0]
+      if (!isUnitLike(substituted) && !isNullableMaybe(substituted)) {
+        type = 'maybe'
+      }
+    }
     return {
-      type:
-        fields.length === 1 && !isNullableMaybe(fields[0]) ? 'maybe' : 'tuple',
+      type,
       nonNull: name,
       null: fieldlessVariants[0],
     }

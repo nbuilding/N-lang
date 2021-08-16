@@ -13,7 +13,7 @@ import { functions } from './functions'
 import { list, cmd, map, str } from '../type-checker/types/builtins'
 import { isUnitLike } from '../type-checker/types/isUnitLike'
 import { EnumSpec, FuncTypeVarSpec } from '../type-checker/types/TypeSpec'
-import { normaliseEnum } from './EnumRepresentation'
+import { isNullableMaybe, normaliseEnum } from './EnumRepresentation'
 import { fromEntries } from '../utils/from-entries'
 
 function surround (
@@ -141,14 +141,8 @@ export class CompilationContext {
     type: NType,
     substitutions: Map<FuncTypeVarSpec, NTypeKnown>,
     toTypeVar: boolean,
-    inTypeVar = false,
   ): { statements: string[]; expression: string } | null {
-    if (inTypeVar && isUnitLike(type)) {
-      return {
-        statements: [],
-        expression: toTypeVar ? this.require('unit') : 'undefined',
-      }
-    } else if (type.type === 'named') {
+    if (type.type === 'named') {
       if (type.typeSpec === list) {
         const item = this.genVarName('item')
         const typeVar = this.makeUnitConverter(
@@ -156,7 +150,6 @@ export class CompilationContext {
           type.typeVars[0],
           substitutions,
           toTypeVar,
-          inTypeVar,
         )
         if (typeVar) {
           const result = this.genVarName('result')
@@ -180,7 +173,6 @@ export class CompilationContext {
           type.typeVars[0],
           substitutions,
           toTypeVar,
-          inTypeVar,
         )
         if (typeVar) {
           const callback = this.genVarName('callback')
@@ -203,6 +195,7 @@ export class CompilationContext {
       } else if (type.typeSpec === map) {
         throw new Error('TODO: Maps')
       } else if (EnumSpec.isEnum(type)) {
+        const typeVarRepr = normaliseEnum(type)
         const substituted = substitute(type, substitutions)
         if (!EnumSpec.isEnum(substituted)) {
           throw new Error('Substituted enum is not enum anymore??')
@@ -214,105 +207,15 @@ export class CompilationContext {
         const from = normaliseEnum(toTypeVar ? type : substituted)
         const to = normaliseEnum(toTypeVar ? substituted : type)
         if (JSON.stringify(from) !== JSON.stringify(to)) {
-          const rawEnum = this.genVarName('enum')
-          const variants = fromEntries(typeSpec.variants, (name, variant) => [
-            name,
-            variant.types ?? [],
-          ])
-          const variantNames = [...typeSpec.variants.keys()]
-          const toFields = (variantId: string | number) => {
-            let fieldIndex = 0
-            return `[${
-              typeof variantId === 'number'
-                ? variantId
-                : variantNames.indexOf(variantId)
-            }${variants[
-              typeof variantId === 'number'
-                ? variantNames[variantId]
-                : variantId
-            ].map(
-              type =>
-                `, ${
-                  isUnitLike(type)
-                    ? this.require('unit')
-                    : this.makeUnitConverter(
-                        `${name}[${fieldIndex++}]`,
-                        type,
-                        substitutions,
-                        toTypeVar,
-                        inTypeVar,
-                      )
-                }`,
-            )}]`
-          }
-          // 1. Convert the enum to the common form (basically, the `enum`
-          //    representation but with unit-like types filled in)
-          const statements = [`var ${rawEnum};`]
-          switch (from.type) {
-            case 'unit': {
-              statements.push(`${rawEnum} = ${toFields(0)};`)
-              break
-            }
-            case 'bool': {
-              statements.push(
-                `if (${name}) {`,
-                `  ${rawEnum} = ${toFields(1)};`,
-                '} else {',
-                `  ${rawEnum} = ${toFields(0)};`,
-                '}',
-              )
-              break
-            }
-            case 'union': {
-              for (let i = 0; i < variantNames.length; i++) {
-                statements.push(
-                  i === 0
-                    ? `if (${name} === 0) {`
-                    : i === variantNames.length - 1
-                    ? '} else {'
-                    : `} else if (${name} === ${i}) {`,
-                  `  ${rawEnum} = ${toFields(i)}`,
-                )
-              }
-              statements.push('}')
-              break
-            }
-            case 'maybe': {
-              if (from.null) {
-                statements.push(
-                  `if (${name} === undefined) {`,
-                  `  ${rawEnum} = ${toFields(from.null)};`,
-                  '} else {',
-                  `  ${rawEnum} = ${toFields(from.nonNull)};`,
-                  '}',
-                )
-              } else {
-                statements.push(`${rawEnum} = ${toFields(from.nonNull)};`)
-              }
-              break
-            }
-            case 'tuple': {
-              if (from.null) {
-                //
-              }
-              break
-            }
-            case 'enum': {
-              //
-              break
-            }
-          }
+          //
         }
-      } else if (!inTypeVar && type.typeSpec instanceof FuncTypeVarSpec) {
+      } else if (type.typeSpec instanceof FuncTypeVarSpec) {
         const substitution = substitutions.get(type.typeSpec)
-        if (substitution) {
-          return this.makeUnitConverter(
-            name,
-            substitution,
-            substitutions,
-            toTypeVar,
-            true,
-          )
+        if (
+          substitution &&
+          (isUnitLike(substitution) || isNullableMaybe(substitution))
+        ) {
+          return { statements: [], expression: this.require('unit') }
         }
       }
     }
