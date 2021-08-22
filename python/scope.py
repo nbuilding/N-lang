@@ -892,10 +892,23 @@ class Scope:
             return await func.run(arg_values)
         elif expr.data == "or_expression":
             left, _, right = expr.children
-            return await self.eval_expr(left) or await self.eval_expr(right)
+            left = await self.eval_expr(left)
+            right = await self.eval_expr(right)
+            if isinstance(left, int):
+                return left | right
+            if isinstance(left, bool):
+                return left or right
+            if left.variant == "yes":
+                return left.values[0]
+            else:
+                return right
         elif expr.data == "and_expression":
             left, _, right = expr.children
-            return await self.eval_expr(left) and await self.eval_expr(right)
+            left = await self.eval_expr(left)
+            right = await self.eval_expr(right)
+            if isinstance(left, int):
+                return left & right
+            return left and right
         elif expr.data == "not_expression":
             _, value = expr.children
             return not await self.eval_expr(value)

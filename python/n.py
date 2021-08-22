@@ -205,7 +205,7 @@ if __name__ == "__main__":
             exit()
 
         errors = run_file(args.file, args.check)
-        if errors is not None:
+        if not isinstance(errors, Scope):
             print(errors)
     except KeyboardInterrupt:
         exit()
