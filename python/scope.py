@@ -1246,9 +1246,6 @@ class Scope:
             self.assign_to_pattern(
                 pattern, await self.eval_expr(value), False, None, public, certain=True
             )
-        elif command.data == "vary":
-            name, value = command.children
-            self.get_variable(name.value).value = await self.eval_expr(value)
         elif command.data == "if":
             condition, body = command.children
             scope = self.new_scope()
@@ -2255,35 +2252,6 @@ class Scope:
 
             public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
             self.assign_to_pattern(pattern, ty, True, None, public, certain=True)
-        elif command.data == "vary":
-            name, value = command.children
-            variable = self.get_variable(name.value, err=False)
-            if variable is None:
-                self.errors.append(
-                    TypeCheckError(
-                        name, "The variable `%s` does not exist." % (name.value)
-                    )
-                )
-            else:
-                ty = variable.type
-                value_type = self.type_check_expr(value)
-
-                # Allow for cases like
-                # let empty = [] // empty has type list[t]
-                # NOTE: At this point, `empty` can be used, for example, as an
-                # argument that expects list[int]. This might be a bug.
-                # var empty = ["wow"] // empty now is known to have type
-                # list[str]
-                resolved_type, incompatible = resolve_equal_types(ty, value_type)
-                if incompatible:
-                    self.errors.append(
-                        TypeCheckError(
-                            value,
-                            "You set %s, which is defined to be a %s, to what evaluates to a %s."
-                            % (name, display_type(ty), display_type(value_type)),
-                        )
-                    )
-                variable.type = resolved_type
         elif command.data == "if":
             condition, body = command.children
             scope = self.new_scope(parent_type="if")

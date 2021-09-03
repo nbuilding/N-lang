@@ -1,8 +1,1 @@
-import SystemIO
-
-let gaming = () -> cmd[()] {
-	let _ = SystemIO.sendSTDOUT("gaming")!
-	let _ = SystemIO.sendSTDOUT("gaming")!
-}
-
-let pub out = gaming()
+var gaming = 456

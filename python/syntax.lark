@@ -22,14 +22,12 @@ instruction: declare
            | return
            | continue
            | break
-           | vary
            | enum_definition
            | alias_definition
            | class_definition
            | assert
 
 // functions
-vary: "var" NAME "=" expression
 declare: "let" modifier name_type "=" expression
 enum_definition: "type" modifier declaration_with_typevars "=" enum_constructors
 alias_definition: "alias" modifier declaration_with_typevars "=" types
