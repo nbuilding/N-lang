@@ -1,4 +1,5 @@
-print({gaming: 1}.gaming)
-print(yes({gaming: 1}).gaming)
-let maybeGaming: maybe[{gaming: int}] = none
-print(maybeGaming.gaming)
+let thing: ((int, int) -> int, int) -> int = ( testing: (int, int) -> int, testing2:int ) -> int {
+	return print(testing(testing2, testing2))
+}
+
+print(thing + 1)

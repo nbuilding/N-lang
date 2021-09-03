@@ -60,7 +60,7 @@ function_call: literal "(" [expression ("," expression)*]  (",")? ")"
 pipe_function_call: literal ["(" [expression ("," expression)*]  (",")? ")"]
 code_block: "{" [main_instruction* last_instruction] "}"
 function_def: arguments "->" types code_block
-arguments: "[" generic_declaration? arg_name_type* "]"
+arguments: generic_declaration? "(" [arg_name_type ("," arg_name_type)*] ")"
 arg_name_type: definite_pattern [":" types]
 generic_declaration: "[" (NAME ",")* NAME (",")? "]"
 char: "\\" ( escape_code | "{" /./ "}" | "u{" hex_pattern "}")
@@ -129,9 +129,9 @@ enum_pattern: "<" NAME pattern_value* ">"
               | with_typevars
               | UNIT
 module_type: [NAME "."]* NAME
-func_type: generic_declaration? (func_inner_type "->")+ not_func_type
+func_type: generic_declaration? "(" [func_inner_type ("," func_inner_type)*] ")" "->" not_func_type
 ?func_inner_type: not_func_type
-                | "(" func_type ")"
+                | func_type
 
 ?list_expression: expression
                 | spread
