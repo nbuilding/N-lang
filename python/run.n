@@ -1,5 +1,8 @@
-let thing: ((int, int) -> int, int) -> int = ( testing: (int, int) -> int, testing2:int ) -> int {
-	return print(testing(testing2, testing2))
+import SystemIO
+
+let gaming = () -> cmd[()] {
+	let _ = SystemIO.sendSTDOUT("gaming")!
+	let _ = SystemIO.sendSTDOUT("gaming")!
 }
 
-print(thing + 1)
+let pub out = gaming()
