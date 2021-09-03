@@ -17,6 +17,7 @@ last_instruction: instruction (";" | "\n")?
 instruction: declare
            | function_callback
            | function_callback_pipe
+           | await_expression
            | imp
            | return
            | continue
