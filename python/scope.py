@@ -23,7 +23,7 @@ from type import (
 )
 from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
-from native_types import n_list_type, n_cmd_type, none, yes
+from native_types import n_list_type, n_cmd_type, n_maybe_type, none, yes
 from ncmd import Cmd
 from type_check_error import TypeCheckError, display_type
 from display import display_value
@@ -1083,7 +1083,14 @@ class Scope:
             unit_test_results[rel_file_path] += val.unit_tests[:]
             return NModule(rel_file_path, holder)
         elif expr.data == "record_access":
-            return (await self.eval_expr(expr.children[0]))[expr.children[1].value]
+
+            dict_value = await self.eval_expr(expr.children[0])
+            if isinstance(dict_value, EnumValue) and dict_value == none:
+                return none
+            if isinstance(dict_value, EnumValue):
+                dict_value = dict_value.values[0]
+                return yes(dict_value[expr.children[1].value])
+            return dict_value[expr.children[1].value]
         elif expr.data == "tupleval":
             values = []
             for e in expr.children:
@@ -1664,6 +1671,12 @@ class Scope:
         elif expr.data == "record_access":
             value, field = expr.children
             value_type = self.type_check_expr(value)
+            is_maybe = False
+
+            if isinstance(value_type, NTypeVars) and value_type.name == "maybe":
+                value_type = value_type.get_types("yes")[0]
+                is_maybe = True
+
             if value_type is None:
                 return None
             elif not isinstance(value_type, dict):
@@ -1685,7 +1698,7 @@ class Scope:
                 )
                 return None
             else:
-                return value_type[field.value]
+                return value_type[field.value] if not is_maybe else n_maybe_type.with_typevars([value_type[field.value]])
         elif expr.data == "await_expression":
             value, _ = expr.children
             value_type = self.type_check_expr(value)

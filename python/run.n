@@ -1,1 +1,4 @@
-print(none | 2)
+print({gaming: 1}.gaming)
+print(yes({gaming: 1}).gaming)
+let maybeGaming: maybe[{gaming: int}] = none
+print(maybeGaming.gaming)
