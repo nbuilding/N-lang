@@ -872,7 +872,11 @@ class Scope:
                 arguments.append(mainarg)
             arg_values = []
             for arg in arguments:
-                arg_values.append(await self.eval_expr(arg))
+                if isinstance(arg, lark.Tree) and arg.data == "spread":
+                    for val in arg.children[0].children[0].children:
+                        arg_values.append(await self.eval_expr(val))
+                else:
+                    arg_values.append(await self.eval_expr(arg))
             if len(arg_values) == 0:
                 arg_values = [()]
             func = await self.eval_expr(function)
@@ -1567,6 +1571,26 @@ class Scope:
                 mainarg = expr.children[0]
                 function, *arguments = expr.children[1].children
                 arguments.append(mainarg)
+
+            new_arg = []
+            for arg in arguments:
+                if arg.data == "spread":
+                    spread_op = self.type_check_expr(arg.children[0])
+                    if isinstance(spread_op, list):
+                        new_arg.extend(arg.children[0].children[0].children)
+                    else:
+                        self.errors.append(
+                            TypeCheckError(
+                                expr,
+                                "You tried to spread a %s into a function, which can't happen."
+                                % display_type(spread_op),
+                            )
+                        )
+                        return None
+                else:
+                    new_arg.append(arg)
+
+            arguments = new_arg[:]
 
             if len(arguments) == 0:
                 arguments.append("unit")

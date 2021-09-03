@@ -1,1 +1,5 @@
-var gaming = 456
+let thing = ( testing:int, testing2:int, testing3:int ) -> int {
+	return print(testing + testing2 + testing3)
+}
+
+print(thing(..(1, 4), 2))
