@@ -25,7 +25,7 @@ let pub main = [] -> cmd[()] {
 
   assert value mutex.access([value: mutex.unlocked[list[int]]] -> cmd[str] {
     let task = parallel([] -> cmd[()] {
-      assert value mutex.tryAccess([_: mutex.unlocked[list[int]]] -> cmd[maybe[str]] {
+      assert value mutex.tryAccess([_: mutex.unlocked[list[int]]] -> cmd[str] {
         print("Uh...!")
         return "Uh...!"
       }, listMutex)! == none
@@ -41,6 +41,6 @@ let pub main = [] -> cmd[()] {
   }, listMutex)! == "hello"
 }()
 
-assert value mutex.tryAccess([_: mutex.unlocked[list[int]]] -> cmd[maybe[str]] {
+assert value mutex.tryAccess([_: mutex.unlocked[list[int]]] -> cmd[str] {
   return "good"
 }, listMutex)! == yes("good")
