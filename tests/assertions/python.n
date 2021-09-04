@@ -1,0 +1,7 @@
+// #261
+
+import python
+
+assert type python.eval : str -> cmd[result[python.value, python.value]]
+
+// The behaviour of this built-in module is implementation-defined.

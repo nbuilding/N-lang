@@ -2,6 +2,7 @@
 
 // (|) : [t] maybe[t] -> t -> t
 // Supplying a default value using the OR operator
+// See #264
 
 let maybe1: maybe[int] = none
 let maybe2: maybe[int] = yes(0)
@@ -21,3 +22,10 @@ assert value func({ optional: "hi" })
 assert type {} : { a: maybe[int]; b: maybe[str] }
 assert value { optional: none } == {}
 assert value { optional: yes(0) } /= {}
+
+// Allow direct field access on `maybe[record]`s.
+// See #263
+
+assert type yes({ a: 1 }).a : maybe[int]
+assert value yes({ a: 1 }).a == yes(1)
+assert value none.a == none
