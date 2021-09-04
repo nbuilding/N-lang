@@ -56,7 +56,7 @@ let test = [a: int] -> int {
   let a = 3
 
   print(a)
-})(())
+})()
 
 let function: int -> int = main
 
