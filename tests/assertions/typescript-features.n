@@ -1,0 +1,31 @@
+// See #225
+
+// (|) : [t] maybe[t] -> t -> t
+// Supplying a default value using the OR operator
+// See #264
+
+let maybe1: maybe[int] = none
+let maybe2: maybe[int] = yes(0)
+
+assert type maybe1 | 2 : int
+assert value maybe1 | 2 == 2
+assert value maybe2 | 2 == 0
+
+// Omitting fields of type `maybe` in record literals implies `none`
+
+let func = [record: { optional: maybe[str] }] -> bool {
+  return record.optional /= none
+}
+
+assert value not func({})
+assert value func({ optional: "hi" })
+assert type {} : { a: maybe[int]; b: maybe[str] }
+assert value { optional: none } == {}
+assert value { optional: yes(0) } /= {}
+
+// Allow direct field access on `maybe[record]`s.
+// See #263
+
+assert type yes({ a: 1 }).a : maybe[int]
+assert value yes({ a: 1 }).a == yes(1)
+assert value none.a == none

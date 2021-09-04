@@ -54,3 +54,20 @@ assert value {
 
 // Ensure that map fields can be in any order
 assert value mapFrom([("a", 1), ("b", 2)]) == mapFrom([("b", 2), ("a", 1)])
+
+// Spreading tuples into function arguments (#260)
+let func = [a: int b: char c: float] -> (float, int, char) {
+	return (c, a, b)
+}
+
+assert value func(..tuplevalue, 3.14) == (3.14, 1, \{a})
+
+let printNums = [a:int b:int c:int] -> cmd[()] {
+  assert value a == 1
+  assert value b == 2
+  assert value c == 3
+}
+
+let tuple = (1, 2)
+
+let pub main = printNums(..tuple,)(3)
