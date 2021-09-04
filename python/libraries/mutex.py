@@ -25,12 +25,12 @@ class Mutex:
 
     def request_unlock(self, callback):
         new_future = Future()
-        coroutine = self._request_unlock(self, self.next_unlock, new_future, callback)
+        coroutine = self._request_unlock(self.next_unlock, new_future, callback)
         self.next_unlock = new_future
         return coroutine
 
     def locked(self):
-        return self.next_unlock.done()
+        return not self.next_unlock.done()
 
 
 def new(value):
@@ -59,7 +59,7 @@ async def read(mutex: Mutex):
     return mutex.value
 
 
-async def write(mutex: Mutex, value):
+async def write(value, mutex: Mutex):
     mutex.value = value
     return value
 
@@ -78,20 +78,19 @@ def _values():
         # access : [a, b] (mutex.unlocked[a] -> cmd[b]) -> mutex.locked[a] -> cmd[b]
         "access": (
             (unlocked_type.with_typevars([a]), n_cmd_type.with_typevars([b])),
-            (locked_type.with_typevars([a]), n_cmd_type.with_typevars([b])),
+            locked_type.with_typevars([a]),
+            n_cmd_type.with_typevars([b]),
         ),
         # tryAccess : [a, b] (mutex.unlocked[a] -> cmd[b]) -> mutex.locked[a] -> cmd[maybe[b]]
         "tryAccess": (
             (unlocked_type.with_typevars([a]), n_cmd_type.with_typevars([b])),
-            (
-                locked_type.with_typevars([a]),
-                n_cmd_type.with_typevars([n_maybe_type.with_typevars([b])]),
-            ),
+            locked_type.with_typevars([a]),
+            n_cmd_type.with_typevars([n_maybe_type.with_typevars([b])]),
         ),
         # read : [t] mutex.unlocked[t] -> cmd[t]
-        "read": (unlocked_type.with_typevars([t]), n_cmd_type([t])),
+        "read": (unlocked_type.with_typevars([t]), n_cmd_type.with_typevars([t])),
         # write : [t] t -> mutex.unlocked[t] -> cmd[t]
-        "write": (unlocked_type.with_typevars([t]), t, n_cmd_type([t])),
+        "write": (t, unlocked_type.with_typevars([t]), n_cmd_type.with_typevars([t])),
     }
 
 

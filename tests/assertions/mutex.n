@@ -29,7 +29,7 @@ let pub main = [] -> cmd[()] {
         print("Uh...!")
         return "Uh...!"
       }, listMutex)! == none
-    })!
+    }())!
 
     assert value mutex.read(value)! == [1]
     assert value mutex.write([1, 2, 3], value)! == [1, 2, 3]
@@ -39,8 +39,8 @@ let pub main = [] -> cmd[()] {
 
     return "hello"
   }, listMutex)! == "hello"
-}()
 
-assert value mutex.tryAccess([_: mutex.unlocked[list[int]]] -> cmd[str] {
-  return "good"
-}, listMutex)! == yes("good")
+  assert value mutex.tryAccess([_: mutex.unlocked[list[int]]] -> cmd[str] {
+    return "good"
+  }, listMutex)! == yes("good")
+}()
