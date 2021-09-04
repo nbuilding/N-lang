@@ -17,18 +17,17 @@ last_instruction: instruction (";" | "\n")?
 instruction: declare
            | function_callback
            | function_callback_pipe
+           | await_expression
            | imp
            | return
            | continue
            | break
-           | vary
            | enum_definition
            | alias_definition
            | class_definition
            | assert
 
 // functions
-vary: "var" NAME "=" expression
 declare: "let" modifier name_type "=" expression
 enum_definition: "type" modifier declaration_with_typevars "=" enum_constructors
 alias_definition: "alias" modifier declaration_with_typevars "=" types
@@ -56,11 +55,11 @@ assert: "assert" assert_value
 //helpers
 name_type: pattern [":" types]
 function_dec_call: NAME (" " [name_type (" " name_type)*])?
-function_call: literal "(" [expression ("," expression)*]  (",")? ")"
-pipe_function_call: literal ["(" [expression ("," expression)*]  (",")? ")"]
+function_call: literal "(" [function_call_arg ("," function_call_arg)*]  (",")? ")"
+pipe_function_call: literal ["(" [function_call_arg ("," function_call_arg)*]  (",")? ")"]
 code_block: "{" [main_instruction* last_instruction] "}"
 function_def: arguments "->" types code_block
-arguments: "[" generic_declaration? arg_name_type* "]"
+arguments: generic_declaration? "(" [arg_name_type ("," arg_name_type)*] ")"
 arg_name_type: definite_pattern [":" types]
 generic_declaration: "[" (NAME ",")* NAME (",")? "]"
 char: "\\" ( escape_code | "{" /./ "}" | "u{" hex_pattern "}")
@@ -86,6 +85,9 @@ assert_val: "value" expression
 assert_type: "type" expression ":" types
 
 modifier: PUBLIC?
+
+?function_call_arg: spread
+                  | expression
 
 ?record_entry: CNAME ":" expression
              | NAME
@@ -129,9 +131,9 @@ enum_pattern: "<" NAME pattern_value* ">"
               | with_typevars
               | UNIT
 module_type: [NAME "."]* NAME
-func_type: generic_declaration? (func_inner_type "->")+ not_func_type
+func_type: generic_declaration? "(" [func_inner_type ("," func_inner_type)*] ")" "->" not_func_type
 ?func_inner_type: not_func_type
-                | "(" func_type ")"
+                | func_type
 
 ?list_expression: expression
                 | spread

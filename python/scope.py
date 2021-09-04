@@ -23,7 +23,7 @@ from type import (
 )
 from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
-from native_types import n_list_type, n_cmd_type, none, yes
+from native_types import n_list_type, n_cmd_type, n_maybe_type, none, yes
 from ncmd import Cmd
 from type_check_error import TypeCheckError, display_type
 from display import display_value
@@ -872,7 +872,11 @@ class Scope:
                 arguments.append(mainarg)
             arg_values = []
             for arg in arguments:
-                arg_values.append(await self.eval_expr(arg))
+                if isinstance(arg, lark.Tree) and arg.data == "spread":
+                    for val in arg.children[0].children[0].children:
+                        arg_values.append(await self.eval_expr(val))
+                else:
+                    arg_values.append(await self.eval_expr(arg))
             if len(arg_values) == 0:
                 arg_values = [()]
             func = await self.eval_expr(function)
@@ -892,10 +896,23 @@ class Scope:
             return await func.run(arg_values)
         elif expr.data == "or_expression":
             left, _, right = expr.children
-            return await self.eval_expr(left) or await self.eval_expr(right)
+            left = await self.eval_expr(left)
+            right = await self.eval_expr(right)
+            if isinstance(left, int):
+                return left | right
+            if isinstance(left, bool):
+                return left or right
+            if left.variant == "yes":
+                return left.values[0]
+            else:
+                return right
         elif expr.data == "and_expression":
             left, _, right = expr.children
-            return await self.eval_expr(left) and await self.eval_expr(right)
+            left = await self.eval_expr(left)
+            right = await self.eval_expr(right)
+            if isinstance(left, int):
+                return left & right
+            return left and right
         elif expr.data == "not_expression":
             _, value = expr.children
             return not await self.eval_expr(value)
@@ -990,7 +1007,9 @@ class Scope:
                 val = await self.eval_expr(value)
                 if isinstance(val, bool):
                     return not val
-                return ~val 
+                elif isinstance(val, int):
+                    return ~val 
+                return val == none
             else:
                 raise SyntaxError(
                     "Unexpected operation for unary_expression: %s" % operation
@@ -1070,7 +1089,14 @@ class Scope:
             unit_test_results[rel_file_path] += val.unit_tests[:]
             return NModule(rel_file_path, holder)
         elif expr.data == "record_access":
-            return (await self.eval_expr(expr.children[0]))[expr.children[1].value]
+
+            dict_value = await self.eval_expr(expr.children[0])
+            if isinstance(dict_value, EnumValue) and dict_value == none:
+                return none
+            if isinstance(dict_value, EnumValue):
+                dict_value = dict_value.values[0]
+                return yes(dict_value[expr.children[1].value])
+            return dict_value[expr.children[1].value]
         elif expr.data == "tupleval":
             values = []
             for e in expr.children:
@@ -1226,9 +1252,6 @@ class Scope:
             self.assign_to_pattern(
                 pattern, await self.eval_expr(value), False, None, public, certain=True
             )
-        elif command.data == "vary":
-            name, value = command.children
-            self.get_variable(name.value).value = await self.eval_expr(value)
         elif command.data == "if":
             condition, body = command.children
             scope = self.new_scope()
@@ -1551,6 +1574,26 @@ class Scope:
                 function, *arguments = expr.children[1].children
                 arguments.append(mainarg)
 
+            new_arg = []
+            for arg in arguments:
+                if arg.data == "spread":
+                    spread_op = self.type_check_expr(arg.children[0])
+                    if isinstance(spread_op, list):
+                        new_arg.extend(arg.children[0].children[0].children)
+                    else:
+                        self.errors.append(
+                            TypeCheckError(
+                                expr,
+                                "You tried to spread a %s into a function, which can't happen."
+                                % display_type(spread_op),
+                            )
+                        )
+                        return None
+                else:
+                    new_arg.append(arg)
+
+            arguments = new_arg[:]
+
             if len(arguments) == 0:
                 arguments.append("unit")
             func_type = self.type_check_expr(function)
@@ -1651,6 +1694,12 @@ class Scope:
         elif expr.data == "record_access":
             value, field = expr.children
             value_type = self.type_check_expr(value)
+            is_maybe = False
+
+            if isinstance(value_type, NTypeVars) and value_type.name == "maybe":
+                value_type = value_type.get_types("yes")[0]
+                is_maybe = True
+
             if value_type is None:
                 return None
             elif not isinstance(value_type, dict):
@@ -1672,7 +1721,7 @@ class Scope:
                 )
                 return None
             else:
-                return value_type[field.value]
+                return value_type[field.value] if not is_maybe else n_maybe_type.with_typevars([value_type[field.value]])
         elif expr.data == "await_expression":
             value, _ = expr.children
             value_type = self.type_check_expr(value)
@@ -2229,35 +2278,6 @@ class Scope:
 
             public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
             self.assign_to_pattern(pattern, ty, True, None, public, certain=True)
-        elif command.data == "vary":
-            name, value = command.children
-            variable = self.get_variable(name.value, err=False)
-            if variable is None:
-                self.errors.append(
-                    TypeCheckError(
-                        name, "The variable `%s` does not exist." % (name.value)
-                    )
-                )
-            else:
-                ty = variable.type
-                value_type = self.type_check_expr(value)
-
-                # Allow for cases like
-                # let empty = [] // empty has type list[t]
-                # NOTE: At this point, `empty` can be used, for example, as an
-                # argument that expects list[int]. This might be a bug.
-                # var empty = ["wow"] // empty now is known to have type
-                # list[str]
-                resolved_type, incompatible = resolve_equal_types(ty, value_type)
-                if incompatible:
-                    self.errors.append(
-                        TypeCheckError(
-                            value,
-                            "You set %s, which is defined to be a %s, to what evaluates to a %s."
-                            % (name, display_type(ty), display_type(value_type)),
-                        )
-                    )
-                variable.type = resolved_type
         elif command.data == "if":
             condition, body = command.children
             scope = self.new_scope(parent_type="if")
