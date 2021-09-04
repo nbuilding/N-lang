@@ -11,15 +11,15 @@ from type import NAliasType
 from ncmd import Cmd
 from libraries.SystemIO import inp as async_input
 
-# alias send = str -> cmd[()]
+# alias send = (str) -> cmd[()]
 send_type = "str", n_cmd_type.with_typevars([n_result_type.with_typevars(["unit", "int"])])
 
 close_type = ("unit", n_cmd_type.with_typevars(["unit"]))
 
 # alias connectOptions = {
-# 	onOpen: (str -> cmd[()]) -> cmd[()]
-# 	onMessage: (str -> cmd[()]) -> str -> cmd[()]
-# 	onClose: cmd[()]
+# 	onOpen: ((str) -> cmd[()]) -> cmd[()]
+# 	onMessage: (((str) -> cmd[()]), str) -> cmd[()]
+# 	onClose: (()) -> cmd[()]
 # }
 connect_options_type = {
     "onOpen": (send_type, n_cmd_type.with_typevars(["bool"])),
@@ -28,8 +28,8 @@ connect_options_type = {
 }
 
 # alias user = {
-#   send: str -> cmd[()]
-#   disconnect: () -> cmd[()]
+#   send: (str) -> cmd[()]
+#   disconnect: (()) -> cmd[()]
 #   ip: (int, int, int, int)
 #   uuid: str
 # }
@@ -41,9 +41,9 @@ user_type = {
 }
 
 # alias setupOptions = {
-#   onConnect: user -> str -> cmd[bool]
-#   onMessage: user -> str -> cmd[bool]
-#   onDisconnect: user -> { code: int; reason: str } -> cmd[bool]
+#   onConnect: (user, str) -> cmd[bool]
+#   onMessage: (user, str) -> cmd[bool]
+#   onDisconnect: (user, { code: int; reason: str }) -> cmd[bool]
 # }
 setup_options_type = {
     "onConnect": (user_type, "str", n_cmd_type.with_typevars(["bool"])),

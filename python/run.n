@@ -1,1 +1,5 @@
-print(~~none)
+import mutex
+
+let m: mutex.locked[int] = mutex.new(1)
+
+print(mutex.read(m))
