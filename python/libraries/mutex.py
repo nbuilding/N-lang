@@ -1,12 +1,15 @@
 from asyncio import Future
+from colorama import Fore, Style
 from typing import Union
+
 from function import Function
 from native_types import n_cmd_type, n_maybe_type, yes, none, n_list_type
 from ncmd import Cmd
 from type import NTypeVars, NGenericType
+from display import Printable, display_value
 
 
-class Mutex:
+class Mutex(Printable):
     next_unlock: Union[Future, None]
 
     def __init__(self, value):
@@ -31,6 +34,17 @@ class Mutex:
 
     def locked(self):
         return not self.next_unlock.done()
+
+    def get_display(self, color=True, indent="\t", indent_state="", preferred_max_len=50):
+        start = "<mutex"
+        end = ">"
+        if color:
+            start = Fore.MAGENTA + start + Style.RESET_ALL
+            end = Fore.MAGENTA + end + Style.RESET_ALL
+        display_list, multiline = display_value(
+            self.value, color=color, indent=indent, indent_state=indent_state
+        )
+        return start + " " + display_list + end
 
 
 def new(value):

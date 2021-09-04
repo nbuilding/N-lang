@@ -2,4 +2,4 @@ import mutex
 
 let m: mutex.locked[int] = mutex.new(1)
 
-print(mutex.read(m))
+print(mutex.new(1))

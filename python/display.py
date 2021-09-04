@@ -8,6 +8,9 @@ from native_types import NMap
 
 unescape = {"\\": "\\", '"': '"', "\n": "n", "\r": "r", "\t": "t"}
 
+class Printable:
+    def get_display(self, color=True, indent="\t", indent_state="", preferred_max_len=50):
+        return ""
 
 # https://stackoverflow.com/a/38662876
 def remove_color(line):
@@ -149,6 +152,8 @@ def display_value(
         output = "[function]"
         if color:
             output = Fore.MAGENTA + output + Style.RESET_ALL
+    elif isinstance(value, Printable):
+        output = value.get_display(color)
     else:
         print("???", value)
         output = "[unprintable value]"
