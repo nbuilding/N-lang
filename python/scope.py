@@ -1007,7 +1007,9 @@ class Scope:
                 val = await self.eval_expr(value)
                 if isinstance(val, bool):
                     return not val
-                return ~val 
+                elif isinstance(val, int):
+                    return ~val 
+                return val == none
             else:
                 raise SyntaxError(
                     "Unexpected operation for unary_expression: %s" % operation
