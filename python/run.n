@@ -1,2 +1,1 @@
-let wow = print(
-	"hi")
+let (thing, thing1) = (1, 2)

@@ -135,7 +135,7 @@ def get_destructure_pattern(tree):
             return (dict(entries), tree)
         elif tree.data == "tuple_pattern":
             return (
-                tuple(get_destructure_pattern(pattern) for pattern in tree.children),
+                tuple(get_destructure_pattern(pattern.children[0]) for pattern in tree.children),
                 tree,
             )
         elif tree.data == "list_pattern":
@@ -148,7 +148,7 @@ def get_destructure_pattern(tree):
             patterns = []
             for pattern in pattern_trees:
                 patterns.append(get_destructure_pattern(pattern))
-            return (EnumPattern(enum_name, patterns), tree)
+            return (EnumPattern(enum_name.children[0], patterns), tree)
     return (None if tree.value == "_" else tree.value, tree)
 
 
@@ -347,6 +347,8 @@ class Scope:
             return n_type
 
     def parse_type(self, tree_or_token, err=True):
+        if tree_or_token is None:
+            return "infer"
         if isinstance(tree_or_token, lark.Tree):
             if tree_or_token.data == "with_typevars":
                 module_type, *typevars = tree_or_token.children
@@ -1512,9 +1514,7 @@ class Scope:
                 arguments, returntype, codeblock = expr.children
             else:
                 arguments, codeblock = expr.children
-                returntype = "infer"
-
-            print(arguments)
+                returntype = None
 
             generic_types = []
             generics, arguments = get_arguments(arguments)
