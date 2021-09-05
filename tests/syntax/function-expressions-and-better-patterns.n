@@ -90,7 +90,7 @@ let funcs = (
 	// Although redundant, you can put as many parentheses around expressions,
 	// types, and patterns as you wish. With the new function expression syntax,
 	// you can also have parentheses around the name-type pair.
-	((((arg1)): ((type1))) -> (type2) { return (arg1) }),
+	(((arg1): (type1)) -> (type2) { return (arg1) }),
 	(arg1) -> { return arg1 },
 	(({ field1; field2: otherName }): record) -> { return (field1, otherName) },
 	({ field1; field2: otherName }) -> { return (field1, otherName) },
@@ -106,7 +106,7 @@ let funcs = (
 	(a: int) -> { return (b: int) -> int { return a + b } },
 	[t] (value: t) -> { return value },
 	[a, b] (pair: (a, b)) -> { return pair },
-	[a, b] (arg1: a) -> (arg2: b) -> { return arg1 + arg2 },]
+	[a, b] (arg1: a) -> (arg2: b) -> { return arg1 + arg2 },
 	((a: int, b: str)) -> { return b[a] },
 )
 let (()) = someCmd!

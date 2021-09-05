@@ -53,14 +53,13 @@ match: "match" "(" value ")" match_block
 assert: "assert" assert_value
 
 //helpers
-name_type: pattern [":" types]
+name_type: ( pattern [":" types] | "(" pattern [":" types] ")")
 function_dec_call: NAME (" " [name_type (" " name_type)*])?
 function_call: literal "(" [function_call_arg ("," function_call_arg)*]  (",")? ")"
 pipe_function_call: literal ["(" [function_call_arg ("," function_call_arg)*]  (",")? ")"]
 code_block: "{" [main_instruction* last_instruction] "}"
-function_def: arguments "->" types code_block
-arguments: generic_declaration? "(" [arg_name_type ("," arg_name_type)*] ")"
-arg_name_type: definite_pattern [":" types]
+function_def: arguments "->" types? code_block
+arguments: generic_declaration? (name_type ("->" name_type)* | "(" [name_type ("," name_type)*] ")")
 generic_declaration: "[" (NAME ",")* NAME (",")? "]"
 char: "\\" ( escape_code | "{" /./ "}" | "u{" hex_pattern "}")
 hex_pattern: /[0-9a-fA-F]+/
@@ -77,7 +76,7 @@ recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
 enum_constructors: ("|")? enum_constructor ("|" enum_constructor)*
 match_block: "{" (match_entry (";" | "\n"))* "}"
 match_entry: value "->" value
-enum_constructor: modifier "<" NAME types* ">"
+enum_constructor: modifier NAME "(" [types ("," types)*] ")"
                 | modifier NAME
 assert_value: assert_val
             | assert_type
@@ -101,13 +100,14 @@ modifier: PUBLIC?
               | record_pattern
               | list_pattern
               | enum_pattern
-tuple_pattern: (pattern_value ",")+ pattern_value
+              | UNIT
+tuple_pattern: (pattern_value [":" types] ",")+ pattern_value [":" types]
 record_pattern: "{" (record_entry_pattern (";" | "\n"))* record_entry_pattern "}"
 ?record_entry_pattern: NAME
                      | CNAME ":" pattern
 
 list_pattern: "[" (pattern_value ("," pattern_value)*)? "]"
-enum_pattern: "<" NAME pattern_value* ">"
+enum_pattern: literal "(" [pattern_value ("," pattern_value)*] ")"
 
 // Deal with a syntax ambiguity where [a:type[b]] could be seen as a list
 // destructuring in the second argument.
@@ -131,7 +131,7 @@ enum_pattern: "<" NAME pattern_value* ">"
               | with_typevars
               | UNIT
 module_type: [NAME "."]* NAME
-func_type: generic_declaration? "(" [func_inner_type ("," func_inner_type)*] ")" "->" not_func_type
+func_type: generic_declaration? (func_inner_type |"(" [func_inner_type ("," func_inner_type)*] ")") "->" not_func_type
 ?func_inner_type: not_func_type
                 | func_type
 
@@ -140,7 +140,6 @@ func_type: generic_declaration? "(" [func_inner_type ("," func_inner_type)*] ")"
 
 ?expression: ifelse_expr
            | boolean_expression
-           | function_def
            | function_callback_pipe
            | match
 
@@ -192,6 +191,7 @@ value: NUMBER
      | HEX
      | BINARY
      | OCTAL
+     | function_def
 
 // Make sure that keywords are not in NAME
 NAME: /(?!(\b(let|type|var|alias|for|in|import|imp|return|if|else|class|pub|break|continue|with|yield|do|not|match|while)\b))/ CNAME

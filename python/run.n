@@ -1,5 +1,2 @@
-import mutex
-
-let m: mutex.locked[int] = mutex.new(1)
-
-print(mutex.new(1))
+let wow = print(
+	"hi")

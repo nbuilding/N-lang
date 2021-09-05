@@ -1508,7 +1508,14 @@ class Scope:
                     )
             return return_type
         elif expr.data == "function_def":
-            arguments, returntype, codeblock = expr.children
+            if len(expr.children) == 3:
+                arguments, returntype, codeblock = expr.children
+            else:
+                arguments, codeblock = expr.children
+                returntype = "infer"
+
+            print(arguments)
+
             generic_types = []
             generics, arguments = get_arguments(arguments)
             wrap_scope = self.new_scope()
