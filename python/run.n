@@ -1,1 +1,8 @@
-let (thing, thing1) = (1, 2)
+import request
+import json
+
+let thing = () -> cmd[()] {
+	print(request.request("POST", "https://ash.vin", yes(json.object(mapFrom([("", json.string(""))]))), yes(json.object(mapFrom([("", json.string(""))]))))!)
+}
+
+let pub out = thing()
