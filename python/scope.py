@@ -34,6 +34,7 @@ from operation_types import (
     iterable_types,
     legacy_iterable_types,
     assignment_types,
+    assignment_expression_types,
 )
 from file import File
 from imported_error import ImportedError
@@ -1357,6 +1358,12 @@ class Scope:
                     }
                 )
             return (False, None)
+        elif command.data == "assign_value":
+            var, operator, val = command.children
+            if operator.children[0].type != "EQUALS":
+                self.get_variable(var.value).value = await self.eval_expr(lark.Tree(assignment_expression_types[operator.children[0].type], [lark.Tree('value', [var]), lark.Token(assignment_types[operator.children[0].type], ""), val]))
+                return (False, None)
+            self.get_variable(var.value).value = await self.eval_expr(val)
         else:
             await self.eval_expr(command)
 
@@ -2552,28 +2559,7 @@ class Scope:
                     )
                 )
                 return False
-
-            typ = variable.type
-            op_type = assignment_types.get(operator.children[0].type)
-            
-            if op_type is None:
-                self.errors.append(
-                    TypeCheckError(
-                        operator, "Internal Error: Unknown operator: `%s`" % operator.children[0]
-                    )
-                )
-                return False
-
-            bin_type = binary_operation_types.get(op_type)
-
-            if bin_type is None:
-                self.errors.append(
-                    TypeCheckError(
-                        operator, "Internal Error: Incorrect operation mapping: `%s` to `None`" % op_type
-                    )
-                )
-                return False
-            
+                
             val_type = self.type_check_expr(val)
             
             if val_type is None:
@@ -2584,16 +2570,56 @@ class Scope:
                 )
                 return False
 
-            for ty in bin_type:
-                start, end, out = ty
-                if start == typ and end == val_type and out == typ:
+            typ = variable.type
+            if operator.children[0].type != "EQUALS":
+                op_type = assignment_types.get(operator.children[0].type)
+                
+                if op_type is None:
+                    self.errors.append(
+                        TypeCheckError(
+                            operator, "Internal Error: Unknown operator: `%s`" % operator.children[0]
+                        )
+                    )
                     return False
-            
-            self.errors.append(
-                TypeCheckError(
-                    operator, "Cannot apply %s to `%s` and `%s`" % (operator.children[0], display_type(typ), display_type(val_type))
+
+                bin_type = binary_operation_types.get(op_type)
+
+                if bin_type is None:
+                    self.errors.append(
+                        TypeCheckError(
+                            operator, "Internal Error: Incorrect operation mapping: `%s` to `None`" % op_type
+                        )
+                    )
+                    return False
+
+                for ty in bin_type:
+                    start, end, out = ty
+                    if start == typ and end == val_type and out == typ:
+                        return False
+                
+                self.errors.append(
+                    TypeCheckError(
+                        operator, "Cannot apply %s to `%s` and `%s`" % (operator.children[0], display_type(typ), display_type(val_type))
+                    )
                 )
-            )
+            else:
+                if val_type != typ:
+                    self.errors.append(
+                        TypeCheckError(
+                            command, "Cannot assign a `%s` to a `%s`" % (display_type(val_type), display_type(typ))
+                        )
+                    )
+
+            parent_function = self.get_parent_function()
+            if parent_function.returntype is not None and n_cmd_type.is_type(
+                parent_function.returntype
+            ):
+                self.warnings.append(
+                    TypeCheckError(
+                        command,
+                        "Mutating a variable in a cmd is discouraged, as it can lead to unintended consequences, use the mutex library instead."
+                    )
+                )
             return False
         else:
             self.type_check_expr(command)

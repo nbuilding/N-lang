@@ -2,6 +2,8 @@ let mut thing = 4;
 
 print(thing)
 
-thing += 1
+let t = () -> cmd[()] {
+	thing = "test"
+}
 
 print(thing)

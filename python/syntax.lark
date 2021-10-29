@@ -200,7 +200,6 @@ assign_operator: EQUALS
                | MUL_EQUAL
                | ADD_EQUAL
                | MIN_EQUAL
-               | NOT_EQUAL
                | OR_EQUAL
                | AND_EQUAL
                | MOD_EQUAL
@@ -252,7 +251,6 @@ DIV_EQUAL: "/="
 MUL_EQUAL: "*="
 ADD_EQUAL: "+="
 MIN_EQUAL: "-="
-NOT_EQUAL: "~="
 OR_EQUAL: "|="
 AND_EQUAL: "&="
 MOD_EQUAL: "%="

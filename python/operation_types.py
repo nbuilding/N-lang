@@ -101,8 +101,16 @@ assignment_types = {
     "DIV_EQUAL": "DIVIDE",
     "MUL_EQUAL": "MULTIPLY",
     "MIN_EQUAL": "SUBTRACT",
-    "NOT_EQUAL": "NOT",
     "OR_EQUAL": "OR",
     "AND_EQUAL": "AND",
     "MOD_EQUAL": "MODULO",
+}
+assignment_expression_types = {
+    "ADD_EQUAL": "sum_expression",
+    "DIV_EQUAL": "product_expression",
+    "MUL_EQUAL": "product_expression",
+    "MIN_EQUAL": "sum_expression",
+    "OR_EQUAL": "or_expression",
+    "AND_EQUAL": "and_expression",
+    "MOD_EQUAL": "product_expression",
 }
