@@ -33,6 +33,7 @@ from operation_types import (
     comparable_types,
     iterable_types,
     legacy_iterable_types,
+    assignment_types,
 )
 from file import File
 from imported_error import ImportedError
@@ -533,6 +534,7 @@ class Scope:
         path=None,
         public=False,
         certain=False,
+        mutable=False,
     ):
         path_name = path or "the value"
         pattern, src = pattern_and_src
@@ -587,6 +589,7 @@ class Scope:
                     "%s.%s" % (path or "<record>", key),
                     public,
                     certain=certain,
+                    mutable=mutable,
                 )
                 if not valid:
                     return False
@@ -645,6 +648,7 @@ class Scope:
                     "%s.%d" % (path or "<tuple>", i),
                     public,
                     certain=certain,
+                    mutable=mutable,
                 )
                 if not valid:
                     return False
@@ -732,6 +736,7 @@ class Scope:
                     "%s.%s#%d" % (path or "<enum>", pattern.variant, i + 1),
                     public,
                     certain=certain,
+                    mutable=mutable,
                 )
                 if not valid:
                     return False
@@ -776,6 +781,7 @@ class Scope:
                     "%s[%d]" % (path or "<enum variant>", i),
                     public,
                     certain=certain,
+                    mutable=mutable,
                 )
                 if not valid:
                     return False
@@ -785,7 +791,7 @@ class Scope:
                 self.errors.append(
                     TypeCheckError(src, "You've already defined `%s`." % name)
                 )
-            self.variables[name] = Variable(value_or_type, value_or_type, public)
+            self.variables[name] = Variable(value_or_type, value_or_type, public, mutable)
         return True
 
     async def eval_record_entry(self, entry):
@@ -2284,7 +2290,8 @@ class Scope:
                     )
 
             public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
-            self.assign_to_pattern(pattern, ty, True, None, public, certain=True)
+            mutable = any(modifier.type == "MUTABLE" for modifier in modifiers.children)
+            self.assign_to_pattern(pattern, ty, True, None, public, certain=True, mutable=mutable)
         elif command.data == "if":
             condition, body = command.children
             scope = self.new_scope(parent_type="if")
@@ -2526,6 +2533,58 @@ class Scope:
                             command, "Cannot use assert value on a %s." % expr_type
                         )
                     )
+            return False
+        elif command.data == "assign_value":
+            var, operator, val = command.children
+            typ = self.type_check_expr(var)
+            if typ is None:
+                self.errors.append(
+                    TypeCheckError(
+                        var, "There is no type accociated with the variable passed in"
+                    )
+                )
+                return False
+    
+            op_type = assignment_types.get(operator.children[0].type)
+            
+            if op_type is None:
+                self.errors.append(
+                    TypeCheckError(
+                        operator, "Internal Error: Unknown operator: `%s`" % operator.children[0]
+                    )
+                )
+                return False
+
+            bin_type = binary_operation_types.get(op_type)
+
+            if bin_type is None:
+                self.errors.append(
+                    TypeCheckError(
+                        operator, "Internal Error: Incorrect operation mapping: `%s` to `None`" % op_type
+                    )
+                )
+                return False
+            
+            val_type = self.type_check_expr(var)
+            
+            if val_type is None:
+                self.errors.append(
+                    TypeCheckError(
+                        val, "Invalid expression"
+                    )
+                )
+                return False
+
+            for ty in bin_type:
+                start, end, out = ty
+                if start == typ and end == val_type and out == typ:
+                    return False
+            
+            self.errors.append(
+                TypeCheckError(
+                    operator, "Cannot apply %s to `%s` and `%s`" % (operator.children[0], display_type(typ), display_type(val_type))
+                )
+            )
             return False
         else:
             self.type_check_expr(command)

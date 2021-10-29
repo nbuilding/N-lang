@@ -96,3 +96,13 @@ unary_operation_types = {
 comparable_types = ["int", "float"]
 legacy_iterable_types = [("int", "int")]
 iterable_types = [(n_list_type, list_generic)]
+assignment_types = {
+    "ADD_EQUAL": "ADD",
+    "DIV_EQUAL": "DIVIDE",
+    "MUL_EQUAL": "MULTIPLY",
+    "MIN_EQUAL": "SUBTRACT",
+    "NOT_EQUAL": "NOT",
+    "OR_EQUAL": "OR",
+    "AND_EQUAL": "AND",
+    "MOD_EQUAL": "MODULO",
+}

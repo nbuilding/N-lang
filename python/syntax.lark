@@ -26,6 +26,7 @@ instruction: declare
            | alias_definition
            | class_definition
            | assert
+           | assign_value
 
 // functions
 declare: "let" modifier name_type "=" expression
@@ -51,6 +52,7 @@ conditional_let: "let" pattern "=" expression
 class_definition: "class" modifier NAME arguments code_block
 match: "match" "(" value ")" match_block
 assert: "assert" assert_value
+assign_value: NAME assign_operator expression
 
 //helpers
 name_type: ( pattern [":" types] | "(" pattern [":" types] ")")
@@ -83,7 +85,7 @@ assert_value: assert_val
 assert_val: "value" expression
 assert_type: "type" expression ":" types
 
-modifier: PUBLIC?
+modifier: PUBLIC? MUTABLE?
 
 ?function_call_arg: spread
                   | expression
@@ -193,6 +195,16 @@ value: NUMBER
      | OCTAL
      | function_def
 
+assign_operator: EQUALS
+               | DIV_EQUAL
+               | MUL_EQUAL
+               | ADD_EQUAL
+               | MIN_EQUAL
+               | NOT_EQUAL
+               | OR_EQUAL
+               | AND_EQUAL
+               | MOD_EQUAL
+
 // Make sure that keywords are not in NAME
 NAME: /(?!(\b(let|type|var|alias|for|in|import|imp|return|if|else|class|pub|break|continue|with|yield|do|not|match|while)\b))/ CNAME
 
@@ -220,7 +232,7 @@ SHIFTR: ">>"
 IN: "in"
 LESS: "<"
 GREATER: ">"
-NEQUALS: "/="
+NEQUALS: "~="
 NOT_KW: "not"
 NOT: "~"
 ADD: "+"
@@ -231,10 +243,19 @@ MODULO: "%"
 EXPONENT: "^"
 AWAIT: "!"
 PUBLIC: "pub"
+MUTABLE: "mut"
 UNIT: "()"
 EMPTY: "_"
 VALUEACCESS: "["
 STRING: /"(?:[^\r\n\\\"]|\\(?:[nrtv0fb\"\\]|u\{[0-9a-fA-F]+\}|\{.\}))*"/
+DIV_EQUAL: "/="
+MUL_EQUAL: "*="
+ADD_EQUAL: "+="
+MIN_EQUAL: "-="
+NOT_EQUAL: "~="
+OR_EQUAL: "|="
+AND_EQUAL: "&="
+MOD_EQUAL: "%="
 
 %import common.SIGNED_NUMBER  -> NUMBER
 %import common.CNAME
