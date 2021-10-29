@@ -2536,15 +2536,24 @@ class Scope:
             return False
         elif command.data == "assign_value":
             var, operator, val = command.children
-            typ = self.type_check_expr(var)
-            if typ is None:
+            variable = self.get_variable(var.value, err=False)
+            if variable is None:
                 self.errors.append(
                     TypeCheckError(
-                        var, "There is no type accociated with the variable passed in"
+                        var, "You have not defined `%s`" % var.value
                     )
                 )
                 return False
-    
+            
+            if not variable.mutable:
+                self.errors.append(
+                    TypeCheckError(
+                        var, "`%s` is not mutable" % var.value
+                    )
+                )
+                return False
+
+            typ = variable.type
             op_type = assignment_types.get(operator.children[0].type)
             
             if op_type is None:
@@ -2565,7 +2574,7 @@ class Scope:
                 )
                 return False
             
-            val_type = self.type_check_expr(var)
+            val_type = self.type_check_expr(val)
             
             if val_type is None:
                 self.errors.append(

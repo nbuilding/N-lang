@@ -2,6 +2,6 @@ let mut thing = 4;
 
 print(thing)
 
-thing += "test"
+thing += 1
 
 print(thing)
