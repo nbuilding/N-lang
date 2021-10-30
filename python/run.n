@@ -1,12 +1,3 @@
-let test = () {
-	print("testing")
-}
-
-let test1 = () {
-	let runner = imp "runner.n"
-	let mut eee = 0
-	eee += 3
-	test()
-}
-
-test1()
+print("test1")
+exit(0)
+print("test2")

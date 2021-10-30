@@ -1,6 +1,7 @@
 import asyncio
 import math
 import lark
+import sys
 
 import scope
 
@@ -435,6 +436,12 @@ def add_funcs(global_scope):
             ]
         ),
         lambda module: scope.unit_test_results[module.mod_name][:],
+    )
+    global_scope.add_native_function(
+        "exit",
+        [("exitCode", "int")],
+        "unit",
+        sys.exit,
     )
 
     global_scope.types["str"] = "str"
