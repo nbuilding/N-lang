@@ -1,9 +1,7 @@
-let mut thing = 4;
+import fek
 
-print(thing)
-
-let t = () -> cmd[()] {
-	thing = "test"
+let thing = () -> cmd[()] {
+	fek.paer("testing")!
 }
 
-print(thing)
+let pub out = thing()

@@ -6,6 +6,7 @@ import lark
 import re
 from lark import Lark
 from colorama import Fore, Style
+import importlib.util
 
 from variable import Variable
 from function import Function
@@ -2133,7 +2134,20 @@ class Scope:
                     )
                 )
             try:
-                imp = libraries["libraries." + command.children[0].value]
+                imp = libraries.get("libraries." + command.children[0].value)
+                filepath = os.path.join(os.path.dirname(self.file_path), command.children[0].value + ".py")
+                if imp is None and os.path.isfile(filepath):
+                    spec = importlib.util.spec_from_file_location("libraries." + command.children[0].value, filepath)
+                    imp = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(imp)
+                    libraries["libraries." + command.children[0].value] = imp
+                elif imp is None:
+                    self.errors.append(
+                        TypeCheckError(
+                            command.children[0], "Could not find file `%s.py`" % command.children[0].value
+                        )
+                    )
+                    return False
                 types = {}
                 try:
                     types = imp._types()
@@ -2147,13 +2161,7 @@ class Scope:
                         "`%s` isn't a compatible native library." % command.children[0],
                     )
                 )
-            except KeyError:
-                self.errors.append(
-                    TypeCheckError(
-                        command.children[0],
-                        "I can't find the native library `%s`." % command.children[0],
-                    )
-                )
+                return False
             self.variables[import_name] = Variable(import_type, import_type)
         elif command.data == "for" or command.data == "for_legacy":
             if command.data == "for_legacy":
