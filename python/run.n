@@ -1,7 +1,12 @@
-import fek
-
-let thing = () -> cmd[()] {
-	fek.paer("testing")!
+let test = () {
+	print("testing")
 }
 
-let pub out = thing()
+let test1 = () {
+	let runner = imp "runner.n"
+	let mut eee = 0
+	eee += 3
+	test()
+}
+
+test1()

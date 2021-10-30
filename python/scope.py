@@ -865,7 +865,11 @@ class Scope:
             else:
                 return await self.eval_expr(if_false)
         elif expr.data == "function_def":
-            arguments, returntype, codeblock = expr.children
+            if len(expr.children) == 3:
+                arguments, returntype, codeblock = expr.children
+            else:
+                arguments, codeblock = expr.children
+                returntype = lark.Token("UNIT", "()")
             arguments = arguments.children
             return Function(
                 self,
@@ -890,20 +894,21 @@ class Scope:
             if len(arg_values) == 0:
                 arg_values = [()]
             func = await self.eval_expr(function)
-            if not isinstance(func, NativeFunction):
-                with open(self.file_path, "r", encoding="utf-8") as f:
-                    self.stack_trace.append(
-                        (
-                            expr,
-                            File(
-                                f,
-                                name=os.path.relpath(
-                                    self.file_path, start=self.base_path
-                                ),
+            with open(self.file_path, "r", encoding="utf-8") as f:
+                self.stack_trace.append(
+                    (
+                        expr,
+                        File(
+                            f,
+                            name=os.path.relpath(
+                                self.file_path, start=self.base_path
                             ),
-                        )
+                        ),
                     )
-            return await func.run(arg_values)
+                )
+            out = await func.run(arg_values)
+            self.stack_trace.pop()
+            return out
         elif expr.data == "or_expression":
             left, _, right = expr.children
             left = await self.eval_expr(left)
@@ -1091,12 +1096,12 @@ class Scope:
                 self.base_path,
                 self.parent_imports + [os.path.normpath(self.file_path)],
             )
-            self.stack_trace += val.stack_trace
             holder = {}
             for key in val.variables.keys():
                 if val.variables[key].public:
                     holder[key] = val.variables[key].value
             unit_test_results[rel_file_path] += val.unit_tests[:]
+            self.stack_trace.pop()
             return NModule(rel_file_path, holder)
         elif expr.data == "record_access":
 
@@ -1528,7 +1533,7 @@ class Scope:
                 arguments, returntype, codeblock = expr.children
             else:
                 arguments, codeblock = expr.children
-                returntype = None
+                returntype = lark.Token("UNIT", "()")
 
             generic_types = []
             generics, arguments = get_arguments(arguments)

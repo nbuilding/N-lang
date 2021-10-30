@@ -60,7 +60,7 @@ function_dec_call: NAME (" " [name_type (" " name_type)*])?
 function_call: literal "(" [function_call_arg ("," function_call_arg)*]  (",")? ")"
 pipe_function_call: literal ["(" [function_call_arg ("," function_call_arg)*]  (",")? ")"]
 code_block: "{" [main_instruction* last_instruction] "}"
-function_def: arguments "->" types? code_block
+function_def: arguments ("->" types)? code_block
 arguments: generic_declaration? (name_type ("->" name_type)* | "(" [name_type ("," name_type)*] ")")
 generic_declaration: "[" (NAME ",")* NAME (",")? "]"
 char: "\\" ( escape_code | "{" /./ "}" | "u{" hex_pattern "}")
