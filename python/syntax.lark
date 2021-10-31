@@ -150,7 +150,6 @@ func_type: generic_declaration? (func_inner_type |"(" [func_inner_type ("," func
 ?and_expression: [and_expression AND] not_expression
 ?not_expression: compare_expression
                | in_expression
-               | NOT_KW not_expression
 ?in_expression: number_expression IN number_expression
 ?compare_expression: [compare_expression compare_operator] number_expression
 ?compare_operator: EQUALS
@@ -233,7 +232,6 @@ IN: "in"
 LESS: "<"
 GREATER: ">"
 NEQUALS: "~="
-NOT_KW: "not"
 NOT: "~"
 ADD: "+"
 SUBTRACT: "-"

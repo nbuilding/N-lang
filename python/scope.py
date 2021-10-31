@@ -1849,8 +1849,6 @@ class Scope:
         if len(expr.children) == 2 and isinstance(expr.children[0], lark.Token):
             operation, value = expr.children
             operation_type = operation.type
-            if operation_type == "NOT_KW":
-                operation_type = "NOT"
             types = unary_operation_types.get(operation_type)
             if types:
                 value_type = self.type_check_expr(value)
