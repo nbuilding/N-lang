@@ -1366,7 +1366,7 @@ class Scope:
             return (False, None)
         elif command.data == "assign_value":
             var, operator, val = command.children
-            if operator.children[0].type != "EQUALS":
+            if operator.children[0].type != "ASSIGN_EQUAL":
                 self.get_variable(var.value).value = await self.eval_expr(lark.Tree(assignment_expression_types[operator.children[0].type], [lark.Tree('value', [var]), lark.Token(assignment_types[operator.children[0].type], ""), val]))
                 return (False, None)
             self.get_variable(var.value).value = await self.eval_expr(val)
@@ -2584,7 +2584,7 @@ class Scope:
                 return False
 
             typ = variable.type
-            if operator.children[0].type != "EQUALS":
+            if operator.children[0].type != "ASSIGN_EQUAL":
                 op_type = assignment_types.get(operator.children[0].type)
                 
                 if op_type is None:
@@ -2624,7 +2624,7 @@ class Scope:
                     )
 
             parent_function = self.get_parent_function()
-            if parent_function.returntype is not None and n_cmd_type.is_type(
+            if parent_function is not None and parent_function.returntype is not None and n_cmd_type.is_type(
                 parent_function.returntype
             ):
                 self.warnings.append(

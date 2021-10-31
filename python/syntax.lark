@@ -195,7 +195,7 @@ value: NUMBER
      | OCTAL
      | function_def
 
-assign_operator: EQUALS
+assign_operator: ASSIGN_EQUAL
                | DIV_EQUAL
                | MUL_EQUAL
                | ADD_EQUAL
@@ -223,7 +223,8 @@ COMMENT: "//" /[^\n]/*
        | /\/\*(.|\n)*?\*\//
 OR: ("||" | "|")
 AND: ("&&" | "&")
-EQUALS: ("==" | "=")
+EQUALS: "=="
+ASSIGN_EQUAL: "="
 GORE: ">="
 LORE: "<="
 SHIFTL: "<<"
