@@ -50,7 +50,7 @@ ifelse_expr: "if" condition "{" expression "}" "else" ("{" expression "}" | ifel
           | conditional_let
 conditional_let: "let" pattern "=" expression
 class_definition: "class" modifier NAME arguments code_block
-match: "match" "(" value ")" match_block
+match: "match" "(" value ")" (match_block | match_enum_block)
 assert: "assert" assert_value
 assign_value: NAME assign_operator expression
 
@@ -78,6 +78,8 @@ recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
 enum_constructors: ("|")? enum_constructor ("|" enum_constructor)*
 match_block: "{" (match_entry (";" | "\n"))* "}"
 match_entry: value "->" value
+match_enum_block: "{" (match_enum_entry (";" | "\n"))* "}"
+match_enum_entry: pattern "->" value
 enum_constructor: modifier NAME "(" [types ("," types)*] ")"
                 | modifier NAME
 assert_value: assert_val

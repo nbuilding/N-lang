@@ -33,6 +33,12 @@ class EnumValue:
 
     def __eq__(self, other):
         return self.variant == other.variant and self.values == other.values
+    
+    def __hash__(self):
+        out = hash(self.variant)
+        for val in self.values:
+            out += hash(val)
+        return out
 
     @classmethod
     def construct(cls, variant):
