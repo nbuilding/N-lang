@@ -1,5 +1,5 @@
-print(match (5) {
-	3 -> 9
+print(match (yes(9)) {
+	yes(v) -> v
 	_ -> 3
-	4 -> 10
+	none -> 10
 })

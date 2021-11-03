@@ -1180,6 +1180,27 @@ class Scope:
                         return await self.eval_expr(o)
 
                 return default
+            for match in match_block.children:
+                i, o = match.children
+
+                if (
+                    isinstance(i, lark.Token) and i.value == "_"
+                ):
+                    default = await self.eval_expr(o)
+                    continue
+
+                scope = self.new_scope()
+                if scope.assign_to_pattern(
+                    get_destructure_pattern(i), inp
+                ):
+                    return await scope.eval_expr(o)
+                # else:
+                #     if isinstance(i, lark.Token) and i.type == "NAME":
+                #         if inp == await self.eval_expr(i):
+                #             return await self.eval_expr(o)
+
+
+            return default
         else:
             print("(parse tree):", expr)
             raise SyntaxError("Unexpected command/expression type %s" % expr.data)
@@ -1843,7 +1864,7 @@ class Scope:
                             TypeCheckError(
                                 input_value,
                                 "The input value's type is `%s` while the match case's input type is `%s`"
-                                % (display_type(value_type), self.type_check_expr(match)),
+                                % (display_type(value_type), display_type(self.type_check_expr(match))),
                             )
                         )
 
@@ -1861,55 +1882,55 @@ class Scope:
                     return None
 
                 return first_value_type
+                
+            first_out_type = None
+            defaults = 0
+            if isinstance(first_match, lark.Token) and first_match.value == "_":
+                defaults = 1
+                first_out_type = self.type_check_expr(first_value)
             else:
-                first_out_type = None
-                defaults = 0
-                if isinstance(first_match, lark.Token) and first_match.value == "_":
+                scope = self.new_scope(parent_type="match")
+                scope.assign_to_pattern(
+                    get_destructure_pattern(first_match), value_type, True
+                )
+                first_out_type = scope.type_check_expr(first_value)
+            for i, match_value in enumerate(match_block.children[1:]):
+                match, value = match_value.children
+                typ = None
+                if isinstance(match, lark.Token) and match.value == "_":
                     defaults = 1
-                    first_out_type = self.type_check_expr(first_value)
+                    typ = self.type_check_expr(value)
                 else:
-                    scope = self.new_scope(parent_type="match")
                     scope.assign_to_pattern(
-                        get_destructure_pattern(first_match), value_type, True
+                        get_destructure_pattern(match), value_type, True
                     )
-                    first_out_type = scope.type_check_expr(first_value)
-                for i, match_value in enumerate(match_block.children[1:]):
-                    match, value = match_value.children
-                    typ = None
-                    if isinstance(match, lark.Token) and match.value == "_":
-                        defaults = 1
-                        typ = self.type_check_expr(value)
-                    else:
-                        scope.assign_to_pattern(
-                            get_destructure_pattern(match), value_type, True
-                        )
-                        typ = scope.type_check_expr(value)
-                    if typ != first_out_type:
-                        self.errors.append(
-                            TypeCheckError(
-                                value,
-                                "The output of the match case #%s is `%s`, while the first case's type is `%s`"
-                                % (
-                                    str(i + 2),
-                                    display_type(typ),
-                                    display_type(first_out_type),
-                                ),
-                            )
-                        )
-                        return None
-                if defaults != 1:
+                    typ = scope.type_check_expr(value)
+                if typ != first_out_type:
                     self.errors.append(
                         TypeCheckError(
-                            match_block,
-                            "One default is needed, %s defaults were given"
+                            value,
+                            "The output of the match case #%s is `%s`, while the first case's type is `%s`"
                             % (
-                                str(defaults)
+                                str(i + 2),
+                                display_type(typ),
+                                display_type(first_out_type),
                             ),
                         )
                     )
                     return None
-                return first_out_type
-
+            if defaults != 1:
+                self.errors.append(
+                    TypeCheckError(
+                        match_block,
+                        "One default is needed, %s defaults were given"
+                        % (
+                            str(defaults)
+                        ),
+                    )
+                )
+                return None
+                
+            return first_out_type
         if len(expr.children) == 2 and isinstance(expr.children[0], lark.Token):
             operation, value = expr.children
             operation_type = operation.type

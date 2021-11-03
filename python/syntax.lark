@@ -50,7 +50,7 @@ ifelse_expr: "if" condition "{" expression "}" "else" ("{" expression "}" | ifel
           | conditional_let
 conditional_let: "let" pattern "=" expression
 class_definition: "class" modifier NAME arguments code_block
-match: "match" "(" value ")" (match_block | match_enum_block)
+match: "match" "(" value ")" (match_enum_block | match_block)
 assert: "assert" assert_value
 assign_value: NAME assign_operator expression
 
