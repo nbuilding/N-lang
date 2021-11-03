@@ -1159,17 +1159,27 @@ class Scope:
         elif expr.data == "match":
             input_value, match_block = expr.children
             inp = await self.eval_expr(input_value)
-            values = {}
-            default = match_block.children[-1].children[-1]
+            
+            default = None
 
-            for match_value in match_block.children[0:-1]:
-                match, value = match_value.children
-                values[await self.eval_expr(match)] = value
+            if match_block.data == "match_block":
+                for match in match_block.children:
+                    i, o = match.children
 
-            if inp in values:
-                return await self.eval_expr(values[inp])
+                    if (
+                        isinstance(i, lark.Tree)
+                        and len(i.children) == 1
+                        and isinstance(i.children[0], lark.Token)
+                        and i.children[0].type == "NAME"
+                        and i.children[0].value == "_"
+                    ):
+                        default = await self.eval_expr(o)
+                        continue
 
-            return await self.eval_expr(default)
+                    if inp == await self.eval_expr(i):
+                        return await self.eval_expr(o)
+
+                return default
         else:
             print("(parse tree):", expr)
             raise SyntaxError("Unexpected command/expression type %s" % expr.data)
@@ -1785,68 +1795,72 @@ class Scope:
             value_type = self.type_check_expr(input_value)
             first_match, first_value = match_block.children[0].children
             if match_block.data == "match_block":
-                first_match_type = self.type_check_expr(first_match)
+                defaults = 0
+
+                if (
+                    isinstance(first_match, lark.Tree)
+                    and len(first_match.children) == 1
+                    and isinstance(first_match.children[0], lark.Token)
+                    and first_match.children[0].type == "NAME"
+                    and first_match.children[0].value == "_"
+                ):
+                    defaults += 1
+
                 first_value_type = self.type_check_expr(first_value)
-                for i, match_value in enumerate(match_block.children):
+
+                for i, match_value in enumerate(match_block.children[1:]):
                     match, value = match_value.children
-                    
+
+                    default = False
+
                     if (
-                        i != len(match_block.children) - 1
-                        and isinstance(match, lark.Tree)
+                        isinstance(match, lark.Tree)
                         and len(match.children) == 1
                         and isinstance(match.children[0], lark.Token)
                         and match.children[0].type == "NAME"
                         and match.children[0].value == "_"
                     ):
-                        self.errors.append(
-                            TypeCheckError(
-                                match,
-                                "You cannot have more than one default in a match statement"
-                            )
-                        )
-                        continue
+                        defaults += 1
+                        default = True
 
                     if (
-                        i != len(match_block.children) - 1
-                        and self.type_check_expr(match) != first_match_type
-                        and self.type_check_expr(match) != None
-                    ):
-                        self.errors.append(
-                            TypeCheckError(
-                                match_value,
-                                "The match check #%s's type is %s while the first check's type is %s"
-                                % (
-                                    str(i + 1),
-                                    display_type(self.type_check_expr(match)),
-                                    display_type(first_match_type),
-                                ),
-                            )
-                        )
-                    if (
                         self.type_check_expr(value) != first_value_type
-                        and self.type_check_expr(match) != None
                     ):
                         self.errors.append(
                             TypeCheckError(
                                 match_value,
                                 "The match value #%s's type is %s while the first value's type is %s"
                                 % (
-                                    str(i + 1),
+                                    str(i + 2),
                                     display_type(self.type_check_expr(value)),
                                     display_type(first_value_type),
                                 ),
                             )
                         )
 
-                if value_type != first_match_type:
+                    if not default and value_type != self.type_check_expr(match):
+                        self.errors.append(
+                            TypeCheckError(
+                                input_value,
+                                "The input value's type is `%s` while the match case's input type is `%s`"
+                                % (display_type(value_type), self.type_check_expr(match)),
+                            )
+                        )
+
+                
+                if defaults != 1:
                     self.errors.append(
                         TypeCheckError(
-                            input_value,
-                            "The input value's type is %s while the match's input type is %s"
-                            % (display_type(value_type), display_type(first_match_type)),
+                            match_block,
+                            "One default is needed, %s defaults were given"
+                            % (
+                                str(defaults)
+                            ),
                         )
                     )
-                return first_match_type
+                    return None
+
+                return first_value_type
             else:
                 first_out_type = None
                 defaults = 0
