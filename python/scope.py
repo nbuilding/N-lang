@@ -215,6 +215,7 @@ class Scope:
         parent_type="top",
         stack_trace=None,
         unit_tests=None,
+        internal_traits=None,
     ):
         self.parent = parent
         self.parent_function = parent_function
@@ -235,6 +236,8 @@ class Scope:
         self.stack_trace = stack_trace if stack_trace is not None else []
         self.unit_tests = unit_tests if unit_tests is not None else []
 
+        self.internal_traits = internal_traits if internal_traits is not None else {}
+
     def new_scope(
         self,
         parent_function=None,
@@ -242,6 +245,7 @@ class Scope:
         parent_type=None,
         inherit_stack_trace=True,
         inherit_unit_tests=True,
+        inherit_internal_traits=True,
     ):
         return Scope(
             self,
@@ -254,7 +258,57 @@ class Scope:
             parent_type=parent_type or self.parent_type,
             stack_trace=self.stack_trace if inherit_stack_trace else [],
             unit_tests=self.unit_tests if inherit_unit_tests else [],
+            internal_traits=self.internal_traits if inherit_internal_traits else {},
         )
+        
+    def get_value_internal_traits(self, value):
+        enums = [elm for elm in self.types if isinstance(elm, EnumType)]
+        if isinstance(value, NModule):
+            return self.internal_traits.get("module")
+        elif isinstance(value, NMap):
+            return self.internal_traits.get("map")
+        elif isinstance(value, dict):
+            return value
+        elif isinstance(value, list):
+            return self.internal_traits.get("list")
+        elif isinstance(value, tuple):
+            return self.internal_traits.get("tuple")
+        elif isinstance(value, bool):
+            return self.internal_traits.get("bool")
+        elif isinstance(value, int):
+            return self.internal_traits.get("int")
+        elif isinstance(value, float):
+            return self.internal_traits.get("float")
+        elif isinstance(value, str):
+            return self.internal_traits.get("str")
+        elif isinstance(value, EnumValue):
+            for enum in enums:
+                if value.variant in enum.variants:
+                    return self.internal_traits.get(enum.name)
+
+            return None
+        elif isinstance(value, Cmd):
+            return self.internal_traits.get("cmd")
+        return None
+        
+    def get_type_internal_traits(self, value):
+        if isinstance(value, NTypeVars):
+            return self.internal_traits.get(value.name)
+        elif isinstance(value, dict):
+            return value
+        elif isinstance(value, list):
+            return self.internal_traits.get("list")
+        elif isinstance(value, tuple):
+            return self.internal_traits.get("tuple")
+        elif isinstance(value, bool):
+            return self.internal_traits.get("bool")
+        elif isinstance(value, int):
+            return self.internal_traits.get("int")
+        elif isinstance(value, float):
+            return self.internal_traits.get("float")
+        elif isinstance(value, str):
+            return self.internal_traits.get("str")
+        return None
 
     def get_variable(self, name, err=True):
         variable = self.variables.get(name)
@@ -1751,34 +1805,35 @@ class Scope:
         elif expr.data == "record_access":
             value, field = expr.children
             value_type = self.type_check_expr(value)
-            is_maybe = False
-
-            if isinstance(value_type, NTypeVars) and value_type.name == "maybe":
-                value_type = value_type.get_types("yes")[0]
-                is_maybe = True
+            method = False
 
             if value_type is None:
                 return None
             elif not isinstance(value_type, dict):
-                self.errors.append(
-                    TypeCheckError(
-                        value,
-                        "You can only get fields from records, not %s."
-                        % display_type(value_type),
+                typ = value_type
+                value_type = self.get_type_internal_traits(value_type)
+                if value_type is None:
+                    self.errors.append(
+                        TypeCheckError(
+                            value,
+                            "`%s` does not have any traits or values."
+                            % display_type(typ),
+                        )
                     )
-                )
-                return None
-            elif field.value not in value_type:
+                    return None
+                method = True
+            if field.value not in value_type:
                 self.errors.append(
                     TypeCheckError(
                         expr,
-                        "%s doesn't have a field `%s`."
+                        "%s doesn't have a trait `%s`."
                         % (display_type(value_type), field.value),
                     )
                 )
                 return None
             else:
-                return value_type[field.value] if not is_maybe else n_maybe_type.with_typevars([value_type[field.value]])
+                return value_type[field.value].type
+                return value_type[field.value].type if method else value_type[field.value]
         elif expr.data == "await_expression":
             value, _ = expr.children
             value_type = self.type_check_expr(value)
@@ -2725,5 +2780,12 @@ class Scope:
 
     def add_native_function(self, name, argument_types, return_type, function):
         self.variables[name] = NativeFunction(
+            self, argument_types, return_type, function
+        )
+
+    def add_internal_trait(self, type_name, name, argument_types, return_type, function):
+        if type_name not in self.internal_traits:
+            self.internal_traits[type_name] = {}
+        self.internal_traits[type_name][name] = NativeFunction(
             self, argument_types, return_type, function
         )

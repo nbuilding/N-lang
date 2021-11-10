@@ -116,6 +116,7 @@ def entries(n_map):
 
 
 def special_print(val):
+    print(type(val))
     if isinstance(val, str):
         print(val)
     else:
@@ -455,3 +456,13 @@ def add_funcs(global_scope):
     global_scope.types["maybe"] = n_maybe_type
     global_scope.types["result"] = n_result_type
     global_scope.types["module"] = n_module_type
+
+    global_scope.add_internal_trait(
+        "str",
+        "len",
+        [
+            ("self", "str")
+        ],
+        "int",
+        len,
+    )

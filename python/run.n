@@ -1,5 +1,1 @@
-print(match (yes(9)) {
-	yes(v) -> v
-	_ -> 3
-	none -> 10
-})
+print("test".len())
