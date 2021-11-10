@@ -116,7 +116,6 @@ def entries(n_map):
 
 
 def special_print(val):
-    print(type(val))
     if isinstance(val, str):
         print(val)
     else:
@@ -186,6 +185,9 @@ def trim(string):
     whitespace = [u'\u0009', u'\u000a', u'\u000a', u'\u000b', u'\u000c', u'\u0020', u'\u00a0', u'\u1680', u'\u2000', u'\u2001', u'\u2002', u'\u2003', u'\u2004', u'\u2005', u'\u2006', u'\u2007', u'\u2008', u'\u2009', u'\u200a', u'\u2028', u'\u2029', u'\u202f', u'\u205f', u'\u3000', u'\ufeff']
 
     return string.strip("".join(whitespace))
+
+def len_test(string, _):
+    return len(string)
 
 # Define global functions/variables
 def add_funcs(global_scope):
@@ -461,8 +463,9 @@ def add_funcs(global_scope):
         "str",
         "len",
         [
-            ("self", "str")
+            ("self", "str"),
+            ("_", "unit"),
         ],
         "int",
-        len,
+        len_test,
     )
