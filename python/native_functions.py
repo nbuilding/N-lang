@@ -186,9 +186,6 @@ def trim(string):
 
     return string.strip("".join(whitespace))
 
-def len_test(string, _):
-    return len(string)
-
 # Define global functions/variables
 def add_funcs(global_scope):
     global_scope.variables["none"] = Variable(n_maybe_type, none)
@@ -247,12 +244,7 @@ def add_funcs(global_scope):
         "float",
         float,
     )
-    global_scope.add_native_function(
-        "len",
-        [("obj", NGenericType("t"))],
-        "int",
-        length,
-    )
+    
     global_scope.add_native_function(
         "split",
         [("splitter", "char"), ("string", "str")],
@@ -331,16 +323,7 @@ def add_funcs(global_scope):
         n_maybe_type.with_typevars([maybe_generic]),
         yes,
     )
-    default_generic = NGenericType("t")
-    global_scope.add_native_function(
-        "default",
-        [
-            ("default", default_generic),
-            ("maybeValue", n_maybe_type.with_typevars([default_generic])),
-        ],
-        default_generic,
-        with_default,
-    )
+    
     global_scope.add_native_function(
         "ok",
         [("value", result_ok_generic)],
@@ -467,7 +450,19 @@ def add_funcs(global_scope):
             ("_", "unit"),
         ],
         "int",
-        len_test,
+        len,
+    )
+
+    len_trait_generic = NGenericType("t")
+    global_scope.add_internal_trait(
+        "list",
+        "len",
+        [
+            ("self", "str"),
+            ("_", "unit"),
+        ],
+        "int",
+        len,
     )
 
     default_trait_generic = NGenericType("t")

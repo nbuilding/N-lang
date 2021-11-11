@@ -1,6 +1,7 @@
 import math
 import os.path
 import sys
+from inspect import signature
 
 import lark
 import re
@@ -2801,8 +2802,15 @@ class Scope:
     def add_internal_trait(self, type_name, name, argument_types, return_type, function):
         if self.types.get(type_name) is not None and isinstance(self.types[type_name], EnumType):
             self.enum_variants[type_name] = [o[0] for o in self.types[type_name].variants[:]]
+
         if type_name not in self.internal_traits:
             self.internal_traits[type_name] = {}
+
+        if len(signature(function).parameters) == 1:
+            # Make it so a Unit can be passed in so the current system does not need to be messed up
+            out = function
+            function = lambda v, _: out(v)
+
         self.internal_traits[type_name][name] = NativeFunction(
             self, argument_types, return_type, function
         )
