@@ -285,8 +285,8 @@ class Scope:
         elif isinstance(value, str):
             return self.internal_traits.get("str")
         elif isinstance(value, EnumValue):
-            for enum in enum_variants.keys():
-                if value.variant in enum_variants[enum]:
+            for enum in self.enum_variants.keys():
+                if value.variant in self.enum_variants[enum]:
                     return self.internal_traits.get(enum)
             return None
         elif isinstance(value, Cmd):
@@ -2800,7 +2800,7 @@ class Scope:
 
     def add_internal_trait(self, type_name, name, argument_types, return_type, function):
         if self.types.get(type_name) is not None and isinstance(self.types[type_name], EnumType):
-            self.enum_variants[type_name] = self.types[type_name].variants[:]
+            self.enum_variants[type_name] = [o[0] for o in self.types[type_name].variants[:]]
         if type_name not in self.internal_traits:
             self.internal_traits[type_name] = {}
         self.internal_traits[type_name][name] = NativeFunction(

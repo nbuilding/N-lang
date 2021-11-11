@@ -1,1 +1,1 @@
-print("test".len())
+print(none.default(4))

@@ -62,7 +62,7 @@ async def filter_map(transformer, lis):
     return new_list
 
 
-def with_default(default_value, maybe_value):
+def with_default(maybe_value, default_value):
     if maybe_value.variant == "yes":
         return maybe_value.values[0]
     else:
@@ -468,4 +468,16 @@ def add_funcs(global_scope):
         ],
         "int",
         len_test,
+    )
+
+    default_trait_generic = NGenericType("t")
+    global_scope.add_internal_trait(
+        "maybe",
+        "default",
+        [
+            ("self", n_maybe_type.with_typevars([default_trait_generic])),
+            ("default", default_trait_generic),
+        ],
+        default_trait_generic,
+        with_default,
     )
