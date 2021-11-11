@@ -216,6 +216,7 @@ class Scope:
         stack_trace=None,
         unit_tests=None,
         internal_traits=None,
+        enum_variants=None,
     ):
         self.parent = parent
         self.parent_function = parent_function
@@ -237,6 +238,7 @@ class Scope:
         self.unit_tests = unit_tests if unit_tests is not None else []
 
         self.internal_traits = internal_traits if internal_traits is not None else {}
+        self.enum_variants = enum_variants if enum_variants is not None else {}
 
     def new_scope(
         self,
@@ -246,6 +248,7 @@ class Scope:
         inherit_stack_trace=True,
         inherit_unit_tests=True,
         inherit_internal_traits=True,
+        inherit_enum_variants=True,
     ):
         return Scope(
             self,
@@ -259,10 +262,10 @@ class Scope:
             stack_trace=self.stack_trace if inherit_stack_trace else [],
             unit_tests=self.unit_tests if inherit_unit_tests else [],
             internal_traits=self.internal_traits if inherit_internal_traits else {},
+            enum_variants=self.enum_variants if inherit_enum_variants else {},
         )
         
     def get_value_internal_traits(self, value):
-        enums = [elm for elm in self.types if isinstance(elm, EnumType)]
         if isinstance(value, NModule):
             return self.internal_traits.get("module")
         elif isinstance(value, NMap):
@@ -282,10 +285,9 @@ class Scope:
         elif isinstance(value, str):
             return self.internal_traits.get("str")
         elif isinstance(value, EnumValue):
-            for enum in enums:
-                if value.variant in enum.variants:
-                    return self.internal_traits.get(enum.name)
-
+            for enum in enum_variants.keys():
+                if value.variant in enum_variants[enum]:
+                    return self.internal_traits.get(enum)
             return None
         elif isinstance(value, Cmd):
             return self.internal_traits.get("cmd")
@@ -2784,6 +2786,8 @@ class Scope:
         )
 
     def add_internal_trait(self, type_name, name, argument_types, return_type, function):
+        if self.types.get(type_name) is not None and isinstance(self.types[type_name], EnumType):
+            self.enum_variants[type_name] = self.types[type_name].variants[:]
         if type_name not in self.internal_traits:
             self.internal_traits[type_name] = {}
         self.internal_traits[type_name][name] = NativeFunction(
