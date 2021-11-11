@@ -24,7 +24,7 @@ from type import (
 )
 from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
-from native_types import n_list_type, n_cmd_type, n_maybe_type, none, yes
+from native_types import n_list_type, n_cmd_type, n_maybe_type, none, yes, NMap
 from ncmd import Cmd
 from type_check_error import TypeCheckError, display_type
 from display import display_value
@@ -1160,14 +1160,17 @@ class Scope:
             self.stack_trace.pop()
             return NModule(rel_file_path, holder)
         elif expr.data == "record_access":
+            method = False
 
+            out =  None
             dict_value = await self.eval_expr(expr.children[0])
-            if isinstance(dict_value, EnumValue) and dict_value == none:
-                return none
-            if isinstance(dict_value, EnumValue):
-                dict_value = dict_value.values[0]
-                return yes(dict_value[expr.children[1].value])
-            return dict_value[expr.children[1].value]
+            if not isinstance(dict_value, dict):
+                internal_traits = self.get_value_internal_traits(dict_value)
+                out = internal_traits[expr.children[1].value]
+                out = await out.run([dict_value])
+            else:
+                out = dict_value[expr.children[1].value]
+            return out
         elif expr.data == "tupleval":
             values = []
             for e in expr.children:
@@ -1687,6 +1690,7 @@ class Scope:
                 function, *arguments = expr.children[1].children
                 arguments.append(mainarg)
 
+            old_arg = arguments[:]
             new_arg = []
             for arg in arguments:
                 if arg.data == "spread":
@@ -1736,9 +1740,14 @@ class Scope:
                 _, incompatible = resolve_equal_types(check_type, resolved_arg_type)
                 if incompatible:
                     if expr.data == "function_callback":
+                        arg = function
+                        try:
+                            arg = old_arg[n - 1]
+                        except:
+                            pass
                         self.errors.append(
                             TypeCheckError(
-                                argument,
+                                arg,
                                 "%s's argument #%d should be a %s, but you gave a %s."
                                 % (
                                     display_type(func_type),
@@ -1834,8 +1843,12 @@ class Scope:
                 )
                 return None
             else:
-                return value_type[field.value].type
-                return value_type[field.value].type if method else value_type[field.value]
+                out = value_type[field.value].type if method else value_type[field.value]
+                if method:
+                    out = out[1:]
+                    if len(out) == 1:
+                        out = tuple(["unit"] + list(out))
+                return out
         elif expr.data == "await_expression":
             value, _ = expr.children
             value_type = self.type_check_expr(value)
