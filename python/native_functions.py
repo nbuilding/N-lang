@@ -502,7 +502,7 @@ def add_funcs(global_scope):
     global_scope.add_internal_trait(
         "list",
         "itemAt",
-        [("self", n_list_type.with_typevars([item_at_generic])), ("index", "int")],
-        n_maybe_type.with_typevars([item_at_generic]),
+        [("self", n_list_type.with_typevars([item_at_trait_generic])), ("index", "int")],
+        n_maybe_type.with_typevars([item_at_trait_generic]),
         item_at,
     )
