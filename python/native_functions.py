@@ -192,26 +192,19 @@ def string(i, _):
 # Define global functions/variables
 def add_funcs(global_scope):
     global_scope.variables["none"] = Variable(n_maybe_type, none)
-    
-    global_scope.add_native_function(
-        "split",
-        [("splitter", "char"), ("string", "str")],
-        n_list_type.with_typevars(["str"]),
-        lambda splitter, string: string.split(splitter),
-    )
-    global_scope.add_native_function(
-        "strip", [("string", "str")], "str", trim
-    )
+
     global_scope.add_native_function(
         "range",
         [("start", "int"), ("end", "int"), ("step", "int")],
         n_list_type.with_typevars(["int"]),
         range_without_error,
     )
+
     print_generic = NGenericType("t")
     global_scope.add_native_function(
         "print", [("val", print_generic)], print_generic, special_print
     )
+
     print_with_end_generic = NGenericType("t")
     global_scope.add_native_function(
         "printWithEnd",
@@ -219,13 +212,7 @@ def add_funcs(global_scope):
         print_with_end_generic,
         special_print_with_end,
     )
-    item_at_generic = NGenericType("t")
-    global_scope.add_native_function(
-        "itemAt",
-        [("index", "int"), ("list", n_list_type.with_typevars([item_at_generic]))],
-        n_maybe_type.with_typevars([item_at_generic]),
-        item_at,
-    )
+    
     append_generic = NGenericType("t")
     global_scope.add_native_function(
         "append",
@@ -493,4 +480,29 @@ def add_funcs(global_scope):
         [("self", "int")],
         "float",
         lambda v: float(v),
+    )
+    
+    global_scope.add_internal_trait(
+        "str",
+        "split",
+        [("self", "str"), ("splitter", "char")],
+        n_list_type.with_typevars(["str"]),
+        lambda string, splitter: string.split(splitter),
+    )
+    
+    global_scope.add_internal_trait(
+        "str",
+        "strip",
+        [("self", "str")],
+        "str",
+        trim
+    )
+
+    item_at_trait_generic = NGenericType("t")
+    global_scope.add_internal_trait(
+        "list",
+        "itemAt",
+        [("self", n_list_type.with_typevars([item_at_generic])), ("index", "int")],
+        n_maybe_type.with_typevars([item_at_generic]),
+        item_at,
     )
