@@ -1,9 +1,5 @@
-print(none.default("test").len)
-print("test".len)
-print([1, 2, 3, 4, 5].len)
-print(\{a}.charCode)
-print((1).toString)
-print((33).intCode)
-print((1.5).round)
-print((1.5).ceil)
-print((1.5).floor)
+let test = imp "../tests/assertions/native-functions-and-traits.n"
+
+if let yes(t) = intoModule(test) {
+    print(getUnitTestResults(t))
+}

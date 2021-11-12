@@ -28,11 +28,11 @@ from native_types import (
 from ncmd import Cmd
 
 
-def substr(start, end, string):
+def substr(string, start, end):
     return string[start:end]
 
 
-def char_at(index, string):
+def char_at(string, index):
     if index < 0 or index >= len(string):
         return none
     else:
@@ -192,25 +192,6 @@ def string(i, _):
 # Define global functions/variables
 def add_funcs(global_scope):
     global_scope.variables["none"] = Variable(n_maybe_type, none)
-
-    global_scope.add_native_function(
-        "charAt",
-        [("location", "int"), ("string", "str")],
-        n_maybe_type.with_typevars(["char"]),
-        char_at,
-    )
-    global_scope.add_native_function(
-        "substring",
-        [("start", "int"), ("end", "int"), ("string", "str")],
-        "str",
-        substr,
-    )
-    global_scope.add_native_function(
-        "toFloat",
-        [("number", "int")],
-        "float",
-        float,
-    )
     
     global_scope.add_native_function(
         "split",
@@ -488,4 +469,28 @@ def add_funcs(global_scope):
         [("self", "int")],
         "char",
         char_with_replace,
+    )
+
+    global_scope.add_internal_trait(
+        "str",
+        "charAt",
+        [("self", "str"), ("location", "int")],
+        n_maybe_type.with_typevars(["char"]),
+        char_at,
+    )
+
+    global_scope.add_internal_trait(
+        "str",
+        "substring",
+        [("self", "str"), ("start", "int"), ("end", "int")],
+        "str",
+        substr,
+    )
+
+    global_scope.add_internal_trait(
+        "int",
+        "toFloat",
+        [("self", "int")],
+        "float",
+        lambda v: float(v),
     )

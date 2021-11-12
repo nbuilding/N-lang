@@ -1,50 +1,50 @@
 // Based on docs/features/native_functions.md
 
-assert type (10).toString : int -> str
+assert type (10).toString : () -> str
 assert value (10).toString() == "10"
 
 // round, floor, and ceil convert infinities and NaN to 0 (#243)
 let infinity = 1.0 / 0.0
 let nan = 0.0 / 0.0
 
-assert type infinity.round : float -> int
+assert type infinity.round : () -> int
 assert value (10.5).round() == 11
 assert value (-10.5).round() == -10
 assert value infinity.round() == 0
 
-assert type infinity.floor : float -> int
+assert type infinity.floor : () -> int
 assert value (10.5).floor() == 10
 assert value (-10.5).floor() == -11
 assert value nan.floor() == 0
 
-assert type nan.ceil : float -> int
+assert type nan.ceil : () -> int
 assert value (10.5).ceil() == 11
 assert value (10.4).ceil() == 11
 assert value (-10.5).ceil() == -10
 assert value (-infinity).ceil() == 0
 
-assert type \{a}.charCode() : char -> int
+assert type \{a}.charCode() : () -> int
 assert value \{a}.charCode() == 97
 assert value \{🕴}.charCode() == 0x1f574
 
-assert type (32).intCode() : int -> char
+assert type (32).intCode() : () -> char
 assert value (32).intCode() == \{ }
 assert value (-1).intCode() == \u{FFFD}
 
-assert type charAt : int -> str -> maybe[char]
-assert value charAt(1, "abc") == yes(\{b})
-assert value charAt(-1, "abc") == none
+assert type "test".charAt : int -> maybe[char]
+assert value "abc".charAt(1) == yes(\{b})
+assert value "abc".charAt(-1) == none
 
-assert type substring : int -> int -> str -> str
-assert value substring(0, 2, "abc") == "ab"
-assert value substring(-3, -1, "apple sauce") == "uc"
-assert value substring(0, -1, "banana jam") == "banana ja"
-assert value substring(0, 100, "hi") == "hi"
-assert value substring(2, 100, "hi") == ""
-assert value substring(5, 3, "hello world") == ""
+assert type "abc".substring : (int, int) -> str
+assert value "abc".substring(0, 2) == "ab"
+assert value "apple sauce".substring(-3, -1) == "uc"
+assert value "banana jam".substring(0, -1) == "banana ja"
+assert value "hi".substring(0, 100) == "hi"
+assert value "hi".substring(2, 100) == ""
+assert value "hello world".substring(5, 3) == ""
 
-assert type toFloat : int -> float
-assert value toFloat(3) == 3.0
+assert type (3).toFloat : int -> float
+assert value (3).toFloat() == 3.0
 
 assert type "abc".len() : str -> int
 assert value "abc".len() == 3
@@ -62,7 +62,7 @@ assert value strip(" abc ") == "abc"
 // Entire list of characters that are removed by strip (#245)
 assert value strip("\u{9}\u{a}\u{a}\u{b}\u{c}\u{20}\u{a0}\u{1680}\u{2000}\u{2001}\u{2002}a  a\u{2003}\u{2004}\u{2005}\u{2006}\u{2007}\u{2008}\u{2009}\u{200a}\u{2028}\u{2029}\u{202f}\u{205f}\u{3000}\u{feff}") == "a  a"
 
-assert type range : int -> int -> int -> list[int]
+assert type range : (int, int, int) -> list[int]
 assert value range(0, 3, 1) == [0, 1, 2]
 // From https://docs.python.org/3/library/stdtypes.html#range
 assert value range(0, 10, 1) == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
