@@ -284,6 +284,8 @@ class Scope:
         elif isinstance(value, float):
             return self.internal_traits.get("float")
         elif isinstance(value, str):
+            if len(value) == 1:
+                return {**self.internal_traits.get("str"), **self.internal_traits.get("char")}
             return self.internal_traits.get("str")
         elif isinstance(value, EnumValue):
             for enum in self.enum_variants.keys():
@@ -297,20 +299,17 @@ class Scope:
     def get_type_internal_traits(self, value):
         if isinstance(value, NTypeVars):
             return self.internal_traits.get(value.name)
+        elif isinstance(value, str):
+            return self.internal_traits.get(value)
+        elif isinstance(value, list):
+            if isinstance(value[0], lark.Token):
+                if value[0].type == "LIST":
+                    return self.internal_traits.get("list")
+        elif isinstance(value, NModule):
+            return self.internal_traits.get("module")
         elif isinstance(value, dict):
             return value
-        elif isinstance(value, list):
-            return self.internal_traits.get("list")
-        elif isinstance(value, tuple):
-            return self.internal_traits.get("tuple")
-        elif isinstance(value, bool):
-            return self.internal_traits.get("bool")
-        elif isinstance(value, int):
-            return self.internal_traits.get("int")
-        elif isinstance(value, float):
-            return self.internal_traits.get("float")
-        elif isinstance(value, str):
-            return self.internal_traits.get("str")
+
         return None
 
     def get_variable(self, name, err=True):
@@ -1819,6 +1818,8 @@ class Scope:
             value_type = self.type_check_expr(value)
             method = False
 
+            old_value_type = value_type
+
             if value_type is None:
                 return None
             elif not isinstance(value_type, dict):
@@ -1839,7 +1840,7 @@ class Scope:
                     TypeCheckError(
                         expr,
                         "%s doesn't have a trait `%s`."
-                        % (display_type(value_type), field.value),
+                        % (display_type(old_value_type), field.value),
                     )
                 )
                 return None
@@ -2809,6 +2810,7 @@ class Scope:
         if len(signature(function).parameters) == 1:
             # Make it so a Unit can be passed in so the current system does not need to be messed up
             out = function
+            argument_types.append(("_", "unit"))
             function = lambda v, _: out(v)
 
         self.internal_traits[type_name][name] = NativeFunction(

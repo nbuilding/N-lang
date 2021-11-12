@@ -186,46 +186,13 @@ def trim(string):
 
     return string.strip("".join(whitespace))
 
+def string(i, _):
+    return str(i)
+
 # Define global functions/variables
 def add_funcs(global_scope):
     global_scope.variables["none"] = Variable(n_maybe_type, none)
 
-    global_scope.add_native_function(
-        "intInBase10",
-        [("number", "int")],
-        "str",
-        str,
-    )
-    global_scope.add_native_function(
-        "round",
-        [("number", "float")],
-        "int",
-        round_without_error,
-    )
-    global_scope.add_native_function(
-        "floor",
-        [("number", "float")],
-        "int",
-        floor_without_error,
-    )
-    global_scope.add_native_function(
-        "ceil",
-        [("number", "float")],
-        "int",
-        ceil_without_error,
-    )
-    global_scope.add_native_function(
-        "charCode",
-        [("character", "char")],
-        "int",
-        ord,
-    )
-    global_scope.add_native_function(
-        "intCode",
-        [("number", "int")],
-        "char",
-        char_with_replace,
-    )
     global_scope.add_native_function(
         "charAt",
         [("location", "int"), ("string", "str")],
@@ -447,7 +414,6 @@ def add_funcs(global_scope):
         "len",
         [
             ("self", "str"),
-            ("_", "unit"),
         ],
         "int",
         len,
@@ -459,7 +425,6 @@ def add_funcs(global_scope):
         "len",
         [
             ("self", "str"),
-            ("_", "unit"),
         ],
         "int",
         len,
@@ -475,4 +440,52 @@ def add_funcs(global_scope):
         ],
         default_trait_generic,
         with_default,
+    )
+
+    global_scope.add_internal_trait(
+        "int",
+        "toString",
+        [("self", "int")],
+        "str",
+        lambda v: str(v),
+    )
+
+    global_scope.add_internal_trait(
+        "float",
+        "round",
+        [("self", "float")],
+        "int",
+        round_without_error,
+    )
+
+    global_scope.add_internal_trait(
+        "float",
+        "floor",
+        [("self", "float")],
+        "int",
+        floor_without_error,
+    )
+
+    global_scope.add_internal_trait(
+        "float",
+        "ceil",
+        [("self", "float")],
+        "int",
+        ceil_without_error,
+    )
+
+    global_scope.add_internal_trait(
+        "char",
+        "charCode",
+        [("self", "char")],
+        "int",
+        ord,
+    )
+
+    global_scope.add_internal_trait(
+        "int",
+        "intCode",
+        [("self", "int")],
+        "char",
+        char_with_replace,
     )
