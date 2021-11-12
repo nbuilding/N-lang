@@ -87,9 +87,9 @@ assert type [].itemAt : [t] int -> list[t] -> maybe[t]
 assert value [1, 2, 3].itemAt(1) == yes(2)
 assert value [1, 2, 3].itemAt(-1) == none
 
-assert type append : [t] t -> list[t] -> list[t]
+assert type [].append : [t] t -> list[t] -> list[t]
 let list = [1, 2, 3]
-assert value append(4, list) == [1, 2, 3, 4]
+assert value list.append(4) == [1, 2, 3, 4]
 // `list` should not be mutated
 assert value list == [1, 2, 3]
 
@@ -161,14 +161,14 @@ if let yes(module) = intoModule(imp "./imports/unit-test.n") {
 
 	assert value results.len() == 4
 
-	assert value (results |> itemAt(0)) == yes({
+	assert value (results.itemAt(0)) == yes({
 		hasPassed: true
 		fileLine: 3
 		unitTestType: "value"
 		possibleTypes: none
 	})
 
-	assert value (results |> itemAt(1)) == yes({
+	assert value (results.itemAt(1)) == yes({
 		hasPassed: false
 		fileLine: 5
 		unitTestType: "value"
@@ -182,14 +182,14 @@ if let yes(module) = intoModule(imp "./imports/unit-test.n") {
 		assert value if let yes(_) = result.possibleTypes { true } else { false }
 	}
 
-	assert value (results |> itemAt(2)).default({
+	assert value (results.itemAt(2)).default({
 		hasPassed: true
 		fileLine: 0
 		unitTestType: "value"
 		possibleTypes: none
 	}).fileLine == 7
 
-	assert value (results |> itemAt(3)).default({
+	assert value (results.itemAt(3)).default({
 		hasPassed: true
 		fileLine: 0
 		unitTestType: "value"

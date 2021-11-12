@@ -39,7 +39,7 @@ def char_at(string, index):
         return yes(string[index])
 
 
-def item_at(index, lis):
+def item_at(lis, index):
     if index < 0 or index >= len(lis):
         return none
     else:
@@ -212,17 +212,7 @@ def add_funcs(global_scope):
         print_with_end_generic,
         special_print_with_end,
     )
-    
-    append_generic = NGenericType("t")
-    global_scope.add_native_function(
-        "append",
-        [
-            ("item", append_generic),
-            ("list", n_list_type.with_typevars([append_generic])),
-        ],
-        n_list_type.with_typevars([append_generic]),
-        lambda i, l: l.__add__([i]),
-    )
+
     subsection_generic = NGenericType("t")
     global_scope.add_native_function(
         "subsection",
@@ -505,4 +495,16 @@ def add_funcs(global_scope):
         [("self", n_list_type.with_typevars([item_at_trait_generic])), ("index", "int")],
         n_maybe_type.with_typevars([item_at_trait_generic]),
         item_at,
+    )
+    
+    append_trait_generic = NGenericType("t")
+    global_scope.add_internal_trait(
+        "list",
+        "append",
+        [
+            ("self", n_list_type.with_typevars([append_trait_generic])),
+            ("item", append_trait_generic),
+        ],
+        n_list_type.with_typevars([append_trait_generic]),
+        lambda l, i: l + [i],
     )
