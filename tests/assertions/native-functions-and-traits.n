@@ -109,19 +109,18 @@ assert type none.default : [t] t -> maybe[t] -> t
 assert value yes("test").default("test1") == "test"
 assert value none.default("test1") == "test1"
 
+assert type then : [a, b] (a -> cmd[b]) -> cmd[a] -> cmd[b]
+import FileIO
+assert type then((text: maybe[str]) -> cmd[()] {
+	assert value text.default("").len() > 0
+}, FileIO.read("./README.md")) : cmd[()]
+
 // See #228
 let getData = () |> (() -> cmd[map[str, str]] {
 	return mapFrom([("hi", "hello")])
 })
-
-
-assert type getData.then : [a, b] (a -> cmd[b]) -> cmd[a] -> cmd[b]
-import FileIO
-assert type FileIO.read("./README.md").then((text: maybe[str]) -> cmd[()] {
-	assert value text.default("").len() > 0
-}) : cmd[()]
-
-let thenCmd = getData.then(
+let thenCmd = getData
+	|> then(
 		(data:map[str, str]) -> cmd[()] {
 			assert value data == mapFrom([("hi", "hello")])
 		}

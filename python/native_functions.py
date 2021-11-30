@@ -69,7 +69,7 @@ def with_default(maybe_value, default_value):
         return default_value
 
 
-def cmd_then(cmd, n_function):
+def cmd_then(n_function, cmd):
     async def then(result):
         return await Cmd.wrap(await n_function.run([result])).eval()
 
@@ -232,7 +232,20 @@ def add_funcs(global_scope):
         n_result_type.with_typevars([result_ok_generic, result_err_generic]),
         err,
     )
-
+    then_generic_in = NGenericType("a")
+    then_generic_out = NGenericType("b")
+    global_scope.add_native_function(
+        "then",
+        [
+            (
+                "thenFunction",
+                (then_generic_in, n_cmd_type.with_typevars([then_generic_out])),
+            ),
+            ("cmd", n_cmd_type.with_typevars([then_generic_in])),
+        ],
+        n_cmd_type.with_typevars([then_generic_out]),
+        cmd_then,
+    )
     parallel_generic = NGenericType("a")
     global_scope.add_native_function(
         "parallel",
@@ -497,20 +510,4 @@ def add_funcs(global_scope):
         ],
         n_list_type.with_typevars([filter_map_trait_generic_b]),
         filter_map,
-    )
-
-    then_trait_generic_in = NGenericType("a")
-    then_trait_generic_out = NGenericType("b")
-    global_scope.add_internal_trait(
-        "cmd",
-        "then",
-        [
-            ("cmd", n_cmd_type.with_typevars([then_trait_generic_in])),
-            (
-                "thenFunction",
-                (then_trait_generic_in, n_cmd_type.with_typevars([then_trait_generic_out])),
-            ),
-        ],
-        n_cmd_type.with_typevars([then_trait_generic_out]),
-        cmd_then,
     )
