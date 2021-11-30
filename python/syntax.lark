@@ -105,7 +105,7 @@ modifier: PUBLIC? MUTABLE?
               | list_pattern
               | enum_pattern
               | UNIT
-tuple_pattern: ("(" (name_type ",")+ name_type ")" | (name_type ",")+ name_type)
+tuple_pattern: "(" (name_type ",")+ name_type ")"
 record_pattern: "{" (record_entry_pattern ",")* record_entry_pattern (",")? "}"
 ?record_entry_pattern: NAME
                      | CNAME ":" pattern

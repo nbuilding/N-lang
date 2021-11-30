@@ -943,8 +943,7 @@ class Scope:
             arg_values = []
             for arg in arguments:
                 if isinstance(arg, lark.Tree) and arg.data == "spread":
-                    for val in arg.children[0].children[0].children:
-                        arg_values.append(await self.eval_expr(val))
+                    arg_values.extend(list(await self.eval_expr(arg.children[0])))
                 else:
                     arg_values.append(await self.eval_expr(arg))
             if len(arg_values) == 0:
@@ -1692,11 +1691,11 @@ class Scope:
 
             old_arg = arguments[:]
             new_arg = []
-            for arg in arguments:
+            for i, arg in enumerate(arguments):
                 if arg.data == "spread":
                     spread_op = self.type_check_expr(arg.children[0])
                     if isinstance(spread_op, list):
-                        new_arg.extend(arg.children[0].children[0].children)
+                        new_arg.extend([(v, i) for v in spread_op])
                     else:
                         self.errors.append(
                             TypeCheckError(
@@ -1707,7 +1706,7 @@ class Scope:
                         )
                         return None
                 else:
-                    new_arg.append(arg)
+                    new_arg.append((self.type_check_expr(arg), i))
 
             arguments = new_arg[:]
 
@@ -1728,23 +1727,18 @@ class Scope:
             *arg_types, return_type = func_type
             generics = {}
             parameters_have_none = False
-            for n, (argument, arg_type) in enumerate(
+            for n, ((argument, arg_point), arg_type) in enumerate(
                 zip(arguments, arg_types), start=1
             ):
                 check_type = argument
-                if argument != "unit":
-                    check_type = self.type_check_expr(check_type)
                 if check_type is None:
                     parameters_have_none = True
                 resolved_arg_type = apply_generics(arg_type, check_type, generics)
                 _, incompatible = resolve_equal_types(check_type, resolved_arg_type)
                 if incompatible:
                     if expr.data == "function_callback":
-                        arg = function
-                        try:
-                            arg = old_arg[n - 1]
-                        except:
-                            pass
+                        arg = old_arg[arg_point]
+
                         self.errors.append(
                             TypeCheckError(
                                 arg,
