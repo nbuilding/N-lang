@@ -53,7 +53,7 @@ def length(string):
         return len(str(string))
 
 
-async def filter_map(transformer, lis):
+async def filter_map(lis, transformer):
     new_list = []
     for item in lis:
         transformed = await transformer.run([item])
@@ -69,7 +69,7 @@ def with_default(maybe_value, default_value):
         return default_value
 
 
-def cmd_then(n_function, cmd):
+def cmd_then(cmd, n_function):
     async def then(result):
         return await Cmd.wrap(await n_function.run([result])).eval()
 
@@ -213,23 +213,6 @@ def add_funcs(global_scope):
         special_print_with_end,
     )
 
-    filter_map_generic_a = NGenericType("a")
-    filter_map_generic_b = NGenericType("b")
-    global_scope.add_native_function(
-        "filterMap",
-        [
-            (
-                "function",
-                (
-                    filter_map_generic_a,
-                    n_maybe_type.with_typevars([filter_map_generic_b]),
-                ),
-            ),
-            ("list", n_list_type.with_typevars([filter_map_generic_a])),
-        ],
-        n_list_type.with_typevars([filter_map_generic_b]),
-        filter_map,
-    )
     global_scope.add_native_function(
         "yes",
         [("value", maybe_generic)],
@@ -249,20 +232,7 @@ def add_funcs(global_scope):
         n_result_type.with_typevars([result_ok_generic, result_err_generic]),
         err,
     )
-    then_generic_in = NGenericType("a")
-    then_generic_out = NGenericType("b")
-    global_scope.add_native_function(
-        "then",
-        [
-            (
-                "thenFunction",
-                (then_generic_in, n_cmd_type.with_typevars([then_generic_out])),
-            ),
-            ("cmd", n_cmd_type.with_typevars([then_generic_in])),
-        ],
-        n_cmd_type.with_typevars([then_generic_out]),
-        cmd_then,
-    )
+
     parallel_generic = NGenericType("a")
     global_scope.add_native_function(
         "parallel",
@@ -508,4 +478,39 @@ def add_funcs(global_scope):
         ],
         n_list_type.with_typevars([subsection_trait_generic]),
         subsection_list,
+    )
+
+    filter_map_trait_generic_a = NGenericType("a")
+    filter_map_trait_generic_b = NGenericType("b")
+    global_scope.add_internal_trait(
+        "list",
+        "filterMap",
+        [
+            ("list", n_list_type.with_typevars([filter_map_trait_generic_a])),
+            (
+                "function",
+                (
+                    filter_map_trait_generic_a,
+                    n_maybe_type.with_typevars([filter_map_trait_generic_b]),
+                ),
+            )
+        ],
+        n_list_type.with_typevars([filter_map_trait_generic_b]),
+        filter_map,
+    )
+
+    then_trait_generic_in = NGenericType("a")
+    then_trait_generic_out = NGenericType("b")
+    global_scope.add_internal_trait(
+        "cmd",
+        "then",
+        [
+            ("cmd", n_cmd_type.with_typevars([then_trait_generic_in])),
+            (
+                "thenFunction",
+                (then_trait_generic_in, n_cmd_type.with_typevars([then_trait_generic_out])),
+            ),
+        ],
+        n_cmd_type.with_typevars([then_trait_generic_out]),
+        cmd_then,
     )
