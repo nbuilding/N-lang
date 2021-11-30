@@ -148,16 +148,18 @@ assert type entries : [k, v] map[k, v] -> list[(k, v)]
 assert value entries(map) == [("a", 1), ("b", 2)]
 
 assert type intoModule : [m] m -> maybe[module]
-assert type getUnitTestResults :
-	module -> list[{
-		hasPassed: bool,
-		fileLine: int,
-		unitTestType: str,
-		possibleTypes: maybe[(str, str)],
-	}]
 
 if let yes(module) = intoModule(imp "./imports/unit-test.n") {
-	let results = getUnitTestResults(module)
+	
+	assert type module.getUnitTestResults :
+		() -> list[{
+			hasPassed: bool,
+			fileLine: int,
+			unitTestType: str,
+			possibleTypes: maybe[(str, str)],
+		}]
+
+	let results = module.getUnitTestResults()
 
 	assert value results.len() == 4
 

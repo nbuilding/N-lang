@@ -91,6 +91,10 @@ class NModule(dict):
         # should never be shown to the casual N programmer.
         self["not exhaustive"] = True
 
+# Module unit test wrapper
+class NModuleWrapper:
+    def __init__(self, mod):
+        self.mod = mod
 
 # Classes are records but should have custom name displayed
 class NClass(dict):

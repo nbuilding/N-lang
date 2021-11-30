@@ -11,7 +11,7 @@ let value = () -> cmd[()] {
     let file = FileIO.read("../tests/assertions/native-functions-and-traits.n")!.default("").   split(\n)
     
     if let yes(t) = intoModule(test) {
-        for (i in getUnitTestResults(t)) {
+        for (i in t.getUnitTestResults()) {
             let { hasPassed, fileLine, unitTestType, possibleTypes } = i
             if hasPassed {
                 print(yellow + unitTestType + red + " assertion failed!" + reset)

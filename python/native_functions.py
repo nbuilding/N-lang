@@ -7,7 +7,7 @@ import scope
 
 from variable import Variable
 from function import Function
-from type import NGenericType, NModule, NClass, NTypeVars, NType
+from type import NGenericType, NModule, NModuleWrapper, NClass, NTypeVars, NType
 from enums import EnumType, EnumValue
 from native_types import (
     n_list_type,
@@ -143,7 +143,7 @@ def subsection_list(l, lower, upper):
 
 def to_module(possible_module):
     if isinstance(possible_module, NModule):
-        return yes(possible_module)
+        return yes(NModuleWrapper(possible_module))
     return none
 
 
@@ -304,21 +304,7 @@ def add_funcs(global_scope):
         n_maybe_type.with_typevars([n_module_type.with_typevars([])]),
         to_module,
     )
-    global_scope.add_native_function(
-        "getUnitTestResults",
-        [("possibleModule", n_module_type)],
-        n_list_type.with_typevars(
-            [
-                {
-                    "hasPassed": "bool",
-                    "fileLine": "int",
-                    "unitTestType": "str",
-                    "possibleTypes": n_maybe_type.with_typevars([["str", "str"]]),
-                }
-            ]
-        ),
-        lambda module: scope.unit_test_results[module.mod_name][:],
-    )
+
     global_scope.add_native_function(
         "exit",
         [("exitCode", "int")],
@@ -510,4 +496,21 @@ def add_funcs(global_scope):
         ],
         n_list_type.with_typevars([filter_map_trait_generic_b]),
         filter_map,
+    )
+
+    global_scope.add_internal_trait(
+        "module",
+        "getUnitTestResults",
+        [("possibleModule", n_module_type)],
+        n_list_type.with_typevars(
+            [
+                {
+                    "hasPassed": "bool",
+                    "fileLine": "int",
+                    "unitTestType": "str",
+                    "possibleTypes": n_maybe_type.with_typevars([["str", "str"]]),
+                }
+            ]
+        ),
+        lambda module: scope.unit_test_results[module.mod.mod_name][:],
     )
