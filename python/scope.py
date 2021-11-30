@@ -1711,7 +1711,7 @@ class Scope:
             arguments = new_arg[:]
 
             if len(arguments) == 0:
-                arguments.append("unit")
+                arguments.append(("unit", -1))
             func_type = self.type_check_expr(function)
             if func_type is None:
                 return None
@@ -1737,7 +1737,10 @@ class Scope:
                 _, incompatible = resolve_equal_types(check_type, resolved_arg_type)
                 if incompatible:
                     if expr.data == "function_callback":
-                        arg = old_arg[arg_point]
+                        # The only time when arg_point is -1 is if there are no arguments passed in
+                        arg = function
+                        if arg_point != -1:
+                            arg = old_arg[arg_point]
 
                         self.errors.append(
                             TypeCheckError(
@@ -1841,9 +1844,13 @@ class Scope:
             else:
                 out = value_type[field.value].type if method else value_type[field.value]
                 if method:
-                    out = out[1:]
-                    if len(out) == 1:
-                        out = tuple(["unit"] + list(out))
+                    # Apply generics
+                    generics = {}
+                    apply_generics(out[0], self.type_check_expr(value), generics)
+                    out = tuple(
+                        apply_generics_to(arg_type, generics)
+                        for arg_type in out[1:]
+                    )
                 return out
         elif expr.data == "await_expression":
             value, _ = expr.children
