@@ -5,14 +5,12 @@ main_instruction: instruction (";" | "\n")
                 | ifelse (";" | "\n")?
                 | for (";" | "\n")?
                 | while (";" | "\n")?
-                | for_legacy (";" | "\n")?
 
 last_instruction: instruction (";" | "\n")?
                 | if (";" | "\n")?
                 | ifelse (";" | "\n")?
                 | for (";" | "\n")?
                 | while (";" | "\n")?
-                | for_legacy (";" | "\n")?
 
 instruction: declare
            | function_callback
@@ -35,7 +33,6 @@ alias_definition: "alias" modifier declaration_with_typevars "=" types
 function_callback: function_call
 function_callback_pipe: literal "|>" pipe_function_call
                       | function_callback_pipe "|>" pipe_function_call
-for_legacy: "for" name_type NUMBER code_block
 for: "for" "(" name_type "in" value ")" code_block
 while: "while" "(" expression ")" code_block
 imp: "import" NAME

@@ -1276,7 +1276,6 @@ class Scope:
             tree.data == "if"
             or tree.data == "ifelse"
             or tree.data == "for"
-            or tree.data == "for_legacy"
             or tree.data == "while"
         ):
             tree = lark.tree.Tree("instruction", [tree])
@@ -1312,13 +1311,10 @@ class Scope:
             except AttributeError:
                 # Apparently it's more Pythonic to use try/except than hasattr
                 pass
-        elif command.data == "for" or command.data == "for_legacy":
+        elif command.data == "for":
             var, iterable, code = command.children
             pattern, _ = self.get_name_type(var, get_type=False)
-            if command.data == "for":
-                iterval = await self.eval_expr(iterable)
-            else:
-                iterval = range(int(iterable))
+            iterval = await self.eval_expr(iterable)
             for i in iterval:
                 scope = self.new_scope()
 
@@ -2253,7 +2249,6 @@ class Scope:
             tree.data == "if"
             or tree.data == "ifelse"
             or tree.data == "for"
-            or tree.data == "for_legacy"
             or tree.data == "while"
         ):
             tree = lark.tree.Tree("instruction", [tree])
@@ -2326,14 +2321,8 @@ class Scope:
                 )
                 return False
             self.variables[import_name] = Variable(import_type, import_type)
-        elif command.data == "for" or command.data == "for_legacy":
-            if command.data == "for_legacy":
-                iterable_types_src = legacy_iterable_types
-                self.warnings.append(
-                    TypeCheckError(command, "This syntax is deprecated.")
-                )
-            else:
-                iterable_types_src = iterable_types
+        elif command.data == "for":
+            iterable_types_src = iterable_types
             var, iterable, code = command.children
             pattern, ty = self.get_name_type(var, err=False)
             iterable_type = self.type_check_expr(iterable)
