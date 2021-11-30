@@ -133,7 +133,7 @@ def special_print_with_end(end, val):
     return val
 
 
-def subsection_list(lower, upper, l):
+def subsection_list(l, lower, upper):
     if lower < 0:
         lower = 0
     if upper > len(l):
@@ -211,18 +211,6 @@ def add_funcs(global_scope):
         [("end", "str"), ("val", print_with_end_generic)],
         print_with_end_generic,
         special_print_with_end,
-    )
-
-    subsection_generic = NGenericType("t")
-    global_scope.add_native_function(
-        "subsection",
-        [
-            ("lower", "int"),
-            ("upper", "int"),
-            ("list", n_list_type.with_typevars([subsection_generic])),
-        ],
-        n_list_type.with_typevars([subsection_generic]),
-        subsection_list,
     )
 
     filter_map_generic_a = NGenericType("a")
@@ -507,4 +495,17 @@ def add_funcs(global_scope):
         ],
         n_list_type.with_typevars([append_trait_generic]),
         lambda l, i: l + [i],
+    )
+
+    subsection_trait_generic = NGenericType("t")
+    global_scope.add_internal_trait(
+        "list", 
+        "subsection",
+        [
+            ("list", n_list_type.with_typevars([subsection_trait_generic])),
+            ("lower", "int"),
+            ("upper", "int"),
+        ],
+        n_list_type.with_typevars([subsection_trait_generic]),
+        subsection_list,
     )

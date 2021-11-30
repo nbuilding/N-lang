@@ -93,12 +93,12 @@ assert value list.append(4) == [1, 2, 3, 4]
 // `list` should not be mutated
 assert value list == [1, 2, 3]
 
-assert type subsection : [t] int -> int -> list[t] -> list[t]
-assert value subsection(2, 4, [0, 1, 2, 3, 4, 5]) == [2, 3]
-assert value subsection(4, 1000, [0, 1, 2, 3, 4, 5]) == [4, 5]
-assert value subsection(-3, -5, [1, 2, 3]) == []
-assert value subsection(-3, 1, [1, 2, 3]) == [1]
-assert value subsection(3, 2, [1, 2, 3]) == []
+assert type [].subsection : [t] int -> int -> list[t] -> list[t]
+assert value [0, 1, 2, 3, 4, 5].subsection(2, 4) == [2, 3]
+assert value [0, 1, 2, 3, 4, 5].subsection(4, 1000) == [4, 5]
+assert value [1, 2, 3].subsection(-3, -5) == []
+assert value [1, 2, 3].subsection(-3, 1) == [1]
+assert value [1, 2, 3].subsection(3, 2) == []
 
 assert type filterMap : [a, b] (a -> maybe[b]) -> list[a] -> list[b]
 assert value filterMap((value:int) -> maybe[int] {
@@ -150,10 +150,10 @@ assert value entries(map) == [("a", 1), ("b", 2)]
 assert type intoModule : [m] m -> maybe[module]
 assert type getUnitTestResults :
 	module -> list[{
-		hasPassed: bool
-		fileLine: int
-		unitTestType: str
-		possibleTypes: maybe[(str, str)]
+		hasPassed: bool,
+		fileLine: int,
+		unitTestType: str,
+		possibleTypes: maybe[(str, str)],
 	}]
 
 if let yes(module) = intoModule(imp "./imports/unit-test.n") {
@@ -162,20 +162,20 @@ if let yes(module) = intoModule(imp "./imports/unit-test.n") {
 	assert value results.len() == 4
 
 	assert value (results.itemAt(0)) == yes({
-		hasPassed: true
-		fileLine: 3
-		unitTestType: "value"
-		possibleTypes: none
+		hasPassed: true,
+		fileLine: 3,
+		unitTestType: "value",
+		possibleTypes: none,
 	})
 
 	assert value (results.itemAt(1)) == yes({
-		hasPassed: false
-		fileLine: 5
-		unitTestType: "value"
-		possibleTypes: none
+		hasPassed: false,
+		fileLine: 5,
+		unitTestType: "value",
+		possibleTypes: none,
 	})
 
-	for (result in (results |> subsection(2, 4))) {
+	for (result in (results.subsection(2, 4))) {
 		assert value result.hasPassed
 		assert value result.unitTestType == "type"
 		// I'm not sure if `display_type`'s output is standardised yet
@@ -183,17 +183,17 @@ if let yes(module) = intoModule(imp "./imports/unit-test.n") {
 	}
 
 	assert value (results.itemAt(2)).default({
-		hasPassed: true
-		fileLine: 0
-		unitTestType: "value"
-		possibleTypes: none
+		hasPassed: true,
+		fileLine: 0,
+		unitTestType: "value",
+		possibleTypes: none,
 	}).fileLine == 7
 
 	assert value (results.itemAt(3)).default({
-		hasPassed: true
-		fileLine: 0
-		unitTestType: "value"
-		possibleTypes: none
+		hasPassed: true,
+		fileLine: 0,
+		unitTestType: "value",
+		possibleTypes: none,
 	}).fileLine == 9
 }
 

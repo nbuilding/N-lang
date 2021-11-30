@@ -67,14 +67,14 @@ char: "\\" ( escape_code | "{" /./ "}" | "u{" hex_pattern "}")
 hex_pattern: /[0-9a-fA-F]+/
 escape_code: /[nrtv0fb]/
 tupledef: "(" types ("," types)+ (",")? ")"
-recorddef: "{" (record_entry_lit (";" | "\n"))* record_entry_lit (";" | "\n")? "}"
+recorddef: "{" (record_entry_lit ",")* record_entry_lit (",")? "}"
 spread: ".." expression
 record_entry_lit: CNAME ":" types
 with_typevars: module_type "[" types ("," types)* (",")? "]"
 declaration_with_typevars: NAME ("[" NAME ("," NAME)* (",")? "]")?
 tupleval: "(" expression ("," expression)+ (",")? ")"
 listval: "[" (list_expression ("," list_expression)* (",")?)? "]"
-recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
+recordval: "{" (record_entry ",")* record_entry (",")? "}"
 enum_constructors: ("|")? enum_constructor ("|" enum_constructor)*
 match_block: "{" (match_entry (";" | "\n"))* "}"
 match_entry: value "->" value
@@ -106,7 +106,7 @@ modifier: PUBLIC? MUTABLE?
               | enum_pattern
               | UNIT
 tuple_pattern: ("(" (name_type ",")+ name_type ")" | (name_type ",")+ name_type)
-record_pattern: "{" (record_entry_pattern (";" | "\n"))* record_entry_pattern "}"
+record_pattern: "{" (record_entry_pattern ",")* record_entry_pattern (",")? "}"
 ?record_entry_pattern: NAME
                      | CNAME ":" pattern
 

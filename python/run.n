@@ -12,7 +12,7 @@ let value = () -> cmd[()] {
     
     if let yes(t) = intoModule(test) {
         for (i in getUnitTestResults(t)) {
-            let { hasPassed; fileLine; unitTestType; possibleTypes } = i
+            let { hasPassed, fileLine, unitTestType, possibleTypes } = i
             if hasPassed {
                 print(yellow + unitTestType + red + " assertion failed!" + reset)
                 print(blue + fileLine.toString() + " | " + reset + file[fileLine - 1].default(""))
