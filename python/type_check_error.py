@@ -80,7 +80,7 @@ def display_type(n_type, color=True):
     elif isinstance(n_type, NClass):
         display = n_type.class_name
     elif isinstance(n_type, dict):
-        display = "{ %s }" % "; ".join(
+        display = "{ %s }" % ", ".join(
             "%s: %s" % (key, display_type(value, False))
             for key, value in n_type.items()
         )

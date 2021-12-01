@@ -64,7 +64,7 @@ def display_value(
                 output += "".join(inner_indent + part + "\n" for part in parts)
                 output += indent_state + "}"
             else:
-                output = "{ %s }" % "; ".join(parts)
+                output = "{ %s }" % ", ".join(parts)
     elif isinstance(value, list) or isinstance(value, tuple):
         is_list = isinstance(value, list)
         if len(value) == 0:
