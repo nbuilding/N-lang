@@ -1164,7 +1164,6 @@ class Scope:
 
             out =  None
             dict_value = await self.eval_expr(expr.children[0])
-            print(dict_value)
             if not isinstance(dict_value, dict):
                 internal_traits = self.get_value_internal_traits(dict_value)
                 out = internal_traits[expr.children[1].value]

@@ -186,8 +186,17 @@ def trim(string):
 
     return string.strip("".join(whitespace))
 
-def string(i, _):
-    return str(i)
+def parse_float(string):
+    try:
+        return float(string) if math.isfinite(float(string)) else none
+    except:
+        return none
+
+def parse_int(string):
+    try:
+        return int(string)
+    except:
+        return none
 
 # Define global functions/variables
 def add_funcs(global_scope):
@@ -443,6 +452,22 @@ def add_funcs(global_scope):
         [("self", "str")],
         "str",
         trim
+    )
+    
+    global_scope.add_internal_trait(
+        "str",
+        "parseFloat",
+        [("self", "str")],
+        n_maybe_type.with_typevars(["float"]),
+        parse_float
+    )
+    
+    global_scope.add_internal_trait(
+        "str",
+        "parseInt",
+        [("self", "str")],
+        n_maybe_type.with_typevars(["int"]),
+        parse_int
     )
 
     item_at_trait_generic = NGenericType("t")
