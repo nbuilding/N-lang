@@ -1,0 +1,117 @@
+// New function expression syntax; see (#259) for discussion
+
+let funcs = (
+	// A function that takes an argument `arg1` of type `type1` and returns a
+	// value of type `type2`. The parentheses around the argument-type pair are
+	// optional because
+	arg1: type1 -> type2 { return arg1 },
+
+	// Types can be omitted if they can be inferred.
+	arg1 -> { return arg1 },
+
+	// Destructuring patterns are allowed in function arguments.
+	{ field1; field2: otherName }: record -> { return (field1, otherName) },
+	{ field1; field2: otherName } -> { return (field1, otherName) },
+	_: someType -> { return "constant" },
+	_ -> { return "constant" },
+
+	// Updated enum destructuring syntax (#270)
+	variant(field1, field2): enum -> { return (field1, field2) },
+	variant(field1, field2) -> { return (field1, field2) },
+
+	// Parentheses are required around tuple patterns, though. This is exception
+	// is specifically for function arguments.
+	(a, b): tuple -> { return a },
+	(a, b) -> { return b },
+	// NOTE: I don't think using .. in tuple patterns are in N yet, so I won't add
+	// a test for that here.
+
+	// Instead of having to do `_: () -> ...`, `()` by itself can be a shorthand
+	// pattern that expects a unit type.
+	(): () -> () { return () },
+	() -> { return () },
+
+	// Currying is made more explicit to reflect the function's type. For example,
+	// this function expression will have the type `int -> int -> int`.
+	a: int -> b: int -> int { return a + b },
+	// With the new syntax, it's not as verbose to do it the more verbose way.
+	a: int -> { return b: int -> int { return a + b } },
+	// Note that there's some special syntax magic happening here; this isn't just
+	// a function expression that returns another function expression since you
+	// can't do `() -> 3`, for example.
+
+	// Type variables are specified by putting square brackets before the
+	// argument.
+	[t] value: t -> { return value },
+	[a, b] pair: (a, b) -> { return pair },
+	// For now, you can't put the type variable declaration in the middle of a
+	// curried argument sequence, so you can't do `[a] arg1: a -> [b] arg2: b -> {
+	// return arg1 + arg2 }`. Instead, you'll have to do,
+	[a, b] arg1: a -> arg2: b -> { return arg1 + arg2 },
+
+	// As an added bonus, instead of having to write `(a, b): (int, str)`, which
+	// looks a bit odd. Having the tuple fields' types right next to their
+	// argument names is better for readability.
+	(a: int, b: str) -> { return b[a] },
+	// This doesn't work for records because we already use colons for renaming
+	// fields (`{ field: myAlias }`). Maybe we could use double colons or
+	// something in the future.
+)
+
+// We already use a lot of the symbols that are already used in existing
+// expressions, but hopefully the `->` symbol, which is only used in function
+// expressions, should disambiguate it.
+
+// The new patterns should also work in `let` statements, `if let` statements
+// and expressions, and `match` expressions for consistency.
+
+// This could be a better alternative to `let _ =`.
+let () = someCmd!
+
+let variant(field1, field2) = variant(1, "two")
+let a: int, b: str = (1, "two")
+
+if let yes(value) = yes("hi") {}
+// NOTE: `if let none() = none {}` is not allowed; the fields cannot be empty.
+if let none = yes("hi") {
+	// This is allowed, but it doesn't work as you'd expect. It's like doing `let
+	// none = yes("hi")`. We probably should make a warning for this, but I think
+	// maybe it's good for consistency to allow this, at least syntactically?
+}
+
+// An example of an IIFE. Function expressions are literals, so they don't need
+// extra parentheses around them in order to be usable in a function call
+// expression.
+let dist = dx: int -> dy: int -> { return dx * dx + dy * dy }(3, 4)
+
+
+// Some parentheses above were omitted because they were optional.
+let funcs = (
+	// Although redundant, you can put as many parentheses around expressions,
+	// types, and patterns as you wish. With the new function expression syntax,
+	// you can also have parentheses around the name-type pair.
+	((((arg1)): ((type1))) -> (type2) { return (arg1) }),
+	(arg1) -> { return arg1 },
+	(({ field1; field2: otherName }): record) -> { return (field1, otherName) },
+	({ field1; field2: otherName }) -> { return (field1, otherName) },
+	((_): someType) -> { return "constant" },
+	(_) -> { return "constant" },
+	(variant(field1, field2): enum) -> { return (field1, field2) },
+	(variant(field1, field2)) -> { return (field1, field2) },
+	((a, b): tuple) -> { return a },
+	((a, b)) -> { return b },
+	((): ()) -> () { return () },
+	(()) -> { return () },
+	(a: int) -> (b: int) -> int { return a + b },
+	(a: int) -> { return (b: int) -> int { return a + b } },
+	[t] (value: t) -> { return value },
+	[a, b] (pair: (a, b)) -> { return pair },
+	[a, b] (arg1: a) -> (arg2: b) -> { return arg1 + arg2 },]
+	((a: int, b: str)) -> { return b[a] },
+)
+let (()) = someCmd!
+let (variant(field1, field2)) = variant(1, "two")
+let (a: int, b: str) = (1, "two")
+if let yes(value) = yes("hi") {}
+if let none = yes("hi") {}
+let dist = ((dx: int) -> (dy: int) -> { return dx * dx + dy * dy })(3, 4)

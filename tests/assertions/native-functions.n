@@ -126,7 +126,7 @@ let thenCmd = getData
 
 assert type parallel : [t] cmd[t] -> cmd[cmd[t]]
 let parallelCmd = () |> ([] -> cmd[()] {
-	let _ = parallel(() |> ([] -> cmd[()] {
+	parallel(() |> ([] -> cmd[()] {
 		// See #227
 		assert value true
 	}))!
@@ -196,6 +196,6 @@ if let <yes module> = intoModule(imp "./imports/unit-test.n") {
 }
 
 let pub main = () |> ([] -> cmd[()] {
-	let _ = thenCmd!
-	let _ = parallelCmd!
+	thenCmd!
+	parallelCmd!
 })
