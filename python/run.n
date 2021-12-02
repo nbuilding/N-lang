@@ -1,29 +1,18 @@
-import FileIO
-
-let test = imp "../tests/assertions/native-functions-and-traits.n"
-
-let yellow = "\u{1b}[33m"
-let blue = "\u{1b}[34m"
-let reset = "\u{1b}[39m"
-let red = "\u{1b}[31m"
+import mutex
 
 let value = () -> cmd[()] {
-    let file = FileIO.read("../tests/assertions/native-functions-and-traits.n")!.default("").   split(\n)
-    
-    if let yes(t) = intoModule(test) {
-        for (i in t.getUnitTestResults()) {
-            let { hasPassed, fileLine, unitTestType, possibleTypes } = i
-            if hasPassed {
-                print(yellow + unitTestType + red + " assertion failed!" + reset)
-                print(blue + fileLine.toString() + " | " + reset + file[fileLine - 1].default(""))
-                if let yes(pt) = possibleTypes {
-                    let (t1, t2) = pt
-                    print(t1 + reset + " vs. " + t2)
-                }
-                print("")
+    let m = mutex.new(0)
+    print(m)
+    print((m
+        |> mutex.access(
+            (unlocked: mutex.unlocked[int]) -> cmd[int] {
+                let val = (unlocked
+                                  |> mutex.read)!;
+                (unlocked
+                        |> mutex.write(val + 1))!
+                return val
             }
-        }
-    }
+        ))!)
 }
 
 let pub ee = value()
