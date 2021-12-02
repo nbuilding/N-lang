@@ -25,7 +25,7 @@ try:
 
     init()
 
-    VERSION = "N v1.3.2"
+    VERSION = "N v0.0"
 except KeyboardInterrupt:
     exit()
 
@@ -70,11 +70,16 @@ def type_check(global_scope, file, tree, check):
     return (errors, error_len, warning_len)
 
 
-async def parse_tree(global_scope, tree):
+async def parse_tree(global_scope, tree, file):
     if tree.data == "start":
         scope = global_scope.new_scope()
         for child in tree.children:
+            scope.stack_trace.append(
+                (child,
+                file)
+            )
             await scope.eval_command(child)
+            scope.stack_trace.pop()
         for variable in reversed(scope.variables.values()):
             if variable.public and isinstance(variable.value, Cmd):
                 await variable.value.eval()
@@ -128,7 +133,7 @@ def run_file(filename, check=False):
         return f"{errors}\n{Fore.BLUE}Ran with {Fore.RED}{error_count} error{error_s}{Fore.BLUE} and {Fore.YELLOW}{warning_count} warning{warning_s}{Fore.BLUE}.{Style.RESET_ALL}"
 
     try:
-        asyncio.get_event_loop().run_until_complete(parse_tree(global_scope, tree))
+        asyncio.get_event_loop().run_until_complete(parse_tree(global_scope, tree, file))
         return global_scope
     except Exception as err:
         debug = os.environ.get("N_ST_DEBUG") == "dev"
@@ -205,7 +210,7 @@ if __name__ == "__main__":
             exit()
 
         errors = run_file(args.file, args.check)
-        if errors is not None:
+        if not isinstance(errors, Scope):
             print(errors)
     except KeyboardInterrupt:
         exit()

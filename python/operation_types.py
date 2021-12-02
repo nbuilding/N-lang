@@ -13,8 +13,16 @@ access_list_generic = NGenericType("t")
 access_map_generic = NGenericType("k")
 access_value_generic = NGenericType("v")
 
+or_maybe_generic = NGenericType("t")
+
+not_maybe_generic = NGenericType("t")
+
 binary_operation_types = {
-    "OR": [("bool", "bool", "bool"), ("int", "int", "int")],
+    "OR": [
+        ("bool", "bool", "bool"),
+        ("int", "int", "int"),
+        (n_maybe_type.with_typevars([or_maybe_generic]), or_maybe_generic, or_maybe_generic)
+    ],
     "AND": [("bool", "bool", "bool"), ("int", "int", "int")],
     "ADD": [
         ("int", "int", "int"),
@@ -83,8 +91,26 @@ binary_operation_types = {
 }
 unary_operation_types = {
     "SUBTRACT": [("int", "int"), ("float", "float")],
-    "NOT": [("bool", "bool"), ("int", "int")],
+    "NOT": [("bool", "bool"), ("int", "int"), (n_maybe_type.with_typevars([not_maybe_generic]), "bool")],
 }
 comparable_types = ["int", "float"]
 legacy_iterable_types = [("int", "int")]
 iterable_types = [(n_list_type, list_generic)]
+assignment_types = {
+    "ADD_EQUAL": "ADD",
+    "DIV_EQUAL": "DIVIDE",
+    "MUL_EQUAL": "MULTIPLY",
+    "MIN_EQUAL": "SUBTRACT",
+    "OR_EQUAL": "OR",
+    "AND_EQUAL": "AND",
+    "MOD_EQUAL": "MODULO",
+}
+assignment_expression_types = {
+    "ADD_EQUAL": "sum_expression",
+    "DIV_EQUAL": "product_expression",
+    "MUL_EQUAL": "product_expression",
+    "MIN_EQUAL": "sum_expression",
+    "OR_EQUAL": "or_expression",
+    "AND_EQUAL": "and_expression",
+    "MOD_EQUAL": "product_expression",
+}

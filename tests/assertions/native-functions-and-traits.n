@@ -1,0 +1,205 @@
+// Based on docs/features/native_functions.md
+
+assert type (10).toString : () -> str
+assert value (10).toString() == "10"
+
+// round, floor, and ceil convert infinities and NaN to 0 (#243)
+let infinity = 1.0 / 0.0
+let nan = 0.0 / 0.0
+
+assert type infinity.round : () -> int
+assert value (10.5).round() == 11
+assert value (-10.5).round() == -10
+assert value infinity.round() == 0
+
+assert type infinity.floor : () -> int
+assert value (10.5).floor() == 10
+assert value (-10.5).floor() == -11
+assert value nan.floor() == 0
+
+assert type nan.ceil : () -> int
+assert value (10.5).ceil() == 11
+assert value (10.4).ceil() == 11
+assert value (-10.5).ceil() == -10
+assert value (-infinity).ceil() == 0
+
+assert type \{a}.charCode() : () -> int
+assert value \{a}.charCode() == 97
+assert value \{🕴}.charCode() == 0x1f574
+
+assert type (32).intCode() : () -> char
+assert value (32).intCode() == \{ }
+assert value (-1).intCode() == \u{FFFD}
+
+assert type "test".charAt : int -> maybe[char]
+assert value "abc".charAt(1) == yes(\{b})
+assert value "abc".charAt(-1) == none
+
+assert type "abc".substring : (int, int) -> str
+assert value "abc".substring(0, 2) == "ab"
+assert value "apple sauce".substring(-3, -1) == "uc"
+assert value "banana jam".substring(0, -1) == "banana ja"
+assert value "hi".substring(0, 100) == "hi"
+assert value "hi".substring(2, 100) == ""
+assert value "hello world".substring(5, 3) == ""
+
+assert type (3).toFloat : int -> float
+assert value (3).toFloat() == 3.0
+
+assert type "abc".len() : str -> int
+assert value "abc".len() == 3
+
+assert type [1, 2, 3, 4].len() : list[int] -> int
+assert value [1, 2, 3, 4].len() == 4
+
+assert type "".split : char -> str -> list[str]
+assert value "abc".split(\{b}) == ["a", "c"]
+assert value "".split(\{b}) == []
+assert value "apple".split(\{b}) == ["apple"]
+
+assert type "".strip : str -> str
+assert value " abc ".strip() == "abc"
+// Entire list of characters that are removed by strip (#245)
+assert value "\u{9}\u{a}\u{a}\u{b}\u{c}\u{20}\u{a0}\u{1680}\u{2000}\u{2001}\u{2002}a  a\u{2003}\u{2004}\u{2005}\u{2006}\u{2007}\u{2008}\u{2009}\u{200a}\u{2028}\u{2029}\u{202f}\u{205f}\u{3000}\u{feff}".strip() == "a  a"
+
+assert type range : (int, int, int) -> list[int]
+assert value range(0, 3, 1) == [0, 1, 2]
+// From https://docs.python.org/3/library/stdtypes.html#range
+assert value range(0, 10, 1) == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+assert value range(1, 11, 1) == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+assert value range(0, 30, 5) == [0, 5, 10, 15, 20, 25]
+assert value range(0, 10, 3) == [0, 3, 6, 9]
+assert value range(0, -10, -1) == [0, -1, -2, -3, -4, -5, -6, -7, -8, -9]
+assert value range(0, 0, 1) == []
+assert value range(1, 0, 1) == []
+// If the step value is 0, then it returns an empty list (#246)
+assert value range(0, 10, 0) == []
+
+assert type print : [t] t -> t
+assert value print("test") == "test"
+
+assert type printWithEnd : [t] str -> t -> t
+let printed = 3.14
+	|> printWithEnd(" ")
+assert value printed == 3.14
+
+assert type [].itemAt : [t] int -> list[t] -> maybe[t]
+assert value [1, 2, 3].itemAt(1) == yes(2)
+assert value [1, 2, 3].itemAt(-1) == none
+
+assert type [].append : [t] t -> list[t] -> list[t]
+let list = [1, 2, 3]
+assert value list.append(4) == [1, 2, 3, 4]
+// `list` should not be mutated
+assert value list == [1, 2, 3]
+
+assert type [].subsection : [t] int -> int -> list[t] -> list[t]
+assert value [0, 1, 2, 3, 4, 5].subsection(2, 4) == [2, 3]
+assert value [0, 1, 2, 3, 4, 5].subsection(4, 1000) == [4, 5]
+assert value [1, 2, 3].subsection(-3, -5) == []
+assert value [1, 2, 3].subsection(-3, 1) == [1]
+assert value [1, 2, 3].subsection(3, 2) == []
+
+assert type [].filterMap : [a, b] (a -> maybe[b]) -> list[a] -> list[b]
+assert value [0, 1, 2, 3, 4].filterMap((value:int) -> maybe[int] {
+	return yes(value * value + 1)
+}) == [1, 2, 5, 10, 17]
+
+assert type none.default : [t] t -> maybe[t] -> t
+assert value yes("test").default("test1") == "test"
+assert value none.default("test1") == "test1"
+
+assert type then : [a, b] (a -> cmd[b]) -> cmd[a] -> cmd[b]
+import FileIO
+assert type then((text: maybe[str]) -> cmd[()] {
+	assert value text.default("").len() > 0
+}, FileIO.read("./README.md")) : cmd[()]
+
+// See #228
+let getData = () |> (() -> cmd[map[str, str]] {
+	return mapFrom([("hi", "hello")])
+})
+let thenCmd = getData
+	|> then(
+		(data:map[str, str]) -> cmd[()] {
+			assert value data == mapFrom([("hi", "hello")])
+		}
+	)
+
+assert type parallel : [t] cmd[t] -> cmd[cmd[t]]
+let parallelCmd = () |> (() -> cmd[()] {
+	parallel(() |> (() -> cmd[()] {
+		// See #227
+		assert value true
+	}))!
+})
+
+assert type mapFrom : [k, v] list[(k, v)] -> map[k, v]
+let map = mapFrom([("a", 1), ("b", 2)])
+assert type map : map[str, int]
+
+assert type getValue : [k, v] k -> map[k, v] -> maybe[v]
+assert value getValue("b", map) == yes(2)
+assert value getValue("c", map) == none
+// TODO: N currently allows functions and commands as keys; how should they be
+// dealt with?
+
+assert type entries : [k, v] map[k, v] -> list[(k, v)]
+assert value entries(map) == [("a", 1), ("b", 2)]
+
+assert type intoModule : [m] m -> maybe[module]
+
+if let yes(module) = intoModule(imp "./imports/unit-test.n") {
+	
+	assert type module.getUnitTestResults :
+		() -> list[{
+			hasPassed: bool,
+			fileLine: int,
+			unitTestType: str,
+			possibleTypes: maybe[(str, str)],
+		}]
+
+	let results = module.getUnitTestResults()
+
+	assert value results.len() == 4
+
+	assert value (results.itemAt(0)) == yes({
+		hasPassed: true,
+		fileLine: 3,
+		unitTestType: "value",
+		possibleTypes: none,
+	})
+
+	assert value (results.itemAt(1)) == yes({
+		hasPassed: false,
+		fileLine: 5,
+		unitTestType: "value",
+		possibleTypes: none,
+	})
+
+	for (result in (results.subsection(2, 4))) {
+		assert value result.hasPassed
+		assert value result.unitTestType == "type"
+		// I'm not sure if `display_type`'s output is standardised yet
+		assert value if let yes(_) = result.possibleTypes { true } else { false }
+	}
+
+	assert value (results.itemAt(2)).default({
+		hasPassed: true,
+		fileLine: 0,
+		unitTestType: "value",
+		possibleTypes: none,
+	}).fileLine == 7
+
+	assert value (results.itemAt(3)).default({
+		hasPassed: true,
+		fileLine: 0,
+		unitTestType: "value",
+		possibleTypes: none,
+	}).fileLine == 9
+}
+
+let pub main = () |> (() -> cmd[()] {
+	thenCmd!
+	parallelCmd!
+})

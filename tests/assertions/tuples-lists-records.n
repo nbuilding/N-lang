@@ -16,6 +16,8 @@ assert value { a: "pi"; b: 3.14 } == { b: 3.14; a: "pi" }
 
 let listvalue = ["a", "b", "c"]
 assert type listvalue : list[str]
+// Empty lists can be anything
+assert type [] : list[str]
 
 assert value append("d", listvalue) == ["a", "b", "c", "d"]
 assert value listvalue == ["a", "b", "c"]
