@@ -1069,7 +1069,7 @@ class Scope:
                 )
         elif expr.data == "exponent_expression":
             left, _, right = expr.children
-            return await self.eval_expr(left) ** await self.eval_expr(right)
+            return float(await self.eval_expr(left) ** await self.eval_expr(right))
         elif expr.data == "unary_expression":
             operation, value = expr.children
             if operation.type == "SUBTRACT":
