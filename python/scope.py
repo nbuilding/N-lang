@@ -928,6 +928,9 @@ class Scope:
                 arguments, codeblock = expr.children
                 returntype = lark.Token("UNIT", "()")
             arguments = arguments.children
+            # Remove generic declarations
+            if len(arguments) >= 1 and isinstance(arguments[0], lark.Tree) and arguments[0].data == "generic_declaration":
+                arguments = arguments[1:]
             return Function(
                 self,
                 [self.get_name_type(arg, get_type=False) for arg in arguments],
