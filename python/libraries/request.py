@@ -17,7 +17,7 @@ from ncmd import Cmd
 async def request(request_type, url, headers, data):
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.request(request_type, url, headers=json_to_python(headers.values[0]) if headers.variant == "yes" else None, data=json_to_python(data.values[0]) if data.variant == "yes" else None) as r:
+            async with session.request(request_type, url, headers=json_to_python(headers.values[0]) if headers.variant == "yes" else None, data=json.dumps(json_to_python(data.values[0])) if data.variant == "yes" else None) as r:
                 returndata = string(await r.text())
                 try:
                     returndata = python_to_json(json.loads(await r.text()))
