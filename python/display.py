@@ -61,7 +61,7 @@ def display_value(
             if multiline or length > preferred_max_len:
                 multiline = True
                 output = "{\n"
-                output += "".join(inner_indent + part + "\n" for part in parts)
+                output += ",\n".join(inner_indent + part for part in parts) + "\n"
                 output += indent_state + "}"
             else:
                 output = "{ %s }" % ", ".join(parts)
