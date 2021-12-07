@@ -188,13 +188,13 @@ def trim(string):
 
 def parse_float(string):
     try:
-        return float(string) if math.isfinite(float(string)) else none
+        return yes(float(string)) if math.isfinite(float(string)) else none
     except:
         return none
 
 def parse_int(string):
     try:
-        return int(string)
+        return yes(int(string))
     except:
         return none
 
