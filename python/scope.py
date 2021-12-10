@@ -1059,6 +1059,8 @@ class Scope:
                             return float("-inf")
                         else:
                             return float("inf")
+                if isinstance(divisor, int):
+                    return math.floor(dividend/divisor)
                 return dividend / divisor
             elif operation.type == "MODULO":
                 return await self.eval_expr(left) % await self.eval_expr(right)
