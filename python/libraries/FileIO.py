@@ -14,6 +14,8 @@ async def write(path, content):
     except:
         pass
 
+    return ()
+
 
 async def append(path, content):
     try:
@@ -30,6 +32,8 @@ async def read(path):
     except:
         return none
 
+    return ()
+
 
 async def writeBytes(path, content):
     try:
@@ -40,6 +44,8 @@ async def writeBytes(path, content):
     except:
         pass
 
+    return ()
+
 
 async def appendBytes(path, content):
     try:
@@ -47,6 +53,8 @@ async def appendBytes(path, content):
             await f.write(bytes([c % 256 for c in content]))
     except:
         pass
+
+    return ()
 
 
 async def readBytes(path):
