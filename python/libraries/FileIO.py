@@ -35,23 +35,23 @@ async def writeBytes(path, content):
     try:
         if not os.path.exists(os.path.split(os.path.abspath(path))[0]):
             os.mkdir(os.path.split(os.path.abspath(path))[0])
-        async with async_open(path, "w+", encoding="utf-8") as f:
-            await f.write("".join([chr(c % 256) for c in content]))
+        async with async_open(path, "wb+") as f:
+            await f.write(bytes([c % 256 for c in content]))
     except:
         pass
 
 
 async def appendBytes(path, content):
     try:
-        async with async_open(path, "a+", encoding="utf-8") as f:
-            await f.write("".join([chr(c % 256) for c in content]))
+        async with async_open(path, "ab+") as f:
+            await f.write(bytes([c % 256 for c in content]))
     except:
         pass
 
 
 async def readBytes(path):
     try:
-        async with async_open(path, "rb", encoding="utf-8") as f:
+        async with async_open(path, "rb") as f:
             return yes(list(await f.read()))
     except:
         return none
