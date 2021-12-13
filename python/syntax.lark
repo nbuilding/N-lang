@@ -146,7 +146,8 @@ func_type: generic_declaration? (func_inner_type |"(" [func_inner_type ("," func
 
 ?boolean_expression: or_expression
 ?or_expression: [or_expression OR] and_expression
-?and_expression: [and_expression AND] not_expression
+?and_expression: [and_expression AND] xor_expression
+?xor_expression: [xor_expression XOR] not_expression
 ?not_expression: compare_expression
                | in_expression
 ?in_expression: number_expression IN number_expression
@@ -221,6 +222,7 @@ COMMENT: "//" /[^\n]/*
        | /\/\*(.|\n)*?\*\//
 OR: ("||" | "|")
 AND: ("&&" | "&")
+XOR: "^^"
 EQUALS: "=="
 ASSIGN_EQUAL: "="
 GORE: ">="

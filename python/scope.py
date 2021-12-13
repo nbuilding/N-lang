@@ -987,6 +987,9 @@ class Scope:
             if isinstance(left, int):
                 return left & right
             return left and right
+        elif expr.data == "xor_expression":
+            left, _, right = expr.children
+            return await self.eval_expr(left) ^ await self.eval_expr(right)
         elif expr.data == "not_expression":
             _, value = expr.children
             return not await self.eval_expr(value)

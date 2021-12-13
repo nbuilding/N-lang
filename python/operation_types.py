@@ -24,6 +24,7 @@ binary_operation_types = {
         (n_maybe_type.with_typevars([or_maybe_generic]), or_maybe_generic, or_maybe_generic)
     ],
     "AND": [("bool", "bool", "bool"), ("int", "int", "int")],
+    "XOR": [("bool", "bool", "bool"), ("int", "int", "int")],
     "ADD": [
         ("int", "int", "int"),
         ("float", "float", "float"),
