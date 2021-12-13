@@ -1763,7 +1763,7 @@ class Scope:
                         if n == len(arguments):
                             self.errors.append(
                                 TypeCheckError(
-                                    argument,
+                                    arg,
                                     "This left operand of |>, which I pass as the last argument to %s, should be a %s, but you gave a %s."
                                     % (
                                         display_type(func_type),
@@ -1775,7 +1775,7 @@ class Scope:
                         else:
                             self.errors.append(
                                 TypeCheckError(
-                                    argument,
+                                    arg,
                                     "The argument #%d here should be a %s because the function is a %s, but you gave a %s."
                                     % (
                                         n,

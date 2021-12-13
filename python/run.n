@@ -1,18 +1,1 @@
-import mutex
-
-let value = () -> cmd[()] {
-    let m = mutex.new(0)
-    print(m)
-    print((m
-        |> mutex.access(
-            (unlocked: mutex.unlocked[int]) -> cmd[int] {
-                let val = (unlocked
-                                  |> mutex.read)!;
-                (unlocked
-                        |> mutex.write(val + 1))!
-                return val
-            }
-        ))!)
-}
-
-let pub ee = value()
+1 |> getValue("test")
