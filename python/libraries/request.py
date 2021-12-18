@@ -4,7 +4,7 @@ import aiohttp
 import asyncio
 import logging
 
-from io import BytesIO
+from io import BytesIO, StringIO
 from flask import Flask, request as req, Response
 from flask.logging import default_handler
 from werkzeug.wsgi import FileWrapper
@@ -28,6 +28,42 @@ async def request(request_type, url, headers, data):
         return {
             "code": 400,
             "response": "Cannot connect",
+            "return": string(str(err)),
+        }
+
+async def sendMultipartForm(request_type, url, headers, data):
+    try:
+        form = aiohttp.FormData()
+        for d in data:
+            processed = {}
+            for k, v in d.items():
+                if isinstance(v, (str, tuple)):
+                    processed[k] = v
+                elif v.variant == "yes":
+                    processed[k] = v.values[0]
+            is_image, dat = processed["data"]
+            form.add_field(processed["name"], bytes(dat) if is_image else "".join([chr(i) for i in dat]), filename=processed.get("filename"), content_type=processed.get("contentType"))
+            
+        # Man I love the fact that they try to infer whether you need a Multipart Form even though you are using the thing to create a multipart form, isn't that just amazing.
+        form._is_multipart = True
+        async with aiohttp.ClientSession() as session:
+            async with session.request(request_type, url, headers=json_to_python(headers.values[0]) if headers.variant == "yes" else None, data=form) as r:
+                returndata = string(await r.text())
+                try:
+                    returndata = python_to_json(json.loads(await r.text()))
+                except:
+                    pass
+                return {"code": r.status, "response": r.reason, "return": returndata}
+    except aiohttp.client_exceptions.ClientError as err:
+        return {
+            "code": 400,
+            "response": "Cannot connect",
+            "return": string(str(err)),
+        }
+    except ValueError as err:
+        return {
+            "code": 400,
+            "response": "Cannot parse input data",
             "return": string(str(err)),
         }
 
@@ -65,6 +101,20 @@ def _values():
             "str",
             n_maybe_type.with_typevars([json_value_type]),
             n_maybe_type.with_typevars([json_value_type]),
+            n_cmd_type.with_typevars(
+                [{"code": "int", "response": "str", "return": json_value_type}]
+            ),
+        ),
+        "sendMultipartForm": (
+            "str",
+            "str",
+            n_maybe_type.with_typevars([json_value_type]),
+            n_list_type.with_typevars([{
+                "name": "str",
+                "data": ["bool", n_list_type.with_typevars(["int"])],
+                "filename": n_maybe_type.with_typevars(["str"]),
+                "contentType": n_maybe_type.with_typevars(["str"]),
+            }]),
             n_cmd_type.with_typevars(
                 [{"code": "int", "response": "str", "return": json_value_type}]
             ),
