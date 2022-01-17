@@ -1,0 +1,46 @@
+import mutex
+
+// Create a new conch
+assert type mutex.new : [t] t -> mutex.locked[t]
+
+// Locks the conch, preventing other threads from reading from/writing to the
+// conch. If the conch is already locked, it'll wait until it's unlocked. The
+// given function can access the value inside the conch and read or write to it
+// as it pleases, then return a value for the outer function to use.
+assert type mutex.access : [a, b] (mutex.unlocked[a] -> cmd[b]) -> mutex.locked[a] -> cmd[b]
+
+// Similar to conch.access, but if the conch is already locked, the cmd will
+// resolve immediately with `none`.
+assert type mutex.tryAccess : [a, b] (mutex.unlocked[a] -> cmd[b]) -> mutex.locked[a] -> cmd[maybe[b]]
+
+// Read from the conch
+assert type mutex.read : [t] mutex.unlocked[t] -> cmd[t]
+
+// Write a value to the conch.
+assert type mutex.write : [t] t -> mutex.unlocked[t] -> cmd[t]
+
+let pub main = [] -> cmd[()] {
+  let listMutex = mutex.new([1])
+  assert type listMutex : mutex.locked[list[int]]
+
+  assert value mutex.access([value: mutex.unlocked[list[int]]] -> cmd[str] {
+    let task = parallel([] -> cmd[()] {
+      assert value mutex.tryAccess([_: mutex.unlocked[list[int]]] -> cmd[str] {
+        print("Uh...!")
+        return "Uh...!"
+      }, listMutex)! == none
+    }())!
+
+    assert value mutex.read(value)! == [1]
+    assert value mutex.write([1, 2, 3], value)! == [1, 2, 3]
+    assert value mutex.read(value)! == [1, 2, 3]
+
+    task!
+
+    return "hello"
+  }, listMutex)! == "hello"
+
+  assert value mutex.tryAccess([_: mutex.unlocked[list[int]]] -> cmd[str] {
+    return "good"
+  }, listMutex)! == yes("good")
+}()

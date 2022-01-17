@@ -60,10 +60,10 @@ def display_type(n_type, color=True):
     if isinstance(n_type, str):
         display = "()" if n_type == "unit" else n_type
     elif isinstance(n_type, tuple):
-        display = " -> ".join(
-            ("(%s)" if isinstance(type, tuple) else "%s") % display_type(type, False)
-            for type in n_type
-        )
+        types = ["%s" % display_type(type, False) for type in n_type]
+        display = "(" + ", ".join(
+            types[:-1]
+        ) + ") -> " + types[-1]
     elif isinstance(n_type, list):
         if isinstance(n_type[0], lark.Token):
             if n_type[0].type == "LIST":
@@ -80,7 +80,7 @@ def display_type(n_type, color=True):
     elif isinstance(n_type, NClass):
         display = n_type.class_name
     elif isinstance(n_type, dict):
-        display = "{ %s }" % "; ".join(
+        display = "{ %s }" % ", ".join(
             "%s: %s" % (key, display_type(value, False))
             for key, value in n_type.items()
         )

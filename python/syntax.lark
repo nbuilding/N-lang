@@ -5,39 +5,36 @@ main_instruction: instruction (";" | "\n")
                 | ifelse (";" | "\n")?
                 | for (";" | "\n")?
                 | while (";" | "\n")?
-                | for_legacy (";" | "\n")?
 
 last_instruction: instruction (";" | "\n")?
                 | if (";" | "\n")?
                 | ifelse (";" | "\n")?
                 | for (";" | "\n")?
                 | while (";" | "\n")?
-                | for_legacy (";" | "\n")?
 
 instruction: declare
            | function_callback
            | function_callback_pipe
+           | await_expression
            | imp
            | return
            | continue
            | break
-           | vary
            | enum_definition
            | alias_definition
            | class_definition
            | assert
+           | assign_value
 
 // functions
-vary: "var" NAME "=" expression
 declare: "let" modifier name_type "=" expression
 enum_definition: "type" modifier declaration_with_typevars "=" enum_constructors
 alias_definition: "alias" modifier declaration_with_typevars "=" types
 function_callback: function_call
 function_callback_pipe: literal "|>" pipe_function_call
                       | function_callback_pipe "|>" pipe_function_call
-for_legacy: "for" name_type NUMBER code_block
 for: "for" "(" name_type "in" value ")" code_block
-while: "while" "(" value ")" code_block
+while: "while" "(" expression ")" code_block
 imp: "import" NAME
 impn: "imp" (STRING | NAME)
 return: "return" expression
@@ -50,43 +47,47 @@ ifelse_expr: "if" condition "{" expression "}" "else" ("{" expression "}" | ifel
           | conditional_let
 conditional_let: "let" pattern "=" expression
 class_definition: "class" modifier NAME arguments code_block
-match: "match" "(" value ")" match_block
+match: "match" "(" value ")" (match_enum_block | match_block)
 assert: "assert" assert_value
+assign_value: NAME assign_operator expression
 
 //helpers
-name_type: pattern [":" types]
+name_type: ( pattern [":" types] | "(" pattern [":" types] ")")
 function_dec_call: NAME (" " [name_type (" " name_type)*])?
-function_call: literal "(" [expression ("," expression)*]  (",")? ")"
-pipe_function_call: literal ["(" [expression ("," expression)*]  (",")? ")"]
+function_call: literal "(" [function_call_arg ("," function_call_arg)*]  (",")? ")"
+pipe_function_call: literal ["(" [function_call_arg ("," function_call_arg)*]  (",")? ")"]
 code_block: "{" [main_instruction* last_instruction] "}"
-function_def: arguments "->" types code_block
-arguments: "[" generic_declaration? arg_name_type* "]"
-arg_name_type: definite_pattern [":" types]
+function_def: arguments ("->" types)? code_block
+arguments: generic_declaration? (name_type ("->" name_type)* | "(" [name_type ("," name_type)*] ")")
 generic_declaration: "[" (NAME ",")* NAME (",")? "]"
-anonymous_func: arguments "->" NAME ":" (instruction (";" instruction)*)
 char: "\\" ( escape_code | "{" /./ "}" | "u{" hex_pattern "}")
 hex_pattern: /[0-9a-fA-F]+/
 escape_code: /[nrtv0fb]/
 tupledef: "(" types ("," types)+ (",")? ")"
-recorddef: "{" (record_entry_lit (";" | "\n"))* record_entry_lit (";" | "\n")? "}"
+recorddef: "{" (record_entry_lit ",")* record_entry_lit (",")? "}"
 spread: ".." expression
 record_entry_lit: CNAME ":" types
 with_typevars: module_type "[" types ("," types)* (",")? "]"
 declaration_with_typevars: NAME ("[" NAME ("," NAME)* (",")? "]")?
 tupleval: "(" expression ("," expression)+ (",")? ")"
 listval: "[" (list_expression ("," list_expression)* (",")?)? "]"
-recordval: "{" (record_entry (";" | "\n"))* record_entry (";" | "\n")? "}"
+recordval: "{" (record_entry ",")* record_entry (",")? "}"
 enum_constructors: ("|")? enum_constructor ("|" enum_constructor)*
 match_block: "{" (match_entry (";" | "\n"))* "}"
 match_entry: value "->" value
-enum_constructor: modifier "<" NAME types* ">"
+match_enum_block: "{" (match_enum_entry (";" | "\n"))* "}"
+match_enum_entry: pattern "->" value
+enum_constructor: modifier NAME "(" [types ("," types)*] ")"
                 | modifier NAME
 assert_value: assert_val
             | assert_type
 assert_val: "value" expression
 assert_type: "type" expression ":" types
 
-modifier: PUBLIC?
+modifier: PUBLIC? MUTABLE?
+
+?function_call_arg: spread
+                  | expression
 
 ?record_entry: CNAME ":" expression
              | NAME
@@ -100,13 +101,14 @@ modifier: PUBLIC?
               | record_pattern
               | list_pattern
               | enum_pattern
-tuple_pattern: (pattern_value ",")+ pattern_value
-record_pattern: "{" (record_entry_pattern (";" | "\n"))* record_entry_pattern "}"
+              | UNIT
+tuple_pattern: "(" (name_type ",")+ name_type ")"
+record_pattern: "{" (record_entry_pattern ",")* record_entry_pattern (",")? "}"
 ?record_entry_pattern: NAME
                      | CNAME ":" pattern
 
 list_pattern: "[" (pattern_value ("," pattern_value)*)? "]"
-enum_pattern: "<" NAME pattern_value* ">"
+enum_pattern: literal "(" [pattern_value ("," pattern_value)*] ")"
 
 // Deal with a syntax ambiguity where [a:type[b]] could be seen as a list
 // destructuring in the second argument.
@@ -130,26 +132,24 @@ enum_pattern: "<" NAME pattern_value* ">"
               | with_typevars
               | UNIT
 module_type: [NAME "."]* NAME
-func_type: generic_declaration? (func_inner_type "->")+ not_func_type
+func_type: generic_declaration? (func_inner_type |"(" [func_inner_type ("," func_inner_type)*] ")") "->" not_func_type
 ?func_inner_type: not_func_type
-                | "(" func_type ")"
+                | func_type
 
 ?list_expression: expression
                 | spread
 
 ?expression: ifelse_expr
            | boolean_expression
-           | function_def
-           | anonymous_func
            | function_callback_pipe
            | match
 
 ?boolean_expression: or_expression
 ?or_expression: [or_expression OR] and_expression
-?and_expression: [and_expression AND] not_expression
+?and_expression: [and_expression AND] xor_expression
+?xor_expression: [xor_expression XOR] not_expression
 ?not_expression: compare_expression
                | in_expression
-               | NOT_KW not_expression
 ?in_expression: number_expression IN number_expression
 ?compare_expression: [compare_expression compare_operator] number_expression
 ?compare_operator: EQUALS
@@ -192,6 +192,16 @@ value: NUMBER
      | HEX
      | BINARY
      | OCTAL
+     | function_def
+
+assign_operator: ASSIGN_EQUAL
+               | DIV_EQUAL
+               | MUL_EQUAL
+               | ADD_EQUAL
+               | MIN_EQUAL
+               | OR_EQUAL
+               | AND_EQUAL
+               | MOD_EQUAL
 
 // Make sure that keywords are not in NAME
 NAME: /(?!(\b(let|type|var|alias|for|in|import|imp|return|if|else|class|pub|break|continue|with|yield|do|not|match|while)\b))/ CNAME
@@ -212,7 +222,9 @@ COMMENT: "//" /[^\n]/*
        | /\/\*(.|\n)*?\*\//
 OR: ("||" | "|")
 AND: ("&&" | "&")
-EQUALS: ("==" | "=")
+XOR: "^^"
+EQUALS: "=="
+ASSIGN_EQUAL: "="
 GORE: ">="
 LORE: "<="
 SHIFTL: "<<"
@@ -220,8 +232,7 @@ SHIFTR: ">>"
 IN: "in"
 LESS: "<"
 GREATER: ">"
-NEQUALS: "/="
-NOT_KW: "not"
+NEQUALS: "~="
 NOT: "~"
 ADD: "+"
 SUBTRACT: "-"
@@ -231,10 +242,18 @@ MODULO: "%"
 EXPONENT: "^"
 AWAIT: "!"
 PUBLIC: "pub"
+MUTABLE: "mut"
 UNIT: "()"
 EMPTY: "_"
 VALUEACCESS: "["
 STRING: /"(?:[^\r\n\\\"]|\\(?:[nrtv0fb\"\\]|u\{[0-9a-fA-F]+\}|\{.\}))*"/
+DIV_EQUAL: "/="
+MUL_EQUAL: "*="
+ADD_EQUAL: "+="
+MIN_EQUAL: "-="
+OR_EQUAL: "|="
+AND_EQUAL: "&="
+MOD_EQUAL: "%="
 
 %import common.SIGNED_NUMBER  -> NUMBER
 %import common.CNAME

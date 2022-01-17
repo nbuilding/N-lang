@@ -1,0 +1,8 @@
+let thing = "hi"
+
+let val = () -> str {
+    let thingo = 333
+    return thing
+}
+
+val()

@@ -1,12 +1,13 @@
 import asyncio
 import math
 import lark
+import sys
 
 import scope
 
 from variable import Variable
 from function import Function
-from type import NGenericType, NModule, NClass, NTypeVars, NType
+from type import NGenericType, NModule, NModuleWrapper, NClass, NTypeVars, NType
 from enums import EnumType, EnumValue
 from native_types import (
     n_list_type,
@@ -27,18 +28,18 @@ from native_types import (
 from ncmd import Cmd
 
 
-def substr(start, end, string):
+def substr(string, start, end):
     return string[start:end]
 
 
-def char_at(index, string):
+def char_at(string, index):
     if index < 0 or index >= len(string):
         return none
     else:
         return yes(string[index])
 
 
-def item_at(index, lis):
+def item_at(lis, index):
     if index < 0 or index >= len(lis):
         return none
     else:
@@ -52,7 +53,7 @@ def length(string):
         return len(str(string))
 
 
-async def filter_map(transformer, lis):
+async def filter_map(lis, transformer):
     new_list = []
     for item in lis:
         transformed = await transformer.run([item])
@@ -61,7 +62,7 @@ async def filter_map(transformer, lis):
     return new_list
 
 
-def with_default(default_value, maybe_value):
+def with_default(maybe_value, default_value):
     if maybe_value.variant == "yes":
         return maybe_value.values[0]
     else:
@@ -132,7 +133,7 @@ def special_print_with_end(end, val):
     return val
 
 
-def subsection_list(lower, upper, l):
+def subsection_list(l, lower, upper):
     if lower < 0:
         lower = 0
     if upper > len(l):
@@ -142,7 +143,7 @@ def subsection_list(lower, upper, l):
 
 def to_module(possible_module):
     if isinstance(possible_module, NModule):
-        return yes(possible_module)
+        return yes(NModuleWrapper(possible_module))
     return none
 
 
@@ -152,89 +153,67 @@ def char_with_replace(num):
     except ValueError:
         return u'\ufffd'
 
+
+def round_without_error(number):
+    try: 
+        return round(number)
+    except:
+        return 0
+
+
+def floor_without_error(number):
+    try: 
+        return math.floor(number)
+    except:
+        return 0
+
+
+def ceil_without_error(number):
+    try: 
+        return math.ceil(number)
+    except:
+        return 0
+
+
+def range_without_error(start, end, step): 
+    try:
+        return list(range(start, end, step))
+    except:
+        return []
+
+def trim(string):
+    whitespace = [u'\u0009', u'\u000a', u'\u000b', u'\u000c', u'\u000d', u'\u0020', u'\u00a0', u'\u1680', u'\u2000', u'\u2001', u'\u2002', u'\u2003', u'\u2004', u'\u2005', u'\u2006', u'\u2007', u'\u2008', u'\u2009', u'\u200a', u'\u2028', u'\u2029', u'\u202f', u'\u205f', u'\u3000', u'\ufeff']
+
+    return string.strip("".join(whitespace))
+
+def parse_float(string):
+    try:
+        return yes(float(string)) if math.isfinite(float(string)) else none
+    except:
+        return none
+
+def parse_int(string):
+    try:
+        return yes(int(string))
+    except:
+        return none
+
 # Define global functions/variables
 def add_funcs(global_scope):
     global_scope.variables["none"] = Variable(n_maybe_type, none)
 
     global_scope.add_native_function(
-        "intInBase10",
-        [("number", "int")],
-        "str",
-        str,
-    )
-    global_scope.add_native_function(
-        "round",
-        [("number", "float")],
-        "int",
-        round,
-    )
-    global_scope.add_native_function(
-        "floor",
-        [("number", "float")],
-        "int",
-        math.floor,
-    )
-    global_scope.add_native_function(
-        "ceil",
-        [("number", "float")],
-        "int",
-        math.ceil,
-    )
-    global_scope.add_native_function(
-        "charCode",
-        [("character", "char")],
-        "int",
-        ord,
-    )
-    global_scope.add_native_function(
-        "intCode",
-        [("number", "int")],
-        "char",
-        char_with_replace,
-    )
-    global_scope.add_native_function(
-        "charAt",
-        [("location", "int"), ("string", "str")],
-        n_maybe_type.with_typevars(["char"]),
-        char_at,
-    )
-    global_scope.add_native_function(
-        "substring",
-        [("start", "int"), ("end", "int"), ("string", "str")],
-        "str",
-        substr,
-    )
-    global_scope.add_native_function(
-        "toFloat",
-        [("number", "int")],
-        "float",
-        float,
-    )
-    global_scope.add_native_function(
-        "len",
-        [("obj", NGenericType("t"))],
-        "int",
-        length,
-    )
-    global_scope.add_native_function(
-        "split",
-        [("splitter", "char"), ("string", "str")],
-        n_list_type.with_typevars(["str"]),
-        lambda splitter, string: string.split(splitter),
-    )
-    global_scope.add_native_function(
-        "strip", [("string", "str")], "str", lambda string: string.strip()
-    )
-    global_scope.add_native_function(
         "range",
         [("start", "int"), ("end", "int"), ("step", "int")],
         n_list_type.with_typevars(["int"]),
-        lambda start, end, step: list(range(start, end, step)),
+        range_without_error,
     )
+
     print_generic = NGenericType("t")
     global_scope.add_native_function(
         "print", [("val", print_generic)], print_generic, special_print
     )
+
     print_with_end_generic = NGenericType("t")
     global_scope.add_native_function(
         "printWithEnd",
@@ -242,68 +221,14 @@ def add_funcs(global_scope):
         print_with_end_generic,
         special_print_with_end,
     )
-    item_at_generic = NGenericType("t")
-    global_scope.add_native_function(
-        "itemAt",
-        [("index", "int"), ("list", n_list_type.with_typevars([item_at_generic]))],
-        n_maybe_type.with_typevars([item_at_generic]),
-        item_at,
-    )
-    append_generic = NGenericType("t")
-    global_scope.add_native_function(
-        "append",
-        [
-            ("item", append_generic),
-            ("list", n_list_type.with_typevars([append_generic])),
-        ],
-        n_list_type.with_typevars([append_generic]),
-        lambda i, l: l.__add__([i]),
-    )
-    subsection_generic = NGenericType("t")
-    global_scope.add_native_function(
-        "subsection",
-        [
-            ("lower", "int"),
-            ("upper", "int"),
-            ("list", n_list_type.with_typevars([subsection_generic])),
-        ],
-        n_list_type.with_typevars([subsection_generic]),
-        subsection_list,
-    )
 
-    filter_map_generic_a = NGenericType("a")
-    filter_map_generic_b = NGenericType("b")
-    global_scope.add_native_function(
-        "filterMap",
-        [
-            (
-                "function",
-                (
-                    filter_map_generic_a,
-                    n_maybe_type.with_typevars([filter_map_generic_b]),
-                ),
-            ),
-            ("list", n_list_type.with_typevars([filter_map_generic_a])),
-        ],
-        n_list_type.with_typevars([filter_map_generic_b]),
-        filter_map,
-    )
     global_scope.add_native_function(
         "yes",
         [("value", maybe_generic)],
         n_maybe_type.with_typevars([maybe_generic]),
         yes,
     )
-    default_generic = NGenericType("t")
-    global_scope.add_native_function(
-        "default",
-        [
-            ("default", default_generic),
-            ("maybeValue", n_maybe_type.with_typevars([default_generic])),
-        ],
-        default_generic,
-        with_default,
-    )
+    
     global_scope.add_native_function(
         "ok",
         [("value", result_ok_generic)],
@@ -388,20 +313,12 @@ def add_funcs(global_scope):
         n_maybe_type.with_typevars([n_module_type.with_typevars([])]),
         to_module,
     )
+
     global_scope.add_native_function(
-        "getUnitTestResults",
-        [("possibleModule", n_module_type)],
-        n_list_type.with_typevars(
-            [
-                {
-                    "hasPassed": "bool",
-                    "fileLine": "int",
-                    "unitTestType": "str",
-                    "possibleTypes": n_maybe_type.with_typevars([["str", "str"]]),
-                }
-            ]
-        ),
-        lambda module: scope.unit_test_results[module.mod_name][:],
+        "exit",
+        [("exitCode", "int")],
+        "unit",
+        sys.exit,
     )
 
     global_scope.types["str"] = "str"
@@ -415,3 +332,210 @@ def add_funcs(global_scope):
     global_scope.types["maybe"] = n_maybe_type
     global_scope.types["result"] = n_result_type
     global_scope.types["module"] = n_module_type
+
+    global_scope.add_internal_trait(
+        "str",
+        "len",
+        [
+            ("self", "str"),
+        ],
+        "int",
+        len,
+    )
+
+    len_trait_generic = NGenericType("t")
+    global_scope.add_internal_trait(
+        "list",
+        "len",
+        [
+            ("self", "str"),
+        ],
+        "int",
+        len,
+    )
+
+    default_trait_generic = NGenericType("t")
+    global_scope.add_internal_trait(
+        "maybe",
+        "default",
+        [
+            ("self", n_maybe_type.with_typevars([default_trait_generic])),
+            ("default", default_trait_generic),
+        ],
+        default_trait_generic,
+        with_default,
+    )
+
+    global_scope.add_internal_trait(
+        "int",
+        "toString",
+        [("self", "int")],
+        "str",
+        lambda v: str(v),
+    )
+
+    global_scope.add_internal_trait(
+        "float",
+        "round",
+        [("self", "float")],
+        "int",
+        round_without_error,
+    )
+
+    global_scope.add_internal_trait(
+        "float",
+        "floor",
+        [("self", "float")],
+        "int",
+        floor_without_error,
+    )
+
+    global_scope.add_internal_trait(
+        "float",
+        "ceil",
+        [("self", "float")],
+        "int",
+        ceil_without_error,
+    )
+
+    global_scope.add_internal_trait(
+        "char",
+        "charCode",
+        [("self", "char")],
+        "int",
+        ord,
+    )
+
+    global_scope.add_internal_trait(
+        "int",
+        "intCode",
+        [("self", "int")],
+        "char",
+        char_with_replace,
+    )
+
+    global_scope.add_internal_trait(
+        "str",
+        "charAt",
+        [("self", "str"), ("location", "int")],
+        n_maybe_type.with_typevars(["char"]),
+        char_at,
+    )
+
+    global_scope.add_internal_trait(
+        "str",
+        "substring",
+        [("self", "str"), ("start", "int"), ("end", "int")],
+        "str",
+        substr,
+    )
+
+    global_scope.add_internal_trait(
+        "int",
+        "toFloat",
+        [("self", "int")],
+        "float",
+        lambda v: float(v),
+    )
+    
+    global_scope.add_internal_trait(
+        "str",
+        "split",
+        [("self", "str"), ("splitter", "char")],
+        n_list_type.with_typevars(["str"]),
+        lambda string, splitter: string.split(splitter),
+    )
+    
+    global_scope.add_internal_trait(
+        "str",
+        "strip",
+        [("self", "str")],
+        "str",
+        trim
+    )
+    
+    global_scope.add_internal_trait(
+        "str",
+        "parseFloat",
+        [("self", "str")],
+        n_maybe_type.with_typevars(["float"]),
+        parse_float
+    )
+    
+    global_scope.add_internal_trait(
+        "str",
+        "parseInt",
+        [("self", "str")],
+        n_maybe_type.with_typevars(["int"]),
+        parse_int
+    )
+
+    item_at_trait_generic = NGenericType("t")
+    global_scope.add_internal_trait(
+        "list",
+        "itemAt",
+        [("self", n_list_type.with_typevars([item_at_trait_generic])), ("index", "int")],
+        n_maybe_type.with_typevars([item_at_trait_generic]),
+        item_at,
+    )
+    
+    append_trait_generic = NGenericType("t")
+    global_scope.add_internal_trait(
+        "list",
+        "append",
+        [
+            ("self", n_list_type.with_typevars([append_trait_generic])),
+            ("item", append_trait_generic),
+        ],
+        n_list_type.with_typevars([append_trait_generic]),
+        lambda l, i: l + [i],
+    )
+
+    subsection_trait_generic = NGenericType("t")
+    global_scope.add_internal_trait(
+        "list", 
+        "subsection",
+        [
+            ("list", n_list_type.with_typevars([subsection_trait_generic])),
+            ("lower", "int"),
+            ("upper", "int"),
+        ],
+        n_list_type.with_typevars([subsection_trait_generic]),
+        subsection_list,
+    )
+
+    filter_map_trait_generic_a = NGenericType("a")
+    filter_map_trait_generic_b = NGenericType("b")
+    global_scope.add_internal_trait(
+        "list",
+        "filterMap",
+        [
+            ("list", n_list_type.with_typevars([filter_map_trait_generic_a])),
+            (
+                "function",
+                (
+                    filter_map_trait_generic_a,
+                    n_maybe_type.with_typevars([filter_map_trait_generic_b]),
+                ),
+            )
+        ],
+        n_list_type.with_typevars([filter_map_trait_generic_b]),
+        filter_map,
+    )
+
+    global_scope.add_internal_trait(
+        "module",
+        "getUnitTestResults",
+        [("possibleModule", n_module_type)],
+        n_list_type.with_typevars(
+            [
+                {
+                    "hasPassed": "bool",
+                    "fileLine": "int",
+                    "unitTestType": "str",
+                    "possibleTypes": n_maybe_type.with_typevars([["str", "str"]]),
+                }
+            ]
+        ),
+        lambda module: scope.unit_test_results[module.mod.mod_name][:],
+    )

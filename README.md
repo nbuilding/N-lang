@@ -36,7 +36,7 @@ $v="1.0.0"; iwr https://github.com/nbuilding/N-lang/raw/main/install.ps1 -useb |
 ```
 
 ## Learn N
-See the [docs](./docs/)
+See the [docs](https://nbuilding.github.io/N-lang-docs)
 
 ## Python instructions
 

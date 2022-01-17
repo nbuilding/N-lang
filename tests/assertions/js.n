@@ -1,0 +1,44 @@
+// #214
+
+import js
+
+// js.value is an exported enum type representing a JavaScript value
+
+// Create JavaScript values
+assert type js.string : str -> js.value
+assert type js.number : float -> js.value
+assert type js.boolean : bool -> js.value
+assert type js.array : list[js.value] -> js.value
+assert type js.object : map[str, js.value] -> js.value
+// The first parameter is the `this` argument; the second is a list of arguments given to the function
+assert type js.function : (js.value -> list[js.value] -> js.value) -> cmd[js.value]
+assert type js.null : js.value
+assert type js.undefined : js.value
+
+// Returns the JavaScript value for globalThis if available
+assert type js.globalThis : cmd[option[js.value]]
+
+// Most of these js methods will return a cmd resolving to a result containing a JavaScript value
+alias jsResult = cmd[result[js.value, js.value]]
+
+// Calls a function in JS, returning the return value
+// Takes the this argument, a list of arguments, then the function value
+assert type js.apply : js.value -> list[js.value] -> js.value -> jsResult
+
+// Constructs a constructor, returning the new instance
+// Takes a list of arguments then the class
+assert type js.construct : list[js.value] -> js.value -> jsResult
+
+// Gets a property from a object
+// Takes the property name (a string for convenience, so this doesn't support symbols) then the object
+assert type js.get : str -> js.value -> jsResult
+
+// Sets a property of an object
+// Takes the property name (no symbols), value, then the object. The result's ok value is ()
+assert type js.set : str -> js.value -> js.value -> cmd[result[(), js.value]]
+
+// Determines whether the second value is an instance of the first value
+// Takes the class then the instance, and returns a bool from the `instanceof` operator
+assert type js.instanceOf : js.value -> js.value -> cmd[result[bool, js.value]]
+
+// Behaviour of the above functions is implementation defined.

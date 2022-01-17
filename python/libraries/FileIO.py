@@ -5,10 +5,16 @@ from os.path import isfile, join
 from aiofile import async_open
 from native_types import n_cmd_type, n_maybe_type, yes, none, n_list_type
 
-
 async def write(path, content):
-    async with async_open(path, "w+", encoding="utf-8") as f:
-        await f.write(content)
+    try:
+        if not os.path.exists(os.path.split(os.path.abspath(path))[0]):
+            os.mkdir(os.path.split(os.path.abspath(path))[0])
+        async with async_open(path, "w+", encoding="utf-8") as f:
+            await f.write(content)
+    except:
+        pass
+
+    return ()
 
 
 async def append(path, content):
@@ -26,23 +32,34 @@ async def read(path):
     except:
         return none
 
+    return ()
+
 
 async def writeBytes(path, content):
-    async with async_open(path, "w+", encoding="utf-8") as f:
-        await f.write("".join([chr(c) for c in content]))
+    try:
+        if not os.path.exists(os.path.split(os.path.abspath(path))[0]):
+            os.mkdir(os.path.split(os.path.abspath(path))[0])
+        async with async_open(path, "wb+") as f:
+            await f.write(bytes([c % 256 for c in content]))
+    except:
+        pass
+
+    return ()
 
 
 async def appendBytes(path, content):
     try:
-        async with async_open(path, "a+", encoding="utf-8") as f:
-            await f.write("".join([chr(c) for c in content]))
+        async with async_open(path, "ab+") as f:
+            await f.write(bytes([c % 256 for c in content]))
     except:
         pass
+
+    return ()
 
 
 async def readBytes(path):
     try:
-        async with async_open(path, "rb", encoding="utf-8") as f:
+        async with async_open(path, "rb") as f:
             return yes(list(await f.read()))
     except:
         return none

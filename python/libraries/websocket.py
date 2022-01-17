@@ -5,21 +5,21 @@ import uuid
 
 from colorama import Fore, Style
 
-from native_types import n_cmd_type, n_maybe_type, n_result_type, yes, none
+from native_types import n_cmd_type, n_maybe_type, n_result_type, yes, none, ok, err as error
 from native_function import NativeFunction
 from type import NAliasType
 from ncmd import Cmd
 from libraries.SystemIO import inp as async_input
 
-# alias send = str -> cmd[()]
+# alias send = (str) -> cmd[()]
 send_type = "str", n_cmd_type.with_typevars([n_result_type.with_typevars(["unit", "int"])])
 
 close_type = ("unit", n_cmd_type.with_typevars(["unit"]))
 
 # alias connectOptions = {
-# 	onOpen: (str -> cmd[()]) -> cmd[()]
-# 	onMessage: (str -> cmd[()]) -> str -> cmd[()]
-# 	onClose: cmd[()]
+# 	onOpen: ((str) -> cmd[()]) -> cmd[()]
+# 	onMessage: (((str) -> cmd[()]), str) -> cmd[()]
+# 	onClose: (()) -> cmd[()]
 # }
 connect_options_type = {
     "onOpen": (send_type, n_cmd_type.with_typevars(["bool"])),
@@ -28,8 +28,8 @@ connect_options_type = {
 }
 
 # alias user = {
-#   send: str -> cmd[()]
-#   disconnect: () -> cmd[()]
+#   send: (str) -> cmd[()]
+#   disconnect: (()) -> cmd[()]
 #   ip: (int, int, int, int)
 #   uuid: str
 # }
@@ -41,9 +41,9 @@ user_type = {
 }
 
 # alias setupOptions = {
-#   onConnect: user -> str -> cmd[bool]
-#   onMessage: user -> str -> cmd[bool]
-#   onDisconnect: user -> { code: int; reason: str } -> cmd[bool]
+#   onConnect: (user, str) -> cmd[bool]
+#   onMessage: (user, str) -> cmd[bool]
+#   onDisconnect: (user, { code: int; reason: str }) -> cmd[bool]
 # }
 setup_options_type = {
     "onConnect": (user_type, "str", n_cmd_type.with_typevars(["bool"])),
@@ -97,10 +97,10 @@ async def connect(options, url):
                     )
                 try:
                     await websocket.send(message)
-                    return ()
+                    return ok(())
                 except websockets.exceptions.ConnectionClosed as err:
                     # Ignore all runtime errors (eg when attempting sending to a closed websocket)
-                    return err.code
+                    return error(err.code)
 
             # Why is this so complicated
             send = NativeFunction(
@@ -123,7 +123,8 @@ async def connect(options, url):
                             close = await close.eval()
                         if close:
                             await websocket.close()
-                            on_close.set_result(None) # Mark `on_close` as done
+                            if not on_close.done():
+                                on_close.set_result(None) # Mark `on_close` as done
                 except websockets.exceptions.ConnectionClosedError as err:
                     if debug:
                         print(
@@ -140,7 +141,8 @@ async def connect(options, url):
                         close = await close.eval()
                     if close:
                         await websocket.close()
-                        on_close.set_result(None) # Mark `on_close` as done
+                        if not on_close.done():
+                            on_close.set_result(None) # Mark `on_close` as done
                     # await options['onClose'].eval()
                     if debug:
                         debug_task.cancel()

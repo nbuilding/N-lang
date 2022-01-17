@@ -1,11 +1,13 @@
 import math
 import os.path
 import sys
+from inspect import signature
 
 import lark
 import re
 from lark import Lark
 from colorama import Fore, Style
+import importlib.util
 
 from variable import Variable
 from function import Function
@@ -16,6 +18,7 @@ from type import (
     NAliasType,
     NTypeVars,
     NModule,
+    NModuleWrapper,
     apply_generics,
     apply_generics_to,
     resolve_equal_types,
@@ -23,7 +26,7 @@ from type import (
 )
 from enums import EnumType, EnumValue, EnumPattern
 from native_function import NativeFunction
-from native_types import n_list_type, n_cmd_type, none, yes
+from native_types import n_list_type, n_cmd_type, n_maybe_type, none, yes, NMap
 from ncmd import Cmd
 from type_check_error import TypeCheckError, display_type
 from display import display_value
@@ -33,6 +36,8 @@ from operation_types import (
     comparable_types,
     iterable_types,
     legacy_iterable_types,
+    assignment_types,
+    assignment_expression_types,
 )
 from file import File
 from imported_error import ImportedError
@@ -69,10 +74,10 @@ def parse_file(file_path, base_path, parent_imports):
         tree = file.parse(n_parser)
     except lark.exceptions.UnexpectedCharacters as e:
         print(format_error(e, file))
-        exit()
+        sys.exit()
     except lark.exceptions.UnexpectedEOF as e:
         print(format_error(e, file))
-        exit()
+        sys.exit()
 
     return import_scope, tree, file
 
@@ -135,7 +140,7 @@ def get_destructure_pattern(tree):
             return (dict(entries), tree)
         elif tree.data == "tuple_pattern":
             return (
-                tuple(get_destructure_pattern(pattern) for pattern in tree.children),
+                tuple(get_destructure_pattern(pattern.children[0]) for pattern in tree.children),
                 tree,
             )
         elif tree.data == "list_pattern":
@@ -148,7 +153,7 @@ def get_destructure_pattern(tree):
             patterns = []
             for pattern in pattern_trees:
                 patterns.append(get_destructure_pattern(pattern))
-            return (EnumPattern(enum_name, patterns), tree)
+            return (EnumPattern(enum_name.children[0], patterns), tree)
     return (None if tree.value == "_" else tree.value, tree)
 
 
@@ -212,6 +217,8 @@ class Scope:
         parent_type="top",
         stack_trace=None,
         unit_tests=None,
+        internal_traits=None,
+        enum_variants=None,
     ):
         self.parent = parent
         self.parent_function = parent_function
@@ -232,6 +239,9 @@ class Scope:
         self.stack_trace = stack_trace if stack_trace is not None else []
         self.unit_tests = unit_tests if unit_tests is not None else []
 
+        self.internal_traits = internal_traits if internal_traits is not None else {}
+        self.enum_variants = enum_variants if enum_variants is not None else {}
+
     def new_scope(
         self,
         parent_function=None,
@@ -239,6 +249,8 @@ class Scope:
         parent_type=None,
         inherit_stack_trace=True,
         inherit_unit_tests=True,
+        inherit_internal_traits=True,
+        inherit_enum_variants=True,
     ):
         return Scope(
             self,
@@ -251,7 +263,55 @@ class Scope:
             parent_type=parent_type or self.parent_type,
             stack_trace=self.stack_trace if inherit_stack_trace else [],
             unit_tests=self.unit_tests if inherit_unit_tests else [],
+            internal_traits=self.internal_traits if inherit_internal_traits else {},
+            enum_variants=self.enum_variants if inherit_enum_variants else {},
         )
+        
+    def get_value_internal_traits(self, value):
+        if isinstance(value, NModuleWrapper):
+            return self.internal_traits.get("module")
+        elif isinstance(value, NMap):
+            return self.internal_traits.get("map")
+        elif isinstance(value, dict):
+            return value
+        elif isinstance(value, list):
+            return self.internal_traits.get("list")
+        elif isinstance(value, tuple):
+            return self.internal_traits.get("tuple")
+        elif isinstance(value, bool):
+            return self.internal_traits.get("bool")
+        elif isinstance(value, int):
+            return self.internal_traits.get("int")
+        elif isinstance(value, float):
+            return self.internal_traits.get("float")
+        elif isinstance(value, str):
+            if len(value) == 1:
+                return {**self.internal_traits.get("str"), **self.internal_traits.get("char")}
+            return self.internal_traits.get("str")
+        elif isinstance(value, EnumValue):
+            for enum in self.enum_variants.keys():
+                if value.variant in self.enum_variants[enum]:
+                    return self.internal_traits.get(enum)
+            return None
+        elif isinstance(value, Cmd):
+            return self.internal_traits.get("cmd")
+        return None
+        
+    def get_type_internal_traits(self, value):
+        if isinstance(value, NTypeVars):
+            return self.internal_traits.get(value.name)
+        elif isinstance(value, str):
+            return self.internal_traits.get(value)
+        elif isinstance(value, list):
+            if isinstance(value[0], lark.Token):
+                if value[0].type == "LIST":
+                    return self.internal_traits.get("list")
+        elif isinstance(value, NModule):
+            return self.internal_traits.get("module")
+        elif isinstance(value, dict):
+            return value
+
+        return None
 
     def get_variable(self, name, err=True):
         variable = self.variables.get(name)
@@ -347,6 +407,8 @@ class Scope:
             return n_type
 
     def parse_type(self, tree_or_token, err=True):
+        if tree_or_token is None:
+            return "infer"
         if isinstance(tree_or_token, lark.Tree):
             if tree_or_token.data == "with_typevars":
                 module_type, *typevars = tree_or_token.children
@@ -531,6 +593,7 @@ class Scope:
         path=None,
         public=False,
         certain=False,
+        mutable=False,
     ):
         path_name = path or "the value"
         pattern, src = pattern_and_src
@@ -585,6 +648,7 @@ class Scope:
                     "%s.%s" % (path or "<record>", key),
                     public,
                     certain=certain,
+                    mutable=mutable,
                 )
                 if not valid:
                     return False
@@ -643,6 +707,7 @@ class Scope:
                     "%s.%d" % (path or "<tuple>", i),
                     public,
                     certain=certain,
+                    mutable=mutable,
                 )
                 if not valid:
                     return False
@@ -730,6 +795,7 @@ class Scope:
                     "%s.%s#%d" % (path or "<enum>", pattern.variant, i + 1),
                     public,
                     certain=certain,
+                    mutable=mutable,
                 )
                 if not valid:
                     return False
@@ -774,6 +840,7 @@ class Scope:
                     "%s[%d]" % (path or "<enum variant>", i),
                     public,
                     certain=certain,
+                    mutable=mutable,
                 )
                 if not valid:
                     return False
@@ -783,7 +850,7 @@ class Scope:
                 self.errors.append(
                     TypeCheckError(src, "You've already defined `%s`." % name)
                 )
-            self.variables[name] = Variable(value_or_type, value_or_type, public)
+            self.variables[name] = Variable(value_or_type, value_or_type, public, mutable)
         return True
 
     async def eval_record_entry(self, entry):
@@ -854,13 +921,16 @@ class Scope:
                 return await self.eval_expr(if_true)
             else:
                 return await self.eval_expr(if_false)
-        elif expr.data == "function_def" or expr.data == "anonymous_func":
-            if expr.data == "function_def":
+        elif expr.data == "function_def":
+            if len(expr.children) == 3:
                 arguments, returntype, codeblock = expr.children
             else:
-                arguments, returntype, *codeblock = expr.children
-                codeblock = lark.tree.Tree("code_block", codeblock)
-            _, arguments = get_arguments(arguments)
+                arguments, codeblock = expr.children
+                returntype = lark.Token("UNIT", "()")
+            arguments = arguments.children
+            # Remove generic declarations
+            if len(arguments) >= 1 and isinstance(arguments[0], lark.Tree) and arguments[0].data == "generic_declaration":
+                arguments = arguments[1:]
             return Function(
                 self,
                 [self.get_name_type(arg, get_type=False) for arg in arguments],
@@ -876,30 +946,50 @@ class Scope:
                 arguments.append(mainarg)
             arg_values = []
             for arg in arguments:
-                arg_values.append(await self.eval_expr(arg))
+                if isinstance(arg, lark.Tree) and arg.data == "spread":
+                    arg_values.extend(list(await self.eval_expr(arg.children[0])))
+                else:
+                    arg_values.append(await self.eval_expr(arg))
             if len(arg_values) == 0:
                 arg_values = [()]
             func = await self.eval_expr(function)
-            if not isinstance(func, NativeFunction):
-                with open(self.file_path, "r", encoding="utf-8") as f:
-                    self.stack_trace.append(
-                        (
-                            expr,
-                            File(
-                                f,
-                                name=os.path.relpath(
-                                    self.file_path, start=self.base_path
-                                ),
+            with open(self.file_path, "r", encoding="utf-8") as f:
+                self.stack_trace.append(
+                    (
+                        expr,
+                        File(
+                            f,
+                            name=os.path.relpath(
+                                self.file_path, start=self.base_path
                             ),
-                        )
+                        ),
                     )
-            return await func.run(arg_values)
+                )
+            out = await func.run(arg_values)
+            self.stack_trace.pop()
+            return out
         elif expr.data == "or_expression":
             left, _, right = expr.children
-            return await self.eval_expr(left) or await self.eval_expr(right)
+            left = await self.eval_expr(left)
+            right = await self.eval_expr(right)
+            if isinstance(left, int):
+                return left | right
+            if isinstance(left, bool):
+                return left or right
+            if left.variant == "yes":
+                return left.values[0]
+            else:
+                return right
         elif expr.data == "and_expression":
             left, _, right = expr.children
-            return await self.eval_expr(left) and await self.eval_expr(right)
+            left = await self.eval_expr(left)
+            right = await self.eval_expr(right)
+            if isinstance(left, int):
+                return left & right
+            return left and right
+        elif expr.data == "xor_expression":
+            left, _, right = expr.children
+            return await self.eval_expr(left) ^ await self.eval_expr(right)
         elif expr.data == "not_expression":
             _, value = expr.children
             return not await self.eval_expr(value)
@@ -972,6 +1062,8 @@ class Scope:
                             return float("-inf")
                         else:
                             return float("inf")
+                if isinstance(divisor, int):
+                    return math.floor(dividend/divisor)
                 return dividend / divisor
             elif operation.type == "MODULO":
                 return await self.eval_expr(left) % await self.eval_expr(right)
@@ -985,13 +1077,18 @@ class Scope:
                 )
         elif expr.data == "exponent_expression":
             left, _, right = expr.children
-            return await self.eval_expr(left) ** await self.eval_expr(right)
+            return float(await self.eval_expr(left) ** await self.eval_expr(right))
         elif expr.data == "unary_expression":
             operation, value = expr.children
             if operation.type == "SUBTRACT":
                 return -await self.eval_expr(value)
             elif operation.type == "NOT":
-                return not await self.eval_expr(value)
+                val = await self.eval_expr(value)
+                if isinstance(val, bool):
+                    return not val
+                elif isinstance(val, int):
+                    return ~val 
+                return val == none
             else:
                 raise SyntaxError(
                     "Unexpected operation for unary_expression: %s" % operation
@@ -1063,15 +1160,25 @@ class Scope:
                 self.base_path,
                 self.parent_imports + [os.path.normpath(self.file_path)],
             )
-            self.stack_trace += val.stack_trace
             holder = {}
             for key in val.variables.keys():
                 if val.variables[key].public:
                     holder[key] = val.variables[key].value
             unit_test_results[rel_file_path] += val.unit_tests[:]
+            self.stack_trace.pop()
             return NModule(rel_file_path, holder)
         elif expr.data == "record_access":
-            return (await self.eval_expr(expr.children[0]))[expr.children[1].value]
+            method = False
+
+            out =  None
+            dict_value = await self.eval_expr(expr.children[0])
+            if not isinstance(dict_value, dict):
+                internal_traits = self.get_value_internal_traits(dict_value)
+                out = internal_traits[expr.children[1].value]
+                out = await out.run([dict_value])
+            else:
+                out = dict_value[expr.children[1].value]
+            return out
         elif expr.data == "tupleval":
             values = []
             for e in expr.children:
@@ -1119,17 +1226,48 @@ class Scope:
         elif expr.data == "match":
             input_value, match_block = expr.children
             inp = await self.eval_expr(input_value)
-            values = {}
-            default = match_block.children[-1].children[-1]
+            
+            default = None
 
-            for match_value in match_block.children[0:-1]:
-                match, value = match_value.children
-                values[await self.eval_expr(match)] = value
+            if match_block.data == "match_block":
+                for match in match_block.children:
+                    i, o = match.children
 
-            if inp in values:
-                return await self.eval_expr(values[inp])
+                    if (
+                        isinstance(i, lark.Tree)
+                        and len(i.children) == 1
+                        and isinstance(i.children[0], lark.Token)
+                        and i.children[0].type == "NAME"
+                        and i.children[0].value == "_"
+                    ):
+                        default = await self.eval_expr(o)
+                        continue
 
-            return await self.eval_expr(default)
+                    if inp == await self.eval_expr(i):
+                        return await self.eval_expr(o)
+
+                return default
+            for match in match_block.children:
+                i, o = match.children
+
+                if (
+                    isinstance(i, lark.Token) and i.value == "_"
+                ):
+                    default = await self.eval_expr(o)
+                    continue
+
+                scope = self.new_scope()
+                if scope.assign_to_pattern(
+                    get_destructure_pattern(i), inp
+                ):
+                    return await scope.eval_expr(o)
+                # else:
+                #     if isinstance(i, lark.Token) and i.type == "NAME":
+                #         if inp == await self.eval_expr(i):
+                #             return await self.eval_expr(o)
+
+
+            return default
         else:
             print("(parse tree):", expr)
             raise SyntaxError("Unexpected command/expression type %s" % expr.data)
@@ -1145,7 +1283,6 @@ class Scope:
             tree.data == "if"
             or tree.data == "ifelse"
             or tree.data == "for"
-            or tree.data == "for_legacy"
             or tree.data == "while"
         ):
             tree = lark.tree.Tree("instruction", [tree])
@@ -1181,13 +1318,10 @@ class Scope:
             except AttributeError:
                 # Apparently it's more Pythonic to use try/except than hasattr
                 pass
-        elif command.data == "for" or command.data == "for_legacy":
+        elif command.data == "for":
             var, iterable, code = command.children
             pattern, _ = self.get_name_type(var, get_type=False)
-            if command.data == "for":
-                iterval = await self.eval_expr(iterable)
-            else:
-                iterval = range(int(iterable))
+            iterval = await self.eval_expr(iterable)
             for i in iterval:
                 scope = self.new_scope()
 
@@ -1227,9 +1361,6 @@ class Scope:
             self.assign_to_pattern(
                 pattern, await self.eval_expr(value), False, None, public, certain=True
             )
-        elif command.data == "vary":
-            name, value = command.children
-            self.get_variable(name.value).value = await self.eval_expr(value)
         elif command.data == "if":
             condition, body = command.children
             scope = self.new_scope()
@@ -1327,6 +1458,12 @@ class Scope:
                     }
                 )
             return (False, None)
+        elif command.data == "assign_value":
+            var, operator, val = command.children
+            if operator.children[0].type != "ASSIGN_EQUAL":
+                self.get_variable(var.value).value = await self.eval_expr(lark.Tree(assignment_expression_types[operator.children[0].type], [lark.Tree('value', [var]), lark.Token(assignment_types[operator.children[0].type], ""), val]))
+                return (False, None)
+            self.get_variable(var.value).value = await self.eval_expr(val)
         else:
             await self.eval_expr(command)
 
@@ -1485,12 +1622,13 @@ class Scope:
                         )
                     )
             return return_type
-        elif expr.data == "function_def" or expr.data == "anonymous_func":
-            if expr.data == "function_def":
+        elif expr.data == "function_def":
+            if len(expr.children) == 3:
                 arguments, returntype, codeblock = expr.children
             else:
-                arguments, returntype, *cb = expr.children
-                codeblock = lark.tree.Tree("code_block", cb)
+                arguments, codeblock = expr.children
+                returntype = lark.Token("UNIT", "()")
+
             generic_types = []
             generics, arguments = get_arguments(arguments)
             wrap_scope = self.new_scope()
@@ -1556,8 +1694,29 @@ class Scope:
                 function, *arguments = expr.children[1].children
                 arguments.append(mainarg)
 
+            old_arg = arguments[:]
+            new_arg = []
+            for i, arg in enumerate(arguments):
+                if arg.data == "spread":
+                    spread_op = self.type_check_expr(arg.children[0])
+                    if isinstance(spread_op, list):
+                        new_arg.extend([(v, i) for v in spread_op])
+                    else:
+                        self.errors.append(
+                            TypeCheckError(
+                                expr,
+                                "You tried to spread a %s into a function, which can't happen."
+                                % display_type(spread_op),
+                            )
+                        )
+                        return None
+                else:
+                    new_arg.append((self.type_check_expr(arg), i))
+
+            arguments = new_arg[:]
+
             if len(arguments) == 0:
-                arguments.append("unit")
+                arguments.append(("unit", -1))
             func_type = self.type_check_expr(function)
             if func_type is None:
                 return None
@@ -1573,21 +1732,24 @@ class Scope:
             *arg_types, return_type = func_type
             generics = {}
             parameters_have_none = False
-            for n, (argument, arg_type) in enumerate(
+            for n, ((argument, arg_point), arg_type) in enumerate(
                 zip(arguments, arg_types), start=1
             ):
                 check_type = argument
-                if argument != "unit":
-                    check_type = self.type_check_expr(check_type)
                 if check_type is None:
                     parameters_have_none = True
                 resolved_arg_type = apply_generics(arg_type, check_type, generics)
                 _, incompatible = resolve_equal_types(check_type, resolved_arg_type)
                 if incompatible:
                     if expr.data == "function_callback":
+                        # The only time when arg_point is -1 is if there are no arguments passed in
+                        arg = function
+                        if arg_point != -1:
+                            arg = old_arg[arg_point]
+
                         self.errors.append(
                             TypeCheckError(
-                                argument,
+                                arg,
                                 "%s's argument #%d should be a %s, but you gave a %s."
                                 % (
                                     display_type(func_type),
@@ -1601,7 +1763,7 @@ class Scope:
                         if n == len(arguments):
                             self.errors.append(
                                 TypeCheckError(
-                                    argument,
+                                    arg,
                                     "This left operand of |>, which I pass as the last argument to %s, should be a %s, but you gave a %s."
                                     % (
                                         display_type(func_type),
@@ -1613,7 +1775,7 @@ class Scope:
                         else:
                             self.errors.append(
                                 TypeCheckError(
-                                    argument,
+                                    arg,
                                     "The argument #%d here should be a %s because the function is a %s, but you gave a %s."
                                     % (
                                         n,
@@ -1656,28 +1818,45 @@ class Scope:
         elif expr.data == "record_access":
             value, field = expr.children
             value_type = self.type_check_expr(value)
+            method = False
+
+            old_value_type = value_type
+
             if value_type is None:
                 return None
             elif not isinstance(value_type, dict):
-                self.errors.append(
-                    TypeCheckError(
-                        value,
-                        "You can only get fields from records, not %s."
-                        % display_type(value_type),
+                typ = value_type
+                value_type = self.get_type_internal_traits(value_type)
+                if value_type is None:
+                    self.errors.append(
+                        TypeCheckError(
+                            value,
+                            "`%s` does not have any traits or values."
+                            % display_type(typ),
+                        )
                     )
-                )
-                return None
-            elif field.value not in value_type:
+                    return None
+                method = True
+            if field.value not in value_type:
                 self.errors.append(
                     TypeCheckError(
                         expr,
-                        "%s doesn't have a field `%s`."
-                        % (display_type(value_type), field.value),
+                        "%s doesn't have a trait `%s`."
+                        % (display_type(old_value_type), field.value),
                     )
                 )
                 return None
             else:
-                return value_type[field.value]
+                out = value_type[field.value].type if method else value_type[field.value]
+                if method:
+                    # Apply generics
+                    generics = {}
+                    apply_generics(out[0], self.type_check_expr(value), generics)
+                    out = tuple(
+                        apply_generics_to(arg_type, generics)
+                        for arg_type in out[1:]
+                    )
+                return out
         elif expr.data == "await_expression":
             value, _ = expr.children
             value_type = self.type_check_expr(value)
@@ -1714,73 +1893,125 @@ class Scope:
             input_value, match_block = expr.children
             value_type = self.type_check_expr(input_value)
             first_match, first_value = match_block.children[0].children
-            first_match_type = self.type_check_expr(first_match)
-            first_value_type = self.type_check_expr(first_value)
-            for i, match_value in enumerate(match_block.children):
-                match, value = match_value.children
+            if match_block.data == "match_block":
+                defaults = 0
+
+                if (
+                    isinstance(first_match, lark.Tree)
+                    and len(first_match.children) == 1
+                    and isinstance(first_match.children[0], lark.Token)
+                    and first_match.children[0].type == "NAME"
+                    and first_match.children[0].value == "_"
+                ):
+                    defaults += 1
+
+                first_value_type = self.type_check_expr(first_value)
+
+                for i, match_value in enumerate(match_block.children[1:]):
+                    match, value = match_value.children
+
+                    default = False
+
+                    if (
+                        isinstance(match, lark.Tree)
+                        and len(match.children) == 1
+                        and isinstance(match.children[0], lark.Token)
+                        and match.children[0].type == "NAME"
+                        and match.children[0].value == "_"
+                    ):
+                        defaults += 1
+                        default = True
+
+                    if (
+                        self.type_check_expr(value) != first_value_type
+                    ):
+                        self.errors.append(
+                            TypeCheckError(
+                                match_value,
+                                "The match value #%s's type is %s while the first value's type is %s"
+                                % (
+                                    str(i + 2),
+                                    display_type(self.type_check_expr(value)),
+                                    display_type(first_value_type),
+                                ),
+                            )
+                        )
+
+                    if not default and value_type != self.type_check_expr(match):
+                        self.errors.append(
+                            TypeCheckError(
+                                input_value,
+                                "The input value's type is `%s` while the match case's input type is `%s`"
+                                % (display_type(value_type), display_type(self.type_check_expr(match))),
+                            )
+                        )
+
                 
-                if (
-                    i != len(match_block.children) - 1
-                    and isinstance(match, lark.Tree)
-                    and len(match.children) == 1
-                    and isinstance(match.children[0], lark.Token)
-                    and match.children[0].type == "NAME"
-                    and match.children[0].value == "_"
-                ):
+                if defaults != 1:
                     self.errors.append(
                         TypeCheckError(
-                            match,
-                            "You cannot have more than one default in a match statement"
-                        )
-                    )
-                    continue
-
-                if (
-                    i != len(match_block.children) - 1
-                    and self.type_check_expr(match) != first_match_type
-                    and self.type_check_expr(match) != None
-                ):
-                    self.errors.append(
-                        TypeCheckError(
-                            match_value,
-                            "The match check #%s's type is %s while the first check's type is %s"
+                            match_block,
+                            "One default is needed, %s defaults were given"
                             % (
-                                str(i + 1),
-                                display_type(self.type_check_expr(match)),
-                                display_type(first_match_type),
+                                str(defaults)
                             ),
                         )
                     )
-                if (
-                    self.type_check_expr(value) != first_value_type
-                    and self.type_check_expr(match) != None
-                ):
+                    return None
+
+                return first_value_type
+                
+            first_out_type = None
+            defaults = 0
+            if isinstance(first_match, lark.Token) and first_match.value == "_":
+                defaults = 1
+                first_out_type = self.type_check_expr(first_value)
+            else:
+                scope = self.new_scope(parent_type="match")
+                scope.assign_to_pattern(
+                    get_destructure_pattern(first_match), value_type, True
+                )
+                first_out_type = scope.type_check_expr(first_value)
+            for i, match_value in enumerate(match_block.children[1:]):
+                match, value = match_value.children
+                typ = None
+                if isinstance(match, lark.Token) and match.value == "_":
+                    defaults = 1
+                    typ = self.type_check_expr(value)
+                else:
+                    scope.assign_to_pattern(
+                        get_destructure_pattern(match), value_type, True
+                    )
+                    typ = scope.type_check_expr(value)
+                if typ != first_out_type:
                     self.errors.append(
                         TypeCheckError(
-                            match_value,
-                            "The match value #%s's type is %s while the first value's type is %s"
+                            value,
+                            "The output of the match case #%s is `%s`, while the first case's type is `%s`"
                             % (
-                                str(i + 1),
-                                display_type(self.type_check_expr(value)),
-                                display_type(first_value_type),
+                                str(i + 2),
+                                display_type(typ),
+                                display_type(first_out_type),
                             ),
                         )
                     )
-
-            if value_type != first_match_type:
+                    return None
+            if defaults != 1:
                 self.errors.append(
                     TypeCheckError(
-                        input_value,
-                        "The input value's type is %s while the match's input type is %s"
-                        % (display_type(value_type), display_type(first_match_type)),
+                        match_block,
+                        "One default is needed, %s defaults were given"
+                        % (
+                            str(defaults)
+                        ),
                     )
                 )
-            return first_match_type
+                return None
+                
+            return first_out_type
         if len(expr.children) == 2 and isinstance(expr.children[0], lark.Token):
             operation, value = expr.children
             operation_type = operation.type
-            if operation_type == "NOT_KW":
-                operation_type = "NOT"
             types = unary_operation_types.get(operation_type)
             if types:
                 value_type = self.type_check_expr(value)
@@ -2025,7 +2256,6 @@ class Scope:
             tree.data == "if"
             or tree.data == "ifelse"
             or tree.data == "for"
-            or tree.data == "for_legacy"
             or tree.data == "while"
         ):
             tree = lark.tree.Tree("instruction", [tree])
@@ -2069,7 +2299,20 @@ class Scope:
                     )
                 )
             try:
-                imp = libraries["libraries." + command.children[0].value]
+                imp = libraries.get("libraries." + command.children[0].value)
+                filepath = os.path.join(os.path.dirname(self.file_path), command.children[0].value + ".py")
+                if imp is None and os.path.isfile(filepath):
+                    spec = importlib.util.spec_from_file_location("libraries." + command.children[0].value, filepath)
+                    imp = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(imp)
+                    libraries["libraries." + command.children[0].value] = imp
+                elif imp is None:
+                    self.errors.append(
+                        TypeCheckError(
+                            command.children[0], "Could not find file `%s.py`" % command.children[0].value
+                        )
+                    )
+                    return False
                 types = {}
                 try:
                     types = imp._types()
@@ -2083,22 +2326,10 @@ class Scope:
                         "`%s` isn't a compatible native library." % command.children[0],
                     )
                 )
-            except KeyError:
-                self.errors.append(
-                    TypeCheckError(
-                        command.children[0],
-                        "I can't find the native library `%s`." % command.children[0],
-                    )
-                )
+                return False
             self.variables[import_name] = Variable(import_type, import_type)
-        elif command.data == "for" or command.data == "for_legacy":
-            if command.data == "for_legacy":
-                iterable_types_src = legacy_iterable_types
-                self.warnings.append(
-                    TypeCheckError(command, "This syntax is deprecated.")
-                )
-            else:
-                iterable_types_src = iterable_types
+        elif command.data == "for":
+            iterable_types_src = iterable_types
             var, iterable, code = command.children
             pattern, ty = self.get_name_type(var, err=False)
             iterable_type = self.type_check_expr(iterable)
@@ -2233,36 +2464,8 @@ class Scope:
                     )
 
             public = any(modifier.type == "PUBLIC" for modifier in modifiers.children)
-            self.assign_to_pattern(pattern, ty, True, None, public, certain=True)
-        elif command.data == "vary":
-            name, value = command.children
-            variable = self.get_variable(name.value, err=False)
-            if variable is None:
-                self.errors.append(
-                    TypeCheckError(
-                        name, "The variable `%s` does not exist." % (name.value)
-                    )
-                )
-            else:
-                ty = variable.type
-                value_type = self.type_check_expr(value)
-
-                # Allow for cases like
-                # let empty = [] // empty has type list[t]
-                # NOTE: At this point, `empty` can be used, for example, as an
-                # argument that expects list[int]. This might be a bug.
-                # var empty = ["wow"] // empty now is known to have type
-                # list[str]
-                resolved_type, incompatible = resolve_equal_types(ty, value_type)
-                if incompatible:
-                    self.errors.append(
-                        TypeCheckError(
-                            value,
-                            "You set %s, which is defined to be a %s, to what evaluates to a %s."
-                            % (name, display_type(ty), display_type(value_type)),
-                        )
-                    )
-                variable.type = resolved_type
+            mutable = any(modifier.type == "MUTABLE" for modifier in modifiers.children)
+            self.assign_to_pattern(pattern, ty, True, None, public, certain=True, mutable=mutable)
         elif command.data == "if":
             condition, body = command.children
             scope = self.new_scope(parent_type="if")
@@ -2505,6 +2708,86 @@ class Scope:
                         )
                     )
             return False
+        elif command.data == "assign_value":
+            var, operator, val = command.children
+            variable = self.get_variable(var.value, err=False)
+            if variable is None:
+                self.errors.append(
+                    TypeCheckError(
+                        var, "You have not defined `%s`" % var.value
+                    )
+                )
+                return False
+            
+            if not variable.mutable:
+                self.errors.append(
+                    TypeCheckError(
+                        var, "`%s` is not mutable" % var.value
+                    )
+                )
+                return False
+                
+            val_type = self.type_check_expr(val)
+            
+            if val_type is None:
+                self.errors.append(
+                    TypeCheckError(
+                        val, "Invalid expression"
+                    )
+                )
+                return False
+
+            typ = variable.type
+            if operator.children[0].type != "ASSIGN_EQUAL":
+                op_type = assignment_types.get(operator.children[0].type)
+                
+                if op_type is None:
+                    self.errors.append(
+                        TypeCheckError(
+                            operator, "Internal Error: Unknown operator: `%s`" % operator.children[0]
+                        )
+                    )
+                    return False
+
+                bin_type = binary_operation_types.get(op_type)
+
+                if bin_type is None:
+                    self.errors.append(
+                        TypeCheckError(
+                            operator, "Internal Error: Incorrect operation mapping: `%s` to `None`" % op_type
+                        )
+                    )
+                    return False
+
+                for ty in bin_type:
+                    start, end, out = ty
+                    if start == typ and end == val_type and out == typ:
+                        return False
+                
+                self.errors.append(
+                    TypeCheckError(
+                        operator, "Cannot apply %s to `%s` and `%s`" % (operator.children[0], display_type(typ), display_type(val_type))
+                    )
+                )
+            else:
+                if val_type != typ:
+                    self.errors.append(
+                        TypeCheckError(
+                            command, "Cannot assign a `%s` to a `%s`" % (display_type(val_type), display_type(typ))
+                        )
+                    )
+
+            parent_function = self.get_parent_function()
+            if parent_function is not None and parent_function.returntype is not None and n_cmd_type.is_type(
+                parent_function.returntype
+            ):
+                self.warnings.append(
+                    TypeCheckError(
+                        command,
+                        "Mutating a variable in a cmd is discouraged, as it can lead to unintended consequences, use the mutex library instead."
+                    )
+                )
+            return False
         else:
             self.type_check_expr(command)
 
@@ -2513,5 +2796,22 @@ class Scope:
 
     def add_native_function(self, name, argument_types, return_type, function):
         self.variables[name] = NativeFunction(
+            self, argument_types, return_type, function
+        )
+
+    def add_internal_trait(self, type_name, name, argument_types, return_type, function):
+        if self.types.get(type_name) is not None and isinstance(self.types[type_name], EnumType):
+            self.enum_variants[type_name] = [o[0] for o in self.types[type_name].variants[:]]
+
+        if type_name not in self.internal_traits:
+            self.internal_traits[type_name] = {}
+
+        if len(signature(function).parameters) == 1:
+            # Make it so a Unit can be passed in so the current system does not need to be messed up
+            out = function
+            argument_types.append(("_", "unit"))
+            function = lambda v, _: out(v)
+
+        self.internal_traits[type_name][name] = NativeFunction(
             self, argument_types, return_type, function
         )

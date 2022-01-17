@@ -47,6 +47,14 @@ assert value 0.7 < 0.5 ^ 0.5 < 0.71
 assert value (not not true) == true
 assert value (not not -1) == -1
 
+assert value ~true == true
+// #242
+assert value ~0 == -1
+if ~(false) {
+  // #230
+  assert value true
+}
+
 // Floats are double-precision :postpissedchil:
 
 // Division of nonzero numbers by zero; negative zero
