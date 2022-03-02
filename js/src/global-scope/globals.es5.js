@@ -181,7 +181,7 @@ function range (start) {
 
 function print (value) {
   // TODO: Prettify
-  console.log(value)
+  console.log(value, typeof value)
   return value
 }
 

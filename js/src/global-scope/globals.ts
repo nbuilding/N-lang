@@ -203,7 +203,6 @@ const lines: Record<
 
   print: name => [
     `function ${name}(value) {`,
-    '  // TODO: Prettify',
     '  console.log(value);',
     '  return value;',
     '}',
@@ -270,19 +269,25 @@ const lines: Record<
 
   mapFrom: name => [
     `function ${name}(entries) {`,
-    '  throw new Error("Not implemented");',
+    '  let out = new Map()',
+    '  for (const entry of entries) {',
+    '    out.set(entry[0], entry[1])',
+    '  }',
+    '  return out',
     '}',
   ],
 
   getValue: name => [
     `function ${name}(key) {`,
-    '  throw new Error("Not implemented");',
+    '  return function (map) {',
+    '     return map.get(key);',
+    '  };',
     '}',
   ],
 
   entries: name => [
     `function ${name}(map) {`,
-    '  throw new Error("Not implemented");',
+    '  return Array.from(map.entries());',
     '}',
   ],
 }

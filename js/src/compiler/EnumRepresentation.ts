@@ -17,7 +17,7 @@ export function isNullableMaybe (type: NType): boolean {
   const representation = normaliseEnum(type)
   return (
     ((representation.type === 'maybe' || representation.type === 'tuple') &&
-      representation.null !== undefined) ||
+      representation.null === undefined) ||
     (representation.type === 'enum' && representation.nullable)
   )
 }

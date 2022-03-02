@@ -175,7 +175,7 @@ export class FuncCall extends Base implements Expression, Statement {
                         argType,
                         this._substitutions[i],
                         true,
-                      ) ?? argName})`,
+                      )?.expression ?? argName})`,
                   )
                   .join('')};`,
                 `return ${scope.context.makeUnitConverter(
@@ -183,7 +183,7 @@ export class FuncCall extends Base implements Expression, Statement {
                   returnType,
                   this._substitutions[i],
                   false,
-                ) ?? returnWithTypeVars};`,
+                )?.expression ?? returnWithTypeVars};`,
               ],
               `var ${transform} = `,
               ';',
