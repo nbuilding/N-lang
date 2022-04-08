@@ -40,7 +40,7 @@ export class FuncCall extends Base implements Expression, Statement {
    */
   private _funcTypes: NFunction[]
 
-  constructor (
+  constructor(
     pos: BasePosition,
     [func, , maybeParams]: schem.infer<typeof FuncCall.schema>,
   ) {
@@ -55,12 +55,12 @@ export class FuncCall extends Base implements Expression, Statement {
     this._funcTypes = []
   }
 
-  checkStatement (context: CheckStatementContext): CheckStatementResult {
+  checkStatement(context: CheckStatementContext): CheckStatementResult {
     const { exitPoint } = context.scope.typeCheck(this)
     return { exitPoint }
   }
 
-  typeCheck (context: TypeCheckContext): TypeCheckResult {
+  typeCheck(context: TypeCheckContext): TypeCheckResult {
     const funcResult = context.scope.typeCheck(this.func)
     let exitPoint = funcResult.exitPoint
     let returnType: NType | null = funcResult.type
@@ -132,7 +132,7 @@ export class FuncCall extends Base implements Expression, Statement {
     return { type: funcType, exitPoint }
   }
 
-  compile (scope: CompilationScope): CompilationResult {
+  compile(scope: CompilationScope): CompilationResult {
     const { statements: funcS, expression: funcE } = this.func.compile(scope)
     const statements = [...funcS]
     let expression = `(${funcE})`
@@ -208,7 +208,7 @@ export class FuncCall extends Base implements Expression, Statement {
     }
   }
 
-  compileStatement (scope: CompilationScope): StatementCompilationResult {
+  compileStatement(scope: CompilationScope): StatementCompilationResult {
     // TODO: An option to optimise these away
     const { statements, expression } = this.compile(scope)
     return {
@@ -216,7 +216,7 @@ export class FuncCall extends Base implements Expression, Statement {
     }
   }
 
-  toString (): string {
+  toString(): string {
     return `${this.func}(${this.params.join(', ')})`
   }
 

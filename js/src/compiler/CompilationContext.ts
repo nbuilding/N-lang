@@ -16,7 +16,7 @@ import { EnumSpec, FuncTypeVarSpec } from '../type-checker/types/TypeSpec'
 import { isNullableMaybe, normaliseEnum } from './EnumRepresentation'
 import { fromEntries } from '../utils/from-entries'
 
-function surround (
+function surround(
   lines: string[],
   { prefix = '', suffix = '' } = {},
 ): string[] {
@@ -61,16 +61,16 @@ export class CompilationContext {
    */
   dependencies: string[] = []
 
-  genVarName (name: string = '') {
+  genVarName(name: string = '') {
     return `${name}_${this._id++}`
   }
 
-  indent (lines: string[]): string[] {
+  indent(lines: string[]): string[] {
     return lines.map(line => '  ' + line)
   }
 
   /** Returns an object map between record field names and mangled names */
-  normaliseRecord (recordType: NRecord): Record<string, string> {
+  normaliseRecord(recordType: NRecord): Record<string, string> {
     // Normalise keys by alphabetising them to get a unique record ID
     const sortedKeys = [...recordType.types.keys()].sort()
     const recordId = sortedKeys.join(' ')
@@ -87,7 +87,7 @@ export class CompilationContext {
     return mangled
   }
 
-  getModule (moduleId: string): HasExports {
+  getModule(moduleId: string): HasExports {
     let module = this._modules.get(moduleId)
     if (!module) {
       if (!modules.hasOwnProperty(moduleId)) {
@@ -101,7 +101,7 @@ export class CompilationContext {
     return module
   }
 
-  compile (block: Block, moduleId?: string): string[] {
+  compile(block: Block, moduleId?: string): string[] {
     const scope = this.globalScope.inner()
     if (moduleId) {
       this._modules.set(moduleId, scope)
@@ -109,11 +109,11 @@ export class CompilationContext {
     return block.compileStatement(scope).statements
   }
 
-  defineModuleNames (moduleId: string, names: Map<string, string>) {
+  defineModuleNames(moduleId: string, names: Map<string, string>) {
     this._modules.set(moduleId, { names })
   }
 
-  require (name: string): string {
+  require(name: string): string {
     const cached = this.required.get(name)
     if (cached) {
       return cached
@@ -136,7 +136,7 @@ export class CompilationContext {
    *
    * Returns `null` if nothing needs changing. Prevents unnecessary `.map`s.
    */
-  makeUnitConverter (
+  makeUnitConverter(
     name: string,
     type: NType,
     substitutions: Map<FuncTypeVarSpec, NTypeKnown>,

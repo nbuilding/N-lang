@@ -8,11 +8,11 @@ export class CompilationGlobalScope extends CompilationScope {
     ['true', 'true'],
   ])
 
-  constructor (context: CompilationContext) {
+  constructor(context: CompilationContext) {
     super(context)
   }
 
-  getName (name: string): string {
+  getName(name: string): string {
     const jsName = this.names.get(name)
     return jsName ?? this.context.require(name)
   }

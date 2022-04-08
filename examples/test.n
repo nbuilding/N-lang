@@ -1,3 +1,7 @@
+import json
+
+let testImport = imp "./test-import.n"
+
 assert value { a: "pi"; b: 3.14 } == { b: 3.14; a: "pi" }
 
 let listvalue = ["a", "b", "c"]
@@ -19,9 +23,13 @@ print({
   text: "true"
   response: "OK"
   code: 200
-})
+}.text)
 
 print({
   onOpen: [] -> () { return () }
   onMessage: [] -> () { return () }
 })
+
+print(testImport.hello())
+
+print(json.parse("[1, 2, 3]"))

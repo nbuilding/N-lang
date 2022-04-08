@@ -17,7 +17,7 @@ import { ErrorDisplayer } from './type-checker/errors/ErrorDisplayer'
 // import { TypeChecker } from './type-checker/TypeChecker'
 // import { displayError } from './type-checker/errors/Error'
 
-async function main () {
+async function main() {
   const {
     _: [fileName],
     help,
@@ -68,10 +68,10 @@ async function main () {
   const running = run || !(ast || repr || js || checksOnly)
 
   const checker = new TypeChecker({
-    absolutePath (basePath: string, importPath: string): string {
+    absolutePath(basePath: string, importPath: string): string {
       return path.resolve(path.dirname(basePath), importPath)
     },
-    async provideFile (path: string) {
+    async provideFile(path: string) {
       try {
         const file = await fs.readFile(path, 'utf8')
         const block = parse(file, {
@@ -100,7 +100,7 @@ async function main () {
   if (!(js || running || checksOnly)) return
   const displayer = new ErrorDisplayer({
     type: 'console-color',
-    displayPath (absolutePath: string, basePath: string) {
+    displayPath(absolutePath: string, basePath: string) {
       return path.relative(path.dirname(basePath), absolutePath)
     },
   })
@@ -127,6 +127,8 @@ async function main () {
       console.log(compiled)
       console.log("")
       console.log("Please open an issue at https://github.com/nbuilding/N-lang/issues")
+      console.log("")
+      console.log(e)
     }
   }
 }

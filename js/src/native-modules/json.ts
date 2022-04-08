@@ -46,7 +46,7 @@ export default {
     value,
   },
 
-  compile (context: CompilationContext): CompiledModule {
+  compile(context: CompilationContext): CompiledModule {
     const jsonNull = context.genVarName('null')
     const string = context.genVarName('string')
     const number = context.genVarName('number')
@@ -57,7 +57,52 @@ export default {
     const parseSafe = context.genVarName('parseSafe')
     const stringify = context.genVarName('stringify')
     return {
-      statements: ['// TODO: json'],
+      statements: [
+        `function ${jsonNull}() {`,
+        '  return [0, null];',
+        '}',
+
+        `function ${string}(str) {`,
+        '  return [1, str];',
+        '}',
+
+        `function ${number}(float) {`,
+        '  return [2, float];',
+        '}',
+
+        `function ${boolean}(bool) {`,
+        '  return [3, bool];',
+        '}',
+
+        `function ${array}(list) {`,
+        '  return [4, list];',
+        '}',
+
+        `function ${object}(map) {`,
+        '  return [5, map];',
+        '}',
+
+        `function ${parse}(json) {`,
+        '  try {',
+        '    return jsValueToJson(JSON.parse(json));',
+        '  } catch (_) {',
+        '    return;',
+        '  }',
+        '}',
+
+        `function ${parseSafe}(json) {`,
+        '  try {',
+        '    return [jsValueToJson(JSON.parse(json))];',
+        '  } catch (_) {',
+        '    return;',
+        '  }',
+        '}',
+
+        `function ${stringify}(value) {`,
+        '  // JSON.stringify: IE8+',
+        '  return JSON.stringify(jsonValueToJs(value));',
+        '}',
+      ],
       exports: {
         null: jsonNull,
         string,
