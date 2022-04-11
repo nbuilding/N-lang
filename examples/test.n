@@ -32,4 +32,6 @@ print({
 
 print(testImport.hello())
 
+print(json.array([json.number(1.0)]))
+
 print(json.parse("[1, 2, 3]"))

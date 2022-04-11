@@ -56,6 +56,8 @@ export default {
     const parse = context.genVarName('parse')
     const parseSafe = context.genVarName('parseSafe')
     const stringify = context.genVarName('stringify')
+    const jsValueToJson = context.genVarName('jsValueToJson')
+    const jsonValueToJs = context.genVarName('jsonValueToJs')
     return {
       statements: [
         `function ${jsonNull}() {`,
@@ -84,7 +86,8 @@ export default {
 
         `function ${parse}(json) {`,
         '  try {',
-        '    return jsValueToJson(JSON.parse(json));',
+        '    console.log(JSON.parse(json))',
+        `    return ${jsValueToJson}(JSON.parse(json));`,
         '  } catch (_) {',
         '    return;',
         '  }',
@@ -92,7 +95,7 @@ export default {
 
         `function ${parseSafe}(json) {`,
         '  try {',
-        '    return [jsValueToJson(JSON.parse(json))];',
+        `    return [${jsValueToJson}(JSON.parse(json))];`,
         '  } catch (_) {',
         '    return;',
         '  }',
@@ -100,7 +103,37 @@ export default {
 
         `function ${stringify}(value) {`,
         '  // JSON.stringify: IE8+',
-        '  return JSON.stringify(jsonValueToJs(value));',
+        `  return JSON.stringify(${jsonValueToJs}(value));`,
+        '}',
+
+        `function ${jsonValueToJs}(value) {`,
+        '  switch (value[0]) {',
+        '    case 0:',
+        '      return null',
+        '    case 1:',
+        '    case 2:',
+        '    case 3:',
+        '      return value[1]',
+        '    case 4:',
+        `      return value[1].map(v => ${jsonValueToJs}(v))`,
+        '    default:',
+        `      return Object.fromEntries(Object.entries(value[1]).map(v => [v[0], ${jsonValueToJs}(v[1])]))`,
+        '  }',
+        '}',
+
+        `function ${jsValueToJson}(value) {`,
+        '  if (!value) return [0, null]',
+        `  if (Array.isArray(value)) return [4, value.map(v => ${jsValueToJson}(v))]`,
+        '  switch (typeof value) {',
+        '    case "string":',
+        '      return [1, value]',
+        '    case "number":',
+        '      return [2, value]',
+        '    case "boolean":',
+        '      return [3, value]',
+        '    default:',
+        `      return [5, Object.fromEntries(Object.entries(value[1]).map(v => [v[0], ${jsValueToJson}(v[1])]))]`,
+        '  }',
         '}',
       ],
       exports: {

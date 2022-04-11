@@ -28,7 +28,6 @@ export class CompilationScope {
   /** Throws an error if the name can't be found. */
   getName(name: string): string {
     const varName = this.names.get(name)
-    console.log(name, varName)
     if (varName) {
       return varName
     } else if (this._parent) {

@@ -12,7 +12,7 @@ import { EnumSpec } from '../type-checker/types/TypeSpec'
  * nullable maybe enum is not safe to be represented inside another nullable
  * maybe enum (a one-item tuple is a suitable alternative).
  */
-export function isNullableMaybe (type: NType): boolean {
+export function isNullableMaybe(type: NType): boolean {
   if (!EnumSpec.isEnum(type)) return false
   const representation = normaliseEnum(type)
   return (
@@ -49,44 +49,44 @@ export function isNullableMaybe (type: NType): boolean {
 export type EnumRepresentation =
   | { type: 'unit' }
   | {
-      type: 'bool'
+    type: 'bool'
 
-      /**
-       * The name of the variant represented as `true` in JS.
-       */
-      trueName: string
-    }
+    /**
+     * The name of the variant represented as `true` in JS.
+     */
+    trueName: string
+  }
   | {
-      type: 'union'
+    type: 'union'
 
-      /**
-       * An array of variant names. The index is the variant's representation
-       * during runtime.
-       */
-      variants: string[]
-    }
+    /**
+     * An array of variant names. The index is the variant's representation
+     * during runtime.
+     */
+    variants: string[]
+  }
   | {
-      type: 'maybe' | 'tuple'
+    type: 'maybe' | 'tuple'
 
-      /** The name of the null variant, if it exists */
-      null?: string
+    /** The name of the null variant, if it exists */
+    null?: string
 
-      /** The name of the non-null variant */
-      nonNull: string
-    }
+    /** The name of the non-null variant */
+    nonNull: string
+  }
   | {
-      type: 'enum'
+    type: 'enum'
 
-      /**
-       * An object map between a variant name and its variant ID, or null if
-       * it's the null variant.
-       */
-      variants: Record<string, number | null>
+    /**
+     * An object map between a variant name and its variant ID, or null if
+     * it's the null variant.
+     */
+    variants: Record<string, number | null>
 
-      nullable: boolean
-    }
+    nullable: boolean
+  }
 
-export function normaliseEnum ({
+export function normaliseEnum({
   typeSpec,
   typeVars,
 }: EnumType): EnumRepresentation {
@@ -133,14 +133,14 @@ export function normaliseEnum ({
   } else {
     const nullable = fieldlessVariants.length === 1
     const variants: Record<string, number | null> = {}
-    ;[...typeSpec.variants].forEach(([name, variant], i) => {
-      if (!variant.types) {
-        throw new Error(
-          `Variant ${name} has types=null despite passing type checking??`,
-        )
-      }
-      variants[name] = nullable && fieldlessVariants[0] === name ? null : i
-    })
+      ;[...typeSpec.variants].forEach(([name, variant], i) => {
+        if (!variant.types) {
+          throw new Error(
+            `Variant ${name} has types=null despite passing type checking??`,
+          )
+        }
+        variants[name] = nullable && fieldlessVariants[0] === name ? null : i
+      })
     return { type: 'enum', variants, nullable }
   }
 }

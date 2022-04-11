@@ -11,42 +11,70 @@
     console.log(value);
     return value;
   }
-  var unit_21 = {};
-  function null_22() {
+  function null_21() {
     return [0, null];
   }
-  function string_23(str) {
+  function string_22(str) {
     return [1, str];
   }
-  function number_24(float) {
+  function number_23(float) {
     return [2, float];
   }
-  function boolean_25(bool) {
+  function boolean_24(bool) {
     return [3, bool];
   }
-  function array_26(list) {
+  function array_25(list) {
     return [4, list];
   }
-  function object_27(map) {
+  function object_26(map) {
     return [5, map];
   }
-  function parse_28(json) {
+  function parse_27(json) {
     try {
-      return jsValueToJson(JSON.parse(json));
+      console.log(JSON.parse(json))
+      return jsValueToJson_30(JSON.parse(json));
     } catch (_) {
       return;
     }
   }
-  function parseSafe_29(json) {
+  function parseSafe_28(json) {
     try {
-      return [jsValueToJson(JSON.parse(json))];
+      return [jsValueToJson_30(JSON.parse(json))];
     } catch (_) {
       return;
     }
   }
-  function stringify_30(value) {
+  function stringify_29(value) {
     // JSON.stringify: IE8+
-    return JSON.stringify(jsonValueToJs(value));
+    return JSON.stringify(jsonValueToJs_31(value));
+  }
+  function jsonValueToJs_31(value) {
+    switch (value[0]) {
+      case 0:
+        return null
+      case 1:
+      case 2:
+      case 3:
+        return value[1]
+      case 4:
+        return value[1].map(v => jsonValueToJs_31(v))
+      default:
+        return Object.fromEntries(Object.entries(value[1]).map(v => [v[0], jsonValueToJs_31(v[1])]))
+    }
+  }
+  function jsValueToJson_30(value) {
+    if (!value) return [0, null]
+    if (Array.isArray(value)) return [4, value.map(v => jsValueToJson_30(v))]
+    switch (typeof value) {
+      case "string":
+        return [1, value]
+      case "number":
+        return [2, value]
+      case "boolean":
+        return [3, value]
+      default:
+        return [5, Object.fromEntries(Object.entries(value[1]).map(v => [v[0], jsValueToJson_30(v[1])]))]
+    }
   }
   var funcExpr_0 = function () {
     return "hello";
@@ -79,11 +107,17 @@
   (print_14)((hello_1)());
   var funcExpr_19 = (print_14);
   var transform_18 = function (arg_17) {
-    var return_20 = funcExpr_19(unit_21);
-    return unit_21;
+    var return_20 = funcExpr_19(arg_17);
+    return return_20;
   };
-  transform_18((parse_28)("[1, 2, 3]"));
-  function main_31(callback) {
+  transform_18((array_25)([(number_23)(1.0)]));
+  var funcExpr_34 = (print_14);
+  var transform_33 = function (arg_32) {
+    var return_35 = funcExpr_34(arg_32);
+    return return_35;
+  };
+  transform_33((parse_27)("[1, 2, 3]"));
+  function main_36(callback) {
     if (callback) callback();
     if (typeof Promise !== "undefined") {
       return Promise.resolve()
@@ -91,6 +125,6 @@
   }
   return {
     valueAssertions: valueAssertionResults_n,
-    main: main_31,
+    main: main_36,
   };
 })();

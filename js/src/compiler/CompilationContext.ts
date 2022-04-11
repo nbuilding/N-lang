@@ -213,7 +213,7 @@ export class CompilationContext {
         const substitution = substitutions.get(type.typeSpec)
         if (
           substitution &&
-          (isUnitLike(substitution) || isNullableMaybe(substitution))
+          (isUnitLike(substitution))
         ) {
           return { statements: [], expression: this.require('unit') }
         }

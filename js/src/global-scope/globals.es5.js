@@ -1,247 +1,247 @@
-function yes (value) {
-  return value
+function yes(value) {
+  return value;
 }
 
-function ok (value) {
-  return [0, value]
+function ok(value) {
+  return [0, value];
 }
 
-function err (value) {
-  return [1, value]
+function err(value) {
+  return [1, value];
 }
 
-function intInBase10 (int) {
-  return int.toString()
+function intInBase10(int) {
+  return int.toString();
 }
 
-function round (n) {
+function round(n) {
   if (isFinite(n)) {
-    return Math.round(n)
+    return Math.round(n);
   } else {
-    return 0
+    return 0;
   }
 }
 
-function floor () {
+function floor() {
   if (isFinite(n)) {
-    return Math.floor(n)
+    return Math.floor(n);
   } else {
-    return 0
+    return 0;
   }
 }
 
-function ceil () {
+function ceil() {
   if (isFinite(n)) {
-    return Math.ceil(n)
+    return Math.ceil(n);
   } else {
-    return 0
+    return 0;
   }
 }
 
-function charCode (char) {
+function charCode(char) {
   if (char.length === 1) {
-    return char.charCodeAt(0)
+    return char.charCodeAt(0);
   } else {
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/charCodeAt#fixing_charcodeat_to_handle_non-basic-multilingual-plane_characters_if_their_presence_earlier_in_the_string_is_unknown
     return (
       (char.charCodeAt(0) - 0xd800) * 0x400 +
       (char.charCodeAt(1) - 0xdc00) +
       0x10000
-    )
+    );
   }
 }
 
-function intCode (code) {
+function intCode(code) {
   if (code < 0 || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) {
-    return '\uFFFD'
+    return "\uFFFD";
   } else if (code > 0xffff) {
-    code -= 0x10000
+    code -= 0x10000;
     return String.fromCharCode(
       Math.floor(code / 0x400) + 0xd800,
       (code % 0x400) + 0xdc00,
-    )
+    );
   } else {
-    return String.fromCharCode(code)
+    return String.fromCharCode(code);
   }
 }
 
-function charAt (index) {
+function charAt(index) {
   if (index < 0) {
     // Return none
-    return function () {}
+    return function () {};
   } else {
     return function (string) {
       if (index >= string.length * 2) {
         // Early exit, assuming the worst case where the string is full of
         // surrogate pairs
-        return
+        return;
       }
-      var i = 0
-        var codePoint
+      var i = 0;
+      var codePoint;
       for (var j = 0; j < index; j++) {
-        codePoint = string.charCodeAt(i)
+        codePoint = string.charCodeAt(i);
         if (codePoint >= 0xd800 && codePoint <= 0xdbff) {
           // Assumes the string is well-formed UTF-8
-          i += 2
+          i += 2;
         } else {
-          ++i
+          ++i;
         }
-        if (i >= string.length) return
+        if (i >= string.length) return;
       }
-      codePoint = string.charCodeAt(i)
+      codePoint = string.charCodeAt(i);
       if (codePoint >= 0xd800 && codePoint <= 0xdbff) {
-        return string.slice(i, i + 2)
+        return string.slice(i, i + 2);
       } else {
-        return string[i]
+        return string[i];
       }
-    }
+    };
   }
 }
 
-function substring (start) {
+function substring(start) {
   return function (end) {
     if (start === end || (start >= 0 && end >= 0 && start > end)) {
       return function () {
-        return ''
-      }
+        return "";
+      };
     } else {
       return function (string) {
-        return string.slice(start, end)
-      }
+        return string.slice(start, end);
+      };
     }
-  }
+  };
 }
 
-function len (value) {
-  if (typeof value === 'string') {
-    var highSurrogates = 0
+function len(value) {
+  if (typeof value === "string") {
+    var highSurrogates = 0;
     for (var i = 0; i < string.length; i++) {
-      var codePoint = string.charCodeAt(i)
+      var codePoint = string.charCodeAt(i);
       if (codePoint >= 0xd800 && codePoint <= 0xdbff) {
-        ++highSurrogates
+        ++highSurrogates;
       }
     }
     // Subtract a surrogate from each pair
-    return string.length - highSurrogates
+    return string.length - highSurrogates;
   } else if (Array.isArray(value)) {
     // Array.isArray: IE9+
-    return value.length
+    return value.length;
   } else {
-    return 0
+    return 0;
   }
 }
 
-function split (char) {
+function split(char) {
   return function (string) {
-    if (string === '') {
-      return []
+    if (string === "") {
+      return [];
     } else {
-      return string.split(char)
+      return string.split(char);
     }
-  }
+  };
 }
 
-function strip (string) {
+function strip(string) {
   // String#trim: IE10+
-  return string.trim()
+  return string.trim();
 }
 
-function range (start) {
+function range(start) {
   return function (end) {
     if (start === end) {
       return function () {
-        return []
-      }
+        return [];
+      };
     } else {
       return function (step) {
         if (step === 0) {
-          throw new Error('Undefined behaviour. See nbuilding/N-lang#246')
+          throw new Error("Undefined behaviour. See nbuilding/N-lang#246");
         }
-        var numbers = []
+        var numbers = [];
         if (step > 0) {
           if (end < start) {
-            return []
+            return [];
           }
           for (var i = start; i < end; i += step) {
-            numbers.push(i)
+            numbers.push(i);
           }
         } else {
           if (end > start) {
-            return []
+            return [];
           }
           for (var i = start; i > end; i += step) {
-            numbers.push(i)
+            numbers.push(i);
           }
         }
-        return numbers
-      }
+        return numbers;
+      };
     }
-  }
+  };
 }
 
-function print (value) {
+function print(value) {
   // TODO: Prettify
-  console.log(value, typeof value)
-  return value
+  console.log(value, typeof value);
+  return value;
 }
 
-function itemAt (index) {
+function itemAt(index) {
   if (index < 0) {
-    return function () {}
+    return function () {};
   } else {
     return function (list) {
-      return list[index]
-    }
+      return list[index];
+    };
   }
 }
 
-function append (item) {
+function append(item) {
   return function (list) {
-    return list.concat([item])
-  }
+    return list.concat([item]);
+  };
 }
 
-function filterMap (transform) {
+function filterMap(transform) {
   return function (list) {
-    var newList = []
+    var newList = [];
     for (var i = 0; i < list.length; i++) {
-      var result = transform(list[i])
+      var result = transform(list[i]);
       if (result !== undefined) {
-        newList.push(result)
+        newList.push(result);
       }
     }
-    return newList
-  }
+    return newList;
+  };
 }
 
-function default_ (defaultValue) {
+function default_(defaultValue) {
   return function (maybe) {
     if (maybe === undefined) {
-      return defaultValue
+      return defaultValue;
     } else {
-      return maybe
+      return maybe;
     }
-  }
+  };
 }
 
-function then (onCmdFinish) {
+function then(onCmdFinish) {
   return function (cmd) {
     return function (callback) {
       cmd(function (result) {
-        onCmdFinish(result)(callback)
-      })
-    }
-  }
+        onCmdFinish(result)(callback);
+      });
+    };
+  };
 }
 
-function mapFrom (entries) {
-  throw new Error('Not implemented')
+function mapFrom(entries) {
+  throw new Error("Not implemented");
 }
 
-function getValue (key) {
-  throw new Error('Not implemented')
+function getValue(key) {
+  throw new Error("Not implemented");
 }
 
-function entries (map) {
-  throw new Error('Not implemented')
+function entries(map) {
+  throw new Error("Not implemented");
 }
