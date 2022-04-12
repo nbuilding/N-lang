@@ -29,10 +29,10 @@ export default {
     connectOptions,
   },
 
-  compile (context: CompilationContext): CompiledModule {
-    const connect = context.genVarName('connect')
+  compile(context: CompilationContext): CompiledModule {
+    const connect = context.require('connect')
     return {
-      statements: ['// TODO: websocket'],
+      statements: [],
       exports: { connect },
     }
   },

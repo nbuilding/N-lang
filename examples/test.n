@@ -32,6 +32,5 @@ print({
 
 print(testImport.hello())
 
-print(json.array([json.number(1.0)]))
-
-print(json.parse("[1, 2, 3]"))
+print(json)
+print(json.parse("[1, 2, 3, 4, 5]"))

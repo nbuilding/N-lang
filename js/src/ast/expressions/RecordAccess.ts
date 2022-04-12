@@ -52,7 +52,6 @@ export class RecordAccess extends Base implements Expression {
   compile(scope: CompilationScope): CompilationResult {
     let statements;
     let expression;
-    //console.log(this.toString());
     const compiled = this.value.compile(scope)
     statements = compiled.statements;
     expression = compiled.expression;

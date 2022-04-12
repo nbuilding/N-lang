@@ -4,67 +4,33 @@
   for (var i = 0; i < 2; i++) {
     valueAssertionResults_n[i] = false;
   }
-  function assertValue_6(valueAssertionId, pass) {
+  function assertValue_8(valueAssertionId, pass) {
     valueAssertionResults_n[valueAssertionId] = pass;
   }
-  function print_14(value) {
+  function print_16(value) {
     console.log(value);
     return value;
   }
-  function null_21() {
-    return [0, null];
-  }
-  function string_22(str) {
+  var unit_23 = {};
+  var null_28;
+  function string_29(str) {
     return [1, str];
   }
-  function number_23(float) {
+  function number_30(float) {
     return [2, float];
   }
-  function boolean_24(bool) {
+  function boolean_31(bool) {
     return [3, bool];
   }
-  function array_25(list) {
+  function array_32(list) {
     return [4, list];
   }
-  function object_26(map) {
+  function object_33(map) {
     return [5, map];
   }
-  function parse_27(json) {
-    try {
-      console.log(JSON.parse(json))
-      return jsValueToJson_30(JSON.parse(json));
-    } catch (_) {
-      return;
-    }
-  }
-  function parseSafe_28(json) {
-    try {
-      return [jsValueToJson_30(JSON.parse(json))];
-    } catch (_) {
-      return;
-    }
-  }
-  function stringify_29(value) {
-    // JSON.stringify: IE8+
-    return JSON.stringify(jsonValueToJs_31(value));
-  }
-  function jsonValueToJs_31(value) {
-    switch (value[0]) {
-      case 0:
-        return null
-      case 1:
-      case 2:
-      case 3:
-        return value[1]
-      case 4:
-        return value[1].map(v => jsonValueToJs_31(v))
-      default:
-        return Object.fromEntries(Object.entries(value[1]).map(v => [v[0], jsonValueToJs_31(v[1])]))
-    }
-  }
-  function jsValueToJson_30(value) {
+  function jsValueToJson_35(value) {
     if (!value) return [0, null]
-    if (Array.isArray(value)) return [4, value.map(v => jsValueToJson_30(v))]
+    if (Array.isArray(value)) return [4, value.map(v => jsValueToJson_35(v))]
     switch (typeof value) {
       case "string":
         return [1, value]
@@ -73,51 +39,88 @@
       case "boolean":
         return [3, value]
       default:
-        return [5, Object.fromEntries(Object.entries(value[1]).map(v => [v[0], jsValueToJson_30(v[1])]))]
+        return [5, Object.fromEntries(Object.entries(value[1]).map(v => [v[0], jsValueToJson_35(v[1])]))]
     }
+  }
+  function parse_34(json) {
+    try {
+      return jsValueToJson_35(JSON.parse(json));
+    } catch (_) {
+      return;
+    }
+  }
+  function parseSafe_36(json) {
+    try {
+      return jsValueToJson_35(JSON.parse(json));
+    } catch (_) {
+      return;
+    }
+  }
+  function jsonValueToJs_38(value) {
+    switch (value[0]) {
+      case 0:
+        return null
+      case 1:
+      case 2:
+      case 3:
+        return value[1]
+      case 4:
+        return value[1].map(v => jsonValueToJs_38(v))
+      default:
+        return Object.fromEntries(Object.entries(value[1]).map(v => [v[0], jsonValueToJs_38(v[1])]))
+    }
+  }
+  function stringify_37(value) {
+    // JSON.stringify_37: IE8+
+    return JSON.stringify_37(jsonValueToJs_38(value));
   }
   var funcExpr_0 = function () {
     return "hello";
   };
   var hello_1;
   hello_1 = funcExpr_0;
-  var testImport_3;
-  testImport_3 = undefined;
-  var compA_4 = { a: "pi", b: 3.14 }, compB_5 = { b: 3.14, a: "pi" };
-  assertValue_6(0, compA_4.b === compB_5.b && compA_4.a === compB_5.a);
-  var listvalue_7;
-  listvalue_7 = ["a", "b", "c"];
-  var compA_8 = listvalue_7, compB_9 = ["a", "b", "c"];
-  assertValue_6(1, compA_8.length === compB_9.length && compA_8.every(function (item, i) { return item === compB_9[i] }));
-  var _ok_10 = function (enumConstructorArg_11) {
-    return [0, enumConstructorArg_11];
-  };
-  var _err_12 = function (enumConstructorArg_13) {
-    return [1, enumConstructorArg_13];
-  };
-  (print_14)({ c: true, b: "OK", a: 200 });
-  (print_14)(({ c: "true", b: "OK", a: 200 }).c);
-  var funcExpr_15 = function () {
+  var funcExpr_2 = function () {
     return;
   };
-  var funcExpr_16 = function () {
+  var unused_3;
+  unused_3 = funcExpr_2;
+  var testImport_5;
+  testImport_5 = undefined;
+  var compA_6 = { a: "pi", b: 3.14 }, compB_7 = { b: 3.14, a: "pi" };
+  assertValue_8(0, compA_6.b === compB_7.b && compA_6.a === compB_7.a);
+  var listvalue_9;
+  listvalue_9 = ["a", "b", "c"];
+  var compA_10 = listvalue_9, compB_11 = ["a", "b", "c"];
+  assertValue_8(1, compA_10.length === compB_11.length && compA_10.every(function (item, i) { return item === compB_11[i] }));
+  var _ok_12 = function (enumConstructorArg_13) {
+    return [0, enumConstructorArg_13];
+  };
+  var _err_14 = function (enumConstructorArg_15) {
+    return [1, enumConstructorArg_15];
+  };
+  (print_16)({ c: true, b: "OK", a: 200 });
+  (print_16)(({ c: "true", b: "OK", a: 200 }).c);
+  var funcExpr_17 = function () {
     return;
   };
-  (print_14)({ b: funcExpr_15, a: funcExpr_16 });
-  (print_14)((hello_1)());
-  var funcExpr_19 = (print_14);
-  var transform_18 = function (arg_17) {
-    var return_20 = funcExpr_19(arg_17);
-    return return_20;
+  var funcExpr_18 = function () {
+    return;
   };
-  transform_18((array_25)([(number_23)(1.0)]));
-  var funcExpr_34 = (print_14);
-  var transform_33 = function (arg_32) {
-    var return_35 = funcExpr_34(arg_32);
-    return return_35;
+  (print_16)({ b: funcExpr_17, a: funcExpr_18 });
+  (print_16)((hello_1)());
+  var funcExpr_21 = (print_16);
+  var transform_20 = function (arg_19) {
+    var return_22 = funcExpr_21(unit_23);
+    return unit_23;
   };
-  transform_33((parse_27)("[1, 2, 3]"));
-  function main_36(callback) {
+  transform_20();
+  var funcExpr_26 = (print_16);
+  var transform_25 = function (arg_24) {
+    var return_27 = funcExpr_26(arg_24);
+    return return_27;
+  };
+  transform_25((parse_34)("[1, 2, 3, 4, 5]"));
+  function main_39(callback) {
     if (callback) callback();
     if (typeof Promise !== "undefined") {
       return Promise.resolve()
@@ -125,6 +128,6 @@
   }
   return {
     valueAssertions: valueAssertionResults_n,
-    main: main_36,
+    main: main_39,
   };
 })();

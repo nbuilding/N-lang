@@ -8,7 +8,7 @@ export default {
     sleep: makeFunction(() => [int, cmd.instance([unit])]),
   },
 
-  compile (context: CompilationContext): CompiledModule {
+  compile(context: CompilationContext): CompiledModule {
     const sleep = context.genVarName('sleep')
     return {
       statements: [

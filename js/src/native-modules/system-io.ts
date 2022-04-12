@@ -8,10 +8,10 @@ export default {
     inp: makeFunction(() => [str, cmd.instance([str])]),
   },
 
-  compile (context: CompilationContext): CompiledModule {
-    const inp = context.genVarName('inp')
+  compile(context: CompilationContext): CompiledModule {
+    const inp = context.require('inp')
     return {
-      statements: ['// TODO: SystemIO'],
+      statements: [],
       exports: { inp },
     }
   },

@@ -47,95 +47,17 @@ export default {
   },
 
   compile(context: CompilationContext): CompiledModule {
-    const jsonNull = context.genVarName('null')
-    const string = context.genVarName('string')
-    const number = context.genVarName('number')
-    const boolean = context.genVarName('boolean')
-    const array = context.genVarName('array')
-    const object = context.genVarName('object')
-    const parse = context.genVarName('parse')
-    const parseSafe = context.genVarName('parseSafe')
-    const stringify = context.genVarName('stringify')
-    const jsValueToJson = context.genVarName('jsValueToJson')
-    const jsonValueToJs = context.genVarName('jsonValueToJs')
+    const jsonNull = context.require('null')
+    const string = context.require('string')
+    const number = context.require('number')
+    const boolean = context.require('boolean')
+    const array = context.require('array')
+    const object = context.require('object')
+    const parse = context.require('parse')
+    const parseSafe = context.require('parseSafe')
+    const stringify = context.require('stringify')
     return {
-      statements: [
-        `function ${jsonNull}() {`,
-        '  return [0, null];',
-        '}',
-
-        `function ${string}(str) {`,
-        '  return [1, str];',
-        '}',
-
-        `function ${number}(float) {`,
-        '  return [2, float];',
-        '}',
-
-        `function ${boolean}(bool) {`,
-        '  return [3, bool];',
-        '}',
-
-        `function ${array}(list) {`,
-        '  return [4, list];',
-        '}',
-
-        `function ${object}(map) {`,
-        '  return [5, map];',
-        '}',
-
-        `function ${parse}(json) {`,
-        '  try {',
-        '    console.log(JSON.parse(json))',
-        `    return ${jsValueToJson}(JSON.parse(json));`,
-        '  } catch (_) {',
-        '    return;',
-        '  }',
-        '}',
-
-        `function ${parseSafe}(json) {`,
-        '  try {',
-        `    return [${jsValueToJson}(JSON.parse(json))];`,
-        '  } catch (_) {',
-        '    return;',
-        '  }',
-        '}',
-
-        `function ${stringify}(value) {`,
-        '  // JSON.stringify: IE8+',
-        `  return JSON.stringify(${jsonValueToJs}(value));`,
-        '}',
-
-        `function ${jsonValueToJs}(value) {`,
-        '  switch (value[0]) {',
-        '    case 0:',
-        '      return null',
-        '    case 1:',
-        '    case 2:',
-        '    case 3:',
-        '      return value[1]',
-        '    case 4:',
-        `      return value[1].map(v => ${jsonValueToJs}(v))`,
-        '    default:',
-        `      return Object.fromEntries(Object.entries(value[1]).map(v => [v[0], ${jsonValueToJs}(v[1])]))`,
-        '  }',
-        '}',
-
-        `function ${jsValueToJson}(value) {`,
-        '  if (!value) return [0, null]',
-        `  if (Array.isArray(value)) return [4, value.map(v => ${jsValueToJson}(v))]`,
-        '  switch (typeof value) {',
-        '    case "string":',
-        '      return [1, value]',
-        '    case "number":',
-        '      return [2, value]',
-        '    case "boolean":',
-        '      return [3, value]',
-        '    default:',
-        `      return [5, Object.fromEntries(Object.entries(value[1]).map(v => [v[0], ${jsValueToJson}(v[1])]))]`,
-        '  }',
-        '}',
-      ],
+      statements: [],
       exports: {
         null: jsonNull,
         string,

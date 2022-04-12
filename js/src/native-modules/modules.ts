@@ -47,7 +47,7 @@ const lines: Record<
   parse: (name, require) => [
     `function ${name}(json) {`,
     '  try {',
-    `    return ${require('jsValueToJson')}(JSON.${name}(json));`,
+    `    return ${require('jsValueToJson')}(JSON.parse(json));`,
     '  } catch (_) {',
     '    return;',
     '  }',

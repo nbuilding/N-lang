@@ -21,9 +21,9 @@ export default {
     ]),
   },
 
-  compile (context: CompilationContext): CompiledModule {
-    const post = context.genVarName('post')
-    const get = context.genVarName('get')
+  compile(context: CompilationContext): CompiledModule {
+    const post = context.require('post')
+    const get = context.require('get')
     return {
       statements: ['// TODO: request'],
       exports: { post, get },
