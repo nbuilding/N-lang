@@ -38,6 +38,39 @@ jobs:
         with:
           name: macos
           path: ${{ github.workspace }}/N-MacOS.zip
+
+  ubuntu:
+    runs-on: ubuntuos-latest
+    steps:
+    
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r python/requirements.txt
+      - name: Run PyInstaller
+        run: |
+          pyinstaller --noconfirm --onedir --console --icon "icons/n.ico" --hiddenimport websockets.legacy --hiddenimport websockets.legacy.client -D -F -n vedic -c "python/n.py"
+          cp ./python/syntax.lark ./dest
+
+      - name: Create Zip Archive
+        uses: papeloto/action-zip@v1
+        with:
+          files: dist/n/
+          dest: N-UbuntuOS.zip
+          
+      - name: Upload Release Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ubuntuos
+          path: ${{ github.workspace }}/N-UbuntuOS.zip        
           
   windows:
     runs-on: windows-latest
