@@ -1,4 +1,5 @@
 import json
+import SystemIO
 
 let testImport = imp "./test-import.n"
 
@@ -34,3 +35,10 @@ print(testImport.hello())
 
 print(json)
 print(json.parse("[1, 2, 3, 4, 5]"))
+
+let thing = [] -> cmd[()] {
+  print("hello!jsakldjfsaj;kldfjskald")
+  print(SystemIO.inp("Hello: ")!)
+}
+
+let pub out = thing()

@@ -96,7 +96,7 @@ const lines: Record<
   inp: name => [
     `function ${name}(question) {`,
     '  return function (callback) {',
-    '    runtime.readline(question, callback);',
+    '    return new Promise((resolve, reject) => process.stdin.once(question, callback));',
     '  };',
     '}',
   ],
@@ -149,6 +149,15 @@ const lines: Record<
     '        callback(err.message);',
     '      }',
     '    };',
+    '  };',
+    '}',
+  ],
+
+  pear: name => [
+    `function ${name}(value) {`,
+    '  return function (callback) {',
+    '    console.log(value);',
+    '    callback();',
     '  };',
     '}',
   ],

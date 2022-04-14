@@ -15,7 +15,7 @@ export default {
     const append = context.require('append')
     const read = context.require('read')
     return {
-      statements: ['// TODO: FileIO'],
+      statements: [],
       exports: { write, append, read },
     }
   },

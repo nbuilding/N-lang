@@ -25,7 +25,7 @@ export default {
     const post = context.require('post')
     const get = context.require('get')
     return {
-      statements: ['// TODO: request'],
+      statements: [],
       exports: { post, get },
     }
   },
