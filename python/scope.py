@@ -2770,7 +2770,8 @@ class Scope:
                     )
                 )
             else:
-                if val_type != typ:
+                _, incompatible = resolve_equal_types(val_type, typ)
+                if incompatible:
                     self.errors.append(
                         TypeCheckError(
                             command, "Cannot assign a `%s` to a `%s`" % (display_type(val_type), display_type(typ))
