@@ -101,6 +101,9 @@ class NClass(dict):
     def __init__(self, name, *args, **kw):
         super(NClass, self).__init__(*args, **kw)
         self.class_name = name
+    
+    def __str__(self):
+        return self.class_name
 
 
 """
@@ -192,7 +195,7 @@ def apply_generics_to(return_type, generics):
         return tuple(apply_generics_to(arg_type, generics) for arg_type in return_type)
     elif isinstance(return_type, list):
         return [apply_generics_to(item_type, generics) for item_type in return_type]
-    elif isinstance(return_type, dict) and not isinstance(return_type, NModule):
+    elif isinstance(return_type, dict) and not (isinstance(return_type, NModule) or isinstance(return_type, NClass)):
         return {
             key: apply_generics_to(field_type, generics)
             for key, field_type in return_type.items()

@@ -1,5 +1,18 @@
-let mut thing = []
+/// A sheep.
+class pub Sheep (colour:str, age:float, name:str) {
+	/// The display name for the type of sheep based on its wool colour.
+	let typeName = colour + " sheep"
 
-thing = [1, 2, 3]
+	/// Create a new Sheep with the given name
+	let pub rename = (newName:str) -> Sheep {
+		return Sheep(colour, age, newName)
+	}
 
-print(thing)
+	let pub introduction = "Hi, I'm " + name + ", and I am a " + typeName + "."
+}
+
+let thing = (a: maybe[Sheep]) {
+	print("aaaa")
+}
+
+thing(Sheep("white", 19.0, "sean"))
