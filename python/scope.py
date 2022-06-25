@@ -1301,13 +1301,18 @@ class Scope:
         if command.data == "imp":
             import_name = command.children[0].value
             lib = libraries["libraries." + import_name]
+            scopes = []
+            try:
+                scopes = lib._pass_scope()
+            except AttributeError:
+                pass
             self.variables[import_name] = Variable(
                 None,
                 NModule(
                     import_name,
                     {
                         key: NativeFunction.from_imported(
-                            self, types, getattr(lib, key)
+                            self, types, getattr(lib, key), key in scopes
                         )
                         for key, types in lib._values().items()
                     },

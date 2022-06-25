@@ -1,77 +1,101 @@
 import os
+import os.path
 
 from os import listdir
 from os.path import isfile, join
 from aiofile import async_open
 from native_types import n_cmd_type, n_maybe_type, yes, none, n_list_type
 
-async def write(path, content):
-    try:
-        if not os.path.exists(os.path.split(os.path.abspath(path))[0]):
-            os.mkdir(os.path.split(os.path.abspath(path))[0])
-        async with async_open(path, "w+", encoding="utf-8") as f:
-            await f.write(content)
-    except:
-        pass
+def write(scope):
+    async def out(p, content):
+        path = os.path.relpath(p, start=scope.file_path)
+        try:
+            if not os.path.exists(os.path.split(os.path.abspath(path))[0]):
+                os.mkdir(os.path.split(os.path.abspath(path))[0])
+            async with async_open(path, "w+", encoding="utf-8") as f:
+                await f.write(content)
+        except:
+            pass
 
-    return ()
-
-
-async def append(path, content):
-    try:
-        async with async_open(path, "a+", encoding="utf-8") as f:
-            await f.write(content)
-    except:
-        pass
+        return ()
+    return out
 
 
-async def read(path):
-    try:
-        async with async_open(path, "r", encoding="utf-8") as f:
-            return yes(await f.read())
-    except:
-        return none
-
-    return ()
-
-
-async def writeBytes(path, content):
-    try:
-        if not os.path.exists(os.path.split(os.path.abspath(path))[0]):
-            os.mkdir(os.path.split(os.path.abspath(path))[0])
-        async with async_open(path, "wb+") as f:
-            await f.write(bytes([c % 256 for c in content]))
-    except:
-        pass
-
-    return ()
+def append(scope):
+    async def out(p, content):
+        path = os.path.relpath(p, start=scope.file_path)
+        try:
+            if not os.path.exists(os.path.split(os.path.abspath(path))[0]):
+                os.mkdir(os.path.split(os.path.abspath(path))[0])
+            async with async_open(path, "a+", encoding="utf-8") as f:
+                await f.write(content)
+        except:
+            pass
 
 
-async def appendBytes(path, content):
-    try:
-        async with async_open(path, "ab+") as f:
-            await f.write(bytes([c % 256 for c in content]))
-    except:
-        pass
+def read(scope):
+    async def out(p):
+        path = os.path.relpath(p, start=scope.file_path)
+        try:
+            async with async_open(path, "r", encoding="utf-8") as f:
+                return yes(await f.read())
+        except:
+            return none
 
-    return ()
+        return ()
+    return out
+
+def writeBytes(scope):
+    async def out(p, content):
+        path = os.path.relpath(p, start=scope.file_path)
+        try:
+            if not os.path.exists(os.path.split(os.path.abspath(path))[0]):
+                os.mkdir(os.path.split(os.path.abspath(path))[0])
+            async with async_open(path, "wb+") as f:
+                await f.write(bytes([c % 256 for c in content]))
+        except:
+            pass
+
+        return ()
+    return out
 
 
-async def readBytes(path):
-    try:
-        async with async_open(path, "rb") as f:
-            return yes(list(await f.read()))
-    except:
-        return none
+def appendBytes(scope):
+    async def out(p, content):
+        path = os.path.relpath(p, start=scope.file_path)
+        try:
+            if not os.path.exists(os.path.split(os.path.abspath(path))[0]):
+                os.mkdir(os.path.split(os.path.abspath(path))[0])
+            async with async_open(path, "ab+") as f:
+                await f.write(bytes([c % 256 for c in content]))
+        except:
+            pass
+
+        return ()
+    return out
 
 
-async def getFiles(path):
-    can_run = os.environ.get("FILE_ALLOW") == "true"
-    if not can_run:
-        return []
+def readBytes(scope):
+    async def out(p):
+        path = os.path.relpath(p, start=scope.file_path)
+        try:
+            async with async_open(path, "rb") as f:
+                return yes(list(await f.read()))
+        except:
+            return none
+    return out
 
-    return [(isfile(join(path, f)), f) for f in listdir(path)]
 
+def getFiles(scope):
+    async def out(p):
+        path = os.path.relpath(p, start=scope.file_path)
+        can_run = os.environ.get("FILE_ALLOW") == "true"
+        if not can_run:
+            return []
+
+        return [(isfile(join(path, f)), f) for f in listdir(path)]
+    return out
+    
 
 def _values():
     return {
@@ -102,3 +126,6 @@ def _values():
         ),
         "getFiles": ("str", n_cmd_type.with_typevars([n_list_type.with_typevars([["bool", "str"]])])),
     }
+
+def _pass_scope():
+    return ["write", "append", "read", "writeBytes", "appendBytes", "getFiles"]
