@@ -36,11 +36,13 @@ class NativeFunction(Function):
         return display_type(self.arguments, False)
 
     @classmethod
-    def from_imported(cls, scope, types, function):
+    def from_imported(cls, scope, types, function, pass_scope):
         if not isinstance(types, tuple):
             # Exported value is not a function
             return function
         *arg_types, return_type = types
+        if pass_scope:
+            function = function(scope)
         if n_cmd_type.is_type(return_type):
             run_function = lambda *args: Cmd(lambda _: lambda: function(*args))
         else:

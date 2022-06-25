@@ -1,1 +1,18 @@
-1 |> getValue("test")
+/// A sheep.
+class pub Sheep (colour:str, age:float, name:str) {
+	/// The display name for the type of sheep based on its wool colour.
+	let typeName = colour + " sheep"
+
+	/// Create a new Sheep with the given name
+	let pub rename = (newName:str) -> Sheep {
+		return Sheep(colour, age, newName)
+	}
+
+	let pub introduction = "Hi, I'm " + name + ", and I am a " + typeName + "."
+}
+
+let thing = (a: maybe[Sheep]) {
+	print("aaaa")
+}
+
+thing(Sheep("white", 19.0, "sean"))

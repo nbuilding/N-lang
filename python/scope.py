@@ -1301,13 +1301,18 @@ class Scope:
         if command.data == "imp":
             import_name = command.children[0].value
             lib = libraries["libraries." + import_name]
+            scopes = []
+            try:
+                scopes = lib._pass_scope()
+            except AttributeError:
+                pass
             self.variables[import_name] = Variable(
                 None,
                 NModule(
                     import_name,
                     {
                         key: NativeFunction.from_imported(
-                            self, types, getattr(lib, key)
+                            self, types, getattr(lib, key), key in scopes
                         )
                         for key, types in lib._values().items()
                     },
@@ -2770,7 +2775,8 @@ class Scope:
                     )
                 )
             else:
-                if val_type != typ:
+                _, incompatible = resolve_equal_types(val_type, typ)
+                if incompatible:
                     self.errors.append(
                         TypeCheckError(
                             command, "Cannot assign a `%s` to a `%s`" % (display_type(val_type), display_type(typ))
