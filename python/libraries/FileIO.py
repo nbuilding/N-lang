@@ -8,7 +8,7 @@ from native_types import n_cmd_type, n_maybe_type, yes, none, n_list_type
 
 def write(scope):
     async def out(p, content):
-        path = os.path.relpath(p, start=scope.file_path)
+        path = os.path.join(scope.base_path, p)
         try:
             if not os.path.exists(os.path.split(os.path.abspath(path))[0]):
                 os.mkdir(os.path.split(os.path.abspath(path))[0])
@@ -23,7 +23,7 @@ def write(scope):
 
 def append(scope):
     async def out(p, content):
-        path = os.path.relpath(p, start=scope.file_path)
+        path = os.path.join(scope.base_path, p)
         try:
             if not os.path.exists(os.path.split(os.path.abspath(path))[0]):
                 os.mkdir(os.path.split(os.path.abspath(path))[0])
@@ -31,23 +31,23 @@ def append(scope):
                 await f.write(content)
         except:
             pass
+    return out
 
 
 def read(scope):
     async def out(p):
-        path = os.path.relpath(p, start=scope.file_path)
+        path = os.path.join(scope.base_path, p)
         try:
             async with async_open(path, "r", encoding="utf-8") as f:
                 return yes(await f.read())
         except:
             return none
 
-        return ()
     return out
 
 def writeBytes(scope):
     async def out(p, content):
-        path = os.path.relpath(p, start=scope.file_path)
+        path = os.path.join(scope.base_path, p)
         try:
             if not os.path.exists(os.path.split(os.path.abspath(path))[0]):
                 os.mkdir(os.path.split(os.path.abspath(path))[0])
@@ -62,7 +62,7 @@ def writeBytes(scope):
 
 def appendBytes(scope):
     async def out(p, content):
-        path = os.path.relpath(p, start=scope.file_path)
+        path = os.path.join(scope.base_path, p)
         try:
             if not os.path.exists(os.path.split(os.path.abspath(path))[0]):
                 os.mkdir(os.path.split(os.path.abspath(path))[0])
@@ -77,7 +77,7 @@ def appendBytes(scope):
 
 def readBytes(scope):
     async def out(p):
-        path = os.path.relpath(p, start=scope.file_path)
+        path = os.path.join(scope.base_path, p)
         try:
             async with async_open(path, "rb") as f:
                 return yes(list(await f.read()))
@@ -88,7 +88,7 @@ def readBytes(scope):
 
 def getFiles(scope):
     async def out(p):
-        path = os.path.relpath(p, start=scope.file_path)
+        path = os.path.join(scope.base_path, p)
         can_run = os.environ.get("FILE_ALLOW") == "true"
         if not can_run:
             return []
