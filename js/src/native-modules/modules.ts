@@ -96,7 +96,11 @@ const lines: Record<
   inp: name => [
     `function ${name}(question) {`,
     '  return function (callback) {',
-    '    return new Promise((resolve, reject) => process.stdin.once(question, callback));',
+    '    process.stdout.write(question)',
+    '    process.stdin.once("data", function(val) {',
+    '      callback(val.toString())',
+    '      process.stdin.pause()',
+    '    });',
     '  };',
     '}',
   ],
