@@ -115,8 +115,9 @@ async function main() {
   // Indirect call of eval to run in global scope
   if (running) {
     try {
-      const { valueAssertions, main }: CompiledExports = (null, eval)(compiled)
-      await main()
+      const { valueAssertions, main }: CompiledExports = new Function("require", `return ${compiled}`)(require)
+      new Function("require", "main", `main().then(_ => {});`)(require, main)
+      //await main()
       const { display } = result.displayValueAssertions(
         displayer,
         valueAssertions,
@@ -124,10 +125,6 @@ async function main() {
       console.log(display)
     } catch (e: any) {
       console.log("INTERNAL ERROR: ")
-      console.log(compiled)
-      console.log("")
-      console.log("Please open an issue at https://github.com/nbuilding/N-lang/issues")
-      console.log("")
       console.log(e)
     }
   }
