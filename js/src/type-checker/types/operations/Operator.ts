@@ -8,6 +8,7 @@ export enum Operator {
   MODULO = 'modulo',
   EXPONENT = 'exponent',
   PIPE = 'pipe',
+  XOR = 'xor',
 }
 
 export function operatorToString (self: Operator): string {
@@ -30,5 +31,7 @@ export function operatorToString (self: Operator): string {
       return '^'
     case Operator.PIPE:
       return '|>'
+    case Operator.XOR:
+      return '^^'
   }
 }

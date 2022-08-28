@@ -41,16 +41,19 @@ compareOperator -> ("==" | "=") {% ([token]) => ({ ...token[0], value: ast.Compa
 	| "<" {% ([token]) => ({ ...token, value: ast.Compare.LESS }) %}
 	| ">=" {% ([token]) => ({ ...token, value: ast.Compare.GEQ }) %}
 	| "<=" {% ([token]) => ({ ...token, value: ast.Compare.LEQ }) %}
-	| ("!=" | "/=") {% ([token]) => ({ ...token[0], value: ast.Compare.NEQ }) %}
+	| "~=" {% ([token]) => ({ ...token[0], value: ast.Compare.NEQ }) %}
 
 sumExpression -> productExpression {% id %}
 	| sumExpression _ "+" _ productExpression {% operation(ast.Operator.ADD) %}
 	| sumExpression _ "-" _ productExpression {% operation(ast.Operator.MINUS) %}
 
-productExpression -> exponentExpression {% id %}
-	| productExpression _ "*" _ exponentExpression {% operation(ast.Operator.MULTIPLY) %}
-	| productExpression _ "/" _ exponentExpression {% operation(ast.Operator.DIVIDE) %}
-	| productExpression _ "%" _ exponentExpression {% operation(ast.Operator.MODULO) %}
+productExpression -> bitwiseExpression {% id %}
+	| productExpression _ "*" _ bitwiseExpression {% operation(ast.Operator.MULTIPLY) %}
+	| productExpression _ "/" _ bitwiseExpression {% operation(ast.Operator.DIVIDE) %}
+	| productExpression _ "%" _ bitwiseExpression {% operation(ast.Operator.MODULO) %}
+
+bitwiseExpression -> exponentExpression {% id %}
+  | bitwiseExpression _ "^^" _ exponentExpression {% operation(ast.Operator.XOR) %}
 
 exponentExpression -> prefixExpression {% id %}
 	| exponentExpression _ "^" _ prefixExpression {% operation(ast.Operator.EXPONENT) %}

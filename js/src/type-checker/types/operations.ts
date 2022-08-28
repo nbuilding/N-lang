@@ -57,6 +57,10 @@ export const operations: Record<Operator, NFunction[]> = {
     makeFunction(() => [int, int, float]),
     makeFunction(() => [float, float, float]),
   ],
+  [Operator.XOR]: [
+    makeFunction(() => [number, number, number]),
+    makeFunction(() => [int, int, int]),
+  ],
 
   [Operator.AND]: [
     makeFunction(() => [int, int, int]),
