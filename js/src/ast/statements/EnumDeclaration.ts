@@ -30,7 +30,7 @@ export class EnumVariant extends Base {
     const [variant, types] =
       rawVariant.length === 1
         ? [rawVariant[0], []]
-        : [rawVariant[1], rawVariant[2].map(([, type]) => type)]
+        : [rawVariant[0], rawVariant[2].map(([, type]) => type)]
     super(pos, [variant, ...types])
     this.public = pub !== null
     this.variant = variant
@@ -45,8 +45,8 @@ export class EnumVariant extends Base {
     schema.nullable(schema.tuple([schema.any, schema.any])),
     schema.union([
       schema.tuple([
-        schema.any,
         schema.instance(Identifier),
+        schema.any,
         schema.array(schema.tuple([schema.any, schema.guard(isType)])),
         schema.any,
       ]),

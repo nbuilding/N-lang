@@ -61,6 +61,14 @@ export const operations: Record<Operator, NFunction[]> = {
     makeFunction(() => [number, number, number]),
     makeFunction(() => [int, int, int]),
   ],
+  [Operator.SHIFTL]: [
+    makeFunction(() => [number, number, number]),
+    makeFunction(() => [int, int, int]),
+  ],
+  [Operator.SHIFTR]: [
+    makeFunction(() => [number, number, number]),
+    makeFunction(() => [int, int, int]),
+  ],
 
   [Operator.AND]: [
     makeFunction(() => [int, int, int]),

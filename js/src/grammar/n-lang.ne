@@ -37,11 +37,14 @@ const lexer = moo.states({
 		funcOperator: [
 			'|>',
 		],
+		bitwiseOperator: [
+			'<<', '>>', '^^',
+		],
 		comparisonOperator: [
 			'<=', '==', '>=', '~=', '<', '=', '>',
 		],
 		arithmeticOperator: [
-			'+', '-', '*', '%', '/', '^^', '^',
+			'+', '-', '*', '%', '/', '^',
 		],
 		booleanOperator: [
 			'&&', '||', '&', '|', '~',

@@ -22,7 +22,7 @@ export class EnumPattern extends Base implements Pattern {
 
   constructor (
     pos: BasePosition,
-    [, variant, rawPatterns]: schem.infer<typeof EnumPattern.schema>,
+    [variant, , rawPatterns]: schem.infer<typeof EnumPattern.schema>,
   ) {
     const patterns = rawPatterns.map(([, pattern]) => pattern)
     super(pos, [variant, ...patterns])
@@ -183,8 +183,8 @@ export class EnumPattern extends Base implements Pattern {
   }
 
   static schema = schema.tuple([
-    schema.any,
     schema.instance(Identifier),
+    schema.any,
     schema.array(schema.tuple([schema.any, schema.guard(isPattern)])),
     schema.any,
   ])

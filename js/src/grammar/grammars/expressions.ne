@@ -33,8 +33,13 @@ booleanExpression -> notExpression {% id %}
 notExpression -> compareExpression {% id %}
 	| "not" _ notExpression {% prefix(ast.UnaryOperator.NOT) %}
 
-compareExpression -> sumExpression {% id %}
-	| (sumExpression _ compareOperator _):+ sumExpression {% from(ast.Comparisons) %}
+compareExpression -> bitwiseExpression {% id %}
+	| (bitwiseExpression _ compareOperator _):+ bitwiseExpression {% from(ast.Comparisons) %}
+
+bitwiseExpression -> sumExpression {% id %}
+  | bitwiseExpression _ "^^" _ sumExpression {% operation(ast.Operator.XOR) %}
+  | bitwiseExpression _ ">>" _ sumExpression {% operation(ast.Operator.SHIFTR) %}
+  | bitwiseExpression _ "<<" _ sumExpression {% operation(ast.Operator.SHIFTL) %}
 
 compareOperator -> ("==" | "=") {% ([token]) => ({ ...token[0], value: ast.Compare.EQUAL }) %}
 	| ">" {% ([token]) => ({ ...token, value: ast.Compare.GREATER }) %}
@@ -47,13 +52,10 @@ sumExpression -> productExpression {% id %}
 	| sumExpression _ "+" _ productExpression {% operation(ast.Operator.ADD) %}
 	| sumExpression _ "-" _ productExpression {% operation(ast.Operator.MINUS) %}
 
-productExpression -> bitwiseExpression {% id %}
-	| productExpression _ "*" _ bitwiseExpression {% operation(ast.Operator.MULTIPLY) %}
-	| productExpression _ "/" _ bitwiseExpression {% operation(ast.Operator.DIVIDE) %}
-	| productExpression _ "%" _ bitwiseExpression {% operation(ast.Operator.MODULO) %}
-
-bitwiseExpression -> exponentExpression {% id %}
-  | bitwiseExpression _ "^^" _ exponentExpression {% operation(ast.Operator.XOR) %}
+productExpression -> exponentExpression {% id %}
+	| productExpression _ "*" _ exponentExpression {% operation(ast.Operator.MULTIPLY) %}
+	| productExpression _ "/" _ exponentExpression {% operation(ast.Operator.DIVIDE) %}
+	| productExpression _ "%" _ exponentExpression {% operation(ast.Operator.MODULO) %}
 
 exponentExpression -> prefixExpression {% id %}
 	| exponentExpression _ "^" _ prefixExpression {% operation(ast.Operator.EXPONENT) %}

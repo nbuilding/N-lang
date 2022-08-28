@@ -9,6 +9,8 @@ export enum Operator {
   EXPONENT = 'exponent',
   PIPE = 'pipe',
   XOR = 'xor',
+  SHIFTL = 'shiftl',
+  SHIFTR = 'shiftr',
 }
 
 export function operatorToString (self: Operator): string {
@@ -33,5 +35,9 @@ export function operatorToString (self: Operator): string {
       return '|>'
     case Operator.XOR:
       return '^^'
+    case Operator.SHIFTL:
+      return '<<'
+    case Operator.SHIFTR:
+      return '>>'
   }
 }

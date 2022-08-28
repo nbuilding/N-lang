@@ -97,6 +97,18 @@ export class Operation<O extends Operator> extends Base
           expression: `(${a}) ^ (${b})`,
         }
       }
+      case Operator.SHIFTL: {
+        return {
+          statements,
+          expression: `(${a}) << (${b})`,
+        }
+      }
+      case Operator.SHIFTR: {
+        return {
+          statements,
+          expression: `(${a}) >> (${b})`,
+        }
+      }
       case Operator.DIVIDE: {
         if (isInt(this._operandType!)) {
           // Integer division with floats
