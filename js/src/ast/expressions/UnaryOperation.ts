@@ -17,7 +17,7 @@ import {
 import { NType, unknown } from '../../type-checker/types/types'
 import { unaryOperations } from '../../type-checker/types/operations'
 import { tryFunctions } from '../../type-checker/types/comparisons/compare-assignable'
-import { cmd, isInt } from '../../type-checker/types/builtins'
+import { cmd, isInt, isMaybe } from '../../type-checker/types/builtins'
 import { UnaryOperator } from '../../type-checker/types/operations/UnaryOperator'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { CompilationScope } from '../../compiler/CompilationScope'
@@ -82,6 +82,12 @@ export class UnaryOperation<O extends UnaryOperator> extends Base
           return {
             statements,
             expression: `~(${expression})`,
+          }
+        } else if (isMaybe(this._operandType!)) {
+          // Cannot use ! here because it will return true if the value is 0
+          return {
+            statements,
+            expression: `(${expression}) === (undefined)`,
           }
         } else {
           return {

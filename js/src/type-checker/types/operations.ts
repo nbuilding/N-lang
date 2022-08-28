@@ -94,6 +94,7 @@ export const unaryOperations: Record<UnaryOperator, NFunction[]> = {
   [UnaryOperator.NOT]: [
     makeFunction(() => [int, int]),
     makeFunction(() => [bool, bool]),
+    makeFunction(t => [maybe.instance([t]), bool], 't'),
   ],
   [UnaryOperator.AWAIT]: [makeFunction(a => [cmd.instance([a]), a], 'a')],
 }
