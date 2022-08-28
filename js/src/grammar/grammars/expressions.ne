@@ -83,9 +83,9 @@ value -> identifier {% id %}
 	| "(" _ ")" {% from(ast.Unit) %}
 	| "(" _ expression _ ")" {% includeBrackets %}
 	| ("[" _) ((noCommaExpression (_ "," _)):* noCommaExpression ((_ ","):? _)):? "]" {% from(ast.List) %}
-	| ("{" _) ((recordEntry blockSeparator):* recordEntry (blockSeparator | _spaces)):? "}" {% from(ast.Record) %}
+	| ("{" _) ((recordEntry (_ "," _)):* recordEntry ((_ ","):? _)):? "}" {% from(ast.Record) %}
 
-recordEntry -> anyIdentifier (_ ":" _) expression {% from(ast.RecordEntry) %}
+recordEntry -> anyIdentifier (_ ":" _) noCommaExpression {% from(ast.RecordEntry) %}
 	| identifier {% from(ast.RecordEntry) %}
 
 string -> %string {% from(ast.String) %}
