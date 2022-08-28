@@ -81,22 +81,14 @@ const lines: Record<
     '}',
   ],
 
-  get: (name, require) => [
-    `function ${name}() {`,
-    '  return function (headers) {',
-    '    return function (callback) {',
-    `      ${require('httpRequest')}(url, "GET", undefined, headers, true, callback);`,
-    '    };',
-    '  };',
-    '}',
-  ],
-
-  post: (name, require) => [
+  request: (name, require) => [
     `function ${name}(url) {`,
-    '  return function (body) {',
-    '    return function (headers) {',
-    '      return function (callback) {',
-    `        ${require('httpRequest')}(url, "POST", body, headers, false, callback);`,
+    '  return function (method) {',
+    '    return function (body) {',
+    '      return function (headers) {',
+    '        return function (callback) {',
+    `          ${require('httpRequest')}(url, method, body, headers, callback);`,
+    '        };',
     '      };',
     '    };',
     '  };',
@@ -117,10 +109,29 @@ const lines: Record<
     '}',
   ],
 
+  sendSTDOUT: name => [
+    `function ${name}(question) {`,
+    '  return function (callback) {',
+    '    try {',
+    '      process.stdout.write(question)',
+    '    } catch (_) {}',
+    '    callback()',
+    '  };',
+    '}',
+  ],
+
   sleep: name => [
     `function ${name}(delay) {`,
     '  return function (callback) {',
     '    setTimeout(callback, delay);',
+    '  };',
+    '}',
+  ],
+
+  getTime: name => [
+    `function ${name}() {`,
+    '  return function (callback) {',
+    '    callback(Date.now());',
     '  };',
     '}',
   ],
