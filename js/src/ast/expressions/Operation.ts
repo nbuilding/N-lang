@@ -115,7 +115,7 @@ export class Operation<O extends Operator> extends Base
       case Operator.MODULO: {
         return {
           statements,
-          expression: `${scope.context.helpers.modulo}(${a}, ${b})`,
+          expression: `${scope.context.require('modulo')}(${a}, ${b})`,
         }
       }
       case Operator.EXPONENT: {

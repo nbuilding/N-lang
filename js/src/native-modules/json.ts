@@ -46,18 +46,18 @@ export default {
     value,
   },
 
-  compile (context: CompilationContext): CompiledModule {
-    const jsonNull = context.genVarName('null')
-    const string = context.genVarName('string')
-    const number = context.genVarName('number')
-    const boolean = context.genVarName('boolean')
-    const array = context.genVarName('array')
-    const object = context.genVarName('object')
-    const parse = context.genVarName('parse')
-    const parseSafe = context.genVarName('parseSafe')
-    const stringify = context.genVarName('stringify')
+  compile(context: CompilationContext): CompiledModule {
+    const jsonNull = context.require('null')
+    const string = context.require('string')
+    const number = context.require('number')
+    const boolean = context.require('boolean')
+    const array = context.require('array')
+    const object = context.require('object')
+    const parse = context.require('parse')
+    const parseSafe = context.require('parseSafe')
+    const stringify = context.require('stringify')
     return {
-      statements: ['// TODO: json'],
+      statements: [],
       exports: {
         null: jsonNull,
         string,

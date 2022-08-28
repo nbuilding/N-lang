@@ -215,6 +215,9 @@ export function substitute (
   substitutions: Map<TypeSpec, NType>,
   trackSubstitutions?: Set<TypeSpec>,
 ): NType {
+  if (substitutions.size === 0) {
+    return type
+  }
   return (
     mapType(type, type => {
       if (type.type === 'named') {

@@ -2,7 +2,7 @@
 *.grammar.ts
 
 # Built JS files
-src/**/*.js
+# src/**/*.js
 
 ## Node
 

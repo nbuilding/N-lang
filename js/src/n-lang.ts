@@ -6,14 +6,18 @@ import * as util from 'util'
 import parseArgs from 'minimist'
 // import { compileToJS, TypeChecker, FileLines } from './index'
 import { parse } from './grammar/parse'
-import { NOT_FOUND, TypeChecker } from './type-checker/TypeChecker'
+import {
+  CompiledExports,
+  NOT_FOUND,
+  TypeChecker,
+} from './type-checker/TypeChecker'
 import { Block } from './ast/statements/Block'
 import { ErrorDisplayer } from './type-checker/errors/ErrorDisplayer'
 // import { Block } from './ast/index'
 // import { TypeChecker } from './type-checker/TypeChecker'
 // import { displayError } from './type-checker/errors/Error'
 
-async function main () {
+async function main() {
   const {
     _: [fileName],
     help,
@@ -64,10 +68,10 @@ async function main () {
   const running = run || !(ast || repr || js || checksOnly)
 
   const checker = new TypeChecker({
-    absolutePath (basePath: string, importPath: string): string {
+    absolutePath(basePath: string, importPath: string): string {
       return path.resolve(path.dirname(basePath), importPath)
     },
-    async provideFile (path: string) {
+    async provideFile(path: string) {
       try {
         const file = await fs.readFile(path, 'utf8')
         const block = parse(file, {
@@ -94,22 +98,36 @@ async function main () {
   })
   const result = await checker.start(path.resolve(fileName))
   if (!(js || running || checksOnly)) return
-  const { display, errors } = result.displayAll(
-    new ErrorDisplayer({
-      type: 'console-color',
-      displayPath (absolutePath: string, basePath: string) {
-        return path.relative(path.dirname(basePath), absolutePath)
-      },
-    }),
-  )
+  const displayer = new ErrorDisplayer({
+    type: 'console-color',
+    displayPath(absolutePath: string, basePath: string) {
+      return path.relative(path.dirname(basePath), absolutePath)
+    },
+  })
+  const { display, errors } = result.displayAll(displayer)
   console.log(display)
   if (errors > 0) return
 
-  const compiled = checker.compile()
-  if (js) console.log(compiled)
-  await fs.writeFile(fileName.replace(/\.n$/, '.js'), compiled)
+  const compiled = checker.compile(result, { module: { type: 'iife' } })
+  if (js) {
+    await fs.writeFile(fileName.replace(/\.n$/, '.js'), compiled)
+  }
   // Indirect call of eval to run in global scope
-  // if (running) (null, eval)(compiled)
+  if (running) {
+    try {
+      const { valueAssertions, main }: CompiledExports = new Function("require", `return ${compiled}`)(require)
+      new Function("require", "main", `main().then(_ => {});`)(require, main)
+      //await main()
+      const { display } = result.displayValueAssertions(
+        displayer,
+        valueAssertions,
+      )
+      console.log(display)
+    } catch (e: any) {
+      console.log("INTERNAL ERROR: ")
+      console.log(e)
+    }
+  }
 }
 
 main().catch(err => {

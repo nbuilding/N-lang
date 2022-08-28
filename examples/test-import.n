@@ -1,3 +1,7 @@
 let pub hello = [] -> str {
   return "hello"
 }
+
+let pub unused = [] -> () {
+  return ()
+}

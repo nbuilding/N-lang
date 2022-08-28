@@ -26,6 +26,7 @@ import {
   FuncTypeVarSpec,
 } from '../../type-checker/types/TypeSpec'
 import { isUnitLike } from '../../type-checker/types/isUnitLike'
+import { normaliseEnum } from '../../compiler/EnumRepresentation'
 
 // Ideally, there would be a more descriptive type error for this, like "^^^ I
 // can't compare functions." One day!
@@ -220,17 +221,17 @@ export class Comparisons extends Base implements Expression {
         ),
       ).join(` ${conjunction} `)
     } else if (type.type === 'named') {
-      if (type.typeSpec instanceof EnumSpec) {
-        const representation = type.typeSpec.representation
+      if (EnumSpec.isEnum(type)) {
+        const representation = normaliseEnum(type)
         switch (representation.type) {
           case 'unit': {
             return 'true'
           }
           case 'bool':
-          case 'union':
-          case 'maybe': {
+          case 'union': {
             return `${a} ${operator} ${b}`
           }
+          case 'maybe':
           case 'tuple': {
             const nonNullVariant = type.typeSpec.variants.get(
               representation.nonNull,
@@ -240,39 +241,48 @@ export class Comparisons extends Base implements Expression {
                 `What happened to the ${representation.nonNull} variant?`,
               )
             }
-            const tupleComp = nonNullVariant.types
-              .map((type, i) =>
-                this._compileEqual(
-                  scope,
-                  `${a}[${i}]`,
-                  `${b}[${i}]`,
-                  type,
-                  equal,
-                ),
-              )
-              .join(` ${conjunction} `)
-            if (representation.null) {
-              return `(${a} ${conjunction} ${b} ? ${tupleComp} : ${a} ${operator} ${b})`
+            const comp =
+              representation.type === 'tuple'
+                ? nonNullVariant.types
+                    .map((type, i) =>
+                      this._compileEqual(
+                        scope,
+                        `${a}[${i}]`,
+                        `${b}[${i}]`,
+                        type,
+                        equal,
+                      ),
+                    )
+                    .join(` ${conjunction} `)
+                : this._compileEqual(
+                    scope,
+                    a,
+                    b,
+                    nonNullVariant.types[0],
+                    equal,
+                  )
+            if (representation.null && comp !== `${a} ${operator} ${b}`) {
+              return `(${a} && ${b} ? ${comp} : ${a} ${operator} ${b})`
             } else {
-              return tupleComp
+              return comp
             }
           }
           default: {
             // It's easier to use deepEqual at this point lol
-            const deepComp = `${equal ? '' : '!'}${
-              scope.context.helpers.deepEqual
-            }(${a}, ${b})`
+            const deepComp = `${equal ? '' : '!'}${scope.context.require(
+              'deepEqual',
+            )}(${a}, ${b})`
             if (representation.nullable) {
-              return `(${a} ${conjunction} ${b} ? ${deepComp} : ${a} ${operator} ${b})`
+              return `(${a} && ${b} ? ${deepComp} : ${a} ${operator} ${b})`
             } else {
               return deepComp
             }
           }
         }
       } else if (type.typeSpec instanceof FuncTypeVarSpec) {
-        return `${equal ? '' : '!'}${
-          scope.context.helpers.deepEqual
-        }(${a}, ${b})`
+        return `${equal ? '' : '!'}${scope.context.require(
+          'deepEqual',
+        )}(${a}, ${b})`
       } else if (type.typeSpec === list) {
         return `${a}.length ${operator} ${b}.length ${conjunction} ${a}.every(function (item, i) { return ${this._compileEqual(
           scope,
@@ -282,7 +292,7 @@ export class Comparisons extends Base implements Expression {
           equal,
         )} })`
       } else if (type.typeSpec === map) {
-        throw new Error("I haven't figured out maps yet")
+        throw new Error("TODO: I haven't figured out maps yet")
       } else {
         return `${a} ${operator} ${b}`
       }

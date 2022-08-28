@@ -15,22 +15,18 @@ export class CompilationScope {
 
   procedure?: ProcedureContext
 
-  constructor (
+  constructor(
     context: CompilationContext,
     parent?: CompilationScope,
-    procedure: boolean | ProcedureContext = false,
+    procedure?: ProcedureContext,
   ) {
     this.context = context
     this._parent = parent
-    if (procedure instanceof ProcedureContext) {
-      this.procedure = procedure
-    } else {
-      this.procedure = new ProcedureContext(context)
-    }
+    this.procedure = procedure
   }
 
   /** Throws an error if the name can't be found. */
-  getName (name: string): string {
+  getName(name: string): string {
     const varName = this.names.get(name)
     if (varName) {
       return varName
@@ -45,15 +41,19 @@ export class CompilationScope {
    * Specify `isProcedure` to prevent the scope inheriting the procedure-ness of
    * the outer scope.
    */
-  inner (isProcedure?: boolean): CompilationScope {
+  inner(isProcedure?: boolean): CompilationScope {
     return new CompilationScope(
       this.context,
       this,
-      isProcedure !== undefined ? isProcedure : this.procedure,
+      isProcedure !== undefined
+        ? isProcedure
+          ? new ProcedureContext(this.context)
+          : undefined
+        : this.procedure,
     )
   }
 
-  functionExpression (
+  functionExpression(
     args: Arguments | { argName: string; statements: string[] }[],
     getBody: (scope: CompilationScope) => string[],
     prefix = '',
@@ -64,10 +64,10 @@ export class CompilationScope {
     const declarations =
       args instanceof Arguments
         ? args.params.map(declaration => {
-            const argName = scope.context.genVarName('argument')
-            const statements = declaration.compileDeclaration(scope, argName)
-            return { argName, statements }
-          })
+          const argName = scope.context.genVarName('argument')
+          const statements = declaration.compileDeclaration(scope, argName)
+          return { argName, statements }
+        })
         : args
     let statements = getBody(scope)
     if (declarations.length === 0) {
@@ -77,7 +77,7 @@ export class CompilationScope {
         `}${suffix}`,
       ]
     }
-    for (let i = declarations.length; i--; ) {
+    for (let i = declarations.length; i--;) {
       const { argName, statements: declS } = declarations[i]
       if (i === 0) {
         statements = [

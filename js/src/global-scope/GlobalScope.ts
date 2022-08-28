@@ -1,19 +1,19 @@
-import { Scope } from './Scope'
-import { TypeCheckerResultsForFile } from './TypeChecker'
+import { Scope } from '../type-checker/Scope'
+import { TypeCheckerResultsForFile } from '../type-checker/TypeChecker'
 import {
-  boolSpec,
-  char,
-  cmd,
-  float,
+  str,
   int,
+  float,
+  char,
   list,
   map,
+  cmd,
+  boolSpec,
   maybe,
   result,
-  str,
-} from './types/builtins'
-import { makeFunction, NType } from './types/types'
-import { TypeSpec } from './types/TypeSpec'
+} from '../type-checker/types/builtins'
+import { NType, makeFunction } from '../type-checker/types/types'
+import { TypeSpec } from '../type-checker/types/TypeSpec'
 
 const variables: Map<string, NType> = new Map()
 const types: Map<string, TypeSpec> = new Map()

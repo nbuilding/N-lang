@@ -15,7 +15,7 @@ import {
 export class ImportStmt extends Base implements Statement {
   name: Identifier
 
-  constructor (
+  constructor(
     pos: BasePosition,
     [, , id]: schem.infer<typeof ImportStmt.schema>,
   ) {
@@ -23,7 +23,7 @@ export class ImportStmt extends Base implements Statement {
     this.name = id
   }
 
-  checkStatement (context: CheckStatementContext): CheckStatementResult {
+  checkStatement(context: CheckStatementContext): CheckStatementResult {
     if (Object.prototype.hasOwnProperty.call(modules, this.name.value)) {
       context.defineVariable(this.name, {
         type: 'module',
@@ -42,13 +42,15 @@ export class ImportStmt extends Base implements Statement {
     return {}
   }
 
-  compileStatement (scope: CompilationScope): StatementCompilationResult {
+  compileStatement(scope: CompilationScope): StatementCompilationResult {
+    const varName = scope.context.genVarName(this.name.value)
+    scope.names.set(this.name.value, varName)
     return {
       statements: [],
     }
   }
 
-  toString (): string {
+  toString(): string {
     return `import ${this.name}`
   }
 

@@ -13,20 +13,34 @@ import {
   Statement,
   StatementCompilationResult,
 } from '../statements/Statement'
-import { NType, unknown } from '../../type-checker/types/types'
+import {
+  NFunction,
+  NType,
+  NTypeKnown,
+  substitute,
+  unknown,
+} from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { callFunction } from '../../type-checker/types/comparisons/compare-assignable'
 import { unit } from '../../type-checker/types/builtins'
 import { CompilationScope } from '../../compiler/CompilationScope'
 import { isUnitLike } from '../../type-checker/types/isUnitLike'
-import { AliasSpec } from '../../type-checker/types/TypeSpec'
+import { AliasSpec, FuncTypeVarSpec } from '../../type-checker/types/TypeSpec'
+import { isNullableMaybe } from '../../compiler/EnumRepresentation'
 
 export class FuncCall extends Base implements Expression, Statement {
   func: Expression
   params: Expression[]
   private _paramTypes: NType[]
+  private _substitutions: Map<FuncTypeVarSpec, NTypeKnown>[]
+  /**
+   * A list of function types containing all the remaining arguments. Contains
+   * the unsubstituted (unresolved) function argument types, which may include
+   * the type variables.
+   */
+  private _funcTypes: NFunction[]
 
-  constructor (
+  constructor(
     pos: BasePosition,
     [func, , maybeParams]: schem.infer<typeof FuncCall.schema>,
   ) {
@@ -37,14 +51,16 @@ export class FuncCall extends Base implements Expression, Statement {
     this.func = func
     this.params = params
     this._paramTypes = []
+    this._substitutions = []
+    this._funcTypes = []
   }
 
-  checkStatement (context: CheckStatementContext): CheckStatementResult {
+  checkStatement(context: CheckStatementContext): CheckStatementResult {
     const { exitPoint } = context.scope.typeCheck(this)
     return { exitPoint }
   }
 
-  typeCheck (context: TypeCheckContext): TypeCheckResult {
+  typeCheck(context: TypeCheckContext): TypeCheckResult {
     const funcResult = context.scope.typeCheck(this.func)
     let exitPoint = funcResult.exitPoint
     let returnType: NType | null = funcResult.type
@@ -94,6 +110,7 @@ export class FuncCall extends Base implements Expression, Statement {
     for (const [param, base] of paramTypes) {
       funcType = AliasSpec.resolve(funcType)
       if (funcType.type === 'function') {
+        this._funcTypes[argPos - 1] = funcType
         const result = callFunction(funcType, param)
         if (result.error) {
           context.err(
@@ -106,6 +123,7 @@ export class FuncCall extends Base implements Expression, Statement {
           )
         }
         funcType = result.return
+        this._substitutions[argPos - 1] = result.typeVarSubstitutions
       } else {
         return { type: unknown, exitPoint }
       }
@@ -114,33 +132,83 @@ export class FuncCall extends Base implements Expression, Statement {
     return { type: funcType, exitPoint }
   }
 
-  compile (scope: CompilationScope): CompilationResult {
-    const { statements: funcS, expression } = this.func.compile(scope)
+  compile(scope: CompilationScope): CompilationResult {
+    const { statements: funcS, expression: funcE } = this.func.compile(scope)
     const statements = [...funcS]
+    let expression = `(${funcE})`
     // To support currying, functions with multiple arguments are called like
     // func(arg1)(arg2)(arg3), but that might lose out on some browser
     // optimisations.
-    const params: string[] = []
     if (this.params.length > 0) {
       this.params.forEach((param, i) => {
+        // Keep only FTV resolutions to unit-like values
+        const substitutions = [...this._substitutions[i]].filter(
+          ([, type]) => isUnitLike(type) || isNullableMaybe(type),
+        )
+        if (substitutions.length > 0) {
+          const args: [string, NType][] = []
+          let funcType: NType = this._funcTypes[i]
+          while (funcType.type === 'function') {
+            args.push([scope.context.genVarName('arg'), funcType.argument])
+
+            funcType = funcType.return
+          }
+          const returnType = funcType
+          // Create a function that receives each argument and then transforms
+          // it to/from a FTV
+          const transform = scope.context.genVarName('transform')
+          const funcExpr = scope.context.genVarName('funcExpr')
+          const returnWithTypeVars = scope.context.genVarName('return')
+          statements.push(
+            `var ${funcExpr} = ${expression};`,
+            ...scope.functionExpression(
+              args.map(([argName, argType]) => ({
+                argName: isUnitLike(argType) ? '' : argName,
+                statements: [],
+              })),
+              scope => [
+                `var ${returnWithTypeVars} = ${funcExpr}${args
+                  .map(
+                    ([argName, argType]) =>
+                      `(${scope.context.makeUnitConverter(
+                        argName,
+                        argType,
+                        this._substitutions[i],
+                        true,
+                      )?.expression ?? argName})`,
+                  )
+                  .join('')};`,
+                `return ${scope.context.makeUnitConverter(
+                  returnWithTypeVars,
+                  returnType,
+                  this._substitutions[i],
+                  false,
+                )?.expression ?? returnWithTypeVars};`,
+              ],
+              `var ${transform} = `,
+              ';',
+            ),
+          )
+          expression = transform
+        }
         if (isUnitLike(this._paramTypes[i])) {
-          params.push('()')
+          expression += '()'
         } else {
-          const { statements: s, expression } = param.compile(scope)
+          const { statements: s, expression: e } = param.compile(scope)
           statements.push(...s)
-          params.push(`(${expression})`)
+          expression += `(${e})`
         }
       })
     } else {
-      params.push('()')
+      expression += '()'
     }
     return {
       statements,
-      expression: `(${expression})${params.join('')}`,
+      expression,
     }
   }
 
-  compileStatement (scope: CompilationScope): StatementCompilationResult {
+  compileStatement(scope: CompilationScope): StatementCompilationResult {
     // TODO: An option to optimise these away
     const { statements, expression } = this.compile(scope)
     return {
@@ -148,7 +216,7 @@ export class FuncCall extends Base implements Expression, Statement {
     }
   }
 
-  toString (): string {
+  toString(): string {
     return `${this.func}(${this.params.join(', ')})`
   }
 

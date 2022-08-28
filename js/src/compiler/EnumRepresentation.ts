@@ -1,5 +1,26 @@
 import { isUnitLike } from '../type-checker/types/isUnitLike'
+import { EnumType, NType, substitute } from '../type-checker/types/types'
 import { EnumSpec } from '../type-checker/types/TypeSpec'
+
+/**
+ * Determines whether `type` is an enum type whose representation is a nullable
+ * maybe.
+ *
+ * This is because if the nullable maybe enum is used in another nullable maybe
+ * enum, then because nullable maybe enum values are unprotected (not wrapped in
+ * an array or something), `undefined` will become ambiguous. Thus, the inner
+ * nullable maybe enum is not safe to be represented inside another nullable
+ * maybe enum (a one-item tuple is a suitable alternative).
+ */
+export function isNullableMaybe(type: NType): boolean {
+  if (!EnumSpec.isEnum(type)) return false
+  const representation = normaliseEnum(type)
+  return (
+    ((representation.type === 'maybe' || representation.type === 'tuple') &&
+      representation.null === undefined) ||
+    (representation.type === 'enum' && representation.nullable)
+  )
+}
 
 /**
  * The JS representation of an enum.
@@ -28,60 +49,60 @@ import { EnumSpec } from '../type-checker/types/TypeSpec'
 export type EnumRepresentation =
   | { type: 'unit' }
   | {
-      type: 'bool'
+    type: 'bool'
 
-      /**
-       * The name of the variant represented as `true` in JS.
-       */
-      trueName: string
-    }
+    /**
+     * The name of the variant represented as `true` in JS.
+     */
+    trueName: string
+  }
   | {
-      type: 'union'
+    type: 'union'
 
-      /**
-       * An array of variant names. The index is the variant's representation
-       * during runtime.
-       */
-      variants: string[]
-    }
+    /**
+     * An array of variant names. The index is the variant's representation
+     * during runtime.
+     */
+    variants: string[]
+  }
   | {
-      type: 'maybe' | 'tuple'
+    type: 'maybe' | 'tuple'
 
-      /** The name of the null variant, if it exists */
-      null?: string
+    /** The name of the null variant, if it exists */
+    null?: string
 
-      /** The name of the non-null variant */
-      nonNull: string
-    }
+    /** The name of the non-null variant */
+    nonNull: string
+  }
   | {
-      type: 'enum'
+    type: 'enum'
 
-      /**
-       * An object map between a variant name and its variant ID, or null if
-       * it's the null variant.
-       */
-      variants: Record<string, number | null>
+    /**
+     * An object map between a variant name and its variant ID, or null if
+     * it's the null variant.
+     */
+    variants: Record<string, number | null>
 
-      nullable: boolean
-    }
+    nullable: boolean
+  }
 
-export function normaliseEnum (enumTypeSpec: EnumSpec): EnumRepresentation {
+export function normaliseEnum({
+  typeSpec,
+  typeVars,
+}: EnumType): EnumRepresentation {
   /** Variant names with no fields */
   const fieldlessVariants: string[] = []
   /** Variant names with the number of fields */
-  const fieldfulVariants: [string, number][] = []
-  for (const [name, variant] of enumTypeSpec.variants) {
-    if (!variant.types) {
-      throw new Error(
-        `Variant ${name} has types=null despite passing type checking??`,
-      )
+  const fieldfulVariants: [string, NType[]][] = []
+  for (const [name, variant] of typeSpec.variants) {
+    if (variant.types === null) {
+      throw new Error('Why are the types null?')
     }
-    const nonUnitLikeTypeCount = variant.types.filter(type => !isUnitLike(type))
-      .length
-    if (nonUnitLikeTypeCount === 0) {
+    const nonUnitLikeTypes = variant.types.filter(type => !isUnitLike(type))
+    if (nonUnitLikeTypes.length === 0) {
       fieldlessVariants.push(name)
     } else {
-      fieldfulVariants.push([name, nonUnitLikeTypeCount])
+      fieldfulVariants.push([name, nonUnitLikeTypes])
     }
   }
   if (fieldfulVariants.length === 0) {
@@ -92,25 +113,34 @@ export function normaliseEnum (enumTypeSpec: EnumSpec): EnumRepresentation {
     } else {
       return { type: 'union', variants: fieldlessVariants }
     }
-  } else if (fieldlessVariants.length <= 1 && fieldfulVariants.length === 1) {
-    const [name, fields] = fieldfulVariants[0]
+  } else if (fieldfulVariants.length === 1 && fieldlessVariants.length <= 1) {
     // `fields` must be >= 1; otherwise it'd be fieldless
+    const [name, fields] = fieldfulVariants[0]
+    let type: 'maybe' | 'tuple' = 'tuple'
+    if (fields.length === 1) {
+      // For cases like maybe[()] or maybe[json.value], the contained value
+      // might also be `undefined`, so they can't be stored unwrapped.
+      const substituted = typeSpec.getVariant(name, typeVars)[0]
+      if (!isUnitLike(substituted) && !isNullableMaybe(substituted)) {
+        type = 'maybe'
+      }
+    }
     return {
-      type: fields === 1 ? 'maybe' : 'tuple',
+      type,
       nonNull: name,
       null: fieldlessVariants[0],
     }
   } else {
     const nullable = fieldlessVariants.length === 1
     const variants: Record<string, number | null> = {}
-    ;[...enumTypeSpec.variants].forEach(([name, variant], i) => {
-      if (!variant.types) {
-        throw new Error(
-          `Variant ${name} has types=null despite passing type checking??`,
-        )
-      }
-      variants[name] = nullable && fieldlessVariants[0] === name ? null : i
-    })
+      ;[...typeSpec.variants].forEach(([name, variant], i) => {
+        if (!variant.types) {
+          throw new Error(
+            `Variant ${name} has types=null despite passing type checking??`,
+          )
+        }
+        variants[name] = nullable && fieldlessVariants[0] === name ? null : i
+      })
     return { type: 'enum', variants, nullable }
   }
 }

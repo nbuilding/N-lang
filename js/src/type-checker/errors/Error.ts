@@ -459,6 +459,9 @@ export function displayErrorMessage (
         err.error,
       ]
     }
+    case ErrorType.CANNOT_IMPORT: {
+      return err.reason === 'bad-path' ? display`I am unable to understand the path you gave me.` : display`I am unable to find or access the file you gave me`
+    }
     default: {
       const errorMessage: unknown = err
       return display`Error ${String(

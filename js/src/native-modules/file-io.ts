@@ -10,12 +10,12 @@ export default {
     read: makeFunction(() => [str, cmd.instance([str])]),
   },
 
-  compile (context: CompilationContext): CompiledModule {
-    const write = context.genVarName('write')
-    const append = context.genVarName('append')
-    const read = context.genVarName('read')
+  compile(context: CompilationContext): CompiledModule {
+    const write = context.require('write')
+    const append = context.require('append')
+    const read = context.require('read')
     return {
-      statements: ['// TODO: FileIO'],
+      statements: [],
       exports: { write, append, read },
     }
   },

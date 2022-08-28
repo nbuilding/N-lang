@@ -8,16 +8,10 @@ export default {
     sleep: makeFunction(() => [int, cmd.instance([unit])]),
   },
 
-  compile (context: CompilationContext): CompiledModule {
-    const sleep = context.genVarName('sleep')
+  compile(context: CompilationContext): CompiledModule {
+    const sleep = context.require('sleep')
     return {
-      statements: [
-        `function ${sleep}(delay) {`,
-        `  return function (callback) {`,
-        '    setTimeout(callback, delay);',
-        '  };',
-        '}',
-      ],
+      statements: [],
       exports: { sleep },
     }
   },

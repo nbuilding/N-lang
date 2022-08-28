@@ -1,6 +1,44 @@
+import json
+import SystemIO
+
+let testImport = imp "./test-import.n"
+
 assert value { a: "pi"; b: 3.14 } == { b: 3.14; a: "pi" }
 
 let listvalue = ["a", "b", "c"]
 assert value listvalue == ["a", "b", "c"]
 
 // assert value mapFrom([("a", 1), ("b", 2)]) == mapFrom([("b", 2), ("a", 1)])
+
+type _result[o, e] =
+  | <_ok o>
+  | <_err e>
+
+print({
+  return: true
+  response: "OK"
+  code: 200
+})
+
+print({
+  text: "true"
+  response: "OK"
+  code: 200
+}.text)
+
+print({
+  onOpen: [] -> () { return () }
+  onMessage: [] -> () { return () }
+})
+
+print(testImport.hello())
+
+print(json)
+print(json.parse("[1, 2, 3, 4, 5]"))
+
+let thing = [] -> cmd[()] {
+  print("hello!jsakldjfsaj;kldfjskald")
+  print(SystemIO.inp("Hello: ")!)
+}
+
+let pub out = thing()

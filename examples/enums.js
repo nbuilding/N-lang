@@ -1,299 +1,435 @@
 (function () {
   var undefined; // This helps minifiers to use a shorter variable name than `void 0`.
-  function modulo_n(a, b) {
-    return (a % b + b) % b;
-  }
   var valueAssertionResults_n = {};
-  function assertValue_n(valueAssertionId, pass) {
+  for (var i = 0; i < 40; i++) {
+    valueAssertionResults_n[i] = false;
+  }
+  function print_3(value) {
+    // TODO: Prettify
+    console.log(value);
+    return value;
+  }
+  function assertValue_7(valueAssertionId, pass) {
     valueAssertionResults_n[valueAssertionId] = pass;
+  }
+  function yes_154(value) {
+    return value;
+  }
+  var unit_159 = {};
+  function deepEqual_190(a, b) {
+    if (typeof a === "object") {
+      // Array.isArray: IE9+
+      if (Array.isArray(a)) {
+        if (a.length !== b.length) {
+          return false;
+        }
+        for (var i = 0; i < a.length; i++) {
+          if (!deepEqual_190(a[i], b[i])) {
+            return false;
+          }
+        }
+      } else {
+        // Object.keys: IE9+
+        var keys = Object.keys(a);
+        if (keys.length !== Object.keys(b).length) {
+          return false;
+        }
+        for (var i = 0; i < keys.length; i++) {
+          if (keys[i] in b) {
+            if (!deepEqual_190(a[keys[i]], b[keys[i]])) {
+              return false;
+            }
+          } else {
+            return false;
+          }
+        }
+      }
+      return true;
+    } else {
+      return a === b;
+    }
+  }
+  function len_193(value) {
+    if (typeof value === "string") {
+      var highSurrogates = 0;
+      for (var i = 0; i < string.length; i++) {
+        var codePoint = string.charCodeAt(i);
+        if (codePoint >= 0xd800 && codePoint <= 0xdbff) {
+          ++highSurrogates;
+        }
+      }
+      // Subtract a surrogate from each pair
+      return string.length - highSurrogates;
+    } else if (Array.isArray(value)) {
+      // Array.isArray: IE9+
+      return value.length;
+    } else {
+      return 0;
+    }
   }
   var a_0 = 0;
   var b_1 = 1;
   var c_2 = function () {
     return 2;
   };
-  (console.log)([a_0, 0]);
-  (console.log)([b_1, 1]);
-  (console.log)([(c_2)(), 2]);
-  var ifLetValue_3 = a_0;
-  var ifLetResult_4 = false;
-  do {
-    if (ifLetValue_3 === 0) {
-    } else break;
-    ifLetResult_4 = true;
-  } while (false);
-  if (ifLetResult_4) {
-    assertValue_n(0, true);
-  }
-  var ifLetValue_5 = b_1;
+  (print_3)([a_0, 0]);
+  (print_3)([b_1, 1]);
+  (print_3)([(c_2)(), 2]);
+  var ifLetValue_5 = a_0;
   var ifLetResult_6 = false;
   do {
-    if (ifLetValue_5 === 1) {
+    if (ifLetValue_5 === 0) {
     } else break;
     ifLetResult_6 = true;
   } while (false);
   if (ifLetResult_6) {
-    assertValue_n(1, true);
+    assertValue_7(0, true);
   }
-  var ifLetValue_7 = (c_2)();
-  var ifLetResult_8 = false, value_9;
+  var ifLetValue_9 = b_1;
+  var ifLetResult_10 = false;
   do {
-    if (ifLetValue_7 === 2) {
-      value_9 = undefined;
+    if (ifLetValue_9 === 1) {
     } else break;
-    ifLetResult_8 = true;
+    ifLetResult_10 = true;
   } while (false);
-  if (ifLetResult_8) {
-    assertValue_n(2, value_9 === undefined);
+  if (ifLetResult_10) {
+    assertValue_7(1, true);
   }
-  var non_10 = function () {
-    return false;
-  };
-  var oui_11 = true;
-  (console.log)([(non_10)(), false]);
-  (console.log)([oui_11, true]);
-  var ifLetValue_12 = (non_10)();
+  var ifLetValue_12 = (c_2)();
   var ifLetResult_13 = false, value_14;
   do {
-    if (ifLetValue_12) break;
+    if (ifLetValue_12 === 2) {
+      value_14 = undefined;
+    } else break;
     ifLetResult_13 = true;
   } while (false);
   if (ifLetResult_13) {
-    assertValue_n(3, value_14 === undefined);
+    var compA_15 = value_14, compB_16 = undefined;
+    assertValue_7(2, true);
   }
-  var ifLetValue_15 = oui_11;
-  var ifLetResult_16 = false;
+  var non_17 = function () {
+    return false;
+  };
+  var oui_18 = true;
+  (print_3)([(non_17)(), false]);
+  (print_3)([oui_18, true]);
+  var ifLetValue_20 = (non_17)();
+  var ifLetResult_21 = false, value_22;
   do {
-    if (!ifLetValue_15) break;
-    ifLetResult_16 = true;
+    if (ifLetValue_20) break;
+    ifLetResult_21 = true;
   } while (false);
-  if (ifLetResult_16) {
-    assertValue_n(4, true);
+  if (ifLetResult_21) {
+    var compA_23 = value_22, compB_24 = undefined;
+    assertValue_7(3, true);
   }
-  var justMe_17 = function () {
+  var ifLetValue_26 = oui_18;
+  var ifLetResult_27 = false;
+  do {
+    if (!ifLetValue_26) break;
+    ifLetResult_27 = true;
+  } while (false);
+  if (ifLetResult_27) {
+    assertValue_7(4, true);
+  }
+  var justMe_28 = function () {
     return function () {
     };
   };
-  (console.log)([((justMe_17)())(), undefined]);
-  var value1_18, value2_19;
-  value1_18 = undefined;
-  value2_19 = undefined;
-  assertValue_n(5, value1_18 === undefined);
-  assertValue_n(6, value2_19 === undefined);
-  var tuple1_20 = function (enumConstructorArg_21) {
+  (print_3)([((justMe_28)())(), undefined]);
+  var value1_29, value2_30;
+  value1_29 = undefined;
+  value2_30 = undefined;
+  var compA_31 = value1_29, compB_32 = undefined;
+  assertValue_7(5, true);
+  var compA_33 = value2_30, compB_34 = undefined;
+  assertValue_7(6, true);
+  var tuple1_35 = function (enumConstructorArg_36) {
     return function () {
-      return function (enumConstructorArg_22) {
-        return [enumConstructorArg_21, enumConstructorArg_22];
+      return function (enumConstructorArg_37) {
+        return [enumConstructorArg_36, enumConstructorArg_37];
       };
     };
   };
-  var tuple2_23 = function (enumConstructorArg_24) {
-    return function (enumConstructorArg_25) {
-      return [enumConstructorArg_24, enumConstructorArg_25];
+  var tuple2_38 = function (enumConstructorArg_39) {
+    return function (enumConstructorArg_40) {
+      return [enumConstructorArg_39, enumConstructorArg_40];
     };
   };
-  var null_26 = function () {
+  var null_41 = function () {
   };
-  (console.log)([(tuple1_20)(1)()("one"), [1, "one"]]);
-  (console.log)([(tuple2_23)(2)("two"), [2, "two"]]);
-  (console.log)([(null_26)(), undefined]);
-  var valueA_27, valueB_28, valueC_29;
-  valueA_27 = (tuple1_20)(1)()("one")[0];
-  valueB_28 = undefined;
-  valueC_29 = (tuple1_20)(1)()("one")[1];
-  assertValue_n(7, valueA_27 === 1);
-  assertValue_n(8, valueB_28 === undefined);
-  assertValue_n(9, valueC_29 === "one");
-  var ifLetValue_30 = (tuple2_23)(2)("two");
-  var ifLetResult_31 = false, a_32, b_33;
+  (print_3)([(tuple1_35)(1)()("one"), [1, "one"]]);
+  (print_3)([(tuple2_38)(2)("two"), [2, "two"]]);
+  (print_3)([(null_41)(), undefined]);
+  var valueA_42, valueB_43, valueC_44;
+  valueA_42 = (tuple1_35)(1)()("one")[0];
+  valueB_43 = undefined;
+  valueC_44 = (tuple1_35)(1)()("one")[1];
+  var compA_45 = valueA_42, compB_46 = 1;
+  assertValue_7(7, compA_45 === compB_46);
+  var compA_47 = valueB_43, compB_48 = undefined;
+  assertValue_7(8, true);
+  var compA_49 = valueC_44, compB_50 = "one";
+  assertValue_7(9, compA_49 === compB_50);
+  var ifLetValue_52 = (tuple2_38)(2)("two");
+  var ifLetResult_53 = false, a_54, b_55;
   do {
-    if (!ifLetValue_30) break;
-    a_32 = ifLetValue_30[0];
-    b_33 = ifLetValue_30[1];
-    ifLetResult_31 = true;
+    if (!ifLetValue_52) break;
+    a_54 = ifLetValue_52[0];
+    b_55 = ifLetValue_52[1];
+    ifLetResult_53 = true;
   } while (false);
-  if (ifLetResult_31) {
-    assertValue_n(10, a_32 === 2);
-    assertValue_n(11, b_33 === "two");
+  if (ifLetResult_53) {
+    var compA_56 = a_54, compB_57 = 2;
+    assertValue_7(10, compA_56 === compB_57);
+    var compA_58 = b_55, compB_59 = "two";
+    assertValue_7(11, compA_58 === compB_59);
   }
-  var ifLetValue_34 = (null_26)();
-  var ifLetResult_35 = false, value_36;
+  var ifLetValue_61 = (null_41)();
+  var ifLetResult_62 = false, value_63;
   do {
-    if (ifLetValue_34) break;
-    value_36 = undefined;
-    ifLetResult_35 = true;
-  } while (false);
-  if (ifLetResult_35) {
-    assertValue_n(12, value_36 === undefined);
-  }
-  var certainly_37 = function () {
-    return function (enumConstructorArg_38) {
-      return enumConstructorArg_38;
-    };
-  };
-  var nope_39 = function () {
-  };
-  (console.log)([(certainly_37)()(false), false]);
-  (console.log)([(nope_39)(), undefined]);
-  var ifLetValue_40 = (certainly_37)()(false);
-  var ifLetResult_41 = false, a_42, b_43;
-  do {
-    if (ifLetValue_40 === undefined) break;
-    a_42 = undefined;
-    b_43 = ifLetValue_40;
-    ifLetResult_41 = true;
-  } while (false);
-  if (ifLetResult_41) {
-    assertValue_n(13, a_42 === undefined);
-    assertValue_n(14, !(b_43));
-  }
-  var ifLetValue_44 = (nope_39)();
-  var ifLetResult_45 = false, value_46;
-  do {
-    if (ifLetValue_44 !== undefined) break;
-    value_46 = undefined;
-    ifLetResult_45 = true;
-  } while (false);
-  if (ifLetResult_45) {
-    assertValue_n(15, value_46 === ((justMe_17)())());
-  }
-  var hello_47 = function (enumConstructorArg_48) {
-    return function () {
-      return function (enumConstructorArg_49) {
-        return [0, enumConstructorArg_48, enumConstructorArg_49];
-      };
-    };
-  };
-  var hi_50 = function (enumConstructorArg_51) {
-    return function () {
-      return function (enumConstructorArg_52) {
-        return [1, enumConstructorArg_51, enumConstructorArg_52];
-      };
-    };
-  };
-  var empty_53 = [2];
-  var alsoEmpty_54 = [3];
-  var alsoAlsoEmpty_55 = function () {
-    return [4];
-  };
-  (console.log)([(hello_47)(1)()("one"), [0, 1, "one"]]);
-  (console.log)([(hi_50)("two")()(2), [1, "two", 2]]);
-  (console.log)([empty_53, [2]]);
-  (console.log)([alsoEmpty_54, [3]]);
-  (console.log)([(alsoAlsoEmpty_55)(), [4]]);
-  var ifLetValue_56 = (hello_47)(1)()("one");
-  var ifLetResult_57 = false, a_58, b_59, c_60;
-  do {
-    if (ifLetValue_56[0] === 0) {
-      a_58 = ifLetValue_56[1];
-      b_59 = undefined;
-      c_60 = ifLetValue_56[2];
-    } else break;
-    ifLetResult_57 = true;
-  } while (false);
-  if (ifLetResult_57) {
-    assertValue_n(16, a_58 === 1);
-    assertValue_n(17, b_59 === undefined);
-    assertValue_n(18, c_60 === "one");
-  }
-  var ifLetValue_61 = (hi_50)("two")()(2);
-  var ifLetResult_62 = false, a_63, b_64, c_65;
-  do {
-    if (ifLetValue_61[0] === 1) {
-      a_63 = ifLetValue_61[1];
-      b_64 = undefined;
-      c_65 = ifLetValue_61[2];
-    } else break;
+    if (ifLetValue_61) break;
+    value_63 = undefined;
     ifLetResult_62 = true;
   } while (false);
   if (ifLetResult_62) {
-    assertValue_n(19, a_63 === "two");
-    assertValue_n(20, b_64 === undefined);
-    assertValue_n(21, c_65 === 2);
+    var compA_64 = value_63, compB_65 = undefined;
+    assertValue_7(12, true);
   }
-  var ifLetValue_66 = empty_53;
-  var ifLetResult_67 = false;
+  var certainly_66 = function () {
+    return function (enumConstructorArg_67) {
+      return enumConstructorArg_67;
+    };
+  };
+  var nope_68 = function () {
+  };
+  (print_3)([(certainly_66)()(false), false]);
+  (print_3)([(nope_68)(), undefined]);
+  var ifLetValue_70 = (certainly_66)()(false);
+  var ifLetResult_71 = false, a_72, b_73;
   do {
-    if (ifLetValue_66[0] === 2) {
-    } else break;
-    ifLetResult_67 = true;
-  } while (false);
-  if (ifLetResult_67) {
-    assertValue_n(22, true);
-  }
-  var ifLetValue_68 = alsoEmpty_54;
-  var ifLetResult_69 = false;
-  do {
-    if (ifLetValue_68[0] === 3) {
-    } else break;
-    ifLetResult_69 = true;
-  } while (false);
-  if (ifLetResult_69) {
-    assertValue_n(23, true);
-  }
-  var ifLetValue_70 = (alsoAlsoEmpty_55)();
-  var ifLetResult_71 = false, value_72;
-  do {
-    if (ifLetValue_70[0] === 4) {
-      value_72 = undefined;
-    } else break;
+    if (ifLetValue_70 === undefined) break;
+    a_72 = undefined;
+    b_73 = ifLetValue_70;
     ifLetResult_71 = true;
   } while (false);
   if (ifLetResult_71) {
-    assertValue_n(24, value_72 === undefined);
+    var compA_74 = a_72, compB_75 = undefined;
+    assertValue_7(13, true);
+    assertValue_7(14, !(b_73));
   }
-  var wee_73 = function (enumConstructorArg_74) {
-    return function (enumConstructorArg_75) {
-      return [0, enumConstructorArg_74, enumConstructorArg_75];
+  var ifLetValue_77 = (nope_68)();
+  var ifLetResult_78 = false, value_79;
+  do {
+    if (ifLetValue_77 !== undefined) break;
+    value_79 = undefined;
+    ifLetResult_78 = true;
+  } while (false);
+  if (ifLetResult_78) {
+    var compA_80 = value_79, compB_81 = ((justMe_28)())();
+    assertValue_7(15, true);
+  }
+  var hello_82 = function (enumConstructorArg_83) {
+    return function () {
+      return function (enumConstructorArg_84) {
+        return [0, enumConstructorArg_83, enumConstructorArg_84];
+      };
     };
   };
-  var thisIsNull_76 = function () {
+  var hi_85 = function (enumConstructorArg_86) {
+    return function () {
+      return function (enumConstructorArg_87) {
+        return [1, enumConstructorArg_86, enumConstructorArg_87];
+      };
+    };
   };
-  var wow_77 = function (enumConstructorArg_78) {
-    return [2, enumConstructorArg_78];
+  var empty_88 = [2];
+  var alsoEmpty_89 = [3];
+  var alsoAlsoEmpty_90 = function () {
+    return [4];
   };
-  (console.log)([(wee_73)(1)(2), [0, 1, 2]]);
-  (console.log)([(thisIsNull_76)(), undefined]);
-  (console.log)([(wow_77)(3), [2, 3]]);
-  var ifLetValue_79 = (wee_73)(1)(2);
-  var ifLetResult_80 = false, a_81, b_82;
+  (print_3)([(hello_82)(1)()("one"), [0, 1, "one"]]);
+  (print_3)([(hi_85)("two")()(2), [1, "two", 2]]);
+  (print_3)([empty_88, [2]]);
+  (print_3)([alsoEmpty_89, [3]]);
+  (print_3)([(alsoAlsoEmpty_90)(), [4]]);
+  var ifLetValue_92 = (hello_82)(1)()("one");
+  var ifLetResult_93 = false, a_94, b_95, c_96;
   do {
-    if (ifLetValue_79 && ifLetValue_79[0] === 0) {
-      a_81 = ifLetValue_79[1];
-      b_82 = ifLetValue_79[2];
+    if (ifLetValue_92[0] === 0) {
+      a_94 = ifLetValue_92[1];
+      b_95 = undefined;
+      c_96 = ifLetValue_92[2];
     } else break;
-    ifLetResult_80 = true;
+    ifLetResult_93 = true;
   } while (false);
-  if (ifLetResult_80) {
-    assertValue_n(25, a_81 === 1);
-    assertValue_n(26, b_82 === 2);
+  if (ifLetResult_93) {
+    var compA_97 = a_94, compB_98 = 1;
+    assertValue_7(16, compA_97 === compB_98);
+    var compA_99 = b_95, compB_100 = undefined;
+    assertValue_7(17, true);
+    var compA_101 = c_96, compB_102 = "one";
+    assertValue_7(18, compA_101 === compB_102);
   }
-  var ifLetValue_83 = (thisIsNull_76)();
-  var ifLetResult_84 = false, value_85;
+  var ifLetValue_104 = (hi_85)("two")()(2);
+  var ifLetResult_105 = false, a_106, b_107, c_108;
   do {
-    if (!ifLetValue_83) {
-      value_85 = undefined;
+    if (ifLetValue_104[0] === 1) {
+      a_106 = ifLetValue_104[1];
+      b_107 = undefined;
+      c_108 = ifLetValue_104[2];
     } else break;
-    ifLetResult_84 = true;
+    ifLetResult_105 = true;
   } while (false);
-  if (ifLetResult_84) {
-    assertValue_n(27, value_85 === ((justMe_17)())());
+  if (ifLetResult_105) {
+    var compA_109 = a_106, compB_110 = "two";
+    assertValue_7(19, compA_109 === compB_110);
+    var compA_111 = b_107, compB_112 = undefined;
+    assertValue_7(20, true);
+    var compA_113 = c_108, compB_114 = 2;
+    assertValue_7(21, compA_113 === compB_114);
   }
-  var ifLetValue_86 = (wow_77)(3);
-  var ifLetResult_87 = false, value_88;
+  var ifLetValue_116 = empty_88;
+  var ifLetResult_117 = false;
   do {
-    if (ifLetValue_86 && ifLetValue_86[0] === 2) {
-      value_88 = ifLetValue_86[1];
+    if (ifLetValue_116[0] === 2) {
     } else break;
-    ifLetResult_87 = true;
+    ifLetResult_117 = true;
   } while (false);
-  if (ifLetResult_87) {
-    assertValue_n(28, value_88 === 3);
+  if (ifLetResult_117) {
+    assertValue_7(22, true);
   }
-  for (var i = 0; i < 29; i++) {
-    if (!valueAssertionResults_n[i]) valueAssertionResults_n[i] = false;
+  var ifLetValue_119 = alsoEmpty_89;
+  var ifLetResult_120 = false;
+  do {
+    if (ifLetValue_119[0] === 3) {
+    } else break;
+    ifLetResult_120 = true;
+  } while (false);
+  if (ifLetResult_120) {
+    assertValue_7(23, true);
+  }
+  var ifLetValue_122 = (alsoAlsoEmpty_90)();
+  var ifLetResult_123 = false, value_124;
+  do {
+    if (ifLetValue_122[0] === 4) {
+      value_124 = undefined;
+    } else break;
+    ifLetResult_123 = true;
+  } while (false);
+  if (ifLetResult_123) {
+    var compA_125 = value_124, compB_126 = undefined;
+    assertValue_7(24, true);
+  }
+  var wee_127 = function (enumConstructorArg_128) {
+    return function (enumConstructorArg_129) {
+      return [0, enumConstructorArg_128, enumConstructorArg_129];
+    };
+  };
+  var thisIsNull_130 = function () {
+  };
+  var wow_131 = function (enumConstructorArg_132) {
+    return [2, enumConstructorArg_132];
+  };
+  (print_3)([(wee_127)(1)(2), [0, 1, 2]]);
+  (print_3)([(thisIsNull_130)(), undefined]);
+  (print_3)([(wow_131)(3), [2, 3]]);
+  var ifLetValue_134 = (wee_127)(1)(2);
+  var ifLetResult_135 = false, a_136, b_137;
+  do {
+    if (ifLetValue_134 && ifLetValue_134[0] === 0) {
+      a_136 = ifLetValue_134[1];
+      b_137 = ifLetValue_134[2];
+    } else break;
+    ifLetResult_135 = true;
+  } while (false);
+  if (ifLetResult_135) {
+    var compA_138 = a_136, compB_139 = 1;
+    assertValue_7(25, compA_138 === compB_139);
+    var compA_140 = b_137, compB_141 = 2;
+    assertValue_7(26, compA_140 === compB_141);
+  }
+  var ifLetValue_143 = (thisIsNull_130)();
+  var ifLetResult_144 = false, value_145;
+  do {
+    if (!ifLetValue_143) {
+      value_145 = undefined;
+    } else break;
+    ifLetResult_144 = true;
+  } while (false);
+  if (ifLetResult_144) {
+    var compA_146 = value_145, compB_147 = ((justMe_28)())();
+    assertValue_7(27, true);
+  }
+  var ifLetValue_149 = (wow_131)(3);
+  var ifLetResult_150 = false, value_151;
+  do {
+    if (ifLetValue_149 && ifLetValue_149[0] === 2) {
+      value_151 = ifLetValue_149[1];
+    } else break;
+    ifLetResult_150 = true;
+  } while (false);
+  if (ifLetResult_150) {
+    var compA_152 = value_151, compB_153 = 3;
+    assertValue_7(28, compA_152 === compB_153);
+  }
+  var funcExpr_157 = (yes_154);
+  var transform_156 = function () {
+    var return_158 = funcExpr_157(unit_159);
+    return "TODO";
+  };
+  var funcExpr_162 = (yes_154);
+  var transform_161 = function () {
+    var return_163 = funcExpr_162(unit_159);
+    return "TODO";
+  };
+  var compA_164 = transform_156(), compB_165 = transform_161();
+  assertValue_7(29, compA_164 === compB_165);
+  var funcExpr_168 = (yes_154);
+  var transform_167 = function () {
+    var return_169 = funcExpr_168(unit_159);
+    return "TODO";
+  };
+  var compA_170 = transform_167(), compB_171 = undefined;
+  assertValue_7(30, compA_170 !== compB_171);
+  var compA_172 = (yes_154)((null_41)()), compB_173 = (yes_154)((null_41)());
+  assertValue_7(31, (compA_172 && compB_173 ? compA_172[0] === compB_173[0] : compA_172 === compB_173));
+  var compA_174 = (yes_154)((null_41)()), compB_175 = undefined;
+  assertValue_7(32, compA_174 !== compB_175);
+  var compA_176 = (yes_154)((thisIsNull_130)()), compB_177 = (yes_154)((thisIsNull_130)());
+  assertValue_7(33, (compA_176 && compB_177 ? compA_176[0] === compB_177[0] : compA_176 === compB_177));
+  var compA_178 = (yes_154)((thisIsNull_130)()), compB_179 = undefined;
+  assertValue_7(34, compA_178 !== compB_179);
+  var compA_180 = (yes_154)(false), compB_181 = (yes_154)(false);
+  assertValue_7(35, compA_180 === compB_181);
+  var compA_182 = (yes_154)(false), compB_183 = undefined;
+  assertValue_7(36, compA_182 !== compB_183);
+  var nullableEnum_184 = function (enumConstructorArg_185) {
+    return [enumConstructorArg_185];
+  };
+  var alsoNull_186;
+  var mayBeConfusedWithAlsoNull_187;
+  mayBeConfusedWithAlsoNull_187 = (nullableEnum_184)((thisIsNull_130)());
+  (print_3)(["AHHH 1", alsoNull_186, mayBeConfusedWithAlsoNull_187]);
+  var compA_188 = alsoNull_186, compB_189 = mayBeConfusedWithAlsoNull_187;
+  assertValue_7(37, (compA_188 && compB_189 ? (compA_188[0] && compB_189[0] ? !deepEqual_190(compA_188[0], compB_189[0]) : compA_188[0] !== compB_189[0]) : compA_188 !== compB_189));
+  var ifLetValue_191 = mayBeConfusedWithAlsoNull_187;
+  var ifLetResult_192 = false;
+  do {
+    if (ifLetValue_191) break;
+    ifLetResult_192 = true;
+  } while (false);
+  assertValue_7(38, ifLetResult_192 ? false : true);
+  var compA_194 = (len_193)((wee_127)(1)(2)), compB_195 = 0;
+  assertValue_7(39, compA_194 === compB_195);
+  function main_196(callback) {
+    if (callback) callback();
+    if (typeof Promise !== "undefined") {
+      return Promise.resolve()
+    }
   }
   return {
     valueAssertions: valueAssertionResults_n,
+    main: main_196,
   };
 })();

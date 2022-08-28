@@ -8,17 +8,10 @@ export default {
     paer: makeFunction(() => [str, cmd.instance([unit])]),
   },
 
-  compile (context: CompilationContext): CompiledModule {
-    const paer = context.genVarName('paer')
+  compile(context: CompilationContext): CompiledModule {
+    const paer = context.require('paer')
     return {
-      statements: [
-        `function ${paer}(value) {`,
-        '  return function (callback) {',
-        '    console.log(value);',
-        '    callback();',
-        '  };',
-        '}',
-      ],
+      statements: [],
       exports: { paer },
     }
   },

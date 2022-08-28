@@ -18,7 +18,7 @@ export class RecordAccess extends Base implements Expression {
   field: Identifier
   private _type?: NRecord | NModule
 
-  constructor (
+  constructor(
     pos: BasePosition,
     [value, , field]: schem.infer<typeof RecordAccess.schema>,
   ) {
@@ -27,7 +27,7 @@ export class RecordAccess extends Base implements Expression {
     this.field = field
   }
 
-  typeCheck (context: TypeCheckContext): TypeCheckResult {
+  typeCheck(context: TypeCheckContext): TypeCheckResult {
     const { type, exitPoint } = context.scope.typeCheck(this.value)
     const resolved = AliasSpec.resolve(type)
     if (resolved.type === 'record' || resolved.type === 'module') {
@@ -49,8 +49,12 @@ export class RecordAccess extends Base implements Expression {
     }
   }
 
-  compile (scope: CompilationScope): CompilationResult {
-    const { statements, expression } = this.value.compile(scope)
+  compile(scope: CompilationScope): CompilationResult {
+    let statements;
+    let expression;
+    const compiled = this.value.compile(scope)
+    statements = compiled.statements;
+    expression = compiled.expression;
     const type = this._type!
     if (type.type === 'record') {
       const mangledKeys = scope.context.normaliseRecord(type)
@@ -74,7 +78,7 @@ export class RecordAccess extends Base implements Expression {
     }
   }
 
-  toString (): string {
+  toString(): string {
     return `${this.value}.${this.field}`
   }
 

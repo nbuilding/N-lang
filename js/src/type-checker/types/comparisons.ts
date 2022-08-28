@@ -1,4 +1,5 @@
 import { fromEntries } from '../../utils/from-entries'
+import { unit } from './builtins'
 import { NType } from './types'
 import { FuncTypeVarSpec } from './TypeSpec'
 
@@ -49,6 +50,8 @@ export function typeToResultType (type: NType): ComparisonResultType {
             type: 'func-type-var',
             id: type.typeSpec.id,
           }
+        : type.typeSpec === unit.typeSpec
+        ? { type: 'unit' }
         : {
             type: 'named',
             name: type.typeSpec.name,
