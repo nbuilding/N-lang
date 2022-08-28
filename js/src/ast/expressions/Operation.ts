@@ -23,7 +23,7 @@ import {
 } from '../../type-checker/types/operations/Operator'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { CompilationScope } from '../../compiler/CompilationScope'
-import { isInt } from '../../type-checker/types/builtins'
+import { isInt, isMaybe } from '../../type-checker/types/builtins'
 
 export class Operation<O extends Operator> extends Base
   implements Expression, Statement {
@@ -176,6 +176,11 @@ export class Operation<O extends Operator> extends Base
             statements,
             expression: `(${a}) | (${b})`,
           }
+        } else if (isMaybe(this._operandType!)) {
+          return {
+            statements,
+            expression: `(${a}) ?? (${b})`,
+          } 
         } else {
           if (sB.length === 0) {
             return {

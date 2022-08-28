@@ -77,6 +77,7 @@ export const operations: Record<Operator, NFunction[]> = {
   [Operator.OR]: [
     makeFunction(() => [int, int, int]),
     makeFunction(() => [bool, bool, bool]),
+    makeFunction(t => [maybe.instance([t]), t, t], 't'),
   ],
 
   [Operator.PIPE]: [
