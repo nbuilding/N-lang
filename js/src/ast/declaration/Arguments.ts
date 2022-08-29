@@ -9,7 +9,7 @@ export class Arguments extends Base {
 
   constructor (
     pos: BasePosition,
-    [, maybeTypeVars, maybeParams]: schem.infer<typeof Arguments.schema>,
+    [maybeTypeVars, , maybeParams]: schem.infer<typeof Arguments.schema>,
   ) {
     const typeVars = maybeTypeVars && maybeTypeVars[1]
     const params = maybeParams
@@ -27,25 +27,27 @@ export class Arguments extends Base {
   }
 
   static schema = schema.tuple([
-    schema.any, // [
     schema.nullable(
       schema.tuple([
-        schema.any, // _
+        schema.any, // [ _
         schema.instance(TypeVars),
+        schema.any, // _ ] _
       ]),
     ),
+    schema.any, // (
     schema.nullable(
       schema.tuple([
         schema.any, // _
         schema.instance(Declaration),
         schema.array(
           schema.tuple([
-            schema.any, // __
+            schema.any, // _ , _
             schema.instance(Declaration),
           ]),
         ),
+        schema.nullable(schema.any) // _ ,
       ]),
     ),
-    schema.any, // _ ]
+    schema.any, // _ )
   ])
 }

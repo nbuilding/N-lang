@@ -15,6 +15,20 @@ const lines: Record<
     '  };',
     '}',
   ],
+  
+  writeBytes: name => [
+    `function ${name}(path) {`,
+    '  return function (content) {',
+    '    return function (callback) {',
+    '      try {',
+    '        require("fs").writeFile(path, Buffer.from(content), (err, data) => { callback() })',
+    '      } catch (_) {',
+    '        return;',
+    '      }',
+    '    };',
+    '  };',
+    '}',
+  ],
 
   append: name => [
     `function ${name}(path) {`,
@@ -30,11 +44,37 @@ const lines: Record<
     '}',
   ],
 
+  appendBytes: name => [
+    `function ${name}(path) {`,
+    '  return function (content) {',
+    '    return function (callback) {',
+    '      try {',
+    '        require("fs").appendFile(path, Buffer.from(content), (err, data) => { callback() })',
+    '      } catch (_) {',
+    '        return;',
+    '      }',
+    '    };',
+    '  };',
+    '}',
+  ],
+
   read: name => [
     `function ${name}(path) {`,
     '  return function (callback) {',
     '    try {',
     '      require("fs").readFile(path, "utf8", (err, data) => { callback(err != null ? undefined : data) })',
+    '    } catch (_) {',
+    '      return;',
+    '    }',
+    '  };',
+    '}',
+  ],
+
+  readBytes: name => [
+    `function ${name}(path) {`,
+    '  return function (callback) {',
+    '    try {',
+    '      require("fs").readFile(path, (err, data) => { callback(err != null ? undefined : [...data]) })',
     '    } catch (_) {',
     '      return;',
     '    }',

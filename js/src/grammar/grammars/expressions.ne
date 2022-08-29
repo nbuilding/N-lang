@@ -9,7 +9,7 @@ returnExpression -> "return" _ expression {% from(ast.Return) %}
 
 funcExpr -> arguments (_ "->" _) type (_ "{" _) block (_ "}") {% from(ast.Function) %}
 
-arguments -> "[" (_ typeVarsDeclaration):? (_ definiteDeclaration (__ definiteDeclaration):*):? (_ "]") {% from(ast.Arguments) %}
+arguments -> (("[" _) typeVarsDeclaration (_ "]" _)):? ("(") (_ definiteDeclaration ((_ "," _) definiteDeclaration):* (_ ","):?):? (_ ")") {% from(ast.Arguments) %}
 
 tupleExpression -> noCommaExpression {% id %}
 	| (noCommaExpression _ "," _):+ noCommaExpression (_ ","):? {% from(ast.Tuple) %}
