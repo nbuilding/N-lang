@@ -11,6 +11,7 @@ export enum Operator {
   XOR = 'xor',
   SHIFTL = 'shiftl',
   SHIFTR = 'shiftr',
+  INDEX = 'index',
 }
 
 export function operatorToString (self: Operator): string {
@@ -39,5 +40,7 @@ export function operatorToString (self: Operator): string {
       return '<<'
     case Operator.SHIFTR:
       return '>>'
+      case Operator.INDEX:
+        return '['
   }
 }

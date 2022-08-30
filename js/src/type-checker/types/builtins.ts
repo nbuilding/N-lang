@@ -18,6 +18,10 @@ export function isMaybe (type: NType): boolean {
   return type.type == 'named' && type.typeSpec === maybe
 }
 
+export function isMap (type: NType): boolean {
+  return type.type == 'named' && type.typeSpec === map
+}
+
 export const number: NUnion = {
   type: 'union',
   types: [int.typeSpec, float.typeSpec],

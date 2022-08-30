@@ -69,6 +69,7 @@ postfixExpression -> value {% id %}
 	| postfixExpression (_ "." _) anyIdentifier {% from(ast.RecordAccess) %}
 
 postfixExpressionImpure -> postfixExpression _ "!" {% suffix(ast.UnaryOperator.AWAIT) %}
+  | postfixExpression _ "[" _ noCommaExpression _ "]" {% operation(ast.Operator.INDEX) %}
 	# No newlines allowed between the function and its arguments
 	| postfixExpression (_spaces "(" _) ((noCommaExpression (_ "," _)):* noCommaExpression ((_ ","):? _)):? ")" {% from(ast.FuncCall) %}
 

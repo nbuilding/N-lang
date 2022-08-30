@@ -23,7 +23,7 @@ import {
 } from '../../type-checker/types/operations/Operator'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { CompilationScope } from '../../compiler/CompilationScope'
-import { isInt, isMaybe } from '../../type-checker/types/builtins'
+import { isInt, isMap, isMaybe } from '../../type-checker/types/builtins'
 
 export class Operation<O extends Operator> extends Base
   implements Expression, Statement {
@@ -209,6 +209,18 @@ export class Operation<O extends Operator> extends Base
           expression: `(${b})(${a})`,
         }
       }
+      case Operator.INDEX: {
+        if (isMap(this._operandType!)) {
+          return {
+            statements,
+            expression: `(${a}).get((${b}))`
+          }
+        }
+        return {
+          statements,
+          expression: `(${a})[(${b})]`,
+        }
+      }
       default: {
         throw new Error('What operator could this be? ' + this.type)
       }
@@ -230,12 +242,20 @@ export class Operation<O extends Operator> extends Base
   static operation<O extends Operator> (
     operator: O,
   ): Preprocessor<Operation<O>> {
-    const opSchema = schema.tuple([
+    const opSchema = operator !== Operator.INDEX ? schema.tuple([
       schema.guard(isExpression),
       schema.any,
       schema.any,
       schema.any,
       schema.guard(isExpression),
+    ]) : schema.tuple([
+      schema.guard(isExpression),
+      schema.any,
+      schema.any,
+      schema.any,
+      schema.guard(isExpression),
+      schema.any,
+      schema.any,
     ])
     function fromSchema (
       pos: BasePosition,

@@ -83,6 +83,12 @@ export const operations: Record<Operator, NFunction[]> = {
   [Operator.PIPE]: [
     makeFunction((a, b) => [a, makeFunction(() => [a, b]), b], 'a', 'b'),
   ],
+  
+  [Operator.INDEX]: [
+    makeFunction(() => [str, int, maybe.instance([char])]),
+    makeFunction(t => [list.instance([t]), int, maybe.instance([t])], 't'),
+    makeFunction((k, v) => [map.instance([k, v]), k, maybe.instance([v])], 'k', 'v'),
+  ],
 }
 
 export const unaryOperations: Record<UnaryOperator, NFunction[]> = {
