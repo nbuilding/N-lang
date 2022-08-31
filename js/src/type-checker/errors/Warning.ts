@@ -102,7 +102,7 @@ export function displayWarningMessage (
       ]
     }
     case WarningType.VAR_UNSAFE: {
-      return display`The behaviour of ${'var'} statements is poorly defined, and its use is unsafe.`
+      return display`Mutating a variable inside a ${'cmd'} is unsafe and can lead to race conditions, please use the ${'mutex'} library instead to avoid them.`
     }
     default: {
       const errorMessage: unknown = err

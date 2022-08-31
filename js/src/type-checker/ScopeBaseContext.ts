@@ -48,6 +48,7 @@ export class ScopeBaseContext {
     type: NType,
     isPublic = false,
     warnAboutExportability = true,
+    isMutable = false,
   ): void {
     if (this.scope.variables.has(name.value)) {
       this.err({ type: ErrorType.DUPLICATE_VARIABLE }, name)
@@ -56,6 +57,9 @@ export class ScopeBaseContext {
       this.scope.variables.set(name.value, type)
       if (!isPublic && !name.value.startsWith('_')) {
         this.scope.unused.variables.set(name.value, name)
+      }
+      if (isMutable) {
+        this.scope.mutable.add(name.value)
       }
     }
     if (isPublic) {

@@ -13,16 +13,18 @@ import {
 
 export class LetStmt extends Base implements Statement {
   public: boolean
+  mutable: boolean
   declaration: Declaration
   value: Expression
 
   constructor (
     pos: BasePosition,
-    [, pub, decl, , expr]: schem.infer<typeof LetStmt.schema>,
+    [, pub, mut, decl, , expr]: schem.infer<typeof LetStmt.schema>,
   ) {
     super(pos, [decl, expr])
     this.declaration = decl
     this.public = pub !== null
+    this.mutable = mut !== null
     this.value = expr
   }
 
@@ -48,11 +50,12 @@ export class LetStmt extends Base implements Statement {
   }
 
   toString (): string {
-    return `let${this.public ? ' pub' : ''} ${this.declaration} = ${this.value}`
+    return `let${this.public ? ' pub' : ''}${this.mutable ? ' mut' : ''} ${this.declaration} = ${this.value}`
   }
 
   static schema = schema.tuple([
     schema.any,
+    schema.nullable(schema.tuple([schema.any, schema.any])),
     schema.nullable(schema.tuple([schema.any, schema.any])),
     schema.instance(Declaration),
     schema.any,

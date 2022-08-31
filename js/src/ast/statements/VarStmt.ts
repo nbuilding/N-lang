@@ -1,6 +1,7 @@
 import { CompilationScope } from '../../compiler/CompilationScope'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { WarningType } from '../../type-checker/errors/Warning'
+import { cmd } from '../../type-checker/types/builtins'
 import schema, * as schem from '../../utils/schema'
 import { Base, BasePosition } from '../base'
 import { Expression, isExpression } from '../expressions/Expression'
@@ -18,7 +19,7 @@ export class VarStmt extends Base implements Statement {
 
   constructor (
     pos: BasePosition,
-    [, name, , expr]: schem.infer<typeof VarStmt.schema>,
+    [name, , expr]: schem.infer<typeof VarStmt.schema>,
   ) {
     super(pos, [name, expr])
     this.var = name
@@ -26,10 +27,17 @@ export class VarStmt extends Base implements Statement {
   }
 
   checkStatement (context: CheckStatementContext): CheckStatementResult {
-    context.warn({
-      type: WarningType.VAR_UNSAFE,
-    })
-    const type = context.scope.getVariable(this.var.value, true)
+    const returnType = context.scope.getReturnType()
+    if (
+      !returnType ||
+      returnType.type !== 'named' ||
+      returnType.typeSpec !== cmd
+    ) {
+      context.warn({
+        type: WarningType.VAR_UNSAFE,
+      })
+    }
+    const type = context.scope.getVariable(this.var.value, false)
     if (this.var.value.startsWith('_')) {
       context.warn(
         {
@@ -65,7 +73,6 @@ export class VarStmt extends Base implements Statement {
   }
 
   static schema = schema.tuple([
-    schema.any,
     schema.instance(Identifier),
     schema.any,
     schema.guard(isExpression),

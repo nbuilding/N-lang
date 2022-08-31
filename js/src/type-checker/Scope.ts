@@ -47,6 +47,7 @@ export class Scope {
   }
   exports: ScopeNames<Set<string>> | null = null
   deferred: (() => void)[] = []
+  mutable: Set<string> = new Set()
 
   constructor (
     results: TypeCheckerResultsForFile,
@@ -100,6 +101,10 @@ export class Scope {
     } else {
       return null
     }
+  }
+
+  isVariableMutable (name: string): boolean {
+    return this.mutable.has(name) || (this.parent?.isVariableMutable(name) ?? false)
   }
 
   /**

@@ -17,9 +17,9 @@ statement -> "import" _ identifier {% from(ast.ImportStmt) %}
 	| pipeOperation {% id %}
 	| returnExpression {% id %}
 
-letStatement -> ("let" _) ("pub" _):? declaration (_ "=" _) expression {% from(ast.LetStmt) %}
+letStatement -> ("let" _) ("pub" _):? ("mut" _):? declaration (_ "=" _) expression {% from(ast.LetStmt) %}
 
-varStatement -> ("var" _) identifier (_ "=" _) expression {% from(ast.VarStmt) %}
+varStatement -> identifier (_ "=" _) expression {% from(ast.VarStmt) %}
 
 enumDeclaration -> ("type" _) ("pub" _):? typeSpec (_ "=" _) enumDefinition {% from(ast.EnumDeclaration) %}
 
