@@ -11,7 +11,7 @@ import {
 } from '../ast/statements/Statement'
 import { ErrorType } from './errors/Error'
 import { TypeCheckerResultsForFile } from './TypeChecker'
-import { NModule, NType, unknown } from './types/types'
+import { NFunction, NModule, NType, unknown } from './types/types'
 import {
   CheckPatternContext,
   CheckPatternResult,
@@ -48,8 +48,9 @@ export class Scope {
   exports: ScopeNames<Set<string>> | null = null
   deferred: (() => void)[] = []
   mutable: Set<string> = new Set()
+  traits: Map<string, Map<string, NFunction>> = new Map()
 
-  constructor (
+  constructor(
     results: TypeCheckerResultsForFile,
     parent?: Scope,
     { returnType, exportsAllowed }: ScopeOptions = {},
@@ -62,11 +63,11 @@ export class Scope {
     }
   }
 
-  inner (options?: ScopeOptions): Scope {
+  inner(options?: ScopeOptions): Scope {
     return new Scope(this.results, this, options)
   }
 
-  getReturnType (): NType | null {
+  getReturnType(): NType | null {
     if (typeof this.returnType !== 'string') {
       if (this.returnType) {
         return this.returnType
@@ -81,7 +82,7 @@ export class Scope {
    * Functions inside classes will return false; this is for warning about
    * exporting types.
    */
-  inClass (): boolean {
+  inClass(): boolean {
     if (this.returnType) {
       return this.returnType === 'class'
     } else if (this.parent) {
@@ -91,7 +92,7 @@ export class Scope {
     }
   }
 
-  getVariable (name: string, markAsUsed: boolean): NType | null {
+  getVariable(name: string, markAsUsed: boolean): NType | null {
     const type = this.variables.get(name)
     if (type) {
       if (markAsUsed) this.unused.variables.delete(name)
@@ -103,14 +104,14 @@ export class Scope {
     }
   }
 
-  isVariableMutable (name: string): boolean {
+  isVariableMutable(name: string): boolean {
     return this.mutable.has(name) || (this.parent?.isVariableMutable(name) ?? false)
   }
 
   /**
    * null is the error type spec while undefined means it's not in scope
    */
-  getType (name: string, markAsUsed: boolean): TypeSpec | 'error' | null {
+  getType(name: string, markAsUsed: boolean): TypeSpec | 'error' | null {
     const type = this.types.get(name)
     if (type) {
       if (markAsUsed) this.unused.types.delete(name)
@@ -122,7 +123,7 @@ export class Scope {
     }
   }
 
-  reportInternalError (error: unknown, base: Base): void {
+  reportInternalError(error: unknown, base: Base): void {
     this.results.errors.push({
       message: {
         type: ErrorType.INTERNAL_ERROR,
@@ -130,14 +131,14 @@ export class Scope {
           error instanceof Error
             ? error
             : new TypeError(
-                `A non-Error of type ${displayType(error)} was thrown.`,
-              ),
+              `A non-Error of type ${displayType(error)} was thrown.`,
+            ),
       },
       base,
     })
   }
 
-  getTypeFrom (base: Type): GetTypeResult {
+  getTypeFrom(base: Type): GetTypeResult {
     try {
       return base.getType(new GetTypeContext(this, base))
     } catch (err) {
@@ -148,7 +149,7 @@ export class Scope {
     }
   }
 
-  checkPattern (
+  checkPattern(
     base: Pattern,
     idealType: NType,
     definite: boolean,
@@ -164,7 +165,7 @@ export class Scope {
     }
   }
 
-  checkStatement (base: Statement): CheckStatementResult {
+  checkStatement(base: Statement): CheckStatementResult {
     try {
       return base.checkStatement(new CheckStatementContext(this, base))
     } catch (err) {
@@ -173,7 +174,7 @@ export class Scope {
     }
   }
 
-  checkDeclaration (
+  checkDeclaration(
     base: Declaration,
     valueType?: NType,
     options?: DeclarationOptions,
@@ -190,7 +191,7 @@ export class Scope {
     }
   }
 
-  typeCheck (base: Expression): TypeCheckResult {
+  typeCheck(base: Expression): TypeCheckResult {
     try {
       const result = base.typeCheck(new TypeCheckContext(this, base))
       if (result.type) {
@@ -205,7 +206,7 @@ export class Scope {
     }
   }
 
-  end (): void {
+  end(): void {
     for (const deferred of this.deferred) {
       deferred()
     }
@@ -242,7 +243,7 @@ export class Scope {
   /**
    * Captures current exports into a module type
    */
-  toModule (path: string): NModule {
+  toModule(path: string): NModule {
     if (!this.exports) {
       throw new Error('This scope does not have exports')
     }

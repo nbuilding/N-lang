@@ -12,11 +12,20 @@ import {
   maybe,
   result,
 } from '../type-checker/types/builtins'
-import { NType, makeFunction } from '../type-checker/types/types'
+import { NType, makeFunction, NFunction } from '../type-checker/types/types'
 import { TypeSpec } from '../type-checker/types/TypeSpec'
 
 const variables: Map<string, NType> = new Map()
 const types: Map<string, TypeSpec> = new Map()
+const traits: Map<string, Map<string, NFunction>> = new Map()
+
+const setTrait = (name: string, traitName: string, type: NFunction) => {
+  if (!traits.has(name)) {
+    traits.set(name, new Map())
+  }
+
+  traits.get(name)?.set(traitName, type)
+}
 
 types.set('str', str.typeSpec)
 types.set('int', int.typeSpec)
@@ -39,7 +48,8 @@ types.set('result', result)
 variables.set('ok', result.getConstructorType('ok'))
 variables.set('err', result.getConstructorType('err'))
 
-variables.set(
+setTrait(
+  'int',
   'intInBase10',
   makeFunction(() => [int, str]),
 )
@@ -73,7 +83,7 @@ variables.set(
 )
 variables.set(
   'len',
-  makeFunction(t => [t, int], 't'),
+  makeFunction(t => [t, int], false, 't'),
 )
 variables.set(
   'split',
@@ -89,11 +99,11 @@ variables.set(
 )
 variables.set(
   'print',
-  makeFunction(t => [t, t], 't'),
+  makeFunction(t => [t, t], false, 't'),
 )
 variables.set(
   'itemAt',
-  makeFunction(t => [int, list.instance([t]), maybe.instance([t])], 't'),
+  makeFunction(t => [int, list.instance([t]), maybe.instance([t])], false, 't'),
 )
 variables.set(
   'append',
@@ -107,13 +117,14 @@ variables.set(
       list.instance([a]),
       list.instance([b]),
     ],
+    false,
     'a',
     'b',
   ),
 )
 variables.set(
   'default',
-  makeFunction(t => [t, maybe.instance([t]), t], 't'),
+  makeFunction(t => [t, maybe.instance([t]), t], false, 't'),
 )
 variables.set(
   'then',
@@ -123,6 +134,7 @@ variables.set(
       cmd.instance([a]),
       cmd.instance([b]),
     ],
+    false,
     'k',
     'v',
   ),
@@ -134,6 +146,7 @@ variables.set(
       list.instance([{ type: 'tuple', types: [k, v] }]),
       map.instance([k, v]),
     ],
+    false,
     'k',
     'v',
   ),
@@ -142,6 +155,7 @@ variables.set(
   'getValue',
   makeFunction(
     (k, v) => [k, map.instance([k, v]), maybe.instance([v])],
+    false,
     'k',
     'v',
   ),
@@ -153,16 +167,18 @@ variables.set(
       map.instance([k, v]),
       list.instance([{ type: 'tuple', types: [k, v] }]),
     ],
+    false,
     'k',
     'v',
   ),
 )
 
 export class GlobalScope extends Scope {
-  constructor (results: TypeCheckerResultsForFile) {
+  constructor(results: TypeCheckerResultsForFile) {
     super(results)
 
     this.variables = variables
     this.types = types
+    this.traits = traits
   }
 }

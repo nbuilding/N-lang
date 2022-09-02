@@ -11,7 +11,7 @@ export class FuncType extends Base implements Type {
   returns: Type
   typeVars: TypeVars | null
 
-  constructor (
+  constructor(
     pos: BasePosition,
     [maybeTypeVars, takes, , returns]: schem.infer<typeof FuncType.schema>,
   ) {
@@ -21,7 +21,7 @@ export class FuncType extends Base implements Type {
     this.typeVars = maybeTypeVars && maybeTypeVars[0]
   }
 
-  getType (context: GetTypeContext): GetTypeResult {
+  getType(context: GetTypeContext): GetTypeResult {
     const scope = context.scope.inner()
     const typeVars = []
     if (this.typeVars) {
@@ -44,6 +44,7 @@ export class FuncType extends Base implements Type {
       argument: scope.getTypeFrom(this.takes).type,
       return: scope.getTypeFrom(this.returns).type,
       typeVars,
+      trait: false,
     }
     scope.end()
     return {
@@ -51,10 +52,9 @@ export class FuncType extends Base implements Type {
     }
   }
 
-  toString (): string {
-    return `(${this.typeVars ? this.typeVars + ' ' : ''}${this.takes} -> ${
-      this.returns
-    })`
+  toString(): string {
+    return `(${this.typeVars ? this.typeVars + ' ' : ''}${this.takes} -> ${this.returns
+      })`
   }
 
   static schema = schema.tuple([

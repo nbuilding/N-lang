@@ -171,6 +171,9 @@ export enum ErrorType {
 
   /** Cannot resolve function type variable for last argument */
   UNRESOLVED_GENERIC = 'unresolved-generic',
+
+  /** Trait does not exist on type */
+  NO_TRAIT = 'no-trait'
 }
 
 export type TypeErrorType =
@@ -185,135 +188,136 @@ export type TypeErrorType =
 
 export type ErrorMessage =
   | {
-      type: ErrorType.INTERNAL_ERROR
-      error: Error
-    }
+    type: ErrorType.INTERNAL_ERROR
+    error: Error
+  }
   | {
-      type: ErrorType.UNDEFINED_VARIABLE | ErrorType.UNDEFINED_TYPE
-      name: string
-    }
+    type: ErrorType.UNDEFINED_VARIABLE | ErrorType.UNDEFINED_TYPE
+    name: string
+  }
   | {
-      type: ErrorType.NOT_MODULE
-      modType: NType
-    }
+    type: ErrorType.NOT_MODULE
+    modType: NType
+  }
   | {
-      type: ErrorType.NOT_EXPORTED
-      name: string
-      exported: 'module' | 'type'
-    }
+    type: ErrorType.NOT_EXPORTED
+    name: string
+    exported: 'module' | 'type'
+  }
   | {
-      type: ErrorType.TYPE_ANNOTATION_NEEDED
-    }
+    type: ErrorType.TYPE_ANNOTATION_NEEDED
+  }
   | {
-      type: TypeErrorType
-      error: ComparisonResult
-    }
+    type: TypeErrorType
+    error: ComparisonResult
+  }
   | {
-      type: ErrorType.LIST_ITEMS_MISMATCH
-      error: ComparisonResult
-      index: number
-    }
+    type: ErrorType.LIST_ITEMS_MISMATCH
+    error: ComparisonResult
+    index: number
+  }
   | {
-      type: ErrorType.CALL_NON_FUNCTION
-      funcType: NType
-    }
+    type: ErrorType.CALL_NON_FUNCTION
+    funcType: NType
+  }
   | {
-      type: ErrorType.TOO_MANY_ARGS
-      funcType: NType
-      argPos: number
-    }
+    type: ErrorType.TOO_MANY_ARGS
+    funcType: NType
+    argPos: number
+  }
   | {
-      type: ErrorType.ARG_MISMATCH
-      error: ComparisonResult
-      argPos: number
-    }
+    type: ErrorType.ARG_MISMATCH
+    error: ComparisonResult
+    argPos: number
+  }
   | {
-      type: ErrorType.UNRESOLVED_GENERIC
-      funcType: NType
-    }
+    type: ErrorType.UNRESOLVED_GENERIC
+    funcType: NType
+  }
   | {
-      type: ErrorType.PATTERN_MISMATCH
-      assignedTo: NType
-      destructure: 'enum' | 'list' | 'tuple' | 'record'
-    }
+    type: ErrorType.PATTERN_MISMATCH
+    assignedTo: NType
+    destructure: 'enum' | 'list' | 'tuple' | 'record'
+  }
   | {
-      type: ErrorType.ENUM_PATTERN_NO_VARIANT
-      enum: NType
-      variant: string
-    }
+    type: ErrorType.ENUM_PATTERN_NO_VARIANT
+    enum: NType
+    variant: string
+  }
   | {
-      type: ErrorType.ENUM_PATTERN_DEF_MULT_VARIANTS
-      enum: NType
-      variant: string
-      otherVariants: string[]
-    }
+    type: ErrorType.ENUM_PATTERN_DEF_MULT_VARIANTS
+    enum: NType
+    variant: string
+    otherVariants: string[]
+  }
   | {
-      type: ErrorType.LIST_PATTERN_DEFINITE
-      items: number
-    }
+    type: ErrorType.LIST_PATTERN_DEFINITE
+    items: number
+  }
   | {
-      type: ErrorType.ENUM_PATTERN_FIELD_MISMATCH
-      enum: NType
-      variant: string
-      fields: number
-      given: number
-    }
+    type: ErrorType.ENUM_PATTERN_FIELD_MISMATCH
+    enum: NType
+    variant: string
+    fields: number
+    given: number
+  }
   | {
-      type: ErrorType.TUPLE_PATTERN_LENGTH_MISMATCH
-      tuple: NType
-      fields: number
-      given: number
-    }
+    type: ErrorType.TUPLE_PATTERN_LENGTH_MISMATCH
+    tuple: NType
+    fields: number
+    given: number
+  }
   | {
-      type: ErrorType.RECORD_PATTERN_NO_KEY
-      recordType: NType
-      key: string
-    }
+    type: ErrorType.RECORD_PATTERN_NO_KEY
+    recordType: NType
+    key: string
+  }
   | {
-      type: ErrorType.OPERATION_UNPERFORMABLE
-      a: NType
-      b: NType
-      operation: Operator
-    }
+    type: ErrorType.OPERATION_UNPERFORMABLE
+    a: NType
+    b: NType
+    operation: Operator
+  }
   | {
-      type: ErrorType.UNARY_OPERATION_UNPERFORMABLE
-      operand: NType
-      operation: UnaryOperator
-    }
+    type: ErrorType.UNARY_OPERATION_UNPERFORMABLE
+    operand: NType
+    operation: UnaryOperator
+  }
   | {
-      type: ErrorType.RECORD_LITERAL_DUPE_KEY
-      key: string
-    }
+    type: ErrorType.RECORD_LITERAL_DUPE_KEY
+    key: string
+  }
   | {
-      type: ErrorType.DUPLICATE_TYPE_VAR
-      in: 'func-expr' | 'alias' | 'enum' | 'func-type'
-    }
+    type: ErrorType.DUPLICATE_TYPE_VAR
+    in: 'func-expr' | 'alias' | 'enum' | 'func-type'
+  }
   | {
-      type: ErrorType.CANNOT_IMPORT
-      reason: 'not-found' | 'bad-path'
-    }
+    type: ErrorType.CANNOT_IMPORT
+    reason: 'not-found' | 'bad-path'
+  }
   | {
-      // Too lazy to add things to these; can do later
-      type:
-        | ErrorType.RECORD_NO_FIELD
-        | ErrorType.ACCESS_FIELD_OF_NON_RECORD
-        | ErrorType.RETURN_OUTSIDE_FUNCTION
-        | ErrorType.AWAIT_OUTSIDE_CMD
-        | ErrorType.DUPLICATE_VARIABLE
-        | ErrorType.DUPLICATE_TYPE
-        | ErrorType.FOR_LEGACY_NOT_ITERABLE
-        | ErrorType.FOR_NOT_ITERABLE
-        | ErrorType.RECORD_TYPE_DUPLICATE_KEY
-        | ErrorType.COMPARISON_CANNOT_EQUAL
-        | ErrorType.COMPARISON_CANNOT_COMPARE
-        | ErrorType.RECORD_PATTERN_DUPE_KEY
-        | ErrorType.DUPLICATE_VARIANT
-        | ErrorType.PUBLIC_VARIANT_PRIVATE_TYPE
-        | ErrorType.CANNOT_EXPORT
-        | ErrorType.CLASS_NO_TYPEVAR
-        | ErrorType.NO_NATIVE_MODULE
-        | ErrorType.CIRCULAR_IMPORTS
-    }
+    // Too lazy to add things to these; can do later
+    type:
+    | ErrorType.RECORD_NO_FIELD
+    | ErrorType.ACCESS_FIELD_OF_NON_RECORD
+    | ErrorType.RETURN_OUTSIDE_FUNCTION
+    | ErrorType.AWAIT_OUTSIDE_CMD
+    | ErrorType.DUPLICATE_VARIABLE
+    | ErrorType.DUPLICATE_TYPE
+    | ErrorType.FOR_LEGACY_NOT_ITERABLE
+    | ErrorType.FOR_NOT_ITERABLE
+    | ErrorType.RECORD_TYPE_DUPLICATE_KEY
+    | ErrorType.COMPARISON_CANNOT_EQUAL
+    | ErrorType.COMPARISON_CANNOT_COMPARE
+    | ErrorType.RECORD_PATTERN_DUPE_KEY
+    | ErrorType.DUPLICATE_VARIANT
+    | ErrorType.PUBLIC_VARIANT_PRIVATE_TYPE
+    | ErrorType.CANNOT_EXPORT
+    | ErrorType.CLASS_NO_TYPEVAR
+    | ErrorType.NO_NATIVE_MODULE
+    | ErrorType.CIRCULAR_IMPORTS
+    | ErrorType.NO_TRAIT
+  }
 
 interface NError {
   message: ErrorMessage
@@ -322,7 +326,7 @@ interface NError {
 export { NError as Error }
 
 // Maybe this shouldn't rely on `base`
-export function displayErrorMessage (
+export function displayErrorMessage(
   { message: err, base }: NError,
   display: (strings: TemplateStringsArray, ...items: InlineDisplay[]) => string,
 ): string | [string, ...(BlockDisplay | false)[]] {
@@ -356,18 +360,17 @@ export function displayErrorMessage (
       return err.destructure === 'enum'
         ? display`You destructure a ${err.assignedTo} with a pattern meant for enums, but it's not an enum.`
         : err.destructure === 'list'
-        ? display`You destructure a ${err.assignedTo} with a pattern meant for lists, but it's not a list.`
-        : err.destructure === 'record'
-        ? display`You destructure a ${err.assignedTo} with a pattern meant for records, but it's not a record.`
-        : display`You destructure a ${err.assignedTo} with a pattern meant for tuples, but it's not a tuple.`
+          ? display`You destructure a ${err.assignedTo} with a pattern meant for lists, but it's not a list.`
+          : err.destructure === 'record'
+            ? display`You destructure a ${err.assignedTo} with a pattern meant for records, but it's not a record.`
+            : display`You destructure a ${err.assignedTo} with a pattern meant for tuples, but it's not a tuple.`
     }
     case ErrorType.ENUM_PATTERN_DEF_MULT_VARIANTS: {
-      return display`Here, you expect that the ${err.enum} should be the ${
-        err.variant
-      } variant. However, it could also be ${[
-        'or',
-        err.otherVariants.map(variant => display`${variant}`),
-      ]}, so I don't know what to do in those scenarios.`
+      return display`Here, you expect that the ${err.enum} should be the ${err.variant
+        } variant. However, it could also be ${[
+          'or',
+          err.otherVariants.map(variant => display`${variant}`),
+        ]}, so I don't know what to do in those scenarios.`
     }
     case ErrorType.ENUM_PATTERN_FIELD_MISMATCH: {
       return [
@@ -378,7 +381,7 @@ export function displayErrorMessage (
         ]}, but you gave ${['just one field', err.given, 'fields']}.`,
         base,
         err.given < err.fields &&
-          display`If you don't need all the fields, you can use ${'_'} to discard the fields you don't need.`,
+        display`If you don't need all the fields, you can use ${'_'} to discard the fields you don't need.`,
       ]
     }
     case ErrorType.ENUM_PATTERN_NO_VARIANT: {
@@ -415,9 +418,8 @@ export function displayErrorMessage (
       return display`A ${err.recordType} doesn't have a field named ${err.key}.`
     }
     case ErrorType.TOO_MANY_ARGS: {
-      return display`You gave too many arguments to a ${
-        err.funcType
-      }, which doesn't take a ${[err.argPos, 'th']} argument.`
+      return display`You gave too many arguments to a ${err.funcType
+        }, which doesn't take a ${[err.argPos, 'th']} argument.`
     }
     case ErrorType.TUPLE_PATTERN_LENGTH_MISMATCH: {
       // Don't worry about the singular forms; tuples should have a minimum of

@@ -38,7 +38,7 @@ export type NRecord = {
   type: 'record'
   types: Map<string, NType>
 }
-export function makeRecord (types: Record<string, NType>): NRecord {
+export function makeRecord(types: Record<string, NType>): NRecord {
   return {
     type: 'record',
     types: new Map(Object.entries(types)),
@@ -58,10 +58,12 @@ export type NFunction = {
   argument: NType
   return: NType
   typeVars: FuncTypeVarSpec[]
+  trait: boolean
 }
-export function functionFromTypes (
+export function functionFromTypes(
   types: NType[],
   typeVars: FuncTypeVarSpec[] = [],
+  trait: boolean = false,
 ): NFunction {
   if (types.length > 2) {
     return {
@@ -69,15 +71,17 @@ export function functionFromTypes (
       argument: types[0],
       return: functionFromTypes(types.slice(1)),
       typeVars,
+      trait
     }
   } else if (types.length === 2) {
-    return { type: 'function', argument: types[0], return: types[1], typeVars }
+    return { type: 'function', argument: types[0], return: types[1], typeVars, trait }
   } else {
     throw new RangeError('Can only make a function from 2+ types.')
   }
 }
-export function makeFunction (
+export function makeFunction(
   typesMaker: (...typeVars: NamedType[]) => NType[],
+  trait = false,
   ...typeVarNames: string[]
 ): NFunction {
   const typeVars = typeVarNames.map(name => new FuncTypeVarSpec(name))
@@ -109,24 +113,24 @@ export type NType = NTypeKnown | Unknown
 /**
  * Returns an iterator over all the types and their contained types.
  */
-export function * iterateType (type: NType): Generator<NType> {
+export function* iterateType(type: NType): Generator<NType> {
   yield type
   switch (type.type) {
     case 'named': {
       for (const typeVar of type.typeVars) {
-        yield * iterateType(typeVar)
+        yield* iterateType(typeVar)
       }
       break
     }
     case 'tuple': {
       for (const item of type.types) {
-        yield * iterateType(item)
+        yield* iterateType(item)
       }
       break
     }
     case 'record': {
       for (const item of type.types.values()) {
-        yield * iterateType(item)
+        yield* iterateType(item)
       }
       break
     }
@@ -143,7 +147,7 @@ export function * iterateType (type: NType): Generator<NType> {
  * function will return the type. Otherwise, it'll map over all the contained
  * types in the type.
  */
-function mapType (
+function mapType(
   type: NType,
   mapFn: (type: NType) => NType | undefined,
 ): NType {
@@ -179,6 +183,7 @@ function mapType (
         argument: mapType(type.argument, mapFn),
         return: mapType(type.return, mapFn),
         typeVars: type.typeVars,
+        trait: false,
       }
       return newType
     }
@@ -190,7 +195,7 @@ function mapType (
 
 // NOTE: Unused; may remove
 /** Get all the function type variable specs in a type */
-export function getFuncTypeVars (type: NType): Set<FuncTypeVarSpec> {
+export function getFuncTypeVars(type: NType): Set<FuncTypeVarSpec> {
   const typeVarSpecs: Set<FuncTypeVarSpec> = new Set()
   for (const innerType of iterateType(type)) {
     if (
@@ -210,7 +215,7 @@ export function getFuncTypeVars (type: NType): Set<FuncTypeVarSpec> {
  * substituted, which can happen if they aren't used in the function (in which
  * case they can be removed).
  */
-export function substitute (
+export function substitute(
   type: NType,
   substitutions: Map<TypeSpec, NType>,
   trackSubstitutions?: Set<TypeSpec>,
