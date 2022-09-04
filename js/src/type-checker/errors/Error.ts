@@ -171,6 +171,9 @@ export enum ErrorType {
 
   /** Cannot resolve function type variable for last argument */
   UNRESOLVED_GENERIC = 'unresolved-generic',
+
+  /** Type cannot be spread properly */
+  UNALLOWED_SPREAD = 'unallowed-spread'
 }
 
 export type TypeErrorType =
@@ -313,6 +316,7 @@ export type ErrorMessage =
         | ErrorType.CLASS_NO_TYPEVAR
         | ErrorType.NO_NATIVE_MODULE
         | ErrorType.CIRCULAR_IMPORTS
+        | ErrorType.UNALLOWED_SPREAD
     }
 
 interface NError {

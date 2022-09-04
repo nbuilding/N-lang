@@ -11,6 +11,11 @@ funcExpr -> arguments (_ "->" _) type (_ "{" _) block (_ "}") {% from(ast.Functi
 
 arguments -> (("[" _) typeVarsDeclaration (_ "]" _)):? ("(") (_ definiteDeclaration ((_ "," _) definiteDeclaration):* (_ ","):?):? (_ ")") {% from(ast.Arguments) %}
 
+spread -> ".." noCommaExpression {% from(ast.Spread) %}
+
+spreadableExpression -> spread {% id %}
+  | noCommaExpression {% id %}
+
 tupleExpression -> noCommaExpression {% id %}
 	| (noCommaExpression _ "," _):+ noCommaExpression (_ ","):? {% from(ast.Tuple) %}
 
@@ -71,7 +76,7 @@ postfixExpression -> value {% id %}
 postfixExpressionImpure -> postfixExpression _ "!" {% suffix(ast.UnaryOperator.AWAIT) %}
   | postfixExpression _ "[" _ noCommaExpression _ "]" {% operation(ast.Operator.INDEX) %}
 	# No newlines allowed between the function and its arguments
-	| postfixExpression (_spaces "(" _) ((noCommaExpression (_ "," _)):* noCommaExpression ((_ ","):? _)):? ")" {% from(ast.FuncCall) %}
+	| postfixExpression (_spaces "(" _) ((spreadableExpression (_ "," _)):* spreadableExpression ((_ ","):? _)):? ")" {% from(ast.FuncCall) %}
 
 # Generally, values are the same as expressions except they require some form of
 # enclosing brackets for more complex expressions, which can help avoid syntax
@@ -83,11 +88,12 @@ value -> identifier {% id %}
 	| %char {% from(ast.Char) %}
 	| "(" _ ")" {% from(ast.Unit) %}
 	| "(" _ expression _ ")" {% includeBrackets %}
-	| ("[" _) ((noCommaExpression (_ "," _)):* noCommaExpression ((_ ","):? _)):? "]" {% from(ast.List) %}
+	| ("[" _) ((spreadableExpression (_ "," _)):* spreadableExpression ((_ ","):? _)):? "]" {% from(ast.List) %}
 	| ("{" _) ((recordEntry (_ "," _)):* recordEntry ((_ ","):? _)):? "}" {% from(ast.Record) %}
 
 recordEntry -> anyIdentifier (_ ":" _) noCommaExpression {% from(ast.RecordEntry) %}
 	| identifier {% from(ast.RecordEntry) %}
+	| spread {% id %}
 
 string -> %string {% from(ast.String) %}
 

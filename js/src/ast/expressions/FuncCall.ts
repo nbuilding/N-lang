@@ -17,7 +17,6 @@ import {
   NFunction,
   NType,
   NTypeKnown,
-  substitute,
   unknown,
 } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
@@ -27,6 +26,7 @@ import { CompilationScope } from '../../compiler/CompilationScope'
 import { isUnitLike } from '../../type-checker/types/isUnitLike'
 import { AliasSpec, FuncTypeVarSpec } from '../../type-checker/types/TypeSpec'
 import { isNullableMaybe } from '../../compiler/EnumRepresentation'
+import { Spread } from './Spread'
 
 export class FuncCall extends Base implements Expression, Statement {
   func: Expression
@@ -66,64 +66,86 @@ export class FuncCall extends Base implements Expression, Statement {
     let returnType: NType | null = funcResult.type
     // Check for extra arguments at this step to be able to detect extra
     // arguments for [t] str -> t
-    const paramTypes: [NType, Expression][] = this.params.map((param, i) => {
-      if (returnType) {
-        returnType = AliasSpec.resolve(returnType)
-        if (returnType.type === 'function') {
-          returnType = returnType.return
-        } else if (returnType.type !== 'unknown') {
-          if (i === 0) {
-            context.err(
-              {
-                type: ErrorType.CALL_NON_FUNCTION,
-                funcType,
-              },
-              this.func,
-            )
-          } else {
-            context.err(
-              {
-                type: ErrorType.TOO_MANY_ARGS,
-                funcType,
-                argPos: i + 1,
-              },
-              param,
-            )
+    // 
+    // Also check for spread arguments, and denote them if they are present
+    const paramTypes: [NType, Expression, boolean][] = this.params.map((param, i) => {
+      const paramExpr = context.scope.typeCheck(param)
+
+      const vals = param instanceof Spread && paramExpr.type.type === 'tuple' ? paramExpr.type.types  : [param]
+      if (param instanceof Spread && paramExpr.type.type !== 'tuple') {
+        context.err(
+          {
+            type: ErrorType.UNALLOWED_SPREAD,
           }
-          returnType = null
+        )
+      }
+      for (const _ of vals) {
+        if (returnType) {
+          returnType = AliasSpec.resolve(returnType)
+          if (returnType.type === 'function') {
+            returnType = returnType.return
+          } else if (returnType.type !== 'unknown') {
+            if (i === 0) {
+              context.err(
+                {
+                  type: ErrorType.CALL_NON_FUNCTION,
+                  funcType: returnType,
+                },
+                this.func,
+              )
+            } else {
+              context.err(
+                {
+                  type: ErrorType.TOO_MANY_ARGS,
+                  funcType: returnType,
+                  argPos: i + 1,
+                },
+                param,
+              )
+            }
+            returnType = null
+          }
         }
       }
 
-      const paramExpr = context.scope.typeCheck(param)
       if (paramExpr.exitPoint && !exitPoint) {
         exitPoint = paramExpr.exitPoint
       }
       this._paramTypes[i] = paramExpr.type
-      return [paramExpr.type, param]
+      return [paramExpr.type, param, param instanceof Spread]
     })
+    if (!returnType) {
+      return { type: unknown, exitPoint }
+    }
     if (paramTypes.length === 0) {
-      paramTypes.push([unit, this])
+      paramTypes.push([unit, this, false])
     }
 
     let funcType = funcResult.type
     let argPos = 1
-    for (const [param, base] of paramTypes) {
+    for (const [param, base, spread] of paramTypes) {
       funcType = AliasSpec.resolve(funcType)
       if (funcType.type === 'function') {
-        this._funcTypes[argPos - 1] = funcType
-        const result = callFunction(funcType, param)
-        if (result.error) {
-          context.err(
-            {
-              type: ErrorType.ARG_MISMATCH,
-              error: result.error,
-              argPos,
-            },
-            base,
-          )
+        const argumentTypes = spread && param.type === 'tuple' ? param.types : [param]
+        for (const t of argumentTypes) {
+          if (funcType.type !== 'function' ){
+            throw new Error('Unexpected tuple size')
+          }
+          this._funcTypes[argPos - 1] = funcType
+          const result = callFunction(funcType, t)
+          if (result.error) {
+            context.err(
+              {
+                type: ErrorType.ARG_MISMATCH,
+                error: result.error,
+                argPos,
+              },
+              base,
+            )
+          }
+          funcType = result.return
+          this._substitutions[argPos - 1] = result.typeVarSubstitutions
         }
-        funcType = result.return
-        this._substitutions[argPos - 1] = result.typeVarSubstitutions
       } else {
         return { type: unknown, exitPoint }
       }
@@ -196,7 +218,7 @@ export class FuncCall extends Base implements Expression, Statement {
         } else {
           const { statements: s, expression: e } = param.compile(scope)
           statements.push(...s)
-          expression += `(${e})`
+          expression += `(${param instanceof Spread ? '...' : ''}${e})`
         }
       })
     } else {

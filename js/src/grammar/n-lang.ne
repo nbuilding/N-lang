@@ -31,7 +31,7 @@ const lexer = moo.states({
 		comment: /\/\/.*?$/,
 		multilineCommentStart: { match: '/*', push: 'multilineComment' },
 		symbol: [
-			'->', ':', '.', ',',
+			'->', ':', '..',  '.', ',',
 		],
 		await: '!',
 		funcOperator: [

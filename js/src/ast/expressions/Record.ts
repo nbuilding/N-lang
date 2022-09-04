@@ -11,6 +11,7 @@ import {
   TypeCheckContext,
   TypeCheckResult,
 } from './Expression'
+import { Spread } from './Spread'
 
 export class RecordEntry extends Base {
   key: Identifier
@@ -57,18 +58,29 @@ export class Record extends Base implements Expression {
   }
 
   typeCheck (context: TypeCheckContext): TypeCheckResult {
-    const types = new Map()
+    let types = new Map()
     let exitPoint
     for (const entry of this.entries) {
       const { type, exitPoint: exit } = context.scope.typeCheck(entry.value)
-      if (types.has(entry.key.value)) {
-        types.set(entry.key.value, unknown)
-        context.err({
-          type: ErrorType.RECORD_LITERAL_DUPE_KEY,
-          key: entry.key.value,
-        })
+      if (entry.value instanceof Spread) {
+        if (type.type === 'record') {
+          types = new Map([...Array.from(types.entries()), ...Array.from(type.types.entries())]);
+        } else {
+          types.set(entry.key.value, unknown)
+          context.err({
+            type: ErrorType.UNALLOWED_SPREAD,
+          })
+        }
       } else {
-        types.set(entry.key.value, type)
+        if (types.has(entry.key.value)) {
+          types.set(entry.key.value, unknown)
+          context.err({
+            type: ErrorType.RECORD_LITERAL_DUPE_KEY,
+            key: entry.key.value,
+          })
+        } else {
+          types.set(entry.key.value, type)
+        }
       }
       if (!exitPoint) exitPoint = exit
     }

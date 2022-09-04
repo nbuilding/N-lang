@@ -15,6 +15,7 @@ export { Operation } from './expressions/Operation'
 export { Record, RecordEntry } from './expressions/Record'
 export { RecordAccess } from './expressions/RecordAccess'
 export { Return } from './expressions/Return'
+export { Spread } from './expressions/Spread'
 export { Tuple } from './expressions/Tuple'
 export { UnaryOperation } from './expressions/UnaryOperation'
 

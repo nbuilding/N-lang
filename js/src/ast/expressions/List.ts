@@ -12,6 +12,7 @@ import { list } from '../../type-checker/types/builtins'
 import { unknown } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { CompilationScope } from '../../compiler/CompilationScope'
+import { Spread } from './Spread'
 
 export class List extends Base implements Expression {
   items: Expression[]
@@ -32,7 +33,19 @@ export class List extends Base implements Expression {
     let exitPoint
     for (const item of this.items) {
       const { type, exitPoint: exit } = context.scope.typeCheck(item)
-      types.push(type)
+      if (item instanceof Spread) {
+        if (type.type == 'named' && type.typeSpec === list) {
+          types.push(type.typeVars[0])
+        } else {
+          context.err(
+            {
+              type: ErrorType.UNALLOWED_SPREAD,
+            }
+          )
+        }
+      } else {
+        types.push(type)
+      }
       if (!exitPoint) exitPoint = exit
     }
     if (types.length === 0) {
@@ -56,7 +69,7 @@ export class List extends Base implements Expression {
     for (const item of this.items) {
       const { statements: s, expression } = item.compile(scope)
       statements.push(...s)
-      expressions.push(expression)
+      expressions.push((item instanceof Spread ? '...' : '') + expression)
     }
     return {
       statements,
