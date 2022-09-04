@@ -8,7 +8,6 @@ statement -> "import" _ identifier {% from(ast.ImportStmt) %}
 	| enumDeclaration {% id %}
 	| aliasDefinition {% id %}
 	| classDeclaration {% id %}
-	| oldForLoop {% id %}
 	| forLoop {% id %}
 	| ifStatement {% id %}
 	| assertType {% id %}
@@ -33,8 +32,6 @@ enumVariant ->  identifier (_ "(") (_ typeValue):* (_ ")")
 aliasDefinition -> ("alias" _) ("pub" _):? typeSpec (_ "=" _) type {% from(ast.AliasDeclaration) %}
 
 classDeclaration -> ("class" _) ("pub" _):? identifier _ arguments (_ "{" _) block (_ "}") {% from(ast.ClassDeclaration) %}
-
-oldForLoop -> ("for" _) declaration _ value (_ "{" _) block (_ "}") {% from(ast.OldFor) %}
 
 forLoop -> ("for" _ "(" _) declaration (_ "in" _) expression (_ ")" _ "{" _) block (_ "}") {% from(ast.For) %}
 
