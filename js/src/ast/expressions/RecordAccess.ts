@@ -8,7 +8,7 @@ import {
 } from './Expression'
 import { Base, BasePosition } from '../base'
 import { Identifier } from '../literals/Identifier'
-import { NModule, NRecord, unknown } from '../../type-checker/types/types'
+import { NamedType, NModule, NRecord, unknown } from '../../type-checker/types/types'
 import { ErrorType } from '../../type-checker/errors/Error'
 import { CompilationScope } from '../../compiler/CompilationScope'
 import { AliasSpec } from '../../type-checker/types/TypeSpec'
@@ -16,7 +16,7 @@ import { AliasSpec } from '../../type-checker/types/TypeSpec'
 export class RecordAccess extends Base implements Expression {
   value: Expression
   field: Identifier
-  private _type?: NRecord | NModule
+  private _type?: NRecord | NModule | NamedType
 
   constructor(
     pos: BasePosition,
@@ -40,6 +40,17 @@ export class RecordAccess extends Base implements Expression {
       }
       return { type: fieldType || unknown, exitPoint }
     } else {
+      if (resolved.type === 'named') {
+        const possibleTraits = context.scope.traits.get(resolved.typeSpec.name)
+        if (possibleTraits && possibleTraits.has(this.field.value)) {
+          return { type: possibleTraits.get(this.field.value) || unknown, exitPoint }
+        } else {
+          context.err({
+            type: ErrorType.NO_TRAIT,
+          })
+          return { type: unknown, exitPoint }
+        }
+      }
       if (resolved.type !== 'unknown') {
         context.err({
           type: ErrorType.ACCESS_FIELD_OF_NON_RECORD,
@@ -61,6 +72,11 @@ export class RecordAccess extends Base implements Expression {
       return {
         statements,
         expression: `(${expression}).${mangledKeys[this.field.value]}`,
+      }
+    } else if (type.type === 'named') {
+      return {
+        statements,
+        expression: `(${scope.context.require(this.field.value)})(${expression})`,
       }
     } else {
       const exportName = scope.context

@@ -22,7 +22,7 @@ type CompareEqualResult = {
  * Symmetrically compare two types. The comparison result will be in terms of
  * the second type.
  */
-export function compareEqual (
+export function compareEqual(
   context: CompareEqualContext,
   typeA: NType,
   typeB: NType,
@@ -49,10 +49,10 @@ export function compareEqual (
       type: issue
         ? unknown
         : {
-            type: 'named',
-            typeSpec: typeA.typeSpec,
-            typeVars: vars.map(result => result.type),
-          },
+          type: 'named',
+          typeSpec: typeA.typeSpec,
+          typeVars: vars.map(result => result.type),
+        },
       result: {
         type: 'named',
         name: typeA.typeSpec.name,
@@ -191,15 +191,15 @@ export function compareEqual (
     let issue: ComparisonIssue | undefined =
       typeB.types.length < typeA.types.length
         ? {
-            issue: 'need-extra-items',
-            types: typeA.types.slice(typeB.types.length).map(typeToResultType),
-          }
+          issue: 'need-extra-items',
+          types: typeA.types.slice(typeB.types.length).map(typeToResultType),
+        }
         : typeB.types.length > typeA.types.length
-        ? {
+          ? {
             issue: 'too-many-items',
             extra: typeB.types.length - typeA.types.length,
           }
-        : undefined
+          : undefined
     typeB.types.forEach((type, i) => {
       if (i < typeA.types.length) {
         const result = compareEqual(context, typeA.types[i], type)
@@ -218,9 +218,9 @@ export function compareEqual (
       type: issue
         ? unknown
         : {
-            type: 'tuple',
-            types: results.map(result => result.type),
-          },
+          type: 'tuple',
+          types: results.map(result => result.type),
+        },
       result: {
         type: 'tuple',
         types: results.map(result => result.result),
@@ -245,10 +245,10 @@ export function compareEqual (
     let issue: ComparisonIssue | undefined =
       missing.size > 0 || extra.size > 0
         ? {
-            issue: 'record-key-mismatch',
-            missing: [...missing],
-            extra: [...extra],
-          }
+          issue: 'record-key-mismatch',
+          missing: [...missing],
+          extra: [...extra],
+        }
         : undefined
     for (const [key, type] of typeB.types) {
       const annotationType = typeA.types.get(key)
@@ -269,14 +269,14 @@ export function compareEqual (
       type: issue
         ? unknown
         : {
-            type: 'record',
-            types: new Map(
-              Object.entries(results).map(([key, result]) => [
-                key,
-                result.type,
-              ]),
-            ),
-          },
+          type: 'record',
+          types: new Map(
+            Object.entries(results).map(([key, result]) => [
+              key,
+              result.type,
+            ]),
+          ),
+        },
       result: {
         type: 'record',
         types: fromEntries(Object.entries(results), (key, result) => [
@@ -325,6 +325,7 @@ export function compareEqual (
       argument: argumentResult.type,
       return: returnResult.type,
       typeVars: [],
+      trait: false
     }
     if (!hasIssue) {
       const substitutions: Map<FuncTypeVarSpec, NType> = new Map()
@@ -399,10 +400,10 @@ export function compareEqual (
       type: issue
         ? unknown
         : {
-            type: 'named',
-            typeSpec: typeA.typeSpec,
-            typeVars: vars.map(result => result.type),
-          },
+          type: 'named',
+          typeSpec: typeA.typeSpec,
+          typeVars: vars.map(result => result.type),
+        },
       result: {
         type: 'named',
         name: typeA.typeSpec.name,
@@ -418,7 +419,7 @@ export function compareEqual (
  * 1) of the item that does not match. Accumulates the resolved type to resolve
  * unknowns. The number of types must be nonzero.
  */
-export function compareEqualTypes (
+export function compareEqualTypes(
   types: NType[],
 ): { error: { result: ComparisonResult; index: number } | null; type: NType } {
   if (types.length === 0) {

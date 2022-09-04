@@ -31,6 +31,7 @@ import { Spread } from './Spread'
 export class FuncCall extends Base implements Expression, Statement {
   func: Expression
   params: Expression[]
+  private _isTrait: boolean
   private _paramTypes: NType[]
   private _substitutions: Map<FuncTypeVarSpec, NTypeKnown>[]
   /**
@@ -50,6 +51,7 @@ export class FuncCall extends Base implements Expression, Statement {
     super(pos, [func, ...params])
     this.func = func
     this.params = params
+    this._isTrait = false
     this._paramTypes = []
     this._substitutions = []
     this._funcTypes = []
@@ -64,6 +66,9 @@ export class FuncCall extends Base implements Expression, Statement {
     const funcResult = context.scope.typeCheck(this.func)
     let exitPoint = funcResult.exitPoint
     let returnType: NType | null = funcResult.type
+    if (returnType.type === 'function') {
+      this._isTrait = returnType.trait
+    }
     // Check for extra arguments at this step to be able to detect extra
     // arguments for [t] str -> t
     // 
@@ -221,7 +226,7 @@ export class FuncCall extends Base implements Expression, Statement {
           expression += `(${param instanceof Spread ? '...' : ''}${e})`
         }
       })
-    } else {
+    } else if (!this._isTrait) {
       expression += '()'
     }
     return {
