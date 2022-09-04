@@ -77,7 +77,9 @@ async function jsFileToLines (path, requirableNames = []) {
           : JSON.stringify(line)
       })
       .join(',')
-    ts += `${exportName}: (name${
+    // __ is replaced with . for internal traits
+    const needsQuotes = exportName.indexOf('__') !== -1
+    ts += `${needsQuotes ? "'" : ''}${exportName.replace('__', '.')}${needsQuotes ? "'" : ''}: (name${
       requiresRequire ? ', require' : ''
     }) => [${lines}],\n\n`
   }

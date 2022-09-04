@@ -88,6 +88,7 @@ export function makeFunction(
   return functionFromTypes(
     typesMaker(...typeVars.map((typeSpec): NamedType => typeSpec.instance())),
     typeVars,
+    trait,
   )
 }
 

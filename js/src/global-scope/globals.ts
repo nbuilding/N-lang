@@ -8,43 +8,43 @@ const lines: Record<
 
   err: name => [`function ${name}(value) {`, '  return [1, value];', '}'],
 
-  intInBase10: name => [
+  'int.intInBase10': name => [
     `function ${name}(int) {`,
     '  return int.toString();',
     '}',
   ],
 
-  round: name => [
+  'float.round': name => [
     `function ${name}(n) {`,
     '  if (isFinite(n)) {',
-    `    return Math.${name}(n);`,
+    '    return Math.round(n);',
     '  } else {',
     '    return 0;',
     '  }',
     '}',
   ],
 
-  floor: name => [
+  'float.floor': name => [
     `function ${name}() {`,
     '  if (isFinite(n)) {',
-    `    return Math.${name}(n);`,
+    '    return Math.floor(n);',
     '  } else {',
     '    return 0;',
     '  }',
     '}',
   ],
 
-  ceil: name => [
+  'float.ceil': name => [
     `function ${name}() {`,
     '  if (isFinite(n)) {',
-    `    return Math.${name}(n);`,
+    '    return Math.ceil(n);',
     '  } else {',
     '    return 0;',
     '  }',
     '}',
   ],
 
-  charCode: name => [
+  'char.charCode': name => [
     `function ${name}(char) {`,
     '  if (char.length === 1) {',
     '    return char.charCodeAt(0);',
@@ -59,7 +59,7 @@ const lines: Record<
     '}',
   ],
 
-  intCode: name => [
+  'int.intCode': name => [
     `function ${name}(code) {`,
     '  if (code < 0 || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) {',
     '    return "\\uFFFD";',
@@ -75,13 +75,13 @@ const lines: Record<
     '}',
   ],
 
-  charAt: name => [
-    `function ${name}(index) {`,
-    '  if (index < 0) {',
-    '    // Return none',
-    '    return function () {};',
-    '  } else {',
-    '    return function (string) {',
+  'str.charAt': name => [
+    `function ${name}(string) {`,
+    '  return function (index) {',
+    '    if (index < 0) {',
+    '      // Return none',
+    '      return function () {};',
+    '    } else {',
     '      if (index >= string.length * 2) {',
     '        // Early exit, assuming the worst case where the string is full of',
     '        // surrogate pairs',
@@ -105,61 +105,58 @@ const lines: Record<
     '      } else {',
     '        return string[i];',
     '      }',
-    '    };',
-    '  }',
-    '}',
-  ],
-
-  substring: name => [
-    `function ${name}(start) {`,
-    '  return function (end) {',
-    '    if (start === end || (start >= 0 && end >= 0 && start > end)) {',
-    '      return function () {',
-    '        return "";',
-    '      };',
-    '    } else {',
-    '      return function (string) {',
-    '        return string.slice(start, end);',
-    '      };',
     '    }',
     '  };',
     '}',
   ],
 
-  len: name => [
-    `function ${name}(value) {`,
-    '  if (typeof value === "string") {',
-    '    var highSurrogates = 0;',
-    '    for (var i = 0; i < string.length; i++) {',
-    '      var codePoint = string.charCodeAt(i);',
-    '      if (codePoint >= 0xd800 && codePoint <= 0xdbff) {',
-    '        ++highSurrogates;',
+  'str.substring': name => [
+    `function ${name}(string) {`,
+    '  return function (start) {',
+    '    return function (end) {',
+    '      if (start === end || (start >= 0 && end >= 0 && start > end)) {',
+    '        return "";',
+    '      } else {',
+    '        return string.slice(start, end);',
     '      }',
-    '    }',
-    '    // Subtract a surrogate from each pair',
-    '    return string.length - highSurrogates;',
-    '  } else if (Array.isArray(value)) {',
-    '    // Array.isArray: IE9+',
-    '    return value.length;',
-    '  } else {',
-    '    return 0;',
-    '  }',
+    '    };',
+    '  };',
     '}',
   ],
 
-  split: name => [
-    `function ${name}(char) {`,
-    '  return function (string) {',
+  'str.len': name => [
+    `function ${name}(value) {`,
+    '  var highSurrogates = 0;',
+    '  for (var i = 0; i < value.length; i++) {',
+    '    var codePoint = value.charCodeAt(i);',
+    '    if (codePoint >= 0xd800 && codePoint <= 0xdbff) {',
+    '      ++highSurrogates;',
+    '    }',
+    '  }',
+    '  // Subtract a surrogate from each pair',
+    '  return value.length - highSurrogates;',
+    '}',
+  ],
+
+  'list.len': name => [
+    `function ${name}(value) {`,
+    '  return value.length;',
+    '}',
+  ],
+
+  'str.split': name => [
+    `function ${name}(string) {`,
+    '  return function (char) {',
     '    if (string === "") {',
     '      return [];',
     '    } else {',
-    `      return string.${name}(char);`,
+    '      return string.split(char);',
     '    }',
     '  };',
     '}',
   ],
 
-  strip: name => [
+  'str.strip': name => [
     `function ${name}(string) {`,
     '  // String#trim: IE10+',
     '  return string.trim();',
@@ -203,34 +200,35 @@ const lines: Record<
 
   print: name => [
     `function ${name}(value) {`,
-    '  console.log(value);',
+    '  // TODO: Prettify',
+    '  console.log(value, typeof value);',
     '  return value;',
     '}',
   ],
 
-  itemAt: name => [
-    `function ${name}(index) {`,
-    '  if (index < 0) {',
-    '    return function () {};',
-    '  } else {',
-    '    return function (list) {',
+  'list.itemAt': name => [
+    `function ${name}(list) {`,
+    '  return function (index) {',
+    '    if (index < 0) {',
+    '      return;',
+    '    } else {',
     '      return list[index];',
-    '    };',
-    '  }',
+    '    }',
+    '  };',
     '}',
   ],
 
-  append: name => [
-    `function ${name}(item) {`,
-    '  return function (list) {',
+  'list.append': name => [
+    `function ${name}(list) {`,
+    '  return function (item) {',
     '    return list.concat([item]);',
     '  };',
     '}',
   ],
 
-  filterMap: name => [
-    `function ${name}(transform) {`,
-    '  return function (list) {',
+  'list.filterMap': name => [
+    `function ${name}(list) {`,
+    '  return function (transform) {',
     '    var newList = [];',
     '    for (var i = 0; i < list.length; i++) {',
     '      var result = transform(list[i]);',
@@ -243,9 +241,9 @@ const lines: Record<
     '}',
   ],
 
-  default: name => [
-    `function ${name}(defaultValue) {`,
-    '  return function (maybe) {',
+  'maybe.default': name => [
+    `function ${name}(maybe) {`,
+    '  return function (defaultValue) {',
     '    if (maybe === undefined) {',
     '      return defaultValue;',
     '    } else {',
@@ -255,9 +253,9 @@ const lines: Record<
     '}',
   ],
 
-  then: name => [
-    `function ${name}(onCmdFinish) {`,
-    '  return function (cmd) {',
+  'cmd.then': name => [
+    `function ${name}(cmd) {`,
+    '  return function (onCmdFinish) {',
     '    return function (callback) {',
     '      cmd(function (result) {',
     '        onCmdFinish(result)(callback);',
@@ -269,23 +267,23 @@ const lines: Record<
 
   mapFrom: name => [
     `function ${name}(entries) {`,
-    '  let out = new Map()',
+    '  let out = new Map();',
     '  for (const entry of entries) {',
-    '    out.set(entry[0], entry[1])',
+    '    out.set(entry[0], entry[1]);',
     '  }',
-    '  return out',
+    '  return out;',
     '}',
   ],
 
-  getValue: name => [
-    `function ${name}(key) {`,
-    '  return function (map) {',
-    '     return map.get(key);',
+  'map.getValue': name => [
+    `function ${name}(map) {`,
+    '  return function (key) {',
+    '    return map.get(key);',
     '  };',
     '}',
   ],
 
-  entries: name => [
+  'map.entries': name => [
     `function ${name}(map) {`,
     '  return Array.from(map.entries());',
     '}',
