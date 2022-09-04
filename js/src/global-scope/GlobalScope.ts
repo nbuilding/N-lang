@@ -88,6 +88,11 @@ setTrait(
   'intCode',
   makeFunction(() => [int, char], true),
 );
+setTrait(
+  'int',
+  'toFloat',
+  makeFunction(() => [int, float], true),
+);
 
 setTrait(
   'float',

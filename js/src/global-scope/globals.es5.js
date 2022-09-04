@@ -176,7 +176,7 @@ function range(start) {
 
 function print(value) {
   // TODO: Prettify
-  console.log(value, typeof value);
+  console.log(value);
   return value;
 }
 
@@ -245,4 +245,9 @@ function map__getValue(map) {
 
 function map__entries(map) {
   return Array.from(map.entries());
+}
+
+function int__toFloat(int) {
+  // ints and floats are the same in js lol
+  return int;
 }

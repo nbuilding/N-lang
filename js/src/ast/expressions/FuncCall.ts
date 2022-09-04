@@ -69,7 +69,6 @@ export class FuncCall extends Base implements Expression, Statement {
     if (returnType.type === 'function') {
       this._isTrait = returnType.trait;
       if (returnType.trait) {
-        console.log('a;lksdjf;lksadjfkdsaj;fkladslkfjs;jfasdkljflsadjfljdsk');
         returnType = returnType.return;
       }
     }
@@ -129,8 +128,12 @@ export class FuncCall extends Base implements Expression, Statement {
     if (!returnType) {
       return { type: unknown, exitPoint };
     }
-    if (!this._isTrait && paramTypes.length === 0) {
-      paramTypes.push([unit, this, false]);
+    if (paramTypes.length === 0) {
+      const defaultType =
+        funcResult.type.type === 'function' && this._isTrait
+          ? funcResult.type.argument
+          : unit;
+      paramTypes.push([defaultType, this, false]);
     }
 
     let funcType = funcResult.type;

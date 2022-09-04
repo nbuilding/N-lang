@@ -201,7 +201,7 @@ const lines: Record<
   print: name => [
     `function ${name}(value) {`,
     '  // TODO: Prettify',
-    '  console.log(value, typeof value);',
+    '  console.log(value);',
     '  return value;',
     '}',
   ],
@@ -286,6 +286,13 @@ const lines: Record<
   'map.entries': name => [
     `function ${name}(map) {`,
     '  return Array.from(map.entries());',
+    '}',
+  ],
+
+  'int.toFloat': name => [
+    `function ${name}(int) {`,
+    '  // ints and floats are the same in js lol',
+    '  return int;',
     '}',
   ],
 }
