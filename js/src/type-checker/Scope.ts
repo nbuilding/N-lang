@@ -27,6 +27,7 @@ import { TypeSpec } from './types/TypeSpec';
 export interface ScopeOptions {
   returnType?: NType | 'class';
   exportsAllowed?: boolean;
+  mutableAllowed?: boolean;
 }
 
 export interface ScopeNames<T> {
@@ -49,11 +50,12 @@ export class Scope {
   deferred: (() => void)[] = [];
   mutable: Set<string> = new Set();
   traits: Map<string, Map<string, NFunction>> = new Map();
+  mutableAllowed = true;
 
   constructor(
     results: TypeCheckerResultsForFile,
     parent?: Scope,
-    { returnType, exportsAllowed }: ScopeOptions = {},
+    { returnType, exportsAllowed, mutableAllowed }: ScopeOptions = {},
   ) {
     this.results = results;
     this.parent = parent;
@@ -61,6 +63,7 @@ export class Scope {
     if (exportsAllowed) {
       this.exports = { variables: new Set(), types: new Set() };
     }
+    this.mutableAllowed = mutableAllowed ?? true;
   }
 
   inner(options?: ScopeOptions): Scope {
@@ -168,10 +171,18 @@ export class Scope {
     idealType: NType,
     definite: boolean,
     isPublic: boolean,
+    isMutable: boolean,
   ): CheckPatternResult {
     try {
       return base.checkPattern(
-        new CheckPatternContext(this, base, idealType, definite, isPublic),
+        new CheckPatternContext(
+          this,
+          base,
+          idealType,
+          definite,
+          isPublic,
+          isMutable,
+        ),
       );
     } catch (err) {
       this.reportInternalError(err, base);

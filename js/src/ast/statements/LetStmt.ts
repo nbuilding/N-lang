@@ -1,56 +1,64 @@
-import { CompilationScope } from '../../compiler/CompilationScope'
-import { ErrorType } from '../../type-checker/errors/Error'
-import schema, * as schem from '../../utils/schema'
-import { Base, BasePosition } from '../base'
-import { Declaration } from '../declaration/Declaration'
-import { Expression, isExpression } from '../expressions/Expression'
+import { CompilationScope } from '../../compiler/CompilationScope';
+import { ErrorType } from '../../type-checker/errors/Error';
+import schema, * as schem from '../../utils/schema';
+import { Base, BasePosition } from '../base';
+import { Declaration } from '../declaration/Declaration';
+import { Expression, isExpression } from '../expressions/Expression';
 import {
   CheckStatementContext,
   CheckStatementResult,
   Statement,
   StatementCompilationResult,
-} from './Statement'
+} from './Statement';
 
 export class LetStmt extends Base implements Statement {
-  public: boolean
-  mutable: boolean
-  declaration: Declaration
-  value: Expression
+  public: boolean;
+  mutable: boolean;
+  declaration: Declaration;
+  value: Expression;
 
-  constructor (
+  constructor(
     pos: BasePosition,
     [, pub, mut, decl, , expr]: schem.infer<typeof LetStmt.schema>,
   ) {
-    super(pos, [decl, expr])
-    this.declaration = decl
-    this.public = pub !== null
-    this.mutable = mut !== null
-    this.value = expr
+    super(pos, [decl, expr]);
+    this.declaration = decl;
+    this.public = pub !== null;
+    this.mutable = mut !== null;
+    this.value = expr;
   }
 
-  checkStatement (context: CheckStatementContext): CheckStatementResult {
-    const { type, exitPoint } = context.scope.typeCheck(this.value)
+  checkStatement(context: CheckStatementContext): CheckStatementResult {
+    if (!context.scope.mutableAllowed && this.mutable) {
+      context.err({
+        type: ErrorType.MUTABLE_UNALLOWED,
+      });
+    }
+    const { type, exitPoint } = context.scope.typeCheck(this.value);
     context.scope.checkDeclaration(this.declaration, type, {
       public: this.public,
-    })
+      mutable: this.mutable,
+    });
     if (this.public && !context.scope.exports) {
-      context.err({ type: ErrorType.CANNOT_EXPORT })
+      context.err({ type: ErrorType.CANNOT_EXPORT });
     }
-    return { exitPoint }
+    return { exitPoint };
   }
 
-  compileStatement (scope: CompilationScope): StatementCompilationResult {
-    const { statements, expression } = this.value.compile(scope)
+  compileStatement(scope: CompilationScope): StatementCompilationResult {
+    const { statements, expression } = this.value.compile(scope);
     return {
       statements: [
         ...statements,
         ...this.declaration.compileDeclaration(scope, expression),
       ],
-    }
+    };
   }
 
-  toString (): string {
-    return `let${this.public ? ' pub' : ''}${this.mutable ? ' mut' : ''} ${this.declaration} = ${this.value}`
+  toString(): string {
+    return `let${this.public ? ' pub' : ''}${this.mutable ? ' mut' : ''} ${
+      this.declaration
+    } = ${this.value}`;
   }
 
   static schema = schema.tuple([
@@ -60,5 +68,5 @@ export class LetStmt extends Base implements Statement {
     schema.instance(Declaration),
     schema.any,
     schema.guard(isExpression),
-  ])
+  ]);
 }

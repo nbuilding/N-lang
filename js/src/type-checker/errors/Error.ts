@@ -1,8 +1,8 @@
-import { Base, Operator, UnaryOperator } from '../../ast/index'
-import { isObjectLike } from '../../utils/type-guards'
-import { ComparisonResult } from '../types/comparisons'
-import { NType } from '../types/types'
-import { BlockDisplay, InlineDisplay } from './ErrorDisplayer'
+import { Base, Operator, UnaryOperator } from '../../ast/index';
+import { isObjectLike } from '../../utils/type-guards';
+import { ComparisonResult } from '../types/comparisons';
+import { NType } from '../types/types';
+import { BlockDisplay, InlineDisplay } from './ErrorDisplayer';
 
 export enum ErrorType {
   /** JavaScript runtime error */
@@ -23,6 +23,15 @@ export enum ErrorType {
 
   /** Declaration: The type from a let decl does not match its expression */
   LET_MISMATCH = 'let-mismatch',
+
+  /** Declaration: Type requires mutable modifier to be added */
+  TYPE_REQUIRE_MUTABLE = 'type-require-mutable',
+
+  /** LetStmt: Mutable is unallowed in the current scope */
+  MUTABLE_UNALLOWED = 'mutable-unallowed',
+
+  /** VarStmt: Cannot mutate variable without `mut` modifier */
+  NON_MUT_VARIABLE = 'non-mut-variable',
 
   // Expressions
 
@@ -79,6 +88,9 @@ export enum ErrorType {
 
   /** UnaryOperation: Cannot await outside non-cmd function */
   AWAIT_OUTSIDE_CMD = 'await-outside-cmd',
+
+  /** Spread: Type cannot be spread properly */
+  UNALLOWED_SPREAD = 'unallowed-spread',
 
   // Literals
 
@@ -172,9 +184,6 @@ export enum ErrorType {
   /** Cannot resolve function type variable for last argument */
   UNRESOLVED_GENERIC = 'unresolved-generic',
 
-  /** Type cannot be spread properly */
-  UNALLOWED_SPREAD = 'unallowed-spread',
-  
   /** Trait does not exist on type */
   NO_TRAIT = 'no-trait',
 }
@@ -187,117 +196,120 @@ export type TypeErrorType =
   | ErrorType.RETURN_MISMATCH
   | ErrorType.VAR_MISMATCH
   | ErrorType.TYPE_ASSERTION_FAIL
-  | ErrorType.VALUE_ASSERTION_NOT_BOOL
+  | ErrorType.VALUE_ASSERTION_NOT_BOOL;
 
 export type ErrorMessage =
   | {
-    type: ErrorType.INTERNAL_ERROR
-    error: Error
-  }
+      type: ErrorType.INTERNAL_ERROR;
+      error: Error;
+    }
   | {
-    type: ErrorType.UNDEFINED_VARIABLE | ErrorType.UNDEFINED_TYPE
-    name: string
-  }
+      type:
+        | ErrorType.UNDEFINED_VARIABLE
+        | ErrorType.UNDEFINED_TYPE
+        | ErrorType.NON_MUT_VARIABLE;
+      name: string;
+    }
   | {
-    type: ErrorType.NOT_MODULE
-    modType: NType
-  }
+      type: ErrorType.NOT_MODULE;
+      modType: NType;
+    }
   | {
-    type: ErrorType.NOT_EXPORTED
-    name: string
-    exported: 'module' | 'type'
-  }
+      type: ErrorType.NOT_EXPORTED;
+      name: string;
+      exported: 'module' | 'type';
+    }
   | {
-    type: ErrorType.TYPE_ANNOTATION_NEEDED
-  }
+      type: ErrorType.TYPE_ANNOTATION_NEEDED;
+    }
   | {
-    type: TypeErrorType
-    error: ComparisonResult
-  }
+      type: TypeErrorType;
+      error: ComparisonResult;
+    }
   | {
-    type: ErrorType.LIST_ITEMS_MISMATCH
-    error: ComparisonResult
-    index: number
-  }
+      type: ErrorType.LIST_ITEMS_MISMATCH;
+      error: ComparisonResult;
+      index: number;
+    }
   | {
-    type: ErrorType.CALL_NON_FUNCTION
-    funcType: NType
-  }
+      type: ErrorType.CALL_NON_FUNCTION;
+      funcType: NType;
+    }
   | {
-    type: ErrorType.TOO_MANY_ARGS
-    funcType: NType
-    argPos: number
-  }
+      type: ErrorType.TOO_MANY_ARGS;
+      funcType: NType;
+      argPos: number;
+    }
   | {
-    type: ErrorType.ARG_MISMATCH
-    error: ComparisonResult
-    argPos: number
-  }
+      type: ErrorType.ARG_MISMATCH;
+      error: ComparisonResult;
+      argPos: number;
+    }
   | {
-    type: ErrorType.UNRESOLVED_GENERIC
-    funcType: NType
-  }
+      type: ErrorType.UNRESOLVED_GENERIC;
+      funcType: NType;
+    }
   | {
-    type: ErrorType.PATTERN_MISMATCH
-    assignedTo: NType
-    destructure: 'enum' | 'list' | 'tuple' | 'record'
-  }
+      type: ErrorType.PATTERN_MISMATCH;
+      assignedTo: NType;
+      destructure: 'enum' | 'list' | 'tuple' | 'record';
+    }
   | {
-    type: ErrorType.ENUM_PATTERN_NO_VARIANT
-    enum: NType
-    variant: string
-  }
+      type: ErrorType.ENUM_PATTERN_NO_VARIANT;
+      enum: NType;
+      variant: string;
+    }
   | {
-    type: ErrorType.ENUM_PATTERN_DEF_MULT_VARIANTS
-    enum: NType
-    variant: string
-    otherVariants: string[]
-  }
+      type: ErrorType.ENUM_PATTERN_DEF_MULT_VARIANTS;
+      enum: NType;
+      variant: string;
+      otherVariants: string[];
+    }
   | {
-    type: ErrorType.LIST_PATTERN_DEFINITE
-    items: number
-  }
+      type: ErrorType.LIST_PATTERN_DEFINITE;
+      items: number;
+    }
   | {
-    type: ErrorType.ENUM_PATTERN_FIELD_MISMATCH
-    enum: NType
-    variant: string
-    fields: number
-    given: number
-  }
+      type: ErrorType.ENUM_PATTERN_FIELD_MISMATCH;
+      enum: NType;
+      variant: string;
+      fields: number;
+      given: number;
+    }
   | {
-    type: ErrorType.TUPLE_PATTERN_LENGTH_MISMATCH
-    tuple: NType
-    fields: number
-    given: number
-  }
+      type: ErrorType.TUPLE_PATTERN_LENGTH_MISMATCH;
+      tuple: NType;
+      fields: number;
+      given: number;
+    }
   | {
-    type: ErrorType.RECORD_PATTERN_NO_KEY
-    recordType: NType
-    key: string
-  }
+      type: ErrorType.RECORD_PATTERN_NO_KEY;
+      recordType: NType;
+      key: string;
+    }
   | {
-    type: ErrorType.OPERATION_UNPERFORMABLE
-    a: NType
-    b: NType
-    operation: Operator
-  }
+      type: ErrorType.OPERATION_UNPERFORMABLE;
+      a: NType;
+      b: NType;
+      operation: Operator;
+    }
   | {
-    type: ErrorType.UNARY_OPERATION_UNPERFORMABLE
-    operand: NType
-    operation: UnaryOperator
-  }
+      type: ErrorType.UNARY_OPERATION_UNPERFORMABLE;
+      operand: NType;
+      operation: UnaryOperator;
+    }
   | {
-    type: ErrorType.RECORD_LITERAL_DUPE_KEY
-    key: string
-  }
+      type: ErrorType.RECORD_LITERAL_DUPE_KEY;
+      key: string;
+    }
   | {
-    type: ErrorType.DUPLICATE_TYPE_VAR
-    in: 'func-expr' | 'alias' | 'enum' | 'func-type'
-  }
+      type: ErrorType.DUPLICATE_TYPE_VAR;
+      in: 'func-expr' | 'alias' | 'enum' | 'func-type';
+    }
   | {
-    type: ErrorType.CANNOT_IMPORT
-    reason: 'not-found' | 'bad-path'
-  }
+      type: ErrorType.CANNOT_IMPORT;
+      reason: 'not-found' | 'bad-path';
+    }
   | {
       // Too lazy to add things to these; can do later
       type:
@@ -321,13 +333,15 @@ export type ErrorMessage =
         | ErrorType.CIRCULAR_IMPORTS
         | ErrorType.UNALLOWED_SPREAD
         | ErrorType.NO_TRAIT
-    }
+        | ErrorType.TYPE_REQUIRE_MUTABLE
+        | ErrorType.MUTABLE_UNALLOWED;
+    };
 
 interface NError {
-  message: ErrorMessage
-  base: Base
+  message: ErrorMessage;
+  base: Base;
 }
-export { NError as Error }
+export { NError as Error };
 
 // Maybe this shouldn't rely on `base`
 export function displayErrorMessage(
@@ -344,7 +358,7 @@ export function displayErrorMessage(
           'https://github.com/nbuilding/N-lang/issues/new',
           'link',
         ]}`,
-      ]
+      ];
     }
     case ErrorType.ARG_MISMATCH: {
       return [
@@ -355,26 +369,27 @@ export function displayErrorMessage(
         base,
         'Here is the type of the value you gave to the function:',
         err.error,
-      ]
+      ];
     }
     case ErrorType.CALL_NON_FUNCTION: {
-      return display`You call a ${err.funcType} like a function, but it's not a function.`
+      return display`You call a ${err.funcType} like a function, but it's not a function.`;
     }
     case ErrorType.PATTERN_MISMATCH: {
       return err.destructure === 'enum'
         ? display`You destructure a ${err.assignedTo} with a pattern meant for enums, but it's not an enum.`
         : err.destructure === 'list'
-          ? display`You destructure a ${err.assignedTo} with a pattern meant for lists, but it's not a list.`
-          : err.destructure === 'record'
-            ? display`You destructure a ${err.assignedTo} with a pattern meant for records, but it's not a record.`
-            : display`You destructure a ${err.assignedTo} with a pattern meant for tuples, but it's not a tuple.`
+        ? display`You destructure a ${err.assignedTo} with a pattern meant for lists, but it's not a list.`
+        : err.destructure === 'record'
+        ? display`You destructure a ${err.assignedTo} with a pattern meant for records, but it's not a record.`
+        : display`You destructure a ${err.assignedTo} with a pattern meant for tuples, but it's not a tuple.`;
     }
     case ErrorType.ENUM_PATTERN_DEF_MULT_VARIANTS: {
-      return display`Here, you expect that the ${err.enum} should be the ${err.variant
-        } variant. However, it could also be ${[
-          'or',
-          err.otherVariants.map(variant => display`${variant}`),
-        ]}, so I don't know what to do in those scenarios.`
+      return display`Here, you expect that the ${err.enum} should be the ${
+        err.variant
+      } variant. However, it could also be ${[
+        'or',
+        err.otherVariants.map(variant => display`${variant}`),
+      ]}, so I don't know what to do in those scenarios.`;
     }
     case ErrorType.ENUM_PATTERN_FIELD_MISMATCH: {
       return [
@@ -385,11 +400,11 @@ export function displayErrorMessage(
         ]}, but you gave ${['just one field', err.given, 'fields']}.`,
         base,
         err.given < err.fields &&
-        display`If you don't need all the fields, you can use ${'_'} to discard the fields you don't need.`,
-      ]
+          display`If you don't need all the fields, you can use ${'_'} to discard the fields you don't need.`,
+      ];
     }
     case ErrorType.ENUM_PATTERN_NO_VARIANT: {
-      return display`${err.enum} doesn't have a variant ${err.variant}, so your pattern will never match.`
+      return display`${err.enum} doesn't have a variant ${err.variant}, so your pattern will never match.`;
     }
     case ErrorType.LET_MISMATCH: {
       return [
@@ -397,7 +412,7 @@ export function displayErrorMessage(
         base,
         display`Here is the value that you're assigning:`,
         err.error,
-      ]
+      ];
     }
     case ErrorType.LIST_PATTERN_DEFINITE: {
       return display`Here, you expect that the list should have ${[
@@ -408,22 +423,23 @@ export function displayErrorMessage(
         'one item',
         err.items,
         'items',
-      ]}, so I don't know what to do in those scenarios.`
+      ]}, so I don't know what to do in those scenarios.`;
     }
     case ErrorType.NOT_EXPORTED: {
       return err.exported === 'module'
         ? display`This module doesn't export a submodule named ${err.name}.`
-        : display`This module doesn't export a type named ${err.name}.`
+        : display`This module doesn't export a type named ${err.name}.`;
     }
     case ErrorType.NOT_MODULE: {
-      return display`${err.modType} isn't a module, so you can't get any exported types from it.`
+      return display`${err.modType} isn't a module, so you can't get any exported types from it.`;
     }
     case ErrorType.RECORD_PATTERN_NO_KEY: {
-      return display`A ${err.recordType} doesn't have a field named ${err.key}.`
+      return display`A ${err.recordType} doesn't have a field named ${err.key}.`;
     }
     case ErrorType.TOO_MANY_ARGS: {
-      return display`You gave too many arguments to a ${err.funcType
-        }, which doesn't take a ${[err.argPos, 'th']} argument.`
+      return display`You gave too many arguments to a ${
+        err.funcType
+      }, which doesn't take a ${[err.argPos, 'th']} argument.`;
     }
     case ErrorType.TUPLE_PATTERN_LENGTH_MISMATCH: {
       // Don't worry about the singular forms; tuples should have a minimum of
@@ -432,19 +448,19 @@ export function displayErrorMessage(
         'one field',
         err.fields,
         'fields',
-      ]}, but you gave ${['only one field', err.given, 'fields']}.`
+      ]}, but you gave ${['only one field', err.given, 'fields']}.`;
     }
     case ErrorType.TYPE_ANNOTATION_NEEDED: {
-      return display`Unfortunately, I can't figure out the type of this variable for you, so you have to specify its type here.`
+      return display`Unfortunately, I can't figure out the type of this variable for you, so you have to specify its type here.`;
     }
     case ErrorType.UNDEFINED_TYPE: {
-      return display`I can't find a type named ${err.name} in this scope.`
+      return display`I can't find a type named ${err.name} in this scope.`;
     }
     case ErrorType.UNDEFINED_VARIABLE: {
-      return display`I can't find a variable named ${err.name} in this scope.`
+      return display`I can't find a variable named ${err.name} in this scope.`;
     }
     case ErrorType.UNRESOLVED_GENERIC: {
-      return display`I can't figure out what the return type for ${err.funcType} should be. This probably is an issue with the function type, not your function call.`
+      return display`I can't figure out what the return type for ${err.funcType} should be. This probably is an issue with the function type, not your function call.`;
     }
     case ErrorType.TYPE_ASSERTION_FAIL: {
       return [
@@ -452,10 +468,10 @@ export function displayErrorMessage(
         base,
         'Here is the type of the value you asserted:',
         err.error,
-      ]
+      ];
     }
     case ErrorType.VALUE_ASSERTION_NOT_BOOL: {
-      return display`You need to give a bool to a value assertion.`
+      return display`You need to give a bool to a value assertion.`;
     }
     case ErrorType.RETURN_MISMATCH: {
       return [
@@ -463,16 +479,21 @@ export function displayErrorMessage(
         base,
         'Here is the type of the value you returned:',
         err.error,
-      ]
+      ];
     }
     case ErrorType.CANNOT_IMPORT: {
-      return err.reason === 'bad-path' ? display`I am unable to understand the path you gave me.` : display`I am unable to find or access the file you gave me`
+      return err.reason === 'bad-path'
+        ? display`I am unable to understand the path you gave me.`
+        : display`I am unable to find or access the file you gave me`;
+    }
+    case ErrorType.NON_MUT_VARIABLE: {
+      return display`Variable ${err.name} is not one that can be mutated.`;
     }
     default: {
-      const errorMessage: unknown = err
+      const errorMessage: unknown = err;
       return display`Error ${String(
         isObjectLike(errorMessage) ? errorMessage.type : errorMessage,
-      )}: Unfortunately, I don't have much information about this error.`
+      )}: Unfortunately, I don't have much information about this error.`;
     }
   }
 }

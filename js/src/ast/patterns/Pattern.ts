@@ -1,52 +1,61 @@
-import { CompilationScope } from '../../compiler/CompilationScope'
-import { Scope } from '../../type-checker/Scope'
-import { ScopeBaseContext } from '../../type-checker/ScopeBaseContext'
-import { NType } from '../../type-checker/types/types'
-import { Base } from '../base'
+import { CompilationScope } from '../../compiler/CompilationScope';
+import { Scope } from '../../type-checker/Scope';
+import { ScopeBaseContext } from '../../type-checker/ScopeBaseContext';
+import { NType } from '../../type-checker/types/types';
+import { Base } from '../base';
 
 export class CheckPatternContext extends ScopeBaseContext {
-  type: NType
-  definite: boolean
-  public: boolean
+  type: NType;
+  definite: boolean;
+  public: boolean;
+  mutable: boolean;
 
-  constructor (
+  constructor(
     scope: Scope,
     base: Pattern,
     idealType: NType,
     definite: boolean,
     isPublic: boolean,
+    isMutable: boolean,
   ) {
-    super(scope, base)
-    this.type = idealType
-    this.definite = definite
-    this.public = isPublic
+    super(scope, base);
+    this.type = idealType;
+    this.definite = definite;
+    this.public = isPublic;
+    this.mutable = isMutable;
   }
 
-  checkPattern (base: Pattern, idealType: NType): CheckPatternResult {
-    return this.scope.checkPattern(base, idealType, this.definite, this.public)
+  checkPattern(base: Pattern, idealType: NType): CheckPatternResult {
+    return this.scope.checkPattern(
+      base,
+      idealType,
+      this.definite,
+      this.public,
+      this.mutable,
+    );
   }
 }
 
-export type CheckPatternResult = Record<string, never>
+export type CheckPatternResult = Record<string, never>;
 
 export type PatternCompilationResult = {
-  statements: string[]
-  varNames: string[]
-}
+  statements: string[];
+  varNames: string[];
+};
 
 export interface Pattern extends Base {
-  checkPattern(context: CheckPatternContext): CheckPatternResult
+  checkPattern(context: CheckPatternContext): CheckPatternResult;
 
   compilePattern(
     scope: CompilationScope,
     valueName: string,
-  ): PatternCompilationResult
+  ): PatternCompilationResult;
 }
 
-export function isPattern (value: unknown): value is Pattern {
+export function isPattern(value: unknown): value is Pattern {
   return (
     value instanceof Base &&
     'checkPattern' in value &&
     typeof value['checkPattern'] === 'function'
-  )
+  );
 }
