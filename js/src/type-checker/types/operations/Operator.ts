@@ -14,33 +14,33 @@ export enum Operator {
   INDEX = 'index',
 }
 
-export function operatorToString (self: Operator): string {
+export function operatorToString(self: Operator): string {
   switch (self) {
     case Operator.AND:
-      return '&'
+      return '&';
     case Operator.OR:
-      return '|'
+      return '|';
     case Operator.ADD:
-      return '+'
+      return '+';
     case Operator.MINUS:
-      return '-'
+      return '-';
     case Operator.MULTIPLY:
-      return '*'
+      return '*';
     case Operator.DIVIDE:
-      return '/'
+      return '/';
     case Operator.MODULO:
-      return '%'
+      return '%';
     case Operator.EXPONENT:
-      return '^'
+      return '^';
     case Operator.PIPE:
-      return '|>'
+      return '|>';
     case Operator.XOR:
-      return '^^'
+      return '^^';
     case Operator.SHIFTL:
-      return '<<'
+      return '<<';
     case Operator.SHIFTR:
-      return '>>'
-      case Operator.INDEX:
-        return '['
+      return '>>';
+    case Operator.INDEX:
+      return '[';
   }
 }

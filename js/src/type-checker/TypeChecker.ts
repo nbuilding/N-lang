@@ -4,65 +4,65 @@ import {
   BasePosition,
   Block,
   ImportFile,
-} from '../ast/index'
-import { CompilationContext } from '../compiler/CompilationContext'
+} from '../ast/index';
+import { CompilationContext } from '../compiler/CompilationContext';
 import {
   parse,
   ParseAmbiguityError,
   ParseError,
   ParseUnexpectedInputError,
   ParseUnexpectedEOFError,
-} from '../grammar/parse'
-import { Error as NError } from './errors/Error'
-import { ErrorDisplayer, FilePathSpec } from './errors/ErrorDisplayer'
-import { Warning as NWarning } from './errors/Warning'
-import { GlobalScope } from '../global-scope/GlobalScope'
-import { cmd } from './types/builtins'
-import { NModule, NType, unknown, Unknown } from './types/types'
+} from '../grammar/parse';
+import { Error as NError } from './errors/Error';
+import { ErrorDisplayer, FilePathSpec } from './errors/ErrorDisplayer';
+import { Warning as NWarning } from './errors/Warning';
+import { GlobalScope } from '../global-scope/GlobalScope';
+import { cmd } from './types/builtins';
+import { NModule, NType, unknown, Unknown } from './types/types';
 
 /** Yields relative paths from `imp` expressions */
-function * getImportPaths (base: Base): Generator<string> {
+function* getImportPaths(base: Base): Generator<string> {
   if (base instanceof ImportFile) {
-    yield base.getImportPath()
+    yield base.getImportPath();
   }
   for (const child of base.children) {
-    yield * getImportPaths(child)
+    yield* getImportPaths(child);
   }
 }
 
-type Compiled = { compiled: string[]; exportNames: Map<string, string> }
-type Compilable = Block | Compiled
+type Compiled = { compiled: string[]; exportNames: Map<string, string> };
+type Compilable = Block | Compiled;
 type ModuleState =
   | { state: 'loading' }
   | { state: 'loaded'; module: NModule | Unknown; compilable: Compilable }
-  | { state: 'error'; error: typeof NOT_FOUND | typeof BAD_PATH }
+  | { state: 'error'; error: typeof NOT_FOUND | typeof BAD_PATH };
 
 export class TypeCheckerResults {
-  checker: TypeChecker
+  checker: TypeChecker;
 
-  startPath: string
+  startPath: string;
 
-  types: Map<Base, NType> = new Map()
+  types: Map<Base, NType> = new Map();
 
-  files: Map<string, BaseResultsForFile> = new Map()
+  files: Map<string, BaseResultsForFile> = new Map();
 
   /**
    * All `assert value` assertions; the length of this array also represents the
    * next ID of an `assert value` assertion.
    */
   valueAssertions: {
-    assertion: AssertValue
-    file: TypeCheckerResultsForFile
-  }[] = []
+    assertion: AssertValue;
+    file: TypeCheckerResultsForFile;
+  }[] = [];
 
-  lastExportedCmd?: { moduleId: string; name: string }
+  lastExportedCmd?: { moduleId: string; name: string };
 
-  constructor (checker: TypeChecker, startPath: string) {
-    this.checker = checker
-    this.startPath = startPath
+  constructor(checker: TypeChecker, startPath: string) {
+    this.checker = checker;
+    this.startPath = startPath;
   }
 
-  newFile (
+  newFile(
     absolutePath: string,
     source: string,
     modules: Map<string, ModuleState> = new Map(),
@@ -72,12 +72,12 @@ export class TypeCheckerResults {
       absolutePath,
       source.split(/\r?\n/),
       modules,
-    )
-    this.files.set(absolutePath, file)
-    return file
+    );
+    this.files.set(absolutePath, file);
+    return file;
   }
 
-  syntaxError (
+  syntaxError(
     absolutePath: string,
     source: string,
     error: ParseError,
@@ -87,94 +87,95 @@ export class TypeCheckerResults {
       absolutePath,
       source.split(/\r?\n/),
       error,
-    )
-    this.files.set(absolutePath, result)
-    return result
+    );
+    this.files.set(absolutePath, result);
+    return result;
   }
 
   /**
    * Joins all the errors and warnings together into a single string, separated
    * by double newlines.
    */
-  displayAll (
-    displayer: ErrorDisplayer,
-  ): { display: string; errors: number; warnings: number } {
-    const allWarnings = []
-    const allErrors = []
+  displayAll(displayer: ErrorDisplayer): {
+    display: string;
+    errors: number;
+    warnings: number;
+  } {
+    const allWarnings = [];
+    const allErrors = [];
     for (const file of this.files.values()) {
-      const { errors, warnings = [] } = file.display(displayer)
-      allWarnings.push(...warnings)
-      allErrors.push(...errors)
+      const { errors, warnings = [] } = file.display(displayer);
+      allWarnings.push(...warnings);
+      allErrors.push(...errors);
     }
     return {
       display: [...allWarnings, ...allErrors].join('\n\n'),
       errors: allErrors.length,
       warnings: allWarnings.length,
-    }
+    };
   }
 
-  displayValueAssertions (
+  displayValueAssertions(
     displayer: ErrorDisplayer,
     results: { [id: number]: boolean },
   ): { display: string; failures: number } {
-    const failures = []
+    const failures = [];
     for (const [id, passed] of Object.entries(results)) {
       if (!passed) {
         const {
           assertion,
           file: { path, lines },
-        } = this.valueAssertions[+id]
+        } = this.valueAssertions[+id];
         failures.push(
           displayer.displayValueAssertionFailure(path, lines, assertion),
-        )
+        );
       }
     }
     return {
       display: failures.join('\n\n'),
       failures: failures.length,
-    }
+    };
   }
 }
 
 export abstract class BaseResultsForFile {
-  parent: TypeCheckerResults
-  absolutePath: string
-  lines: string[]
-  modules: Map<string, ModuleState>
+  parent: TypeCheckerResults;
+  absolutePath: string;
+  lines: string[];
+  modules: Map<string, ModuleState>;
 
-  constructor (
+  constructor(
     parent: TypeCheckerResults,
     absolutePath: string,
     lines: string[],
     modules: Map<string, ModuleState>,
   ) {
-    this.parent = parent
-    this.absolutePath = absolutePath
-    this.lines = lines
-    this.modules = modules
+    this.parent = parent;
+    this.absolutePath = absolutePath;
+    this.lines = lines;
+    this.modules = modules;
   }
 
-  get path (): FilePathSpec {
+  get path(): FilePathSpec {
     return {
       file: this.absolutePath,
       base: this.parent.startPath,
-    }
+    };
   }
 
-  display (
-    _displayer: ErrorDisplayer,
-  ): { errors: string[]; warnings?: string[] } {
-    throw new Error('Not implemented')
+  display(_displayer: ErrorDisplayer): {
+    errors: string[];
+    warnings?: string[];
+  } {
+    throw new Error('Not implemented');
   }
 }
 
 export class TypeCheckerResultsForFile extends BaseResultsForFile {
-  errors: NError[] = []
-  warnings: NWarning[] = []
+  errors: NError[] = [];
+  warnings: NWarning[] = [];
 
-  display (
-    displayer: ErrorDisplayer,
-  ): { errors: string[]; warnings: string[] } {
+  display(displayer: ErrorDisplayer): { errors: string[]; warnings: string[] } {
     return {
       errors: this.errors.map(error =>
         displayer.displayError(this.path, this.lines, error),
@@ -182,52 +183,52 @@ export class TypeCheckerResultsForFile extends BaseResultsForFile {
       warnings: this.warnings.map(warning =>
         displayer.displayWarning(this.path, this.lines, warning),
       ),
-    }
+    };
   }
 
   /**
    * Adds the `assert value` statement to the array of value assertions and
    * returns its ID.
    */
-  addValueAssertion (assertion: AssertValue): number {
-    return this.parent.valueAssertions.push({ assertion, file: this }) - 1
+  addValueAssertion(assertion: AssertValue): number {
+    return this.parent.valueAssertions.push({ assertion, file: this }) - 1;
   }
 }
 
 export class SyntaxErrorForFile extends BaseResultsForFile {
-  error: ParseError
+  error: ParseError;
 
-  constructor (
+  constructor(
     parent: TypeCheckerResults,
     absolutePath: string,
     lines: string[],
     error: ParseError,
   ) {
-    super(parent, absolutePath, lines, new Map())
-    this.error = error
+    super(parent, absolutePath, lines, new Map());
+    this.error = error;
   }
 
-  get position (): BasePosition {
+  get position(): BasePosition {
     if (
       this.error instanceof ParseUnexpectedEOFError ||
       this.error instanceof ParseAmbiguityError
     ) {
-      const lastLine = this.lines[this.lines.length - 1]
+      const lastLine = this.lines[this.lines.length - 1];
       if (lastLine.length === 0) {
-        const penultimateLine = this.lines[this.lines.length - 2]
+        const penultimateLine = this.lines[this.lines.length - 2];
         return {
           line: this.lines.length - 1,
           col: penultimateLine.length,
           endLine: this.lines.length - 1,
           endCol: penultimateLine.length + 1,
-        }
+        };
       } else {
         return {
           line: this.lines.length,
           col: lastLine.length,
           endLine: this.lines.length,
           endCol: lastLine.length + 1,
-        }
+        };
       }
     } else if (this.error instanceof ParseUnexpectedInputError) {
       return {
@@ -235,19 +236,19 @@ export class SyntaxErrorForFile extends BaseResultsForFile {
         col: this.error.col,
         endLine: this.error.line,
         endCol: this.error.col + 1,
-      }
+      };
     } else {
-      const { line, col } = this.error.end
+      const { line, col } = this.error.end;
       return {
         line: this.error.line,
         col: this.error.col,
         endLine: line,
         endCol: col,
-      }
+      };
     }
   }
 
-  display (displayer: ErrorDisplayer): { errors: string[] } {
+  display(displayer: ErrorDisplayer): { errors: string[] } {
     return {
       errors: [
         displayer.displaySyntaxError(
@@ -257,36 +258,36 @@ export class SyntaxErrorForFile extends BaseResultsForFile {
           this.position,
         ),
       ],
-    }
+    };
   }
 }
 
-export const NOT_FOUND = Symbol('not found')
-export const BAD_PATH = Symbol('bad path')
+export const NOT_FOUND = Symbol('not found');
+export const BAD_PATH = Symbol('bad path');
 
-type ParsedBlockWithSource = { source: string; block: Block }
-type CompiledModule = { module: NModule; compiled: Compiled }
-type CompilableModule = { module: NModule; compilable: Compilable }
-type ParseErrorWithSource = { source: string; error: ParseError }
+type ParsedBlockWithSource = { source: string; block: Block };
+type CompiledModule = { module: NModule; compiled: Compiled };
+type CompilableModule = { module: NModule; compilable: Compilable };
+type ParseErrorWithSource = { source: string; error: ParseError };
 export type ProvidedFile =
   | string
   | ParsedBlockWithSource
   | CompiledModule
   | ParseErrorWithSource
   | typeof NOT_FOUND
-  | typeof BAD_PATH
+  | typeof BAD_PATH;
 
 export interface CheckerOptions {
   /**
    * Resolve a unique path name per file given a base path. If two files import
    * the same file, the path to that file should be the same.
    */
-  absolutePath(basePath: string, importPath: string): string
+  absolutePath(basePath: string, importPath: string): string;
 
   /**
    * Asynchronously gets an imported file and returns the parsed file.
    */
-  provideFile(path: string): ProvidedFile | PromiseLike<ProvidedFile>
+  provideFile(path: string): ProvidedFile | PromiseLike<ProvidedFile>;
 }
 
 export interface CompilationOptions {
@@ -305,10 +306,10 @@ export interface CompilationOptions {
    */
   module?:
     | {
-        type: 'esm'
+        type: 'esm';
       }
     | {
-        type: 'iife'
+        type: 'iife';
 
         /**
          * Whether to immediately execute the main cmd. This is because the IIFE
@@ -318,10 +319,10 @@ export interface CompilationOptions {
          *
          * Default: `false`
          */
-        executeMain?: boolean
+        executeMain?: boolean;
       }
     | {
-        type: 'umd'
+        type: 'umd';
 
         /**
          * Outside of a CommonJS or AMD module, the exports will be made global
@@ -329,75 +330,75 @@ export interface CompilationOptions {
          *
          * Default: `n`
          */
-        name?: string
-      }
+        name?: string;
+      };
 }
 
 export class TypeChecker {
-  options: CheckerOptions
+  options: CheckerOptions;
 
   /** Maps an absolute path to the module state */
-  moduleCache: Map<string, ModuleState> = new Map()
+  moduleCache: Map<string, ModuleState> = new Map();
 
-  constructor (options: CheckerOptions) {
-    this.options = options
+  constructor(options: CheckerOptions) {
+    this.options = options;
   }
 
   /**
    * @param startPath - The absolute path (unique file ID) of the start file.
    */
-  async start (startPath: string): Promise<TypeCheckerResults> {
-    const results = new TypeCheckerResults(this, startPath)
-    await this._ensureModuleLoaded(results, startPath)
+  async start(startPath: string): Promise<TypeCheckerResults> {
+    const results = new TypeCheckerResults(this, startPath);
+    await this._ensureModuleLoaded(results, startPath);
 
-    const state = this.moduleCache.get(startPath)
+    const state = this.moduleCache.get(startPath);
     if (state && state.state === 'loaded' && state.module.type === 'module') {
       const lastExportedCmd = [...state.module.types]
         .reverse()
-        .find(([, type]) => type.type === 'named' && type.typeSpec === cmd)
+        .find(([, type]) => type.type === 'named' && type.typeSpec === cmd);
       if (lastExportedCmd) {
         results.lastExportedCmd = {
           moduleId: startPath,
           name: lastExportedCmd[0],
-        }
+        };
       }
     }
-    return results
+    return results;
   }
 
   /** Try to parse and type check a module given by `provideFile` */
-  private async _getResultFromProvided (
+  private async _getResultFromProvided(
     results: TypeCheckerResults,
     modulePath: string,
     provided: ProvidedFile,
   ): Promise<CompilableModule | ParseErrorWithSource | null> {
     if (typeof provided === 'symbol') {
-      this.moduleCache.set(modulePath, { state: 'error', error: provided })
-      return null
+      this.moduleCache.set(modulePath, { state: 'error', error: provided });
+      return null;
     } else if (typeof provided === 'string' || 'block' in provided) {
-      let blockWithSource: ParsedBlockWithSource
+      let blockWithSource: ParsedBlockWithSource;
       if (typeof provided === 'string') {
-        const parsed = parse(provided)
+        const parsed = parse(provided);
         if (parsed instanceof Block) {
-          blockWithSource = { source: provided, block: parsed }
+          blockWithSource = { source: provided, block: parsed };
         } else {
-          return { source: provided, error: parsed }
+          return { source: provided, error: parsed };
         }
       } else {
-        blockWithSource = provided
+        blockWithSource = provided;
       }
-      const { source, block } = blockWithSource
+      const { source, block } = blockWithSource;
 
-      const relToAbsPaths: Map<string, string> = new Map()
+      const relToAbsPaths: Map<string, string> = new Map();
       for (const importPath of getImportPaths(block)) {
-        const path = this.options.absolutePath(modulePath, importPath)
-        relToAbsPaths.set(importPath, path)
+        const path = this.options.absolutePath(modulePath, importPath);
+        relToAbsPaths.set(importPath, path);
       }
       await Promise.all(
         Array.from(relToAbsPaths.values(), path =>
           this._ensureModuleLoaded(results, path),
         ),
-      )
+      );
 
       const globalScope = new GlobalScope(
         results.newFile(
@@ -405,23 +406,23 @@ export class TypeChecker {
           source,
           new Map(
             Array.from(relToAbsPaths, ([path, absPath]) => {
-              const state = this.moduleCache.get(absPath)
+              const state = this.moduleCache.get(absPath);
               if (!state) {
-                throw new Error('module cache does not have absolute path.')
+                throw new Error('module cache does not have absolute path.');
               }
-              return [path, state]
+              return [path, state];
             }),
           ),
         ),
-      )
-      const scope = globalScope.inner({ exportsAllowed: true })
-      scope.checkStatement(block)
-      scope.end()
-      return { module: scope.toModule(modulePath), compilable: block }
+      );
+      const scope = globalScope.inner({ exportsAllowed: true });
+      scope.checkStatement(block);
+      scope.end();
+      return { module: scope.toModule(modulePath), compilable: block };
     } else if ('module' in provided) {
-      return { module: provided.module, compilable: provided.compiled }
+      return { module: provided.module, compilable: provided.compiled };
     } else {
-      return provided
+      return provided;
     }
   }
 
@@ -429,28 +430,28 @@ export class TypeChecker {
    * @param modulePath - Unique ID for the file (with a file system, the
    * absolute path).
    */
-  private async _ensureModuleLoaded (
+  private async _ensureModuleLoaded(
     results: TypeCheckerResults,
     modulePath: string,
   ) {
-    if (this.moduleCache.has(modulePath)) return
-    this.moduleCache.set(modulePath, { state: 'loading' })
+    if (this.moduleCache.has(modulePath)) return;
+    this.moduleCache.set(modulePath, { state: 'loading' });
 
     const result = await this._getResultFromProvided(
       results,
       modulePath,
       await this.options.provideFile(modulePath),
-    )
+    );
     if (result) {
       if ('error' in result) {
-        results.syntaxError(modulePath, result.source, result.error)
+        results.syntaxError(modulePath, result.source, result.error);
         this.moduleCache.set(modulePath, {
           state: 'loaded',
           module: unknown,
           compilable: Block.empty(),
-        })
+        });
       } else {
-        this.moduleCache.set(modulePath, { state: 'loaded', ...result })
+        this.moduleCache.set(modulePath, { state: 'loaded', ...result });
       }
     }
   }
@@ -459,23 +460,23 @@ export class TypeChecker {
    * Call this after calling `start()`. Throws an error if this was called with
    * type errors.
    */
-  compile (
+  compile(
     results: TypeCheckerResults,
     { module = { type: 'iife', executeMain: true } }: CompilationOptions = {},
   ): string {
-    const context = new CompilationContext()
-    const compiled: string[] = []
+    const context = new CompilationContext();
+    const compiled: string[] = [];
     // Reverse the module cache because insertion order probably happens from
     // dependents -> dependencies
     for (const [modulePath, state] of [...this.moduleCache].reverse()) {
       if (state.state !== 'loaded') {
-        throw new Error(`${modulePath} is of state ${state.state}`)
+        throw new Error(`${modulePath} is of state ${state.state}`);
       }
       if (state.compilable instanceof Block) {
-        compiled.push(...context.compile(state.compilable, modulePath))
+        compiled.push(...context.compile(state.compilable, modulePath));
       } else {
-        compiled.push(...state.compilable.compiled)
-        context.defineModuleNames(modulePath, state.compilable.exportNames)
+        compiled.push(...state.compilable.compiled);
+        context.defineModuleNames(modulePath, state.compilable.exportNames);
       }
     }
     const prelude = [
@@ -485,16 +486,16 @@ export class TypeChecker {
       '  valueAssertionResults_n[i] = false;',
       '}',
       ...context.dependencies,
-    ]
-    const main = context.genVarName('main')
+    ];
+    const main = context.genVarName('main');
     if (results.lastExportedCmd) {
       const mainVar = context
         .getModule(results.lastExportedCmd.moduleId)
-        .names.get(results.lastExportedCmd.name)
+        .names.get(results.lastExportedCmd.name);
       if (!mainVar) {
         throw new ReferenceError(
           `Cannot find name for ${results.lastExportedCmd.name}`,
-        )
+        );
       }
       compiled.push(
         `function ${main}(callback) {`,
@@ -511,7 +512,7 @@ export class TypeChecker {
         '    });',
         '  }',
         '}',
-      )
+      );
     } else {
       compiled.push(
         `function ${main}(callback) {`,
@@ -520,9 +521,9 @@ export class TypeChecker {
         '    return Promise.resolve()',
         '  }',
         '}',
-      )
+      );
     }
-    let lines
+    let lines;
     if (module.type === 'umd') {
       // https://github.com/umdjs/umd/blob/master/templates/returnExports.js
       lines = [
@@ -544,10 +545,10 @@ export class TypeChecker {
           '};',
         ]),
         '}));',
-      ]
+      ];
     } else if (module.type === 'iife') {
       if (module.executeMain) {
-        compiled.push(`${main}();`)
+        compiled.push(`${main}();`);
       }
       lines = [
         '(function () {',
@@ -560,7 +561,7 @@ export class TypeChecker {
           '};',
         ]),
         '})();',
-      ]
+      ];
     } else {
       lines = [
         ...prelude,
@@ -569,13 +570,13 @@ export class TypeChecker {
         '  valueAssertionResults_n as valueAssertions,',
         `  ${main} as main,`,
         '};',
-      ]
+      ];
     }
-    return lines.map(line => line + '\n').join('')
+    return lines.map(line => line + '\n').join('');
   }
 }
 
 export type CompiledExports = {
-  valueAssertions: { [id: number]: boolean }
-  main<T>(callback?: (result: T) => void): Promise<T>
-}
+  valueAssertions: { [id: number]: boolean };
+  main<T>(callback?: (result: T) => void): Promise<T>;
+};

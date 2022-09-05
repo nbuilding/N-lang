@@ -1,7 +1,7 @@
-import { CompiledModule } from '.'
-import { CompilationContext } from '../compiler/CompilationContext'
-import { cmd, int, map, maybe, str } from '../type-checker/types/builtins'
-import { makeFunction, makeRecord } from '../type-checker/types/types'
+import { CompiledModule } from '.';
+import { CompilationContext } from '../compiler/CompilationContext';
+import { cmd, int, map, maybe, str } from '../type-checker/types/builtins';
+import { makeFunction, makeRecord } from '../type-checker/types/types';
 
 export default {
   variables: {
@@ -15,10 +15,10 @@ export default {
   },
 
   compile(context: CompilationContext): CompiledModule {
-    const request = context.require('request')
+    const request = context.require('request');
     return {
       statements: [],
       exports: { request },
-    }
+    };
   },
-}
+};

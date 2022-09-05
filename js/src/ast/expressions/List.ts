@@ -1,84 +1,82 @@
-import schema, * as schem from '../../utils/schema'
+import schema, * as schem from '../../utils/schema';
 import {
   CompilationResult,
   Expression,
   isExpression,
   TypeCheckContext,
   TypeCheckResult,
-} from './Expression'
-import { Base, BasePosition } from '../base'
-import { compareEqualTypes } from '../../type-checker/types/comparisons/compare-equal'
-import { list } from '../../type-checker/types/builtins'
-import { unknown } from '../../type-checker/types/types'
-import { ErrorType } from '../../type-checker/errors/Error'
-import { CompilationScope } from '../../compiler/CompilationScope'
-import { Spread } from './Spread'
+} from './Expression';
+import { Base, BasePosition } from '../base';
+import { compareEqualTypes } from '../../type-checker/types/comparisons/compare-equal';
+import { list } from '../../type-checker/types/builtins';
+import { unknown } from '../../type-checker/types/types';
+import { ErrorType } from '../../type-checker/errors/Error';
+import { CompilationScope } from '../../compiler/CompilationScope';
+import { Spread } from './Spread';
 
 export class List extends Base implements Expression {
-  items: Expression[]
+  items: Expression[];
 
-  constructor (
+  constructor(
     pos: BasePosition,
     [, rawItems]: schem.infer<typeof List.schema>,
   ) {
     const items = rawItems
       ? [...rawItems[0].map(([item]) => item), rawItems[1]]
-      : []
-    super(pos, items)
-    this.items = items
+      : [];
+    super(pos, items);
+    this.items = items;
   }
 
-  typeCheck (context: TypeCheckContext): TypeCheckResult {
-    const types = []
-    let exitPoint
+  typeCheck(context: TypeCheckContext): TypeCheckResult {
+    const types = [];
+    let exitPoint;
     for (const item of this.items) {
-      const { type, exitPoint: exit } = context.scope.typeCheck(item)
+      const { type, exitPoint: exit } = context.scope.typeCheck(item);
       if (item instanceof Spread) {
         if (type.type == 'named' && type.typeSpec === list) {
-          types.push(type.typeVars[0])
+          types.push(type.typeVars[0]);
         } else {
-          context.err(
-            {
-              type: ErrorType.UNALLOWED_SPREAD,
-            }
-          )
+          context.err({
+            type: ErrorType.UNALLOWED_SPREAD,
+          });
         }
       } else {
-        types.push(type)
+        types.push(type);
       }
-      if (!exitPoint) exitPoint = exit
+      if (!exitPoint) exitPoint = exit;
     }
     if (types.length === 0) {
-      return { type: list.instance([unknown]), exitPoint }
+      return { type: list.instance([unknown]), exitPoint };
     } else {
-      const result = compareEqualTypes(types)
+      const result = compareEqualTypes(types);
       if (result.error) {
         context.err({
           type: ErrorType.LIST_ITEMS_MISMATCH,
           error: result.error.result,
           index: result.error.index,
-        })
+        });
       }
-      return { type: list.instance([result.type]), exitPoint }
+      return { type: list.instance([result.type]), exitPoint };
     }
   }
 
-  compile (scope: CompilationScope): CompilationResult {
-    const statements: string[] = []
-    const expressions: string[] = []
+  compile(scope: CompilationScope): CompilationResult {
+    const statements: string[] = [];
+    const expressions: string[] = [];
     for (const item of this.items) {
-      const { statements: s, expression } = item.compile(scope)
-      statements.push(...s)
-      expressions.push((item instanceof Spread ? '...' : '') + expression)
+      const { statements: s, expression } = item.compile(scope);
+      statements.push(...s);
+      expressions.push((item instanceof Spread ? '...' : '') + expression);
     }
     return {
       statements,
       expression: `[${expressions.join(', ')}]`,
-    }
+    };
   }
 
-  toString (): string {
-    return `[${this.items.join(', ')}]`
+  toString(): string {
+    return `[${this.items.join(', ')}]`;
   }
 
   static schema = schema.tuple([
@@ -91,5 +89,5 @@ export class List extends Base implements Expression {
       ]),
     ),
     schema.any,
-  ])
+  ]);
 }

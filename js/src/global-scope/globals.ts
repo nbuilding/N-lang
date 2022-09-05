@@ -295,6 +295,6 @@ const lines: Record<
     '  return int;',
     '}',
   ],
-}
+};
 
-export default lines
+export default lines;

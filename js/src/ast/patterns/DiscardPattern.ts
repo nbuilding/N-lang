@@ -1,38 +1,35 @@
-import { CompilationScope } from '../../compiler/CompilationScope'
-import schema, * as schem from '../../utils/schema'
-import { Base, BasePosition } from '../base'
+import { CompilationScope } from '../../compiler/CompilationScope';
+import schema, * as schem from '../../utils/schema';
+import { Base, BasePosition } from '../base';
 import {
   CheckPatternContext,
   CheckPatternResult,
   Pattern,
   PatternCompilationResult,
-} from './Pattern'
+} from './Pattern';
 
 export class DiscardPattern extends Base implements Pattern {
-  constructor (
-    pos: BasePosition,
-    _: schem.infer<typeof DiscardPattern.schema>,
-  ) {
-    super(pos)
+  constructor(pos: BasePosition, _: schem.infer<typeof DiscardPattern.schema>) {
+    super(pos);
   }
 
-  checkPattern (_context: CheckPatternContext): CheckPatternResult {
-    return {}
+  checkPattern(_context: CheckPatternContext): CheckPatternResult {
+    return {};
   }
 
-  compilePattern (
+  compilePattern(
     _scope: CompilationScope,
     _valueName: string,
   ): PatternCompilationResult {
     return {
       statements: [],
       varNames: [],
-    }
+    };
   }
 
-  toString (): string {
-    return '_'
+  toString(): string {
+    return '_';
   }
 
-  static schema = schema.tuple([schema.any])
+  static schema = schema.tuple([schema.any]);
 }

@@ -198,6 +198,6 @@ const lines: Record<
     '  }',
     '}',
   ],
-}
+};
 
-export default lines
+export default lines;

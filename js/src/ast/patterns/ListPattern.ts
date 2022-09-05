@@ -1,70 +1,70 @@
-import { CompilationScope } from '../../compiler/CompilationScope'
-import { ErrorType } from '../../type-checker/errors/Error'
-import { list } from '../../type-checker/types/builtins'
-import { NType, unknown } from '../../type-checker/types/types'
-import { AliasSpec } from '../../type-checker/types/TypeSpec'
-import schema, * as schem from '../../utils/schema'
-import { Base, BasePosition } from '../base'
+import { CompilationScope } from '../../compiler/CompilationScope';
+import { ErrorType } from '../../type-checker/errors/Error';
+import { list } from '../../type-checker/types/builtins';
+import { NType, unknown } from '../../type-checker/types/types';
+import { AliasSpec } from '../../type-checker/types/TypeSpec';
+import schema, * as schem from '../../utils/schema';
+import { Base, BasePosition } from '../base';
 import {
   CheckPatternContext,
   CheckPatternResult,
   isPattern,
   Pattern,
   PatternCompilationResult,
-} from './Pattern'
+} from './Pattern';
 
 export class ListPattern extends Base implements Pattern {
-  patterns: Pattern[]
+  patterns: Pattern[];
 
-  constructor (
+  constructor(
     pos: BasePosition,
     [, rawPatterns]: schem.infer<typeof ListPattern.schema>,
   ) {
     const patterns = rawPatterns
       ? [...rawPatterns[0].map(([pattern]) => pattern), rawPatterns[1]]
-      : []
-    super(pos, patterns)
-    this.patterns = patterns
+      : [];
+    super(pos, patterns);
+    this.patterns = patterns;
   }
 
-  checkPattern (context: CheckPatternContext): CheckPatternResult {
-    let innerType: NType = unknown
-    const resolved = AliasSpec.resolve(context.type)
+  checkPattern(context: CheckPatternContext): CheckPatternResult {
+    let innerType: NType = unknown;
+    const resolved = AliasSpec.resolve(context.type);
     if (resolved.type === 'named' && resolved.typeSpec === list) {
-      innerType = resolved.typeVars[0]
+      innerType = resolved.typeVars[0];
     } else if (resolved.type !== 'unknown') {
       context.err({
         type: ErrorType.PATTERN_MISMATCH,
         assignedTo: resolved,
         destructure: 'list',
-      })
+      });
     }
     if (context.definite) {
       context.err({
         type: ErrorType.LIST_PATTERN_DEFINITE,
         items: this.patterns.length,
-      })
+      });
     }
     for (const pattern of this.patterns) {
-      context.checkPattern(pattern, innerType)
+      context.checkPattern(pattern, innerType);
     }
-    return {}
+    return {};
   }
 
-  compilePattern (
+  compilePattern(
     scope: CompilationScope,
     valueName: string,
   ): PatternCompilationResult {
-    const statements: string[] = []
-    const varNames: string[] = []
+    const statements: string[] = [];
+    const varNames: string[] = [];
     this.patterns.forEach((pattern, i) => {
       const { statements: s, varNames: v } = pattern.compilePattern(
         scope,
         `${valueName}[${i}]`,
-      )
-      statements.push(...s)
-      varNames.push(...v)
-    })
+      );
+      statements.push(...s);
+      varNames.push(...v);
+    });
     return {
       statements: [
         `if (${valueName}.length === ${this.patterns.length}) {`,
@@ -72,11 +72,11 @@ export class ListPattern extends Base implements Pattern {
         '} else break;',
       ],
       varNames,
-    }
+    };
   }
 
-  toString (): string {
-    return `[${this.patterns.join(', ')}]`
+  toString(): string {
+    return `[${this.patterns.join(', ')}]`;
   }
 
   static schema = schema.tuple([
@@ -89,5 +89,5 @@ export class ListPattern extends Base implements Pattern {
       ]),
     ),
     schema.any,
-  ])
+  ]);
 }
