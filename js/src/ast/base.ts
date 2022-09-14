@@ -83,7 +83,7 @@ export class Base {
   }
 
   // Make the output of util.inspect cleaner
-  [util.inspect.custom](): unknown {
+  [util?.inspect?.custom]?(): unknown {
     const obj = { ...(this as Record<string, unknown>) };
     // Sets a hidden value
     Object.defineProperty(obj, 'constructor', {

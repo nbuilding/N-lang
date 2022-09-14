@@ -209,7 +209,7 @@ export function parse(
           }
         }
         console.error('All the results are exactly the same! D:');
-      } catch (err) {
+      } catch (err: any) {
         console.error(err.message);
         console.error(`^ Differences between results 0 and ${i}`);
       }
