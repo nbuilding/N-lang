@@ -17,6 +17,7 @@ window.addEventListener('resize', () => {
 ;(window as any).__addToLog = addToLog
 
 function run() {
+  console.log('ajs;lkdfjalsdjkfjsakldfj')
   log.setValue('')
   monaco.editor.setModelLanguage(logModel, '')
   if (watcher.status.type === 'success') {
@@ -27,10 +28,15 @@ function run() {
       },
     })
     const { display, errors } = watcher.results.displayAll(displayer)
-    console.log(display)
+    if (errors !== 0) addToLog(display)
     if (errors == 0) {
       const compiled = watcher.checker.compile(watcher.results)
+      const old = console.log
+      console.log = function (value) {
+        addToLog(value)
+      }
       ;(null, eval)(compiled)
+      console.log = old
     }
   } else {
     console.error(watcher.status.error)

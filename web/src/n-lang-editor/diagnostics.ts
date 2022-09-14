@@ -81,9 +81,9 @@ function getExpectationsFromErrMsg(err: string): string {
 export function displayDiagnostics(watcher: Watcher) {
   let oldDecorations: string[] = []
   function showDiagnostics() {
-    const fileResults = watcher.results.files.get(
-      './run.n'
-    ) as TypeCheckerResultsForFile
+    const fileResults = watcher.results
+      ? (watcher.results.files.get('./run.n') as TypeCheckerResultsForFile)
+      : { errors: [], warnings: [] }
     const markers = watcher.lastSuccess
       ? [
           ...fileResults.errors.map((error) =>
@@ -102,7 +102,7 @@ export function displayDiagnostics(watcher: Watcher) {
           ),
         ]
       : []
-    if (watcher.status.type !== 'success') {
+    if (watcher.status && watcher.status.type !== 'success') {
       const { error: err } = watcher.status
       // Avoid losing errors in the middle of typing (where there'll be syntax
       // errors)
@@ -113,7 +113,7 @@ export function displayDiagnostics(watcher: Watcher) {
           startLineNumber: watcher.model.getValue().split('\n').length,
           startColumn: 1,
           endLineNumber: watcher.model.getValue().split('\n').length,
-          endColumn: watcher.model.getValue().split('\n').at(-1).length,
+          endColumn: watcher.model.getValue().split('\n').at(-1)?.length ?? 1,
           source: 'run.n',
         })
       } else if (err.token) {

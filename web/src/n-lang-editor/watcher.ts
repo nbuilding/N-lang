@@ -1,6 +1,11 @@
 import * as monaco from 'monaco-editor'
-import { TypeCheckerResults, TypeChecker } from 'n-lang'
-import { NOT_FOUND } from 'n-lang/src/type-checker/TypeChecker'
+import {
+  TypeCheckerResults,
+  TypeChecker,
+  NOT_FOUND,
+  parse,
+  Block,
+} from 'n-lang'
 
 interface Success {
   type: 'success'
@@ -33,8 +38,27 @@ export class Watcher {
         return '_UNUSED'
       },
       provideFile(path) {
-        if (path !== './run.n') {
-          return m.getValue()
+        if (path === './run.n') {
+          try {
+            const file = m.getValue()
+            const block = parse(file, {
+              ambiguityOutput: 'omit',
+              loud: true,
+            })
+            if (block instanceof Block) {
+              return { source: file, block }
+            } else {
+              return { source: file, error: block }
+            }
+          } catch (err) {
+            if (err instanceof Error) {
+              const nodeError: NodeJS.ErrnoException = err
+              if (nodeError.code === 'ENOENT') {
+                return NOT_FOUND
+              }
+            }
+            throw err
+          }
         }
         return NOT_FOUND
       },
