@@ -9,7 +9,7 @@ export function isNumber(value: unknown): value is number {
 }
 
 // https://stackoverflow.com/a/58278753
-export function isEnum<T>(
+export function isEnum<T extends Object>(
   enumObject: T,
 ): (value: unknown) => value is T[keyof T] {
   const values = Object.values(enumObject);
