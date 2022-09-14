@@ -83,6 +83,7 @@ export class Base {
   }
 
   // Make the output of util.inspect cleaner
+  // Is ? because if it is not in the node env it will cause errors
   [util?.inspect?.custom]?(): unknown {
     const obj = { ...(this as Record<string, unknown>) };
     // Sets a hidden value
