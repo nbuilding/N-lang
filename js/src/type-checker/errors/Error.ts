@@ -92,6 +92,9 @@ export enum ErrorType {
   /** Spread: Type cannot be spread properly */
   UNALLOWED_SPREAD = 'unallowed-spread',
 
+  /** Declaration: Value inside while loop is not a boolean */
+  WHILE_NOT_BOOL = 'while-not-bool',
+
   // Literals
 
   /** Identifier, VarStmt: Variable is not defined in scope */
@@ -334,7 +337,8 @@ export type ErrorMessage =
         | ErrorType.UNALLOWED_SPREAD
         | ErrorType.NO_TRAIT
         | ErrorType.TYPE_REQUIRE_MUTABLE
-        | ErrorType.MUTABLE_UNALLOWED;
+        | ErrorType.MUTABLE_UNALLOWED
+        | ErrorType.WHILE_NOT_BOOL;
     };
 
 interface NError {

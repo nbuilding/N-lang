@@ -67,6 +67,7 @@ const lexer = moo.states({
 				'if keyword': 'if',
 				'else keyword': 'else',
 				'for keyword': 'for',
+				'while keyword': 'while',
 				'in keyword': 'in',
 				'break reserved word': 'break',
 				'continue reserved word': 'continue',
@@ -128,6 +129,7 @@ keyword -> "import" {% from(ast.Identifier) %}
 	| "if" {% from(ast.Identifier) %}
 	| "else" {% from(ast.Identifier) %}
 	| "for" {% from(ast.Identifier) %}
+	| "while" {% from(ast.Identifier) %}
 	| "in" {% from(ast.Identifier) %}
 	| "not" {% from(ast.Identifier) %}
 	| "break" {% from(ast.Identifier) %}

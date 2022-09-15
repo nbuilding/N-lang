@@ -46,12 +46,12 @@ bitwiseExpression -> sumExpression {% id %}
   | bitwiseExpression _ ">>" _ sumExpression {% operation(ast.Operator.SHIFTR) %}
   | bitwiseExpression _ "<<" _ sumExpression {% operation(ast.Operator.SHIFTL) %}
 
-compareOperator -> ("==" | "=") {% ([token]) => ({ ...token[0], value: ast.Compare.EQUAL }) %}
+compareOperator -> "==" {% ([token]) => ({ ...token, value: ast.Compare.EQUAL }) %}
 	| ">" {% ([token]) => ({ ...token, value: ast.Compare.GREATER }) %}
 	| "<" {% ([token]) => ({ ...token, value: ast.Compare.LESS }) %}
 	| ">=" {% ([token]) => ({ ...token, value: ast.Compare.GEQ }) %}
 	| "<=" {% ([token]) => ({ ...token, value: ast.Compare.LEQ }) %}
-	| "~=" {% ([token]) => ({ ...token[0], value: ast.Compare.NEQ }) %}
+	| "~=" {% ([token]) => ({ ...token, value: ast.Compare.NEQ }) %}
 
 sumExpression -> productExpression {% id %}
 	| sumExpression _ "+" _ productExpression {% operation(ast.Operator.ADD) %}
@@ -76,7 +76,8 @@ postfixExpression -> value {% id %}
 postfixExpressionImpure -> postfixExpression _ "!" {% suffix(ast.UnaryOperator.AWAIT) %}
   | postfixExpression _ "[" _ noCommaExpression _ "]" {% operation(ast.Operator.INDEX) %}
 	# No newlines allowed between the function and its arguments
-	| postfixExpression (_spaces "(" _) ((spreadableExpression (_ "," _)):* spreadableExpression ((_ ","):? _)):? ")" {% from(ast.FuncCall) %}
+#	| postfixExpression (_spaces "(" _) ((spreadableExpression (_ "," _)):* spreadableExpression ((_ ","):? _)):? ")" {% from(ast.FuncCall) %} Currently Unused because spreading into functions is a bit scuffed
+	| postfixExpression (_spaces "(" _) ((noCommaExpression (_ "," _)):* noCommaExpression ((_ ","):? _)):? ")" {% from(ast.FuncCall) %}
 
 # Generally, values are the same as expressions except they require some form of
 # enclosing brackets for more complex expressions, which can help avoid syntax
@@ -93,7 +94,7 @@ value -> identifier {% id %}
 
 recordEntry -> anyIdentifier (_ ":" _) noCommaExpression {% from(ast.RecordEntry) %}
 	| identifier {% from(ast.RecordEntry) %}
-	| spread {% id %}
+	| spread {% from(ast.RecordEntry) %}
 
 string -> %string {% from(ast.String) %}
 

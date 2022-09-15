@@ -14,14 +14,14 @@ import {
 import { Spread } from './Spread';
 
 export class RecordEntry extends Base {
-  key: Identifier;
+  key: Identifier | Spread;
   value: Expression;
 
   constructor(
     pos: BasePosition,
     entry: schem.infer<typeof RecordEntry.schema>,
   ) {
-    const pair: [Identifier, Expression] =
+    const pair: [Identifier | Spread, Expression] =
       entry.length === 3 ? [entry[0], entry[2]] : [entry[0], entry[0]];
     super(pos, [pair[0], entry.length === 3 ? pair[1] : null]);
     this.key = pair[0];
@@ -34,6 +34,7 @@ export class RecordEntry extends Base {
 
   static schema = schema.union([
     schema.tuple([schema.instance(Identifier)]),
+    schema.tuple([schema.instance(Spread)]),
     schema.tuple([
       schema.instance(Identifier),
       schema.any,
@@ -62,11 +63,14 @@ export class Record extends Base implements Expression {
     let exitPoint;
     for (const entry of this.entries) {
       const { type, exitPoint: exit } = context.scope.typeCheck(entry.value);
-      if (entry.value instanceof Spread) {
-        if (type.type === 'record') {
+      if (entry.key instanceof Spread) {
+        const { type: t, exitPoint: exit } = context.scope.typeCheck(
+          entry.key.value,
+        );
+        if (t.type === 'record') {
           types = new Map([
             ...Array.from(types.entries()),
-            ...Array.from(type.types.entries()),
+            ...Array.from(t.types.entries()),
           ]);
         } else {
           types.set(entry.key.value, unknown);
@@ -99,7 +103,11 @@ export class Record extends Base implements Expression {
     for (const entry of this.entries) {
       const { statements: s, expression } = entry.value.compile(scope);
       statements.push(...s);
-      entries.push(`${mangledKeys[entry.key.value]}: ${expression}`);
+      if (entry.key instanceof Spread) {
+        entries.push(`...${expression}`);
+      } else {
+        entries.push(`${mangledKeys[entry.key.value]}: ${expression}`);
+      }
     }
     return {
       statements,

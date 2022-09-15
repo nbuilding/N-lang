@@ -9,6 +9,7 @@ statement -> "import" _ identifier {% from(ast.ImportStmt) %}
 	| aliasDefinition {% id %}
 	| classDeclaration {% id %}
 	| forLoop {% id %}
+	| whileLoop {% id %}
 	| ifStatement {% id %}
 	| assertType {% id %}
 	| assertValue {% id %}
@@ -34,6 +35,8 @@ aliasDefinition -> ("alias" _) ("pub" _):? typeSpec (_ "=" _) type {% from(ast.A
 classDeclaration -> ("class" _) ("pub" _):? ("mut" _):? identifier _ arguments (_ "{" _) block (_ "}") {% from(ast.ClassDeclaration) %}
 
 forLoop -> ("for" _ "(" _) declaration (_ "in" _) expression (_ ")" _ "{" _) block (_ "}") {% from(ast.For) %}
+
+whileLoop -> ("while" _ "(" _) expression (_ ")" _ "{" _) block (_ "}") {% from(ast.While) %}
 
 ifStatement -> ("if" _) condition (_ "{" _) block (_ "}") ((_ "else" _) elseStatement):? {% from(ast.IfStmt) %}
 

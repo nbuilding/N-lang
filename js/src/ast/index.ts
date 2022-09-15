@@ -40,6 +40,7 @@ export { Block } from './statements/Block';
 export { ClassDeclaration } from './statements/ClassDeclaration';
 export { EnumDeclaration, EnumVariant } from './statements/EnumDeclaration';
 export { For } from './statements/For';
+export { While } from './statements/While';
 export { IfStmt } from './statements/IfStmt';
 export { ImportStmt } from './statements/ImportStmt';
 export { LetStmt } from './statements/LetStmt';
