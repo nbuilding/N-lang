@@ -10,11 +10,11 @@ function err(value) {
   return [1, value];
 }
 
-function intInBase10(int) {
+function int__intInBase10(int) {
   return int.toString();
 }
 
-function round(n) {
+function float__round(n) {
   if (isFinite(n)) {
     return Math.round(n);
   } else {
@@ -22,7 +22,7 @@ function round(n) {
   }
 }
 
-function floor() {
+function float__floor() {
   if (isFinite(n)) {
     return Math.floor(n);
   } else {
@@ -30,7 +30,7 @@ function floor() {
   }
 }
 
-function ceil() {
+function float__ceil() {
   if (isFinite(n)) {
     return Math.ceil(n);
   } else {
@@ -38,7 +38,7 @@ function ceil() {
   }
 }
 
-function charCode(char) {
+function char__charCode(char) {
   if (char.length === 1) {
     return char.charCodeAt(0);
   } else {
@@ -51,9 +51,9 @@ function charCode(char) {
   }
 }
 
-function intCode(code) {
+function int__intCode(code) {
   if (code < 0 || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) {
-    return "\uFFFD";
+    return '\uFFFD';
   } else if (code > 0xffff) {
     code -= 0x10000;
     return String.fromCharCode(
@@ -65,12 +65,12 @@ function intCode(code) {
   }
 }
 
-function charAt(index) {
-  if (index < 0) {
-    // Return none
-    return function () {};
-  } else {
-    return function (string) {
+function str__charAt(string) {
+  return function (index) {
+    if (index < 0) {
+      // Return none
+      return function () {};
+    } else {
       if (index >= string.length * 2) {
         // Early exit, assuming the worst case where the string is full of
         // surrogate pairs
@@ -94,46 +94,41 @@ function charAt(index) {
       } else {
         return string[i];
       }
-    };
-  }
-}
-
-function substring(start) {
-  return function (end) {
-    if (start === end || (start >= 0 && end >= 0 && start > end)) {
-      return function () {
-        return "";
-      };
-    } else {
-      return function (string) {
-        return string.slice(start, end);
-      };
     }
   };
 }
 
-function len(value) {
-  if (typeof value === "string") {
-    var highSurrogates = 0;
-    for (var i = 0; i < string.length; i++) {
-      var codePoint = string.charCodeAt(i);
-      if (codePoint >= 0xd800 && codePoint <= 0xdbff) {
-        ++highSurrogates;
+function str__substring(string) {
+  return function (start) {
+    return function (end) {
+      if (start === end || (start >= 0 && end >= 0 && start > end)) {
+        return '';
+      } else {
+        return string.slice(start, end);
       }
-    }
-    // Subtract a surrogate from each pair
-    return string.length - highSurrogates;
-  } else if (Array.isArray(value)) {
-    // Array.isArray: IE9+
-    return value.length;
-  } else {
-    return 0;
-  }
+    };
+  };
 }
 
-function split(char) {
-  return function (string) {
-    if (string === "") {
+function str__len(value) {
+  var highSurrogates = 0;
+  for (var i = 0; i < value.length; i++) {
+    var codePoint = value.charCodeAt(i);
+    if (codePoint >= 0xd800 && codePoint <= 0xdbff) {
+      ++highSurrogates;
+    }
+  }
+  // Subtract a surrogate from each pair
+  return value.length - highSurrogates;
+}
+
+function list__len(value) {
+  return value.length;
+}
+
+function str__split(string) {
+  return function (char) {
+    if (string === '') {
       return [];
     } else {
       return string.split(char);
@@ -141,7 +136,7 @@ function split(char) {
   };
 }
 
-function strip(string) {
+function str__strip(string) {
   // String#trim: IE10+
   return string.trim();
 }
@@ -155,7 +150,7 @@ function range(start) {
     } else {
       return function (step) {
         if (step === 0) {
-          throw new Error("Undefined behaviour. See nbuilding/N-lang#246");
+          throw new Error('Undefined behaviour. See nbuilding/N-lang#246');
         }
         var numbers = [];
         if (step > 0) {
@@ -181,28 +176,28 @@ function range(start) {
 
 function print(value) {
   // TODO: Prettify
-  console.log(value, typeof value);
+  console.log(value);
   return value;
 }
 
-function itemAt(index) {
-  if (index < 0) {
-    return function () {};
-  } else {
-    return function (list) {
+function list__itemAt(list) {
+  return function (index) {
+    if (index < 0) {
+      return;
+    } else {
       return list[index];
-    };
-  }
+    }
+  };
 }
 
-function append(item) {
-  return function (list) {
+function list__append(list) {
+  return function (item) {
     return list.concat([item]);
   };
 }
 
-function filterMap(transform) {
-  return function (list) {
+function list__filterMap(list) {
+  return function (transform) {
     var newList = [];
     for (var i = 0; i < list.length; i++) {
       var result = transform(list[i]);
@@ -214,8 +209,8 @@ function filterMap(transform) {
   };
 }
 
-function default_(defaultValue) {
-  return function (maybe) {
+function maybe__default_(maybe) {
+  return function (defaultValue) {
     if (maybe === undefined) {
       return defaultValue;
     } else {
@@ -224,8 +219,8 @@ function default_(defaultValue) {
   };
 }
 
-function then(onCmdFinish) {
-  return function (cmd) {
+function cmd__then(cmd) {
+  return function (onCmdFinish) {
     return function (callback) {
       cmd(function (result) {
         onCmdFinish(result)(callback);
@@ -235,13 +230,24 @@ function then(onCmdFinish) {
 }
 
 function mapFrom(entries) {
-  throw new Error("Not implemented");
+  let out = new Map();
+  for (const entry of entries) {
+    out.set(entry[0], entry[1]);
+  }
+  return out;
 }
 
-function getValue(key) {
-  throw new Error("Not implemented");
+function map__getValue(map) {
+  return function (key) {
+    return map.get(key);
+  };
 }
 
-function entries(map) {
-  throw new Error("Not implemented");
+function map__entries(map) {
+  return Array.from(map.entries());
+}
+
+function int__toFloat(int) {
+  // ints and floats are the same in js lol
+  return int;
 }

@@ -1,7 +1,7 @@
 import { exec } from 'child_process'
 import ghpages from 'gh-pages'
 
-function run (command: string): Promise<{ stdout: string, stderr: string }> {
+function run(command: string): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
     exec(command, (err, stdout, stderr) => {
       if (err) {
@@ -13,9 +13,12 @@ function run (command: string): Promise<{ stdout: string, stderr: string }> {
   })
 }
 
-function publish (basePath: string, options: ghpages.PublishOptions): Promise<void> {
+function publish(
+  basePath: string,
+  options: ghpages.PublishOptions
+): Promise<void> {
   return new Promise((resolve, reject) => {
-    ghpages.publish(basePath, options, err => {
+    ghpages.publish(basePath, options, (err) => {
       if (err) {
         reject(err)
       } else {
@@ -25,7 +28,7 @@ function publish (basePath: string, options: ghpages.PublishOptions): Promise<vo
   })
 }
 
-async function main () {
+async function main() {
   const { stdout: lastCommit } = await run('git log --pretty=format:%H -n1')
   const { stdout: headRef } = await run('git symbolic-ref -q HEAD')
   const branchName = headRef.replace('refs/heads/', '').trim()
@@ -37,8 +40,7 @@ async function main () {
   })
 }
 
-main()
-  .catch(err => {
-    console.error(err)
-    process.exitCode = 1
-  })
+main().catch((err) => {
+  console.error(err)
+  process.exitCode = 1
+})

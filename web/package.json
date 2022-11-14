@@ -21,7 +21,7 @@
   "homepage": "https://github.com/nbuilding/N-lang#readme",
   "dependencies": {
     "file-saver": "^2.0.5",
-    "monaco-editor": "^0.21.2",
+    "monaco-editor": "^0.21.3",
     "n-lang": "file:../js"
   },
   "devDependencies": {

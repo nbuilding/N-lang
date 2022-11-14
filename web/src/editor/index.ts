@@ -1,5 +1,5 @@
 import * as monaco from 'monaco-editor'
-import { compileToJS } from 'n-lang'
+import { ErrorDisplayer } from 'n-lang'
 
 import materialTheme from './themes/material'
 import './themes/error'
@@ -16,20 +16,26 @@ window.addEventListener('resize', () => {
 })
 ;(window as any).__addToLog = addToLog
 
-function run () {
+function run() {
   log.setValue('')
   monaco.editor.setModelLanguage(logModel, '')
   if (watcher.status.type === 'success') {
-    if (watcher.checker.errors.length || watcher.checker.warnings.length) {
-      log.setValue(log.getValue() + watcher.checker.displayWarnings(watcher.file) + '\n')
-    }
-    if (watcher.checker.errors.length) {
-      monaco.editor.setModelLanguage(logModel, 'error')
-    } else {
-      const compiled = compileToJS(watcher.status.ast, watcher.checker.types, {
-        print: '__addToLog'
-      })
+    const displayer = new ErrorDisplayer({
+      type: 'plain',
+      displayPath(absolutePath: string, basePath: string) {
+        return './run.n'
+      },
+    })
+    const { display, errors } = watcher.results.displayAll(displayer)
+    if (errors !== 0) addToLog(display)
+    if (errors == 0) {
+      const compiled = watcher.checker.compile(watcher.results)
+      const old = console.log
+      console.log = function (value) {
+        addToLog(value)
+      }
       ;(null, eval)(compiled)
+      console.log = old
     }
   } else {
     console.error(watcher.status.error)

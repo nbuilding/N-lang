@@ -1,6 +1,6 @@
-import { normaliseEnum } from '../../compiler/EnumRepresentation'
-import { NType } from './types'
-import { AliasSpec, EnumSpec } from './TypeSpec'
+import { normaliseEnum } from '../../compiler/EnumRepresentation';
+import { NType } from './types';
+import { AliasSpec, EnumSpec } from './TypeSpec';
 
 /**
  * Note that a unit type in this sense is any type that has only one variant.
@@ -11,12 +11,12 @@ import { AliasSpec, EnumSpec } from './TypeSpec'
  * Since there's only one variant of this type, the value is known at compile
  * time and doesn't need to be stored during runtime.
  */
-export function isUnitLike (type: NType): boolean {
-  const resolved = AliasSpec.resolve(type)
+export function isUnitLike(type: NType): boolean {
+  const resolved = AliasSpec.resolve(type);
   return (
     (resolved.type === 'named' && resolved.typeSpec.isUnit) ||
     (resolved.type === 'record' && resolved.types.size === 0) ||
     resolved.type === 'module' ||
     (EnumSpec.isEnum(resolved) && normaliseEnum(resolved).type === 'unit')
-  )
+  );
 }

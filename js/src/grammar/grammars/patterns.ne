@@ -12,12 +12,12 @@ tuplePattern -> valuePattern {% id %}
 	| (valuePattern (_ "," _)):+ valuePattern (_ ","):? {% from(ast.TuplePattern) %}
 
 valuePattern -> definitePattern {% id %}
-	| ("<" _) identifier (__ valuePattern):* (_ ">") {% from(ast.EnumPattern) %}
+	| identifier (_ "(" )  ((valuePattern (_ "," _)):* valuePattern ((_ ","):? _)):? (_ ")") {% from(ast.EnumPattern) %}
 	| ("[" _) ((valuePattern (_ "," _)):* valuePattern ((_ ","):? _)):? "]" {% from(ast.ListPattern) %}
 
 definitePattern -> identifier {% id %}
 	| "_" {% from(ast.DiscardPattern) %}
-	| ("{" _) ((recordPatternEntry blockSeparator):* recordPatternEntry (blockSeparator | _spaces)):? "}" {% from(ast.RecordPattern) %}
+	| ("{" _) ((recordPatternEntry (_ "," _)):* recordPatternEntry ((_ ","):? _)):? "}" {% from(ast.RecordPattern) %}
 	| "(" _ pattern _ ")" {% includeBrackets %}
 
 recordPatternEntry -> anyIdentifier (_ ":" _) valuePattern {% from(ast.RecordPatternEntry) %}

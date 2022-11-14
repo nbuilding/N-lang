@@ -8,8 +8,8 @@ statement -> "import" _ identifier {% from(ast.ImportStmt) %}
 	| enumDeclaration {% id %}
 	| aliasDefinition {% id %}
 	| classDeclaration {% id %}
-	| oldForLoop {% id %}
 	| forLoop {% id %}
+	| whileLoop {% id %}
 	| ifStatement {% id %}
 	| assertType {% id %}
 	| assertValue {% id %}
@@ -17,9 +17,9 @@ statement -> "import" _ identifier {% from(ast.ImportStmt) %}
 	| pipeOperation {% id %}
 	| returnExpression {% id %}
 
-letStatement -> ("let" _) ("pub" _):? declaration (_ "=" _) expression {% from(ast.LetStmt) %}
+letStatement -> ("let" _) ("pub" _):? ("mut" _):? declaration (_ "=" _) expression {% from(ast.LetStmt) %}
 
-varStatement -> ("var" _) identifier (_ "=" _) expression {% from(ast.VarStmt) %}
+varStatement -> identifier (_ "=" _) expression {% from(ast.VarStmt) %}
 
 enumDeclaration -> ("type" _) ("pub" _):? typeSpec (_ "=" _) enumDefinition {% from(ast.EnumDeclaration) %}
 
@@ -27,16 +27,16 @@ enumDefinition -> ("|" _):? enumVariantEntry ((_ "|" _) enumVariantEntry):*
 
 enumVariantEntry -> ("pub" _):? enumVariant {% from(ast.EnumVariant) %}
 
-enumVariant -> ("<" _) identifier (_ typeValue):* (_ ">")
+enumVariant ->  identifier (_ "(") (_ typeValue):* (_ ")")
 	| identifier
 
 aliasDefinition -> ("alias" _) ("pub" _):? typeSpec (_ "=" _) type {% from(ast.AliasDeclaration) %}
 
-classDeclaration -> ("class" _) ("pub" _):? identifier _ arguments (_ "{" _) block (_ "}") {% from(ast.ClassDeclaration) %}
-
-oldForLoop -> ("for" _) declaration _ value (_ "{" _) block (_ "}") {% from(ast.OldFor) %}
+classDeclaration -> ("class" _) ("pub" _):? ("mut" _):? identifier _ arguments (_ "{" _) block (_ "}") {% from(ast.ClassDeclaration) %}
 
 forLoop -> ("for" _ "(" _) declaration (_ "in" _) expression (_ ")" _ "{" _) block (_ "}") {% from(ast.For) %}
+
+whileLoop -> ("while" _ "(" _) expression (_ ")" _ "{" _) block (_ "}") {% from(ast.While) %}
 
 ifStatement -> ("if" _) condition (_ "{" _) block (_ "}") ((_ "else" _) elseStatement):? {% from(ast.IfStmt) %}
 
