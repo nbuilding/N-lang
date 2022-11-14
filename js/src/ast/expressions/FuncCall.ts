@@ -24,7 +24,11 @@ import { callFunction } from '../../type-checker/types/comparisons/compare-assig
 import { unit } from '../../type-checker/types/builtins';
 import { CompilationScope } from '../../compiler/CompilationScope';
 import { isUnitLike } from '../../type-checker/types/isUnitLike';
-import { AliasSpec, FuncTypeVarSpec } from '../../type-checker/types/TypeSpec';
+import {
+  AliasSpec,
+  EnumSpec,
+  FuncTypeVarSpec,
+} from '../../type-checker/types/TypeSpec';
 import { isNullableMaybe } from '../../compiler/EnumRepresentation';
 import { Spread } from './Spread';
 
@@ -167,6 +171,8 @@ export class FuncCall extends Base implements Expression, Statement {
       }
       argPos++;
     }
+    // if (funcType.type == 'named' && funcType.typeSpec instanceof EnumSpec)
+    //   console.log(funcType.typeVars);
     return { type: funcType, exitPoint };
   }
 

@@ -24,14 +24,23 @@ export class EnumPattern extends Base implements Pattern {
     pos: BasePosition,
     [variant, , rawPatterns]: schem.infer<typeof EnumPattern.schema>,
   ) {
-    const patterns = rawPatterns.map(([, pattern]) => pattern);
+    const patterns =
+      rawPatterns != null
+        ? rawPatterns[0].map(v => v[0]).concat(rawPatterns[1])
+        : [];
     super(pos, [variant, ...patterns]);
     this.variant = variant;
     this.patterns = patterns;
   }
 
   checkPattern(context: CheckPatternContext): CheckPatternResult {
+    if (
+      context.type.type == 'named' &&
+      context.type.typeSpec instanceof EnumSpec
+    )
+      console.log(context.type.typeVars);
     if (EnumSpec.isEnum(context.type)) {
+      const typeVars = context.type.typeVars;
       this._type = context.type;
       if (context.type.typeSpec.variants.size > 1 && context.definite) {
         context.err({
@@ -56,8 +65,11 @@ export class EnumPattern extends Base implements Pattern {
             given: this.patterns.length,
           });
         }
+        console.log(
+          variant.types?.[0].type == 'named' ? variant.types[0].typeSpec : null,
+        );
         this.patterns.forEach((pattern, i) => {
-          context.checkPattern(pattern, variant.types?.[i] || unknown);
+          context.checkPattern(pattern, typeVars[i] || unknown);
         });
         return {};
       } else {
@@ -177,15 +189,19 @@ export class EnumPattern extends Base implements Pattern {
   }
 
   toString(): string {
-    return `<${this.variant}${this.patterns
-      .map(pattern => ' ' + pattern)
-      .join('')}>`;
+    return `${this.variant}(${this.patterns.join(', ')})`;
   }
 
   static schema = schema.tuple([
     schema.instance(Identifier),
     schema.any,
-    schema.array(schema.tuple([schema.any, schema.guard(isPattern)])),
+    schema.nullable(
+      schema.tuple([
+        schema.array(schema.tuple([schema.guard(isPattern), schema.any])),
+        schema.guard(isPattern),
+        schema.any,
+      ]),
+    ),
     schema.any,
   ]);
 }

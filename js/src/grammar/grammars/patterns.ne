@@ -12,7 +12,7 @@ tuplePattern -> valuePattern {% id %}
 	| (valuePattern (_ "," _)):+ valuePattern (_ ","):? {% from(ast.TuplePattern) %}
 
 valuePattern -> definitePattern {% id %}
-	| identifier (_ "(" )  (_ valuePattern):* (_ ")") {% from(ast.EnumPattern) %}
+	| identifier (_ "(" )  ((valuePattern (_ "," _)):* valuePattern ((_ ","):? _)):? (_ ")") {% from(ast.EnumPattern) %}
 	| ("[" _) ((valuePattern (_ "," _)):* valuePattern ((_ ","):? _)):? "]" {% from(ast.ListPattern) %}
 
 definitePattern -> identifier {% id %}
