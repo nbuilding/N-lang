@@ -1,176 +1,177 @@
-import { displayType } from './display-type'
+import { displayType } from './display-type';
 
 // Based on Zod: https://github.com/colinhacks/zod/blob/v3/src/types/base.ts
 
 export interface Guard<T> {
-  _output: T
-  name: string
+  _output: T;
+  name: string;
 
-  check(value: unknown): asserts value is T
+  check(value: unknown): asserts value is T;
 }
 
-export type infer<T extends Guard<any>> = T['_output']
+export type infer<T extends Guard<any>> = T['_output'];
 
 export class GuardError extends Error {
-  value: unknown
+  value: unknown;
 
-  constructor (value: unknown, shouldBe: string) {
+  constructor(value: unknown, shouldBe: string) {
     super(
       `${JSON.stringify(
         value,
         null,
         2,
       )} should be ${shouldBe}, but it's ${displayType(value)}.`,
-    )
-    this.name = this.constructor.name
-    this.value = value
+    );
+    this.name = this.constructor.name;
+    this.value = value;
   }
 }
 
 type TupleGuards<T extends [any, ...any[]] | []> = {
-  [index in keyof T]: Guard<T[index]>
+  [index in keyof T]: Guard<T[index]>;
 } &
-  Array<Guard<any>>
+  Array<Guard<any>>;
 
 class Tuple<T extends [any, ...any[]] | []> implements Guard<T> {
-  guards: TupleGuards<T>
-  name = 'array'
-  readonly _output!: T
+  guards: TupleGuards<T>;
+  name = 'array';
+  readonly _output!: T;
 
-  constructor (guards: TupleGuards<T>) {
-    this.guards = guards
+  constructor(guards: TupleGuards<T>) {
+    this.guards = guards;
   }
 
-  check (value: unknown): asserts value is T {
+  check(value: unknown): asserts value is T {
     if (Array.isArray(value)) {
       if (value.length !== this.guards.length) {
-        throw new GuardError(value, `${this.guards.length} item(s)`)
+        throw new GuardError(value, `${this.guards.length} item(s)`);
       }
       value.forEach((item, index) => {
-        const guard: { check: (value: unknown) => void } = this.guards[index]
-        guard.check(item)
-      })
+        const guard: { check: (value: unknown) => void } = this.guards[index];
+        guard.check(item);
+      });
     } else {
-      throw new GuardError(value, this.name)
+      throw new GuardError(value, this.name);
     }
   }
 }
 
 class Union<T extends [any, any, ...any[]] | []>
-  implements Guard<T[number]['_output']> {
-  guards: TupleGuards<T>
-  name: string
-  readonly _output!: T[number]['_output']
+  implements Guard<T[number]['_output']>
+{
+  guards: TupleGuards<T>;
+  name: string;
+  readonly _output!: T[number]['_output'];
 
-  constructor (guards: TupleGuards<T>) {
-    this.guards = guards
-    this.name = guards.map(guard => guard.name).join(' or ')
+  constructor(guards: TupleGuards<T>) {
+    this.guards = guards;
+    this.name = guards.map(guard => guard.name).join(' or ');
   }
 
-  check (value: unknown): asserts value is T[number]['_output'] {
+  check(value: unknown): asserts value is T[number]['_output'] {
     for (const guard of this.guards) {
       try {
-        guard.check(value)
-        return
+        guard.check(value);
+        return;
       } catch {
-        continue
+        continue;
       }
     }
-    throw new GuardError(value, this.name)
+    throw new GuardError(value, this.name);
   }
 }
 
 class Null implements Guard<null> {
-  name = 'null'
-  readonly _output!: null
+  name = 'null';
+  readonly _output!: null;
 
-  check (value: unknown): asserts value is null {
+  check(value: unknown): asserts value is null {
     if (value !== null) {
-      throw new GuardError(value, this.name)
+      throw new GuardError(value, this.name);
     }
   }
 }
 
-type Constructor<T> = { new (...args: any[]): T }
+type Constructor<T> = { new (...args: any[]): T };
 
 class Instance<T> implements Guard<T> {
-  classConstructor: Constructor<T>
-  name: string
-  readonly _output!: T
+  classConstructor: Constructor<T>;
+  name: string;
+  readonly _output!: T;
 
-  constructor (classConstructor: Constructor<T>) {
-    this.classConstructor = classConstructor
-    this.name = this.classConstructor.name
+  constructor(classConstructor: Constructor<T>) {
+    this.classConstructor = classConstructor;
+    this.name = this.classConstructor.name;
   }
 
-  check (value: unknown): asserts value is T {
+  check(value: unknown): asserts value is T {
     if (!(value instanceof this.classConstructor)) {
-      throw new GuardError(value, this.name)
+      throw new GuardError(value, this.name);
     }
   }
 }
 
 // The asserted value is void to prevent accidentally using the any value
 class Any implements Guard<void> {
-  name = 'any'
-  readonly _output!: void
+  name = 'any';
+  readonly _output!: void;
 
-  check (_value: unknown): asserts _value is void {
-    return
+  check(_value: unknown): asserts _value is void {
+    return;
   }
 }
 
 class Guarded<T> implements Guard<T> {
-  guard: (value: unknown) => value is T
-  name: string
-  readonly _output!: T
+  guard: (value: unknown) => value is T;
+  name: string;
+  readonly _output!: T;
 
-  constructor (guard: (value: unknown) => value is T, name?: string) {
-    this.guard = guard
-    this.name = name || `satisfier of ${guard.name || 'a type guard'}`
+  constructor(guard: (value: unknown) => value is T, name?: string) {
+    this.guard = guard;
+    this.name = name || `satisfier of ${guard.name || 'a type guard'}`;
   }
 
-  check (value: unknown): asserts value is any {
+  check(value: unknown): asserts value is any {
     if (!this.guard(value)) {
-      throw new GuardError(value, this.name)
+      throw new GuardError(value, this.name);
     }
   }
 }
 
 class ArrayOf<T> implements Guard<T[]> {
-  guard: Guard<T>
-  name: string
-  readonly _output!: T[]
+  guard: Guard<T>;
+  name: string;
+  readonly _output!: T[];
 
-  constructor (guard: Guard<T>) {
-    this.guard = guard
-    this.name = `array of ${guard.name}`
+  constructor(guard: Guard<T>) {
+    this.guard = guard;
+    this.name = `array of ${guard.name}`;
   }
 
-  check (value: unknown): asserts value is T[] {
+  check(value: unknown): asserts value is T[] {
     if (Array.isArray(value)) {
       for (const item of value) {
-        this.guard.check(item)
+        this.guard.check(item);
       }
     } else {
-      throw new GuardError(value, 'array')
+      throw new GuardError(value, 'array');
     }
   }
 }
 
 class Nullable<T> implements Guard<T | null> {
-  guard: Guard<T>
-  name: string
-  readonly _output!: T | null
+  guard: Guard<T>;
+  name: string;
+  readonly _output!: T | null;
 
-  constructor (guard: Guard<T>) {
-    this.guard = guard
-    this.name = `nullable ${guard.name}`
+  constructor(guard: Guard<T>) {
+    this.guard = guard;
+    this.name = `nullable ${guard.name}`;
   }
 
-  check (value: unknown): asserts value is T | null {
+  check(value: unknown): asserts value is T | null {
     if (value !== null) {
-      this.guard.check(value)
+      this.guard.check(value);
     }
   }
 }
@@ -179,39 +180,39 @@ export default {
   null: new Null(),
   any: new Any(),
 
-  nullable<T> (guard: Guard<T>): Nullable<T> {
-    return new Nullable(guard)
+  nullable<T>(guard: Guard<T>): Nullable<T> {
+    return new Nullable(guard);
   },
 
-  tuple<T extends [any, ...any[]] | []> (validators: TupleGuards<T>): Guard<T> {
-    return new Tuple(validators)
+  tuple<T extends [any, ...any[]] | []>(validators: TupleGuards<T>): Guard<T> {
+    return new Tuple(validators);
   },
 
-  array<T> (guard: Guard<T>): Guard<T[]> {
-    return new ArrayOf(guard)
+  array<T>(guard: Guard<T>): Guard<T[]> {
+    return new ArrayOf(guard);
   },
 
-  instance<T> (classConstructor: Constructor<T>): Guard<T> {
+  instance<T>(classConstructor: Constructor<T>): Guard<T> {
     if (classConstructor === undefined) {
       throw new Error(
         "TypeScript is big dumb and didn't catch you passing in undefined as the class constructor, but I did!",
-      )
+      );
     }
-    return new Instance(classConstructor)
+    return new Instance(classConstructor);
   },
 
-  guard<T> (guard: (value: unknown) => value is T, name?: string): Guard<T> {
+  guard<T>(guard: (value: unknown) => value is T, name?: string): Guard<T> {
     if (guard === undefined) {
       throw new Error(
         "TypeScript is big dumb and didn't catch you passing in undefined for the type guard function, but I did!",
-      )
+      );
     }
-    return new Guarded(guard, name)
+    return new Guarded(guard, name);
   },
 
-  union<T extends [any, any, ...any[]] | []> (
+  union<T extends [any, any, ...any[]] | []>(
     validators: TupleGuards<T>,
   ): Guard<T[number]> {
-    return new Union(validators)
+    return new Union(validators);
   },
-}
+};

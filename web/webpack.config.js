@@ -1,5 +1,5 @@
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin')
-const CopyPlugin = require("copy-webpack-plugin")
+const CopyPlugin = require('copy-webpack-plugin')
 const path = require('path')
 
 const production = process.env.NODE_ENV === 'production'
@@ -35,17 +35,15 @@ module.exports = {
     alias: {
       'n-lang': path.resolve(__dirname, '../js/src/'),
       // Ignore some Node modules
-      'util': false,
-      'assert': false,
+      util: false,
+      assert: false,
       'colors/safe': false,
     },
   },
   plugins: [
     new MonacoWebpackPlugin(),
     new CopyPlugin({
-      patterns: [
-        { from: './static' }
-      ]
+      patterns: [{ from: './static' }],
     }),
   ],
   devServer: {

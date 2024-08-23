@@ -4,13 +4,13 @@ export enum UnaryOperator {
   AWAIT = 'await',
 }
 
-export function unaryOperatorToString (self: UnaryOperator): string {
+export function unaryOperatorToString(self: UnaryOperator): string {
   switch (self) {
     case UnaryOperator.NEGATE:
-      return 'negate'
+      return 'negate';
     case UnaryOperator.NOT:
-      return 'not'
+      return 'not';
     case UnaryOperator.AWAIT:
-      return 'await'
+      return 'await';
   }
 }
