@@ -65,6 +65,10 @@ variables.set(
   makeFunction(t => [t, t], false, 't'),
 );
 variables.set(
+  'printWithEnd',
+  makeFunction(t => [str, t, t], false, 't'),
+);
+variables.set(
   'mapFrom',
   makeFunction(
     (k, v) => [
@@ -169,6 +173,15 @@ setTrait(
     true,
     'a',
     'b',
+  ),
+);
+setTrait(
+  'list',
+  'subsection',
+  makeFunction(
+    t => [list.instance([t]), int, int, list.instance([t])],
+    true,
+    't',
   ),
 );
 

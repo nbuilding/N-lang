@@ -14,6 +14,8 @@ const lines: Record<
     '}',
   ],
 
+  'int.toFloat': name => [`function ${name}(int) {`, '  return int;', '}'],
+
   'float.round': name => [
     `function ${name}(n) {`,
     '  if (isFinite(n)) {',
@@ -206,6 +208,16 @@ const lines: Record<
     '}',
   ],
 
+  printWithEnd: name => [
+    `function ${name}(end) {`,
+    '  return function (value) {',
+    '    // TODO: Prettify',
+    '    process.stdout.write(`${value}${end}`);',
+    '    return value;',
+    '  };',
+    '}',
+  ],
+
   'list.itemAt': name => [
     `function ${name}(list) {`,
     '  return function (index) {',
@@ -222,6 +234,16 @@ const lines: Record<
     `function ${name}(list) {`,
     '  return function (item) {',
     '    return list.concat([item]);',
+    '  };',
+    '}',
+  ],
+
+  'list.subsection': name => [
+    `function ${name}(list) {`,
+    '  return function (start) {',
+    '    return function (end) {',
+    '      return list.slice(Math.max(start, 0), Math.max(end, 0)),',
+    '    };',
     '  };',
     '}',
   ],
@@ -286,13 +308,6 @@ const lines: Record<
   'map.entries': name => [
     `function ${name}(map) {`,
     '  return Array.from(map.entries());',
-    '}',
-  ],
-
-  'int.toFloat': name => [
-    `function ${name}(int) {`,
-    '  // ints and floats are the same in js lol',
-    '  return int;',
     '}',
   ],
 };
