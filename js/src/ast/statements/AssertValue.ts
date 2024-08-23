@@ -1,50 +1,50 @@
-import { CompilationScope } from '../../compiler/CompilationScope'
-import { ErrorType } from '../../type-checker/errors/Error'
-import { bool } from '../../type-checker/types/builtins'
-import schema, * as schem from '../../utils/schema'
-import { Base, BasePosition } from '../base'
-import { Expression, isExpression } from '../expressions/Expression'
+import { CompilationScope } from '../../compiler/CompilationScope';
+import { ErrorType } from '../../type-checker/errors/Error';
+import { bool } from '../../type-checker/types/builtins';
+import schema, * as schem from '../../utils/schema';
+import { Base, BasePosition } from '../base';
+import { Expression, isExpression } from '../expressions/Expression';
 import {
   CheckStatementContext,
   CheckStatementResult,
   Statement,
   StatementCompilationResult,
-} from './Statement'
+} from './Statement';
 
 export class AssertValue extends Base implements Statement {
-  expression: Expression
-  id: number = -1
+  expression: Expression;
+  id: number = -1;
 
-  constructor (
+  constructor(
     pos: BasePosition,
     [, expression]: schem.infer<typeof AssertValue.schema>,
   ) {
-    super(pos, [expression])
-    this.expression = expression
+    super(pos, [expression]);
+    this.expression = expression;
   }
 
-  checkStatement (context: CheckStatementContext): CheckStatementResult {
-    this.id = context.scope.results.addValueAssertion(this)
+  checkStatement(context: CheckStatementContext): CheckStatementResult {
+    this.id = context.scope.results.addValueAssertion(this);
 
-    const { type, exitPoint } = context.scope.typeCheck(this.expression)
-    context.isTypeError(ErrorType.VALUE_ASSERTION_NOT_BOOL, bool, type)
-    return { exitPoint }
+    const { type, exitPoint } = context.scope.typeCheck(this.expression);
+    context.isTypeError(ErrorType.VALUE_ASSERTION_NOT_BOOL, bool, type);
+    return { exitPoint };
   }
 
-  compileStatement (scope: CompilationScope): StatementCompilationResult {
-    const { statements, expression } = this.expression.compile(scope)
+  compileStatement(scope: CompilationScope): StatementCompilationResult {
+    const { statements, expression } = this.expression.compile(scope);
     return {
       statements: [
         ...statements,
         // TODO: Maybe there should be an option to remove this altogether
         `${scope.context.require('assertValue')}(${this.id}, ${expression});`,
       ],
-    }
+    };
   }
 
-  toString (): string {
-    return `assert value ${this.expression}`
+  toString(): string {
+    return `assert value ${this.expression}`;
   }
 
-  static schema = schema.tuple([schema.any, schema.guard(isExpression)])
+  static schema = schema.tuple([schema.any, schema.guard(isExpression)]);
 }

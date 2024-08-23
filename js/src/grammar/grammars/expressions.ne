@@ -9,7 +9,12 @@ returnExpression -> "return" _ expression {% from(ast.Return) %}
 
 funcExpr -> arguments (_ "->" _) type (_ "{" _) block (_ "}") {% from(ast.Function) %}
 
-arguments -> "[" (_ typeVarsDeclaration):? (_ definiteDeclaration (__ definiteDeclaration):*):? (_ "]") {% from(ast.Arguments) %}
+arguments -> (("[" _) typeVarsDeclaration (_ "]" _)):? ("(") (_ definiteDeclaration ((_ "," _) definiteDeclaration):* (_ ","):?):? (_ ")") {% from(ast.Arguments) %}
+
+spread -> ".." noCommaExpression {% from(ast.Spread) %}
+
+spreadableExpression -> spread {% id %}
+  | noCommaExpression {% id %}
 
 tupleExpression -> noCommaExpression {% id %}
 	| (noCommaExpression _ "," _):+ noCommaExpression (_ ","):? {% from(ast.Tuple) %}
@@ -33,15 +38,20 @@ booleanExpression -> notExpression {% id %}
 notExpression -> compareExpression {% id %}
 	| "not" _ notExpression {% prefix(ast.UnaryOperator.NOT) %}
 
-compareExpression -> sumExpression {% id %}
-	| (sumExpression _ compareOperator _):+ sumExpression {% from(ast.Comparisons) %}
+compareExpression -> bitwiseExpression {% id %}
+	| (bitwiseExpression _ compareOperator _):+ bitwiseExpression {% from(ast.Comparisons) %}
 
-compareOperator -> ("==" | "=") {% ([token]) => ({ ...token[0], value: ast.Compare.EQUAL }) %}
+bitwiseExpression -> sumExpression {% id %}
+  | bitwiseExpression _ "^^" _ sumExpression {% operation(ast.Operator.XOR) %}
+  | bitwiseExpression _ ">>" _ sumExpression {% operation(ast.Operator.SHIFTR) %}
+  | bitwiseExpression _ "<<" _ sumExpression {% operation(ast.Operator.SHIFTL) %}
+
+compareOperator -> "==" {% ([token]) => ({ ...token, value: ast.Compare.EQUAL }) %}
 	| ">" {% ([token]) => ({ ...token, value: ast.Compare.GREATER }) %}
 	| "<" {% ([token]) => ({ ...token, value: ast.Compare.LESS }) %}
 	| ">=" {% ([token]) => ({ ...token, value: ast.Compare.GEQ }) %}
 	| "<=" {% ([token]) => ({ ...token, value: ast.Compare.LEQ }) %}
-	| ("!=" | "/=") {% ([token]) => ({ ...token[0], value: ast.Compare.NEQ }) %}
+	| "~=" {% ([token]) => ({ ...token, value: ast.Compare.NEQ }) %}
 
 sumExpression -> productExpression {% id %}
 	| sumExpression _ "+" _ productExpression {% operation(ast.Operator.ADD) %}
@@ -64,7 +74,9 @@ postfixExpression -> value {% id %}
 	| postfixExpression (_ "." _) anyIdentifier {% from(ast.RecordAccess) %}
 
 postfixExpressionImpure -> postfixExpression _ "!" {% suffix(ast.UnaryOperator.AWAIT) %}
+  | postfixExpression _ "[" _ noCommaExpression _ "]" {% operation(ast.Operator.INDEX) %}
 	# No newlines allowed between the function and its arguments
+#	| postfixExpression (_spaces "(" _) ((spreadableExpression (_ "," _)):* spreadableExpression ((_ ","):? _)):? ")" {% from(ast.FuncCall) %} Currently Unused because spreading into functions is a bit scuffed
 	| postfixExpression (_spaces "(" _) ((noCommaExpression (_ "," _)):* noCommaExpression ((_ ","):? _)):? ")" {% from(ast.FuncCall) %}
 
 # Generally, values are the same as expressions except they require some form of
@@ -77,11 +89,12 @@ value -> identifier {% id %}
 	| %char {% from(ast.Char) %}
 	| "(" _ ")" {% from(ast.Unit) %}
 	| "(" _ expression _ ")" {% includeBrackets %}
-	| ("[" _) ((noCommaExpression (_ "," _)):* noCommaExpression ((_ ","):? _)):? "]" {% from(ast.List) %}
-	| ("{" _) ((recordEntry blockSeparator):* recordEntry (blockSeparator | _spaces)):? "}" {% from(ast.Record) %}
+	| ("[" _) ((spreadableExpression (_ "," _)):* spreadableExpression ((_ ","):? _)):? "]" {% from(ast.List) %}
+	| ("{" _) ((recordEntry (_ "," _)):* recordEntry ((_ ","):? _)):? "}" {% from(ast.Record) %}
 
-recordEntry -> anyIdentifier (_ ":" _) expression {% from(ast.RecordEntry) %}
+recordEntry -> anyIdentifier (_ ":" _) noCommaExpression {% from(ast.RecordEntry) %}
 	| identifier {% from(ast.RecordEntry) %}
+	| spread {% from(ast.RecordEntry) %}
 
 string -> %string {% from(ast.String) %}
 

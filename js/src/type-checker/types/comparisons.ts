@@ -1,48 +1,48 @@
-import { fromEntries } from '../../utils/from-entries'
-import { unit } from './builtins'
-import { NType } from './types'
-import { FuncTypeVarSpec } from './TypeSpec'
+import { fromEntries } from '../../utils/from-entries';
+import { unit } from './builtins';
+import { NType } from './types';
+import { FuncTypeVarSpec } from './TypeSpec';
 
 export type ComparisonResultType =
   | {
-      type: 'named'
-      name: string
-      vars: ComparisonResult[]
+      type: 'named';
+      name: string;
+      vars: ComparisonResult[];
     }
   | {
-      type: 'func-type-var'
-      id: string
+      type: 'func-type-var';
+      id: string;
     }
   | {
-      type: 'unit'
+      type: 'unit';
     }
   | {
-      type: 'tuple'
-      types: ComparisonResult[]
+      type: 'tuple';
+      types: ComparisonResult[];
     }
   | {
-      type: 'record'
-      types: Record<string, ComparisonResult>
+      type: 'record';
+      types: Record<string, ComparisonResult>;
     }
   | {
-      type: 'module'
-      path: string
+      type: 'module';
+      path: string;
     }
   | {
-      type: 'function'
-      argument: ComparisonResult
-      return: ComparisonResult
-      typeVarIds: string[]
+      type: 'function';
+      argument: ComparisonResult;
+      return: ComparisonResult;
+      typeVarIds: string[];
     }
   | {
-      type: 'union'
-      typeNames: string[]
+      type: 'union';
+      typeNames: string[];
     }
   | {
-      type: 'omitted'
-    }
+      type: 'omitted';
+    };
 
-export function typeToResultType (type: NType): ComparisonResultType {
+export function typeToResultType(type: NType): ComparisonResultType {
   switch (type.type) {
     case 'named': {
       return type.typeSpec instanceof FuncTypeVarSpec
@@ -56,13 +56,13 @@ export function typeToResultType (type: NType): ComparisonResultType {
             type: 'named',
             name: type.typeSpec.name,
             vars: type.typeVars.map(typeToResultType),
-          }
+          };
     }
     case 'tuple': {
       return {
         type: 'tuple',
         types: type.types.map(typeToResultType),
-      }
+      };
     }
     case 'record': {
       return {
@@ -71,13 +71,13 @@ export function typeToResultType (type: NType): ComparisonResultType {
           key,
           typeToResultType(type),
         ]),
-      }
+      };
     }
     case 'module': {
       return {
         type: 'module',
         path: type.path,
-      }
+      };
     }
     case 'function': {
       return {
@@ -85,61 +85,61 @@ export function typeToResultType (type: NType): ComparisonResultType {
         argument: typeToResultType(type.argument),
         return: typeToResultType(type.return),
         typeVarIds: type.typeVars.map(typeVar => typeVar.id),
-      }
+      };
     }
     case 'union': {
       return {
         type: 'union',
         typeNames: type.types.map(type => type.name),
-      }
+      };
     }
     case 'unknown': {
       return {
         type: 'omitted',
-      }
+      };
     }
   }
 }
 
-export const CONTAINED = { issue: 'contained' } as const
+export const CONTAINED = { issue: 'contained' } as const;
 
 export type ComparisonIssue =
   | typeof CONTAINED
   | {
-      issue: 'should-be'
-      type: ComparisonResultType
+      issue: 'should-be';
+      type: ComparisonResultType;
     }
   | {
       // Function type vars, compareAssignable
-      issue: 'too-specific'
+      issue: 'too-specific';
     }
   | {
       // Union types, compareAssignable
-      issue: 'too-general'
-      canOnlyHandle: ComparisonResultType
+      issue: 'too-general';
+      canOnlyHandle: ComparisonResultType;
     }
   | {
       // Union types, compareEqual
-      issue: 'no-overlap'
-      with: ComparisonResultType
+      issue: 'no-overlap';
+      with: ComparisonResultType;
     }
   | {
       // Tuples
-      issue: 'need-extra-items'
-      types: ComparisonResultType[]
+      issue: 'need-extra-items';
+      types: ComparisonResultType[];
     }
   | {
       // Tuples
-      issue: 'too-many-items'
-      extra: number
+      issue: 'too-many-items';
+      extra: number;
     }
   | {
       // Records
-      issue: 'record-key-mismatch'
-      missing: string[]
-      extra: string[]
-    }
+      issue: 'record-key-mismatch';
+      missing: string[];
+      extra: string[];
+    };
 
 export type ComparisonResult = ComparisonResultType & {
-  issue?: ComparisonIssue
-}
+  issue?: ComparisonIssue;
+};

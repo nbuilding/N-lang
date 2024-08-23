@@ -1,8 +1,8 @@
 import * as monaco from 'monaco-editor'
 import { saveAs } from 'file-saver'
 
-import { displayDiagnostics } from '../n-lang/diagnostics'
-import { Watcher } from '../n-lang/watcher'
+import { displayDiagnostics } from '../n-lang-editor/diagnostics'
+import { Watcher } from '../n-lang-editor/watcher'
 import { getElementUnsafely, getModelUnsafely } from '../utils'
 import defaultCode from './default-code'
 
@@ -39,11 +39,17 @@ editor.addAction({
   contextMenuGroupId: 'n-lang',
   contextMenuOrder: 2,
   run: () => {
-    const blob = new Blob([editor.getValue()], { type: 'text/x-n-lang;charset=utf-8' })
+    const blob = new Blob([editor.getValue()], {
+      type: 'text/x-n-lang;charset=utf-8',
+    })
     saveAs(blob, 'main.n', { autoBom: true })
-  }
+  },
 })
 
 watcher.listen(() => {
-  window.history.replaceState({}, '', '#' + encodeURIComponent(watcher.model.getValue()))
+  window.history.replaceState(
+    {},
+    '',
+    '#' + encodeURIComponent(watcher.model.getValue())
+  )
 })

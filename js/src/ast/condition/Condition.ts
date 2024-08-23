@@ -1,60 +1,59 @@
-import { CompilationScope } from '../../compiler/CompilationScope'
-import { ErrorType } from '../../type-checker/errors/Error'
-import { Scope } from '../../type-checker/Scope'
-import { ScopeBaseContext } from '../../type-checker/ScopeBaseContext'
-import { bool } from '../../type-checker/types/builtins'
+import { CompilationScope } from '../../compiler/CompilationScope';
+import { ErrorType } from '../../type-checker/errors/Error';
+import { Scope } from '../../type-checker/Scope';
+import { ScopeBaseContext } from '../../type-checker/ScopeBaseContext';
+import { bool } from '../../type-checker/types/builtins';
 import {
   CompilationResult,
   Expression,
   isExpression,
-} from '../expressions/Expression'
-import { Return } from '../expressions/Return'
-import { IfLet } from './IfLet'
+} from '../expressions/Expression';
+import { Return } from '../expressions/Return';
+import { IfLet } from './IfLet';
 
-export type Condition = Expression | IfLet
+export type Condition = Expression | IfLet;
 
-export function isCondition (value: unknown): value is Condition {
-  return value instanceof IfLet || isExpression(value)
+export function isCondition(value: unknown): value is Condition {
+  return value instanceof IfLet || isExpression(value);
 }
 
 export interface ConditionResult {
-  scope: Scope
-  exitPoint?: Return
+  scope: Scope;
+  exitPoint?: Return;
 }
 
-export function checkCondition (
+export function checkCondition(
   context: ScopeBaseContext,
   condition: Condition,
 ): ConditionResult {
   if (condition instanceof IfLet) {
-    return condition.checkIfLet(context)
+    return condition.checkIfLet(context);
   } else {
-    const { type, exitPoint } = context.scope.typeCheck(condition)
-    context.isTypeError(ErrorType.CONDITION_NOT_BOOL, bool, type)
-    return { scope: context.scope.inner(), exitPoint }
+    const { type, exitPoint } = context.scope.typeCheck(condition);
+    context.isTypeError(ErrorType.CONDITION_NOT_BOOL, bool, type);
+    return { scope: context.scope.inner(), exitPoint };
   }
 }
 
 export type ConditionCompilationResult = {
-  statements: string[]
-  result: string
-}
+  statements: string[];
+  result: string;
+};
 
 /**
  * `scope` is the scope specifically for the "then" branch of the if
  * statement/expression. Unlike `checkCondition`, this function won't create an
  * inner scope for you.
  */
-export function compileCondition (
+export function compileCondition(
   scope: CompilationScope,
   condition: Condition,
 ): ConditionCompilationResult {
   if (condition instanceof IfLet) {
-    const { statements: exprS, expression } = condition.expression.compile(
-      scope,
-    )
-    const expressionName = scope.context.genVarName('ifLetValue')
-    const resultName = scope.context.genVarName('ifLetResult')
+    const { statements: exprS, expression } =
+      condition.expression.compile(scope);
+    const expressionName = scope.context.genVarName('ifLetValue');
+    const resultName = scope.context.genVarName('ifLetResult');
     return {
       statements: [
         ...exprS,
@@ -66,12 +65,12 @@ export function compileCondition (
         ),
       ],
       result: resultName,
-    }
+    };
   } else {
-    const { statements, expression } = condition.compile(scope)
+    const { statements, expression } = condition.compile(scope);
     return {
       statements,
       result: expression,
-    }
+    };
   }
 }

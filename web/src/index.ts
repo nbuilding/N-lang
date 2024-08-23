@@ -1,4 +1,4 @@
 import './style.css'
 
-import './n-lang/index'
+import './n-lang-editor/index'
 import './editor/index'

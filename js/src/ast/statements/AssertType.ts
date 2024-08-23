@@ -1,42 +1,42 @@
-import { CompilationScope } from '../../compiler/CompilationScope'
-import { ErrorType } from '../../type-checker/errors/Error'
-import schema, * as schem from '../../utils/schema'
-import { Base, BasePosition } from '../base'
-import { Expression, isExpression } from '../expressions/Expression'
-import { isType, Type } from '../types/Type'
+import { CompilationScope } from '../../compiler/CompilationScope';
+import { ErrorType } from '../../type-checker/errors/Error';
+import schema, * as schem from '../../utils/schema';
+import { Base, BasePosition } from '../base';
+import { Expression, isExpression } from '../expressions/Expression';
+import { isType, Type } from '../types/Type';
 import {
   CheckStatementContext,
   CheckStatementResult,
   Statement,
   StatementCompilationResult,
-} from './Statement'
+} from './Statement';
 
 export class AssertType extends Base implements Statement {
-  expression: Expression
-  type: Type
+  expression: Expression;
+  type: Type;
 
-  constructor (
+  constructor(
     pos: BasePosition,
     [, expression, , type]: schem.infer<typeof AssertType.schema>,
   ) {
-    super(pos, [expression, type])
-    this.expression = expression
-    this.type = type
+    super(pos, [expression, type]);
+    this.expression = expression;
+    this.type = type;
   }
 
-  checkStatement (context: CheckStatementContext): CheckStatementResult {
-    const { type, exitPoint } = context.scope.typeCheck(this.expression)
-    const idealType = context.scope.getTypeFrom(this.type).type
-    context.isTypeError(ErrorType.TYPE_ASSERTION_FAIL, idealType, type)
-    return { exitPoint }
+  checkStatement(context: CheckStatementContext): CheckStatementResult {
+    const { type, exitPoint } = context.scope.typeCheck(this.expression);
+    const idealType = context.scope.getTypeFrom(this.type).type;
+    context.isTypeError(ErrorType.TYPE_ASSERTION_FAIL, idealType, type);
+    return { exitPoint };
   }
 
-  compileStatement (_scope: CompilationScope): StatementCompilationResult {
-    return { statements: [] }
+  compileStatement(_scope: CompilationScope): StatementCompilationResult {
+    return { statements: [] };
   }
 
-  toString (): string {
-    return `assert type ${this.expression} : ${this.type}`
+  toString(): string {
+    return `assert type ${this.expression} : ${this.type}`;
   }
 
   static schema = schema.tuple([
@@ -44,5 +44,5 @@ export class AssertType extends Base implements Statement {
     schema.guard(isExpression),
     schema.any,
     schema.guard(isType),
-  ])
+  ]);
 }
